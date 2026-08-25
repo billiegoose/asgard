@@ -9,5 +9,7 @@
   primes, subscripts, and rule names visually against rendered source pages.
 - Prefer ASCII LaTeX source commands such as `\lambda`, `\beta`, `\rho`, and
   `\longrightarrow` instead of literal Unicode math symbols.
+- Keep transcription guidance in this file rather than a separate notes file.
+- Keep chapter commits focused: one chapter per commit when possible.
 - Chapter 1 and Chapter 2 are transcribed and committed; Chapter 2 includes two
   cropped graph figures under `thesis-transcription/src/assets/`.
