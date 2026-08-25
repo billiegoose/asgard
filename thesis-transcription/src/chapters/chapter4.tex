@@ -1467,86 +1467,103 @@ operations, both strict and non-strict.
 
 \subsection{Implementing Lazy Structures}
 
-Structures in THOR are composite data objects which prevent their components from being reduced. Structures are physically represented as a specially encoded \textbackslash{}-expression. Their compilation rule is:
+Structures in THOR are composite data objects which prevent their components from being
+reduced. Structures are physically represented as a specially encoded \(\lambda\)-expression.
+Their compilation rule is:
 
-C[\{t e1 +++ en\}, s] =
+\[
+\begin{aligned}
+C[\{t\ e_1\ \cdots\ e_n\}, s] ={}&
+  \THOR{(STRUCT }t\THOR{):(APP }C[e_n,s]\THOR{):}\cdots\\
+&\THOR{:(APP }C[e_1,s]\THOR{):(VAR 0)}
+\end{aligned}
+\]
 
-\begin{verbatim}
-(STRUCT #):(APP Clen, $]): ---: (APP Cle, s]):(VAR 0)
-\end{verbatim}
+where \(s\) is some scope list and \(t\) is the structure's tag symbol.
 
-where s is some scope list and \(\phi\) is the structure's tag symbol.
+The STRUCT instruction acts like a LAMBDA instruction except that if it is not applied to
+any arguments, it sets the quantum to zero for the duration of reducing the structure's
+components. Setting the quantum to zero prevents the components from being reduced, but
+does allow \(\beta\)-substitution of variables that may be present in the components. The
+quantum is restored after the structure has been traversed.
 
-The STRUCT instruction acts like a LAMBDA instruction except that if it is not applied to any arguments, it sets the quantum to zero for the duration of reducing the structure's components. Setting the quantum to zero prevents the components from being reduced, but does allow 6-substitution of variables that may be present in the components. The quantum is restored after the structure has been traversed. procedure STRUCT
+\begin{alltt}
+procedure STRUCT
+  if \(\rt{d} = F\) then
+    ;;; Forward Execution
+    if \(\rt{argcnt} = 0\) then
+      ;;; Push Quantum on Control Stack and Set to Zero
+      \(\rt{c} \leftarrow \rt{c}+1\)
+      \(\rtfield{c}{data} \leftarrow \rt{q}\)
+      \(\rt{q} \leftarrow 0\)
+      ;;; Copy STRUCT Instruction into Result Graph
+      \(\vdots\)
+      ;;; Place Unbound Variable in Environment
+      \(\vdots\)
+    else
+      ;;; Place Closure in Environment
+      \(\vdots\)
+    ;;; Continue Walking Down Problem Graph
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution
+    ;;; Restore the Quantum from the Control Stack
+    \(\rt{q} \leftarrow \rtfield{c}{data}\)
+    \(\rt{c} \leftarrow \rt{c}-1\)
+    ;;; Continue Walking Up Result Graph
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+end STRUCT
+\end{alltt}
 
-if d =F then
+A similar manipulation of the quantum is used to prevent the reduction of the true and
+false branches of an IF expression when the conditional does not reduce to a boolean value.
+The STRUCT and VAR instruction combination that surrounds the components of a structure
+work together to allow the components to be accessed by a certain class of
+\(\lambda\)-expression called selectors. Selector expressions are of the form
 
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
-
-if argent = 0 then
-
-\begin{verbatim}
-i33 Push Quantum on Control Stack and Set to Zero
-\end{verbatim}
-
-c ---- ctl csdata --- g q-0
-
-\begin{verbatim}
-333 Copy STRUCT Instruction into Result Graph
-333 Place Unbound Variable in Environment
-\end{verbatim}
-
-else ii\} Place Closure in Environment i; Continue Walking Down Problem Graph pe --- pert else
-
-\begin{verbatim}
-333 Reverse Execution
-\end{verbatim}
-
-iss Restore the Quantum from the Control Stack q + cedata ec ---- e-1
-
-\begin{verbatim}
-333 Continue Walking Up Result Graph
-\end{verbatim}
-
-pe --- petit end STRUCT A similar manipulation of the quantum is used to prevent the reduction of the true and false branches of an IF expression when the conditional does not reduce to a boolean value. The STRUCT and VAR instruction combination that surrounds the components of a structure work together to allow the components to be accessed by a certain class of \textbackslash{}- expression called selectors. Selector expressions are of the form
-
-\begin{verbatim}
-(Az, ++ +2n.23), l< isn.
-\end{verbatim}
+\[
+(\lambda x_1\ \cdots\ x_n.x_i),\quad 1 \leq i \leq n.
+\]
 
 % Source PDF page 81
 
-Applying a structure to a such a selector expression yields the ith component. For a selector to work properly, n should be equal to the number of components in the structure, When a structure type is defined using the - mechanism, selector expressions are au- tomatically defined for each component of the structure. For example, the definition PAIR [= CAR CDR generates
+Applying a structure to a such a selector expression yields the \(i\)th component. For a
+selector to work properly, \(n\) should be equal to the number of components in the
+structure. When a structure type is defined using the \(:=\) mechanism, selector
+expressions are automatically defined for each component of the structure. For example,
+the definition
 
-\begin{verbatim}
-CAR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR)))
-\end{verbatim}
+\[
+\THOR{PAIR := CAR CDR}
+\]
+
+generates
+
+\[
+\THOR{CAR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR)))}
+\]
 
 and
 
-\begin{verbatim}
-CDR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CDR))).
-\end{verbatim}
+\[
+\THOR{CDR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CDR))).}
+\]
 
 An example reduction sequence illustrates how these selectors work:
 
-\begin{verbatim}
-(CAR {PAIR 1 2}) —
-(CLAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR))) {PAIR 1 2}) —
-({PAIR 1 2} (LAMBDA (CAR CDR) cAR)) —> (*)
-\end{verbatim}
-
-CCLAMBDA (CAR CDR) CAR) 1 2)--- (**) CCLAMBDA (CDR) 1) 2) ---.
+\begin{align*}
+\THOR{(CAR \{PAIR 1 2\})} &\longrightarrow\\
+\THOR{((LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR))) \{PAIR 1 2\})} &\longrightarrow\\
+\THOR{(\{PAIR 1 2\} (LAMBDA (CAR CDR) CAR))} &\longrightarrow \qquad (*)\\
+\THOR{((LAMBDA (CAR CDR) CAR) 1 2)} &\longrightarrow \qquad (**)\\
+\THOR{((LAMBDA (CDR) 1) 2)} &\longrightarrow\\
+1
+\end{align*}
 
 In the reduction marked (*), the PAIR structure is applied to the selector expression
-
-\begin{verbatim}
-(LAMBDA (CAR CDR) CAR). The STRUCT instruction places a closure for the selector
-\end{verbatim}
-
-expression into the environment. The selector expression is then retrieved from the en- vironment by the VAR instruction, yielding expression (**).
+\THOR{(LAMBDA (CAR CDR) CAR)}. The STRUCT instruction places a closure for the selector
+expression into the environment. The selector expression is then retrieved from the
+environment by the VAR instruction, yielding expression (**).
 
 \subsection{Local Mutual Recursion}
 
