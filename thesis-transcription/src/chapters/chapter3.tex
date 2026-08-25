@@ -507,7 +507,7 @@ type predicates for constants.
 THOR has one predefined type of structure, the \THOR{PAIR}, from which lists are
 constructed. The \THOR{PAIR} structure is defined by
 \[
-\THOR{PAIR := CAR CDR}.
+\THOR{PAIR }\vdash\THOR{ CAR CDR}.
 \]
 For convenience, a special syntax will be used for lists:
 \[
@@ -906,13 +906,13 @@ case.
 \subsection{Recursion via Symbol Definitions}
 
 Recursion can be obtained implicitly through the reduction of symbols that have
-been associated with expressions by the use of the \(=\) mechanism. This is the
+been associated with expressions by the use of the \(\equiv\) mechanism. This is the
 method of recursion most people are familiar with. To contrast this method with
 using the \THOR{Y} operator, here is another expression for computing
 factorials:
-\begin{verbatim}
-fact = (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))
-\end{verbatim}
+\begin{alltt}
+fact \(\equiv\) (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))
+\end{alltt}
 In this expression, \THOR{fact} is not a variable, but a symbolic constant (that
 just happens to be on both sides of the definition). When the symbol
 \THOR{fact} is encountered as an operator during reduction, it is replaced by
