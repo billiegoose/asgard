@@ -853,38 +853,36 @@ end JOIN
 \caption{Execution of the JOIN instruction inserts a reduced argument into its parent spine.}
 \end{figure}
 
-LAMBDA Instruction The LAMBDA instruction is responsible for implementing Rules C1-C3 and Rule C9. If the LAMBDA is applied to an argument (i.e., is part of a \(\beta\)-redex) and there is quantum available, a closure containing the argument is placed in the environment area. Figure 4.11 illustrates this situation.
+\paragraph{LAMBDA Instruction}
 
-If the LAMBDA is not part of a \(\beta\)-redex or the quantum is exhausted, an unbound variable is placed in the environment and the LAMBDA copies itself into the result graph. procedure LAMBDA
+The \THOR{LAMBDA} instruction is responsible for implementing Rules C1-C3 and Rule C9. If the \THOR{LAMBDA} is applied to an argument (i.e., is part of a \(\beta\)-redex) and there is quantum available, a closure containing the argument is placed in the environment area. Figure 4.11 illustrates this situation.
 
-if d =F then
+If the \THOR{LAMBDA} is not part of a \(\beta\)-redex or the quantum is exhausted, an unbound variable is placed in the environment and the \THOR{LAMBDA} copies itself into the result graph.
 
-33 Forward Execution if (q = 0) or (fsp----opcode \% APP) then
-
-\begin{verbatim}
-333 Rules C1 and C3
-333 Copy LAMBDA into Result Graph
-\end{verbatim}
-
-fsp --- fspti fspopcode --- pc---opcode fspdata --- peodata
-
-\begin{verbatim}
-333 Place Unbound Variable in Environment .
-\end{verbatim}
-
-oo P+ env <--- env-1 env-opcode --- UBV env-data «+ else 33; Rule C2, Contract 6-Redex
-
-\begin{verbatim}
-333 Decrement Quantum
-\end{verbatim}
-
-q-qi
-
-\begin{verbatim}
-333 Place Closure in Environment
-\end{verbatim}
-
-env --- env-1 env-data --- fspdata env --- env-1
+\begin{alltt}
+procedure LAMBDA
+  if \(\rt{d} = F\) then
+    ;;; Forward Execution
+    if \((\rt{q} = 0)\) or \((\rtfield{fsp}{opcode} \neq APP)\) then
+      ;;; Rules C1 and C3
+      ;;; Copy LAMBDA into Result Graph
+      \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+      \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
+      \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
+      ;;; Place Unbound Variable in Environment
+      \(\phi \leftarrow \phi+1\)
+      \(env \leftarrow env-1\)
+      \(\rtfield{env}{opcode} \leftarrow UBV\)
+      \(\rtfield{env}{data} \leftarrow \phi\)
+    else
+      ;;; Rule C2, Contract \(\beta\)-Redex
+      ;;; Decrement Quantum
+      \(\rt{q} \leftarrow \rt{q}-1\)
+      ;;; Place Closure in Environment
+      \(env \leftarrow env-1\)
+      \(\rtfield{env}{data} \leftarrow \rtfield{fsp}{data}\)
+      \(env \leftarrow env-1\)
+\end{alltt}
 
 % Source PDF page 68
 
@@ -896,36 +894,65 @@ env --- env-1 env-data --- fspdata env --- env-1
 
 % Source PDF page 69
 
-env-opcode < CLOSURE env-data --- c---data i3\} Pop Control Stack and Result Graph eee-1 fsp --- fsp-1 33 Continue Walking Down Problem Graph pe --- peti else
+\begin{alltt}
+      \(\rtfield{env}{opcode} \leftarrow CLOSURE\)
+      \(\rtfield{env}{data} \leftarrow \rtfield{c}{data}\)
+      ;;; Pop Control Stack and Result Graph
+      \(\rt{c} \leftarrow \rt{c}-1\)
+      \(\rt{fsp} \leftarrow \rt{fsp}-1\)
+      ;;; Continue Walking Down Problem Graph
+      \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution, Rule C9
+    \(\phi \leftarrow \phi-1\)
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end LAMBDA
+\end{alltt}
 
-\begin{verbatim}
-333 Reverse Execution, Rule C9 :
-\end{verbatim}
+\paragraph{STOP Instruction}
 
-\$< bt pe --- pe-t end LAMBDA STOP Instruction The STOP instruction signals the completion of reduction and halts \(\mu\)RED (Rule C11). procedure STOP 33 Reverse Execution Only, Rule C11 halt end STOP UBV Instruction The UBV instruction implements Rule C7. UBV instructions only exist in the environment area and are encountered when an unbound variable has been dereferenced as the value of a variable. The UBV places a VAR with the proper DeBruijn index into the result graph and signals the change from forward to reverse execution. procedure UBV i3i Forward Execution Only, Rule C7
+The \THOR{STOP} instruction signals the completion of reduction and halts \(\mu\)RED (Rule C11).
 
-\begin{verbatim}
-333 Place a VAR Instruction in the Result Graph
-\end{verbatim}
+\begin{alltt}
+procedure STOP
+  ;;; Reverse Execution Only, Rule C11
+  halt
+end STOP
+\end{alltt}
 
-fsp --- fsp+i fspopcode --- VAR fspodata --- \(\phi\)-(pe---data) ij Begin Walking Up the Result Graph pe --- fsp-1 d«----B end UBV VAR Instruction The VAR instruction dereferences a variable, finding the address of its value in the redex store (Rule C5). The pe is set to this address and the value is reduced by pRED.
+\paragraph{UBV Instruction}
+
+The \THOR{UBV} instruction implements Rule C7. \THOR{UBV} instructions only exist in the environment area and are encountered when an unbound variable has been dereferenced as the value of a variable. The \THOR{UBV} places a \THOR{VAR} with the proper DeBruijn index into the result graph and signals the change from forward to reverse execution.
+
+\begin{alltt}
+procedure UBV
+  ;;; Forward Execution Only, Rule C7
+  ;;; Place a VAR Instruction in the Result Graph
+  \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+  \(\rtfield{fsp}{opcode} \leftarrow VAR\)
+  \(\rtfield{fsp}{data} \leftarrow \phi-(\rtfield{pc}{data})\)
+  ;;; Begin Walking Up the Result Graph
+  \(\rt{pc} \leftarrow \rt{fsp}-1\)
+  \(\rt{d} \leftarrow B\)
+end UBV
+\end{alltt}
+
+\paragraph{VAR Instruction}
+
+The \THOR{VAR} instruction dereferences a variable, finding the address of its value in the redex store (Rule C5). The \(pc\) is set to this address and the value is reduced by \(\mu\)RED.
 
 % Source PDF page 70
 
+\begin{alltt}
 procedure VAR
-
-\begin{verbatim}
-333 Forward Execution Only, Rule C5
-333 Call Procedure LOOKUP to Dereference Variable
-\end{verbatim}
-
-8q + pe-data call LOOKUP
-
-\begin{verbatim}
-333 Execute Value
-\end{verbatim}
-
-PC --- Sq end VAR
+  ;;; Forward Execution Only, Rule C5
+  ;;; Call Procedure LOOKUP to Dereference Variable
+  \(\rtsd \leftarrow \rtfield{pc}{data}\)
+  call LOOKUP
+  ;;; Execute Value
+  \(\rt{pc} \leftarrow \rtsa\)
+end VAR
+\end{alltt}
 
 \subsection{Optimizing Single Instruction Arguments}
 
