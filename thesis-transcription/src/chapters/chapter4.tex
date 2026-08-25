@@ -1232,185 +1232,236 @@ The built-in primitive operations of THOR fall into two categories: strict primi
 
 % Source PDF page 76
 
-Strict Primitives There are two classes of strict primitives in THOR, unary and binary. The instruction words for all unary primitives have an opcode of PRIM.1; the instruction's data field indicates the particular unary primitive. Likewise, binary primitive instructions have an opcode of PRIM-2 and a data field which indicates the specific primitive. For a strict primitive to fire, five conditions must hold:
+\paragraph{Strict Primitives}
+There are two classes of strict primitives in THOR, unary and binary. The instruction
+words for all unary primitives have an opcode of \texttt{PRIM\_1}; the instruction's data
+field indicates the particular unary primitive. Likewise, binary primitive instructions
+have an opcode of \texttt{PRIM\_2} and a data field which indicates the specific primitive.
+For a strict primitive to fire, five conditions must hold:
 
-1. The primitive must be at the head of a spine.
+\begin{enumerate}
+\item The primitive must be at the head of a spine.
 
-2. The primitive must be applied to the correct number of arguments.
+\item The primitive must be applied to the correct number of arguments.
 
-3. The arguments must be reduced.
+\item The arguments must be reduced.
 
-4. The reduced arguments must be of the proper type.
+\item The reduced arguments must be of the proper type.
 
-5. Quantum must be available.
+\item Quantum must be available.
+\end{enumerate}
 
 Each of these conditions is checked in a different way.
 
 The first condition, that the primitive must be at the head of a spine, can be checked using the instruction's head flag.
 
-The second condition, that there be enough arguments, is more difficult to check. A new data register, argent, is introduced to facilitate this check. The argent register contains the number of arguments in the current spine. This count is initialized to zero when a new spine is traversed (which happens at the start of reduction and again each time an APP executed in reverse initiates the reduction of an argument). Each time an instruction copies itself over to the result graph, the argent is incremented; each time a LAMBDA instruction removes an argument from the result graph, the argent is decremented.
+The second condition, that there be enough arguments, is more difficult to check. A new
+data register, \(argcnt\), is introduced to facilitate this check. The \(argcnt\)
+register contains the number of arguments in the current spine. This count is initialized
+to zero when a new spine is traversed (which happens at the start of reduction and again
+each time an APP executed in reverse initiates the reduction of an argument). Each time an
+instruction copies itself over to the result graph, the \(argcnt\) is incremented; each
+time a LAMBDA instruction removes an argument from the result graph, the \(argcnt\) is
+decremented.
 
-The third condition, that the arguments be reduced before firing the primitive, is the most difficult of the conditions to ensure. Reduction of arguments normally takes place during the walk up the result graph spine. Somehow the control unit must know to stop walking back up the spine after the proper number of arguments have been reduced and fire the primitive. This is done by introducing two new data registers --- prim and fire. When a PRIM\_X instruction at the head of a spine is executed, the prim register is loaded with the primitive to be fired and the fire register is loaded with X » which is the number of arguments that need to be reduced. Each time an argument is reduced, fire is decremented; when the count in fire becomes zero, all the arguments have been reduced and the primitive
+The third condition, that the arguments be reduced before firing the primitive, is the
+most difficult of the conditions to ensure. Reduction of arguments normally takes place
+during the walk up the result graph spine. Somehow the control unit must know to stop
+walking back up the spine after the proper number of arguments have been reduced and fire
+the primitive. This is done by introducing two new data registers --- \(prim\) and
+\(fire\). When a \texttt{PRIM\_X} instruction at the head of a spine is executed, the \(prim\)
+register is loaded with the primitive to be fired and the \(fire\) register is loaded
+with \(X\), which is the number of arguments that need to be reduced. Each time an argument
+is reduced, \(fire\) is decremented; when the count in \(fire\) becomes zero, all the
+arguments have been reduced and the primitive in \(prim\) is fired.
 
-in prim is fired.
+The arguments to a primitive may be arbitrary expressions, which might contain primitives
+and arguments that need to be reduced. To avoid confusing the firing mechanism, the APP
+instruction is modified to push the \(prim\) and \(fire\) registers onto the control stack
+before initiating the reduction of an argument. Likewise, the JOIN instruction is modified
+to restore these register values after the argument has been reduced. This situation is
+analogous to the saving and restoring of register values associated with subroutine calls
+and returns in a conventional computer.
 
-The arguments to a primitive may be arbitrary expressions, which might contain primitives and arguments that need to be reduced. To avoid confusing the firing mechanism, the APP instruction is modified to push the prim and fire registers onto the control stack before initiating the reduction of an argument. Likewise, the JOIN instruction is modified to restore these register values after the argument has been reduced. This situation is analogous to the saving and restoring of register values associated with subroutine calls and returns in a conventional computer.
-
-There are several ways to realize this firing mechanism. One way is to modify each instruction so that when it is executed in Teverse, fire is decremented and the primitive in prim is invoked if the value in fire is zero. Another way is to build the decrement and test into hardware which interrupts the RED2 control unit when fire is zero. I will assume the later solution and not present the (trivial) register transfer code for the former.
+There are several ways to realize this firing mechanism. One way is to modify each
+instruction so that when it is executed in reverse, \(fire\) is decremented and the
+primitive in \(prim\) is invoked if the value in \(fire\) is zero. Another way is to build
+the decrement and test into hardware which interrupts the RED2 control unit when \(fire\)
+is zero. I will assume the later solution and not present the (trivial) register transfer
+code for the former.
 
 % Source PDF page 77
 
-The coordination of the first three conditions is performed by the PRIM\_X instructions. Here is the implementation of the PRIM-\_1 instruction; the PRIM\_2 instruction is similar. procedure PRIM\_1 ifd=F
+The coordination of the first three conditions is performed by the \texttt{PRIM\_X}
+instructions. Here is the implementation of the \texttt{PRIM\_1} instruction; the \texttt{PRIM\_2}
+instruction is similar.
 
-\begin{verbatim}
-333 Forward Execution
-333 Copy Instruction into Result Graph
-\end{verbatim}
+\begin{alltt}
+procedure PRIM\_1
+  if \(\rt{d} = F\)
+    ;;; Forward Execution
+    ;;; Copy Instruction into Result Graph
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
+    \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
+    if \(\rtfield{pc}{head} = TRUE\) then
+      if \((\rt{argcnt} >= 1)\) and \((\rt{q} > 0)\) then
+        ;;; Prime the Firing Mechanism
+        \(\rt{fire} \leftarrow 1\)
+        \(\rt{prim} \leftarrow \rtfield{pc}{data}\)
+      ;;; Begin Walking Up the Result Graph
+      \(\rt{pc} \leftarrow \rt{fsp}-1\)
+      \(\rt{d} \leftarrow B\)
+    else
+      ;;; Continue Walking Down the Problem Graph
+      \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution
+    ;;; Continue Walking up Result Graph
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end PRIM\_1
+\end{alltt}
 
-sp <--- fspti fsp----opcode --- pe---opcode fsp---data --- pe---data if pc---head = TRUE then if (argent >= 1) and (q > 0) then
+Notice that the quantum is checked before the firing mechanism is primed. This test is
+not sufficient to satisfy the fifth firing condition because the quantum may become
+exhausted during reduction of a strict argument. However, the test is useful. The firing
+mechanism is expensive, and if the quantum is already exhausted, there is no point in
+priming it.
 
-\begin{verbatim}
-333 Prime the Firing Mechanism
-\end{verbatim}
+The priming mechanism presented here is not the final word on argument reduction for
+strict primitives. See Section 5.4 for further discussion.
 
-fire --- 1 prim --- pcsdata 3; Begin Walking Up the Result Graph pe --- fsp-1 d<\_---B else
+The final two conditions, that all arguments be of the right type and that there be
+quantum available, are checked by the primitive operator itself. If these conditions are
+not satisfied, the operation is not performed. Here is an example of the addition
+primitive:
 
-\begin{verbatim}
-333 Continue Walking Down the Problem Graph
-\end{verbatim}
-
-pe --- pert else
-
-\begin{verbatim}
-333 Reverse Execution
-333 Continue Walking up Result Graph
-\end{verbatim}
-
-pe --- pe-t end PRIM.1 Notice that the quantum is checked before the firing mechanism is primed. This test is not sufficient to satisfy the fifth firing condition because the quantum may become exhausted during reduction of a strict argument. However, the test is useful, The firing mechanism is expensive, and if the quantum is already exhausted, there is no point in priming it.
-
-The priming mechanism presented here is not the final word on argument reduction for strict primitives. See Section 5.4 for further discussion. .
-
-The final two conditions, that all arguments be of the tight type and that there be quantum available, are checked by the primitive operator itself. If these conditions are not satisfied, the operation is not performed. Here is an example of the addition primitive: procedure ADD
-
-\begin{verbatim}
-333 Check Quantum and Argument Types
-\end{verbatim}
-
-if (q>0) and (pec---opcode = INT) and ((pe+1)---opcode = INT) then
-
-\begin{verbatim}
-333 Perform Addition
-\end{verbatim}
-
-pesdata --- pe-data + (pe+1)----data pe---head «--- TRUE
-
-\begin{verbatim}
-333 Reclaim Memory Space
-\end{verbatim}
-
-fsp --- pe
-
-\begin{verbatim}
-333 Decrement Quantum
-\end{verbatim}
-
-q< q-i
-
-\begin{verbatim}
-333 Continue Walking Up Result Graph
-\end{verbatim}
+\begin{alltt}
+procedure ADD
+  ;;; Check Quantum and Argument Types
+  if \((\rt{q}>0)\) and \((\rtfield{pc}{opcode} = INT)\) and \(((\rt{pc}+1)\rightarrow\mathit{opcode} = INT)\) then
+    ;;; Perform Addition
+    \(\rtfield{pc}{data} \leftarrow \rtfield{pc}{data} + ((\rt{pc}+1)\rightarrow\mathit{data})\)
+    \(\rtfield{pc}{head} \leftarrow TRUE\)
+    ;;; Reclaim Memory Space
+    \(\rt{fsp} \leftarrow \rt{pc}\)
+    ;;; Decrement Quantum
+    \(\rt{q} \leftarrow \rt{q}-1\)
+  ;;; Continue Walking Up Result Graph
+\(\rt{pc} \leftarrow \rt{pc}-1\)
+end ADD
+\end{alltt}
 
 % Source PDF page 78
 
-pe --- pe-i end ADD Only integer addition is shown for illustrative purposes, but the RED2 ADD procedure also performs floating point addition and performs implicit type coercion on mixed integer- floating point operands.
+Only integer addition is shown for illustrative purposes, but the RED2 ADD procedure also
+performs floating point addition and performs implicit type coercion on mixed
+integer-floating point operands.
 
 Several points in the ADD example invite discussion:
 
 \begin{itemize}
-\item When a primitive is fired, the current value of the pc is used to locate the arguments,
-\end{itemize}
+\item When a primitive is fired, the current value of the \(pc\) is used to locate the
+arguments. When ADD is fired, the \(pc\) is pointing to the second operand of the addition
+and the first operand is in the next higher location in memory (address \(pc+1\)).
 
-When ADD is fired, the pc is pointing to the second operand of the addition and the first operand is in the next higher location in memory (address pe+1).
-
-\begin{itemize}
 \item The result of a primitive operation overwrites the primitive-arguments subgraph. In
+ADD, the sum overwrites the data field of the second operand, which gets marked as a head
+node.
+
+\item After an operation is performed, the operator and any leftover arguments are no
+longer part of the result graph, so the memory space they occupy is reclaimed by adjusting
+the \(fsp\). This reclamation of space is very important and will be discussed further in
+Chapter 5.
+
+\item If a primitive decides not to perform its operation, the primitive-arguments subgraph
+is not modified and traversal continues up the result graph. In ADD, this is the case if
+either the quantum is exhausted or the arguments do not have the proper type.
 \end{itemize}
-
-ADD, the sum overwrites the data field of the second operand, which gets marked as a head node.
-
-After an operation is performed, the operator and any leftover arguments are no longer part of the result graph, so the memory space they occupy is reclaimed by adjusting the fsp. This reclamation of space is very important and will be discussed further in Chapter 5.
-
-\begin{itemize}
-\item Ifa primitive decides not to perform its operation, the primitive-arguments subgraph
-\end{itemize}
-
-is not modified and traversal continues up the result graph. In ADD, this is the case if either the quantum is exhausted or the arguments do not have the proper type.
 
 These points apply to most of the strict primitives.
 
-Non-Strict Primitives
+\paragraph{Non-Strict Primitives}
 
-The non-strict primitives have little in common with one another, so they are implemented individually. They generally have a complicated behavior and long, tedious Tegister transfer descriptions which I will avoid boring the reader with. An exception is the Y single recur- sion operator, which has a (relatively) short description and yet illustrates the basic issues common to the non-strict primitives.
+The non-strict primitives have little in common with one another, so they are implemented
+individually. They generally have a complicated behavior and long, tedious register
+transfer descriptions which I will avoid boring the reader with. An exception is the Y
+single recursion operator, which has a (relatively) short description and yet illustrates
+the basic issues common to the non-strict primitives.
 
-When a PRIM.0 instruction at the head of a spine is executed, the control unit immediately invokes the primitive operator specified by the instruction's data field. When a PRIMO instruction is not at the head of a spine it is passive.
+When a \texttt{PRIM\_0} instruction at the head of a spine is executed, the control unit
+immediately invokes the primitive operator specified by the instruction's data field. When
+a \texttt{PRIM\_0} instruction is not at the head of a spine it is passive.
 
-When the Y primitive is executed, it attempts to transform a (Y f) graph into a (f
+When the Y primitive is executed, it attempts to transform a \((Y\ f)\) graph into a
+\((f\ (Y\ f))\) graph. If the quantum is exhausted or there is no \(f\) argument, the Y is
+passive. Otherwise, it transforms the graph. The transformation is not entirely
+straightforward and warrants explanation.
 
-\begin{verbatim}
-(Y f)) graph. If the quantum is exhausted or there is no f argument, the Y is passive.
-\end{verbatim}
+When the Y primitive fires, the \(f\) argument in the result graph at location \(fsp\) is
+changed into an application node that points to the \((Y\ f)\) in the problem graph. The
+\(f\) argument can be overwritten without fear of losing information, because \(f\) is also
+in the problem graph at location \(pc-1\). There are now two courses of action, depending
+on the nature of \(f\):
 
-Otherwise, it transforms the graph. The transformation is not entirely straightforward and warrants explanation.
+\begin{enumerate}
+\item If \(f\) is an application instruction, the code pointed to \(f\) is executed by
+setting the \(pc\) to the address of the code and letting traversal continue.
 
-When the Y primitive fires, the f argument in the result graph at location fsp is changed into an application node that points to the (Y f) in the problem graph. The f argument can be overwritten without fear of losing information, because f is also in the problem graph at location pe-1. There are now two courses of action, depending on the nature of f:
-
-1. If f is an application instruction, the code pointed to f is executed by setting the pc to the address of the code and letting traversal continue.
-
-2. If f is not an application, several things must be done. First, the current path pointer must be pushed onto the control stack because the application instruction just created
+\item If \(f\) is not an application, several things must be done. First, the current path
+pointer must be pushed onto the control stack because the application instruction just
+created
 
 % Source PDF page 79
 
-for (Y f) will expect this when it is executed in reverse at sometime later. (If f is an application instruction, then a path pointer was automatically pushed when f was executed.) Second, the f instruction must now be executed as if it were at the head of a spine (because in (f (Y f)), it is). This is done by copying f to a free location in graph memory, marking it as a spine head, and setting the pc to this location. The location of choice is taken to be the next free location in memory, which is fsp+1.
+for \((Y\ f)\) will expect this when it is executed in reverse at sometime later. (If \(f\)
+is an application instruction, then a path pointer was automatically pushed when \(f\) was
+executed.) Second, the \(f\) instruction must now be executed as if it were at the head of
+a spine (because in \((f\ (Y\ f))\), it is). This is done by copying \(f\) to a free
+location in graph memory, marking it as a spine head, and setting the \(pc\) to this
+location. The location of choice is taken to be the next free location in memory, which is
+\(fsp+1\).
+\end{enumerate}
 
+\begin{alltt}
 procedure Y
+  ;;; Check Quantum and Argument Count
+  if \((\rt{q} = 0)\) or \((\rt{argcnt} < 1)\) then
+    ;;; Do Nothing, Copy Y to Result Graph
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
+    \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
+    ;;; Begin Walking Up the Result Graph
+    \(\rt{pc} \leftarrow \rt{fsp}-1\)
+    \(\rt{d} \leftarrow B\)
+  else
+    \(\rt{q} \leftarrow \rt{q}-1\)
+    ;;; Transform (Y f) Into (f (Y f))
+    ;;; Overwrite fsp to Point to (Y f)
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+    \(\rtfield{fsp}{opcode} \leftarrow APP\)
+    \(\rtfield{fsp}{data} \leftarrow \rt{pc}\)
+    if \(\rtfield{pc}{opcode} = APP\) then
+      ;;; Follow APP Pointer
+      \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+    else
+      ;;; Push a Path Pointer onto Control Stack
+      \(\rt{c} \leftarrow \rt{c}+1\)
+      \(\rtfield{c}{data} \leftarrow env\)
+      ;;; Duplicate f on the Result Graph, Mark it as a Head
+      \((\rt{fsp}+1)\rightarrow\mathit{opcode} \leftarrow \rtfield{pc}{opcode}\)
+      \((\rt{fsp}+1)\rightarrow\mathit{data} \leftarrow \rtfield{pc}{data}\)
+      \((\rt{fsp}+1)\rightarrow\mathit{head} \leftarrow TRUE\)
+      \(\rt{pc} \leftarrow \rt{fsp}+1\)
+end Y
+\end{alltt}
 
-\begin{verbatim}
-333 Check Quantum and Argument Count
-\end{verbatim}
-
-if (\(\phi\) = 0) or (argent < 1) then
-
-\begin{verbatim}
-333 Do Nothing, Copy Y to Result Graph
-\end{verbatim}
-
-fsp --- fopti1 fspopcode --- pc---opcode fsp>data --- pe---data
-
-\begin{verbatim}
-i33 Begin Walking Up the Result Graph
-\end{verbatim}
-
-pe --- fsp-1 d=B8 else Gq--- qi ij Transform (Y f) Into (f (Y f)) 33\} Overwrite fsp to Point to (Y f) pe + pe-1 fsp>opcode --- APP fsp>data --- pe if pe-opcode = APP then
-
-\begin{verbatim}
-333 Follow APP Pointer
-\end{verbatim}
-
-pe --- pedata else
-
-\begin{verbatim}
-333 Push a Path Pointer onto Control Stack
-\end{verbatim}
-
-e€ --- ct+i csdata --- env ii Duplicate f on the Result Graph, Mark it as a Head
-
-\begin{verbatim}
-(fsp+1)—+opcode — pc—opcode
-(fspti) data — peodata ;
-(fsp+i) head — TRUE
-\end{verbatim}
-
-pe --- fsptt end Y The use of detailed knowledge about how RED2 works to justify actions (such as using location fsp+1 to temporarily store a portion of the problem graph) is commonplace in the implementation of non-strict primitives.? The addition of extra registers could be used to eliminate the need for many such clever tricks and speed up many of the primitive operations, both strict and non-strict. *Such tricks are also found in the design of conventional computers.
+The use of detailed knowledge about how RED2 works to justify actions (such as using
+location \(fsp+1\) to temporarily store a portion of the problem graph) is commonplace in
+the implementation of non-strict primitives.\footnote{Such tricks are also found in the
+design of conventional computers.} The addition of extra registers could be used to
+eliminate the need for many such clever tricks and speed up many of the primitive
+operations, both strict and non-strict.
 
 % Source PDF page 80
 
