@@ -3,11 +3,25 @@
 \usepackage[letterpaper,margin=1.25in]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{graphicx}
 \usepackage{microtype}
 
 \newcommand{\lambdacalculus}{\ensuremath{\lambda}\nobreak-calculus}
 \newcommand{\lambdabetacalculus}{\ensuremath{\lambda\beta}\nobreak-calculus}
 \newcommand{\RED}[1]{RED#1}
+\newcommand{\fv}{\operatorname{fv}}
+\newcommand{\ubv}{\operatorname{ubv}}
+\newcommand{\Int}{\operatorname{Int}}
+\newcommand{\Float}{\operatorname{Float}}
+\newcommand{\Char}{\operatorname{Char}}
+\newcommand{\Sym}{\operatorname{Sym}}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+
+\setlist[enumerate]{leftmargin=2.5em}
 
 \title{Implementation of Declarative Languages}
 \author{Michael Lee Hilton}
@@ -20,5 +34,6 @@
 
 \mainmatter
 \include{chapters/chapter1}
+\include{chapters/chapter2}
 
 \end{document}
