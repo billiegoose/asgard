@@ -1748,52 +1748,49 @@ end RECP
 \end{alltt}
 
 A LETREC is reconstructed around a recursion variable by copying the LETREC's RBLOCK
-instructions in front of the variable. This new expression should be traversed in an envi-
+instructions in front of the variable. This new expression should be traversed in an
+environment in which all of the LETREC's REC constructs are replaced by unbound variables.
 
 % Source PDF page 85
 
-ronment in which all of the LETREC's REC constructs are replaced by unbound variables. procedure RECONSTRUCT
+\begin{alltt}
+procedure RECONSTRUCT
+  ;;; \(\rtsa \leftarrow\) Address of RBLOCK Instructions
+  \(\rtsa \leftarrow (\rtfield{pc}{data}+2)\rightarrow\mathit{data}\)
+  ;;; \(\rtsd\) Counts Number of RBLOCK Instructions
+  \(\rtsd \leftarrow 0\)
+  ;;; Copy RBLOCK Instructions to Result Graph
+  loop while \(\rtsa\rightarrow\mathit{opcode} = RBLOCK\)
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    \(\rtfield{fsp}{opcode} \leftarrow \rtsa\rightarrow\mathit{opcode}\)
+    \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+    \(\rtsa \leftarrow \rtsa+1\)
+    \(\rtsd \leftarrow \rtsd+1\)
+  ;;; Replace RECs with UBVs
+  ;;; Find Environment Directly Before RECs
+  \(\rt{env} \leftarrow \rt{env}-1\)
+  \(\rtfield{env}{opcode} \leftarrow PNP\)
+  \(\rtfield{env}{data} \leftarrow ((\rtfield{pc}{data}+1)\rightarrow\mathit{data})+(3*\rtsd)\)
+  loop while \(\rtsd > 0\)
+    ;;; Place UBV into Environment
+    \(\vdots\)
+    ;;; Push Path Pointer for RBLOCK
+    \(\rt{c} \leftarrow \rt{c}+1\)
+    \(\rtfield{c}{data} \leftarrow \rt{env}-\rtsd\)
+    \(\rtsd \leftarrow \rtsd-1\)
+  ;;; Copy RUP Instruction into Result Graph
+  \(\vdots\)
+  ;;; Place Recursion Variable at Head of Spine
+  \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+  \(\rtfield{fsp}{opcode} \leftarrow VAR\)
+  \(\rtfield{fsp}{head} \leftarrow TRUE\)
+  \(\rtfield{fsp}{data} \leftarrow \rtsa-(\rtfield{pc}{data})\)
+  ;;; Begin Walking Up Result Graph
+  \(\rt{pc} \leftarrow \rt{fsp}-1\)
+  \(\rt{d} \leftarrow B\)
+end RECONSTRUCT
+\end{alltt}
 
-\begin{verbatim}
-333 8a + Address of RBLOCK Instructions
-\end{verbatim}
-
-Sa <--- (pe>data+2)----data
-
-\begin{verbatim}
-333 84 Counts Number of RBLOCK Instructions
-\end{verbatim}
-
-Sq +0
-
-\begin{verbatim}
-i33 Copy RBLOCK Instructions to Result Graph
-\end{verbatim}
-
-loop while s,---opcode = RBLOCK fsp --- fop+i fsp---opcode + s,---0pcode fspdata --- s,---data Sa --- Sati Sq --- Sqti
-
-\begin{verbatim}
-333 Replace RECs with UBVs
-333 Find Environment Directly Before RECs
-\end{verbatim}
-
-env <--- env-1 env---opcode « PNP env-data --- ((pe-datat1)----data)+(3\%s4) loop while sy > 0
-
-\begin{verbatim}
-333 Place UBV into Environment
-\end{verbatim}
-
-33 Push Path Pointer for RBLOCK c= ctl codata --- env-sq Sq  Sqr-1
-
-\begin{verbatim}
-333 Copy RUP Instruction into Result Graph
-333 Place Recursion Variable at Head of Spine
-\end{verbatim}
-
-fsp --- fsptt fsp---opcode --- VAR fsp---head --- TRUE fspdata --- s,-(pesdata)
-
-\begin{verbatim}
-333 Begin Walking Up Result Graph
-\end{verbatim}
-
-pe --- fsp-1 d----B end RECONSTRUCT The complex nature of the LETREC implementation mirrors the complexity of its seman- tics. To my knowledge, THOR is the only Programming language which includes a facility for local mutual recursion which behaves in such a way.
+The complex nature of the LETREC implementation mirrors the complexity of its semantics.
+To my knowledge, THOR is the only programming language which includes a facility for local
+mutual recursion which behaves in such a way.
