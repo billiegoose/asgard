@@ -29,6 +29,7 @@
 \newtheorem{definition}{Definition}[chapter]
 
 \setlist[enumerate]{leftmargin=2.5em}
+\let\cleardoublepage\clearpage
 
 \title{Implementation of Declarative Languages}
 \author{Michael Lee Hilton}
@@ -37,7 +38,14 @@
 \begin{document}
 
 \frontmatter
-\maketitle
+\include{frontmatter/abstract-title}
+\include{frontmatter/abstract}
+\include{frontmatter/title-page}
+\include{frontmatter/copyright}
+\include{frontmatter/preface}
+\include{frontmatter/contents}
+\include{frontmatter/list-of-tables}
+\include{frontmatter/list-of-figures}
 
 \mainmatter
 \include{chapters/chapter1}

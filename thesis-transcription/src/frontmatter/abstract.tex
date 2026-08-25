@@ -1,0 +1,25 @@
+\clearpage
+\thispagestyle{empty}
+
+\vspace*{0.8in}
+
+This dissertation is concerned with the design of computing architectures which
+support the implementation of \emph{declarative} programming languages.
+Declarative languages, which include the functional and logic programming
+languages, are based on mathematical theories of computation. These mathematical
+foundations endow declarative languages with elegant semantics and
+expressiveness, but make efficient implementation on conventional von-Neumann
+computers difficult.
+
+An alternative computing architecture, \RED{2}, is developed from first
+principles to support the efficient implementation of functional programming
+languages by directly executing their underlying mathematical theory, the
+lambda calculus. The machine language of \RED{2} is THOR, a high-level language
+which supports partial evaluation and incremental reduction. Two novel features
+of the \RED{2} architecture are a program counter which moves both forwards and
+backwards and an incremental memory management policy which eliminates the need
+for explicit garbage collection. The strengths and weaknesses of \RED{2} are
+discussed in detail, and several enhancements are presented.
+
+Finally, the possibility of extending \RED{2} to incorporate Horn clause logic
+programming is explored.

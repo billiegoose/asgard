@@ -11,6 +11,6 @@
   `\longrightarrow` instead of literal Unicode math symbols.
 - Keep transcription guidance in this file rather than a separate notes file.
 - Keep chapter commits focused: one chapter per commit when possible.
-- Chapters 1 through 6, Appendix A, the bibliography, and biographical data are
-  transcribed and committed; Chapter 2 includes two cropped graph figures under
-  `thesis-transcription/src/assets/`.
+- Front matter, Chapters 1 through 6, Appendix A, the bibliography, and
+  biographical data are transcribed and committed; Chapter 2 includes two
+  cropped graph figures under `thesis-transcription/src/assets/`.
