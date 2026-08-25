@@ -91,7 +91,7 @@ There are three rewrite rules defined on \(\lambda\)-expressions:
 
 \begin{enumerate}
 \item \(\alpha\)-conversion:
-  \(\lambda x.e \longrightarrow \lambda y.[y/x]e\), where \(y \notin \fv(e)\).
+  \(\lambda x.e \longleftrightarrow \lambda y.[y/x]e\), where \(y \notin \fv(e)\).
 \item \(\beta\)-conversion:
   \((\lambda x.e_1)e_2 \longleftrightarrow [e_2/x]e_1\).
 \item \(\eta\)-conversion:
