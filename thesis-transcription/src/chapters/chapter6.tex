@@ -126,16 +126,16 @@ Taking a lead from Robinson's SUPER~[49], (6.3) is rewritten as the equation
 R=\lambda x_1\ldots x_n.(E_1\vee\cdots\vee E_k)
 \]
 which will be written in THOR-L as
-\begin{verbatim}
-R = (LAMBDA (x1 ... xn) (V E1 ... Ek)).
-\end{verbatim}
+\begin{alltt}
+R \(\equiv\) (LAMBDA (\(x_1 \cdots x_n\)) (\(\vee\) \(E_1 \cdots E_k\))).
+\end{alltt}
 Each of the \(E_i\) general forms will be written
-\begin{verbatim}
-(LAMBDA (y1 ... yp) (A (UNIFY z1 t1) ... (UNIFY zn tn)
-                     L1 ... Lm)).
-\end{verbatim}
+\begin{alltt}
+(LAMBDA (\(y_1 \cdots y_p\)) (\(\wedge\) (UNIFY \(z_1\) \(t_1\)) \(\cdots\) (UNIFY \(z_n\) \(t_n\))
+                     \(L_1 \cdots L_m\))).
+\end{alltt}
 The binary primitive UNIFY will be introduced in the next section; the meaning
-of A and V will be discussed in the section on search.
+of \(\wedge\) and \(\vee\) will be discussed in the section on search.
 
 The list membership predicate is presented as an example of how a relation is
 represented in THOR-L. The list membership predicate is defined by the two Horn
@@ -147,12 +147,12 @@ member(x,[y|ys])\leftarrow member(x,ys).
 \end{array}
 \]
 The equivalent THOR-L definition is
-\begin{verbatim}
-MEMBER = (lambda (x list)
-  (V (lambda (xs) (unify [x|xs] list))
-     (lambda (y ys) (A (unify list [y|ys])
+\begin{alltt}
+MEMBER \(\equiv\) (lambda (x list)
+  (\(\vee\) (lambda (xs) (unify [x|xs] list))
+     (lambda (y ys) (\(\wedge\) (unify list [y|ys])
                        (member x ys))))).
-\end{verbatim}
+\end{alltt}
 
 \subsection{Unification}
 
@@ -168,7 +168,8 @@ implementation of UNIFY is discussed in Section 6.4.
 
 The search strategy used by a logic programming system has a tremendous impact
 on how the system is implemented, its efficiency, and its completeness. The
-search strategy chosen for THOR-L is implemented by the A and V operators and
+search strategy chosen for THOR-L is implemented by the \(\wedge\) and \(\vee\)
+operators and
 should fit within the constraints of the RED2 architecture. The two strategies
 considered for use in THOR-L were breadth-first and depth-first.
 
@@ -186,13 +187,15 @@ alternative search paths. Depth-first systems are not complete, but can be
 efficient in both time and space. Only one derived clause needs to be
 represented at a time, which can be accomplished by storing the variable
 bindings generated during unification in the redex store. Depth-first search
-can be implemented on RED2 without an explicit control mechanism by letting A be
-the AND primitive and V be the OR primitive. Because depth-first search can be
+can be implemented on RED2 without an explicit control mechanism by letting
+\(\wedge\) be the AND primitive and \(\vee\) be the OR primitive. Because
+depth-first search can be
 implemented on RED2 without requiring modifications, it was chosen as the THOR-L
 search strategy.
 
 The logic programming capability obtained by using the relation representation
-scheme of Section 6.2.1 with AND for A and OR for V is equivalent to depth-first
+scheme of Section 6.2.1 with AND for \(\wedge\) and OR for \(\vee\) is
+equivalent to depth-first
 SLD-resolution with a leftmost computation (selection) rule~[5]. Only a single
 refutation is derived for a goal; to generate more than one derivation, a
 different representation/compilation scheme for relations must be used. (See
@@ -601,16 +604,16 @@ established during the reduction of \(e\). Smolka~[54] has suggested using
 double negation to test for metalinguistic properties in functional programs.
 For example, the following function returns TRUE if and only if its argument is
 an unbound variable:
-\begin{verbatim}
-VAR? = (LAMBDA (X) (AND (NOT (NOT (UNIFY X 1)))
+\begin{alltt}
+VAR? \(\equiv\) (LAMBDA (X) (AND (NOT (NOT (UNIFY X 1)))
                        (NOT (NOT (UNIFY X 2)))))
-\end{verbatim}
+\end{alltt}
 Furthermore, the equality of two unbound variables can also be tested:
-\begin{verbatim}
-EQVAR? = (LAMBDA (X Y) (AND (VAR? X) (VAR? Y)
+\begin{alltt}
+EQVAR? \(\equiv\) (LAMBDA (X Y) (AND (VAR? X) (VAR? Y)
                             (NOT (AND (UNIFY X 1)
                                       (UNIFY Y 2)))))
-\end{verbatim}
+\end{alltt}
 
 \section{Generating All Solutions of a Goal}
 
@@ -658,12 +661,12 @@ P(t_1,\ldots,t_n)\leftarrow R(\ldots),S(\ldots).
 \end{array}
 \]
 is represented by the function
-\begin{verbatim}
-P = (LAMBDA (x1 ... xn CONT)
-      (OR (AND (UNIFY x1 t1) ... (UNIFY xn tn) CONT)
-          (AND (UNIFY x1 t1) ... (UNIFY xn tn) (Q ... CONT))
-          (AND (UNIFY x1 t1) ... (UNIFY xn tn) (R ... (S ... CONT)))))
-\end{verbatim}
+\begin{alltt}
+P \(\equiv\) (LAMBDA (\(x_1 \cdots x_n\) CONT)
+      (OR (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) CONT)
+          (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) (Q ... CONT))
+          (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) (R ... (S ... CONT)))))
+\end{alltt}
 The continuation parameter CONT is used to pass an expression whose value will
 be returned if the relation reduces to TRUE. This expression will be evaluated
 in the environment containing the correct answer substitution.
@@ -681,15 +684,15 @@ P\hbox{-}intersect\hbox{-}Q(x)\leftarrow P(x),Q(x).
 \end{array}
 \]
 The functional representation of these relations is
-\begin{verbatim}
-P = (LAMBDA (X CONT) (OR (AND (UNIFY X 1) CONT)
+\begin{alltt}
+P \(\equiv\) (LAMBDA (X CONT) (OR (AND (UNIFY X 1) CONT)
                          (AND (UNIFY X 2) CONT)
                          (AND (UNIFY X 3) CONT)))
-Q = (LAMBDA (X CONT) (OR (AND (UNIFY X 1) CONT)
+Q \(\equiv\) (LAMBDA (X CONT) (OR (AND (UNIFY X 1) CONT)
                          (AND (UNIFY X 3) CONT)))
 
-P-intersect-Q = (LAMBDA (X CONT) (P X (Q X CONT)))
-\end{verbatim}
+P-intersect-Q \(\equiv\) (LAMBDA (X CONT) (P X (Q X CONT)))
+\end{alltt}
 A disjunction of all the values for which P-intersect-Q are true can be
 generated by the expression
 \begin{verbatim}
