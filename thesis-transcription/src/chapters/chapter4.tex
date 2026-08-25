@@ -1086,7 +1086,9 @@ The \(\mu\)RED machine reduces only the pure \lambdacalculus{}. To extend \(\mu\
 
 The transition from \(\mu\)RED to RED2 will increase the number of instructions substantially. As more instructions and their single instruction argument variants are added, the complexity of the LAMBDA and APP-VAR instructions increases. Rather than create lots of variant instructions, a more modular approach to the single instruction argument problem is to designate a single bit of the opcode field to indicate whether or not an instruction is at the head of a spine. This bit will be called the head flag. This is identical in most respects to creating a new instruction type, but has the advantage that the LAMBDA and APP-VAR can deal with entire classes of instructions in a uniform way by testing the head flag.
 
-The head flag will be visually represented by a circle preceding an instruction's opcode value. If the head flag is set (or TRUE) the circle will be filled; otherwise, it will be hollow. For example, the code sequence for
+The head flag will be visually represented by a circle preceding an instruction's opcode
+value. If the head flag is set (or TRUE) the circle will be filled; otherwise, it will be
+hollow. For example, the code sequence for
 
 \begin{verbatim}
 (LAMBDA (A B) A B)
@@ -1096,30 +1098,53 @@ is
 
 % Source PDF page 73
 
-Address Opcode Operand 0: oLAMBDA A 1: oLAMBDA B 2: oVAR 0 3: eVAR 1 Compare this code sequence with that of Section 4.2.1.
+\[
+\begin{array}{rll}
+\text{Address} & \text{Opcode} & \text{Operand}\\
+0: & \openhead\THOR{LAMBDA} & \THOR{A}\\
+1: & \openhead\THOR{LAMBDA} & \THOR{B}\\
+2: & \openhead\THOR{VAR} & 0\\
+3: & \closedhead\THOR{VAR} & 1
+\end{array}
+\]
+
+Compare this code sequence with that of Section 4.2.1.
 
 \subsection{Adding Basic Data Types}
 
-A new instruction is introduced for each of the basic data types in THOR: opcode INT is used for integer instructions, opcode FLOAT for floating point numbers, opcode CHAR for characters, and opcode SYM for symbolic constants. The integer, floating point, and char- acter instructions are all similar in nature, so only the integer instruction will be presented. Symbolic constants are different and will be dealt with in the next section. Example: The INT Instruction The data field of an INT instruction contains a physical representation of an integer value. The INT instruction is passive; it only copies itself into the result graph. Notice how the single argument variant is included by testing the head flag: procedure INT ifd=:F
+A new instruction is introduced for each of the basic data types in THOR: opcode INT is
+used for integer instructions, opcode FLOAT for floating point numbers, opcode CHAR for
+characters, and opcode SYM for symbolic constants. The integer, floating point, and
+character instructions are all similar in nature, so only the integer instruction will be
+presented. Symbolic constants are different and will be dealt with in the next section.
 
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
+\paragraph{Example: The INT Instruction}
 
-iii Copy Integer to Result Graph Ssp --- fsp+t fsp-opcode --- Pc---opcode fspdata --- pedata if pe---head = TRUE then it\} Begin Walking Up the Result Graph pe --- fsp-1 dB else
+The data field of an INT instruction contains a physical representation of an integer
+value. The INT instruction is passive; it only copies itself into the result graph.
+Notice how the single argument variant is included by testing the head flag:
 
-\begin{verbatim}
-333 Continue Walking Down the Problem Graph
-\end{verbatim}
-
-PC + pert else
-
-\begin{verbatim}
-333 Reverse Execution
-333 Continue Walking Up the Result Graph
-\end{verbatim}
-
-pe --- pe-t end INT
+\begin{alltt}
+procedure INT
+  if \(\rt{d} = F\)
+    ;;; Forward Execution
+    ;;; Copy Integer to Result Graph
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
+    \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
+    if \(\rtfield{pc}{head} = TRUE\) then
+      ;;; Begin Walking Up the Result Graph
+      \(\rt{pc} \leftarrow \rt{fsp}-1\)
+      \(\rt{d} \leftarrow B\)
+    else
+      ;;; Continue Walking Down the Problem Graph
+      \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution
+    ;;; Continue Walking Up the Result Graph
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end INT
+\end{alltt}
 
 \subsection{Symbolic Constants}
 
