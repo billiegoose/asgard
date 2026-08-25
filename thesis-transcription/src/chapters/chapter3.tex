@@ -39,13 +39,14 @@ The domain of THOR is the set of well-formed expressions defined by the
 following formulae:
 \[
 \begin{array}{rcl}
-\langle expression\rangle &::=& \langle exp\rangle^+\\
+\langle expression\rangle &::=& \langle exp\rangle^\dagger\\
 \langle exp\rangle &::=& (\langle expression\rangle) \mid
   \langle abstraction\rangle \mid \langle constant\rangle \mid
   \langle structure\rangle\\
 \langle abstraction\rangle &::=&
-  \THOR{(LAMBDA (}\langle symbol\rangle^+\THOR{) }\langle expression\rangle\THOR{)}
-  \mid \THOR{(LETREC (}\langle binding\text{-}pair\rangle^+\THOR{) }
+  \THOR{(LAMBDA (}\langle symbol\rangle^\dagger\THOR{) }
+  \langle expression\rangle\THOR{)} \mid{}\\
+&& \THOR{(LETREC (}\langle binding\text{-}pair\rangle^\dagger\THOR{) }
   \langle expression\rangle\THOR{)}\\
 \langle binding\text{-}pair\rangle &::=&
   \THOR{(}\langle symbol\rangle\ \langle exp\rangle\THOR{)}\\
@@ -56,9 +57,9 @@ following formulae:
   \THOR{\{}\langle symbol\rangle\ \langle exp\rangle^*\THOR{\}}.
 \end{array}
 \]
-A superscript \(+\) means one or more occurrences and a superscript \(*\) means
-zero or more occurrences. A lexical description of each constant type is
-omitted; when a constant is presented, its type will be obvious.
+A superscript \(\dagger\) means one or more occurrences and a superscript
+\(*\) means zero or more occurrences. A lexical description of each constant
+type is omitted; when a constant is presented, its type will be obvious.
 
 The symbol which is the first component of a structure is called its tag. The
 tag can loosely be thought of as a type identifier; however, this is a bit
