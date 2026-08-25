@@ -195,12 +195,14 @@ released only at the environment pointer (env). When a portion of the redex
 store is no longer required, it is discarded and its space reclaimed by
 adjusting the env.
 
-\begin{quote}\small
-Figure 5.1: All of RED2's built-in primitive operations assist in memory
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-1.png}
+\caption{All of RED2's built-in primitive operations assist in memory
 management. In this example an arithmetic primitive discards graph nodes which
-are no longer accessible by adjusting the fsp. The pictures show the tip of the
-result graph just before and just after the addition primitive is fired.
-\end{quote}
+are no longer accessible by adjusting the \(fsp\). The pictures show the tip of
+the result graph just before and just after the addition primitive is fired.}
+\end{figure}
 
 The prompt discarding of nodes which do not form part of the final result graph
 is vital to preserving the contiguous nature of subgraph spines and ensuring the
@@ -216,12 +218,14 @@ must be cleared from the result graph and the fsp adjusted to point at
 Figure 5.2 shows the state of the result graph just before and after the IF
 primitive fires.
 
-\begin{quote}\small
-Figure 5.2: The IF primitive demonstrates why subgraphs must be promptly
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-2.png}
+\caption{The IF primitive demonstrates why subgraphs must be promptly
 discarded when no longer part of the result graph. For the arguments to be
 visible to the RED2 control unit, the IF subgraph must be discarded after the
-primitive is fired.
-\end{quote}
+primitive is fired.}
+\end{figure}
 
 Implicit in the correct implementation of sharing is the requirement that the
 expression being shared exist in memory until it is no longer needed. LISP
@@ -310,18 +314,22 @@ to be shared.\footnote{Arguments that reduce to unbound variables can also be
 shared, but their DeBruijn indices must be decremented by \(\phi\) before they
 are written over the argument's closure.}
 
-\begin{quote}\small
-Figure 5.3: Forward execution of a VAR instruction that is not the head of a
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-3.png}
+\caption{Forward execution of a VAR instruction that is not the head of a
 spine. The variable is dereferenced, and if its value is a closure, an EP
-instruction pointing to the closure is added to the result graph.
-\end{quote}
+instruction pointing to the closure is added to the result graph.}
+\end{figure}
 
-\begin{quote}\small
-Figure 5.4: Execution of a JOIN instruction. If the destination of the JOIN is
-an EP and the reduced argument is an atomic value, the atomic value overwrites
-the closure pointed to by the EP. In this way, the reduced argument is shared
-through the environment.
-\end{quote}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-4.png}
+\caption{Execution of a JOIN instruction. If the destination of the JOIN is an
+EP and the reduced argument is an atomic value, the atomic value overwrites the
+closure pointed to by the EP. In this way, the reduced argument is shared
+through the environment.}
+\end{figure}
 
 \subsection{Detecting Closed Expressions}
 
@@ -437,14 +445,16 @@ instruction. The NO-OP instructions are ignored by the RED2 control unit, making
 them effectively invisible. Figure 5.5 illustrates the detection and contraction
 of an \(\eta\)-redex.
 
-\begin{quote}\small
-Figure 5.5: Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-5.png}
+\caption{Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
 executed in reverse, it checks to see if the next instruction in memory is a
 non-head VAR with a DeBruijn index of 0. If this is the case, and the reference
 bits of the LAMBDA's unbound variable entry in the environment are 01, these two
 instructions form an \(\eta\)-redex. The redex is contracted by overwriting the
-LAMBDA and VAR instructions with no-operation instructions.
-\end{quote}
+LAMBDA and VAR instructions with no-operation instructions.}
+\end{figure}
 
 When an \(\eta\)-redex is contracted, the DeBruijn index of each variable in the
 redex's body must be decremented by one to compensate for the lost abstraction.
@@ -508,27 +518,15 @@ cutting the number of memory cycles required to reduce most expressions.} The
 more arithmetic operations an expression contains, the greater the savings
 provided by immediate instructions.
 
-\begin{verbatim}
-        (General)             (Immediate)
-
-0: oAPP 3                0: oINT 3
-1: oAPP 6                1: oINT 2
-2: ePRIM_2 +             2: oIMM *
-3: oINT 3                3: oINT 4
-4: oINT 2                4: oINT 5
-5: ePRIM_2 *             5: oIMM *
-6: oINT 5                6: eIMM +
-7: oINT 4
-8: ePRIM_2 *
-\end{verbatim}
-
-\begin{quote}\small
-Figure 5.6: A comparison of code sequences for the expression \(2 \times 3 +
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.62\textwidth]{assets/chapter5/figure-5-6.png}
+\caption{A comparison of code sequences for the expression \(2 \times 3 +
 4 \times 5\). The sequence on the left was generated using the general
 instructions and compiler introduced in the previous chapter; the sequence on
 the right was generated using more specialized, immediate instructions and a
-smarter compiler.
-\end{quote}
+smarter compiler.}
+\end{figure}
 
 The utility of immediate instructions extends far beyond arithmetic expressions.
 These instructions provide an efficient way for RED2 to implement statically
