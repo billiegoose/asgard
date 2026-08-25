@@ -395,7 +395,7 @@ The SSM is an abstract description of a computing machine, and as such it is not
 
 The first step towards developing an architecture is to transform the expression graphs from passive data structures that are interpreted by the SSM control unit into active instructions that drive the reduction process.
 
-The linear graph representation presented in Section 4.1.1 is used as the basis for the HRED instruction set. Each graph node becomes an instruction with an opcode and a data field. The node's type becomes the instruction's opcode, and the instruction's data is either a DeBruijn index or a pointer. For example, the THOR expression
+The linear graph representation presented in Section 4.1.1 is used as the basis for the \(\mu\)RED instruction set. Each graph node becomes an instruction with an opcode and a data field. The node's type becomes the instruction's opcode, and the instruction's data is either a DeBruijn index or a pointer. For example, the THOR expression
 
 \begin{verbatim}
 (LAMBDA (A B) A B)
@@ -405,13 +405,11 @@ compiles into the linear graph
 
 % Source PDF page 60
 
-Low leseeciteeenveees High | graph memory ---\textasciitilde{} +--- environment ston
-
-\begin{quote}\small
-Figure 4.7: Memory model of \(\mu\)RED. The size of the graph memory and environment areas
-\end{quote}
-
-change dynamically during reduction, with each area growing towards the other.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-7.png}
+\caption{Memory model of \(\mu\)RED. The size of the graph memory and environment areas change dynamically during reduction, with each area growing towards the other.}
+\end{figure}
 
 \begin{verbatim}
 (LAMBDA A):
@@ -440,13 +438,13 @@ The control stack, c, is replaced by a second, smaller block of memory which is 
 
 \subsection{Registers}
 
-Using pointers to scan and traverse a graph is more efficient than shuttling nodes between the g and 7 stacks. In pRED, these stacks are replaced by two address registers: the program counter, or pe, which points to the instruction currently being executed and the free space pointer, or fsp, which points to the next free location in graph memory. These registers are not direct, one-for-one replacements of the g and r stacks because each register assumes the roles of both g and r at different times during traversal.
+Using pointers to scan and traverse a graph is more efficient than shuttling nodes between the g and r stacks. In \(\mu\)RED, these stacks are replaced by two address registers: the program counter, or pc, which points to the instruction currently being executed and the free space pointer, or fsp, which points to the next free location in graph memory. These registers are not direct, one-for-one replacements of the g and r stacks because each register assumes the roles of both g and r at different times during traversal.
 
 The address register env points to the top entry of the redex store.
 
 Scratch registers are needed in the implementation of several of the instructions. The register sq is a scratch data register, and s, is a scratch address register.
 
-In addition to these new registers, «RED inherits four registers from the SSM. The data registers d, \$, and q play the same role in \#RED as they do in the SSM. The address register
+In addition to these new registers, \(\mu\)RED inherits four registers from the SSM. The data registers d, \(\phi\), and q play the same role in \(\mu\)RED as they do in the SSM. The address register
 
 \begin{itemize}
 \item points to the top of the control stack.
@@ -454,13 +452,13 @@ In addition to these new registers, «RED inherits four registers from the SSM. 
 
 \subsection{Register Transfer Notation}
 
-To describe how each nRED instruction is implemented, the configuration-oriented approach used for both the THOR abstract interpreter and the SSM will be abandoned in favor of a simple register transfer language.
+To describe how each \(\mu\)RED instruction is implemented, the configuration-oriented approach used for both the THOR abstract interpreter and the SSM will be abandoned in favor of a simple register transfer language.
 
 In the register transfer language, memory words are represented as structures with opcode and data fields. The value of a field can be extracted by referencing it through a pointer; for example, pe---opcode references the opcode field of the location pointed to by pe. Assignment is denoted by the --- arrow. Register transfer code is written in this font, while comments appear in the same font as text and are prefixed by three
 
 semicolons (;;;).
 
-In most machine descriptions at this level of detail, each of the pointers introduced earlier would consist of an address and data register pair, where the data register would contain the value of the word pointed to by the address register. This is indeed the case with HRED, but to prevent the proliferation of register names (and their associated cognitive burden), I have omitted them from my descriptions. Instead, I will use address pointer references as implicit manipulations of the data registers.
+In most machine descriptions at this level of detail, each of the pointers introduced earlier would consist of an address and data register pair, where the data register would contain the value of the word pointed to by the address register. This is indeed the case with \(\mu\)RED, but to prevent the proliferation of register names (and their associated cognitive burden), I have omitted them from my descriptions. Instead, I will use address pointer references as implicit manipulations of the data registers.
 
 \subsection{The Environment}
 
@@ -468,23 +466,19 @@ The \lambdacalculus{} is lexically scoped; therefore, the complete redex store f
 
 The SSM manages the redex store in a very simple way by restricting p to the path currently in use. This allows p to be represented as a linear sequence instead of a tree. Because p is a linear sequence, accessing the value of a variable is a quick, constant time indexing operation. Paths not currently in use are stored on the control stack or in closures. Rule C4 pushes a copy of the current path onto the control stack so that it may be restored at an appropriate time in the future. When Rule C2 creates a closure, it includes the path on top of the control stack. Rule C6 restores this path when the closure is activated.
 
-The benefit of constant time variable access is outweighed by the expense (in both time and space) of placing a copy of p in every closure. ``RED takes a different approach to managing the redex store --- a single copy of the tree is built in the environment area and
+The benefit of constant time variable access is outweighed by the expense (in both time and space) of placing a copy of p in every closure. \(\mu\)RED takes a different approach to managing the redex store --- a single copy of the tree is built in the environment area and
 
 % Source PDF page 62
 
-\begin{verbatim}
-() n=:
-\end{verbatim}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-8.png}
+\caption{The redex store is a tree which mirrors the syntactic structure of the expression being reduced. On the left is the tree for the expression \((\lambda ab.((\lambda c.(a\ c\ (\lambda d.d)))\ (\lambda e.b\ e)))\). The physical representation of this tree is shown on the right.}
+\end{figure}
 
-QO © na 5:
+shared. Instead of placing a copy of the current path in a closure, \(\mu\)RED puts in a pointer to the current path.
 
-\begin{quote}\small
-Figure 4.8: The redex store is a tree which mirrors the syntactic structure of the expression
-\end{quote}
-
-being reduced. On the left is the tree for the expression (Aab.((Ae.(a \(\phi\) (Ad.d))) (Ae.b ))). The physical representation of this tree is shown on the right. shared. Instead of placing a copy of the current path in a closure, zRED puts in a pointer to the current path.
-
-The redex store is actually an inverted tree, where each child node points to its parent. The physical representation of this tree is composed of values and parent node pointers. The tree is constructed in such a way that the memory location after any node is either that node's parent or is a pointer to that node's parent. The root of the tree is the last memory location in the environment area. The env register always points to the tip of the current path in the tree. Figure 4.8 shows an example of a redex store tree and its physical representation in wRED.
+The redex store is actually an inverted tree, where each child node points to its parent. The physical representation of this tree is composed of values and parent node pointers. The tree is constructed in such a way that the memory location after any node is either that node's parent or is a pointer to that node's parent. The root of the tree is the last memory location in the environment area. The env register always points to the tip of the current path in the tree. Figure 4.8 shows an example of a redex store tree and its physical representation in \(\mu\)RED.
 
 There are two types of values in the environment: unbound variables and closures. Unbound variables are one word in length and are marked with a UBV opcode field. The closure data objects are two words long: the first word has the opcode CLOSURE and its data field points to a path in the redex store; the data field of the second word points to a code sequence in graph memory.
 
@@ -508,13 +502,13 @@ The particular environment structure and variable dereferencing scheme described
 
 \subsection{The Execution Model}
 
-Reduction of expressions by \#RED is no longer directed by a monolithic control unit, but is accomplished through the efforts of each instruction comprising the graph. Each instruction is responsible for implementing a portion of the SSM control rules: the LAMBDA instruction implements Rules C1-C3 and C9; the APP instruction implements Rules C4 and C8; and so on. This approach streamlines the operation of the \(\mu\)RED control unit to the familiar fetch-decode-execute cycle found in conventional von-Neumann architectures. When an instruction is executed, it modifies the machine state according to the appropriate rule.
+Reduction of expressions by \(\mu\)RED is no longer directed by a monolithic control unit, but is accomplished through the efforts of each instruction comprising the graph. Each instruction is responsible for implementing a portion of the SSM control rules: the LAMBDA instruction implements Rules C1-C3 and C9; the APP instruction implements Rules C4 and C8; and so on. This approach streamlines the operation of the \(\mu\)RED control unit to the familiar fetch-decode-execute cycle found in conventional von-Neumann architectures. When an instruction is executed, it modifies the machine state according to the appropriate rule.
 
 The key to coordinating the efforts of each individual instruction is the linear graph representation. This representation has a very important property:
 
 Each spine in an expression graph is represented by a contiguous sequence of instructions. Traversal is accomplished by executing these instruction sequences. Walking down a spine is accomplished by execution in the `forward' direction, and walking up a spine is accomplished by execution in the `reverse' direction.
 
-\#RED is prepared for reduction by placing the code for the graph to be reduced (here- after referred to as the problem graph) at the beginning of graph memory. The pc is set to the address of the problem graph's first instruction. A STOP instruction is placed in the memory word following the problem graph's last instruction, and the fspis set to this word's address. The control stack and environment are initialized to be empty. The quantum is set to its user specified value, and \(\phi\) is set to zero.
+\(\mu\)RED is prepared for reduction by placing the code for the graph to be reduced (here- after referred to as the problem graph) at the beginning of graph memory. The pc is set to the address of the problem graph's first instruction. A STOP instruction is placed in the memory word following the problem graph's last instruction, and the fsp is set to this word's address. The control stack and environment are initialized to be empty. The quantum is set to its user specified value, and \(\phi\) is set to zero.
 
 Reduction begins with forward execution of the problem graph. The pe advances down the graph's spine, executing instructions. The effect of instruction execution is to place the arguments of (-redexes into the environment area and to build up a modified copy of the spine in the memory area adjacent to the problem graph. Each copied node is put in the location after that pointed to by the fsp, which is then advanced. When the head of the spine is reached, the pc is set to the fsp and reverse execution of the copied spine begins. Arguments are reduced in a similar way.
 
@@ -526,7 +520,7 @@ Reduction concludes when the STOP instruction is executed. The root of the reduc
 
 \subsection{Implementing the Control Unit}
 
-The job of the \#RED control unit is to read the instruction pointed to by the pe and execute the proper actions for that instruction. The specific actions of each instruction are described in the following paragraphs. The instructions are presented in alphabetical order by opcode name. The correctness of each instruction with respect to the SSM control rules can be established by inspection. APP Instruction Execution of an APP instruction in the forward direction (Rule C4) pushes a pointer to the current environment path (which is the current value of env) onto the control stack and copies the application instruction to the result graph. These actions prepare nRED for either the contraction of a \(\beta\)-redex or the reduction of an argument during reverse execution.
+The job of the \(\mu\)RED control unit is to read the instruction pointed to by the pc and execute the proper actions for that instruction. The specific actions of each instruction are described in the following paragraphs. The instructions are presented in alphabetical order by opcode name. The correctness of each instruction with respect to the SSM control rules can be established by inspection. APP Instruction Execution of an APP instruction in the forward direction (Rule C4) pushes a pointer to the current environment path (which is the current value of env) onto the control stack and copies the application instruction to the result graph. These actions prepare \(\mu\)RED for either the contraction of a \(\beta\)-redex or the reduction of an argument during reverse execution.
 
 If the APP instruction is part of a 6-redex, the execution of the corresponding LAMBDA instruction will create a closure which contains the data field of the copied APP instruction and the path pointer on the top of the control stack.
 
@@ -562,19 +556,11 @@ fsp --- fspti fsp---opcode --- JOIN
 
 % Source PDF page 65
 
-ay: (>= ay: ("=H pe Graph : : : i Memory pe 5
-
-\begin{verbatim}
-: : f @2 + 1: (JOIN @}+ fsp
-\end{verbatim}
-
-Environ i : [=] + env ment : : : : `ontrol 2 @3: | f ----c a3---1: a ``ee Before After
-
-\begin{quote}\small
-Figure 4.9: Execution of an APP instruction in the reverse direction. The environment is
-\end{quote}
-
-cut back using the path pointer on top of the control stack. A JOIN instruction is added to the result graph. The argument pointed to by the APP is executed in the forward direction.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-9.png}
+\caption{Execution of an APP instruction in the reverse direction. The environment is cut back using the path pointer on top of the control stack. A JOIN instruction is added to the result graph. The argument pointed to by the APP is executed in the forward direction.}
+\end{figure}
 
 % Source PDF page 66
 
@@ -605,15 +591,13 @@ pe --- pe-1 end JOIN
 
 % Source PDF page 67
 
-oa Coe oe /---
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.68\textwidth]{assets/chapter4/figure-4-10.png}
+\caption{Execution of the JOIN instruction inserts a reduced argument into its parent spine.}
+\end{figure}
 
-Before After
-
-\begin{quote}\small
-Figure 4.10: Execution of the JOIN instruction inserts a reduced argument into its parent
-\end{quote}
-
-spine. LAMBDA Instruction The LAMBDA instruction is responsible for implementing Rules C1-C3 and Rule C9. If the LAMBDA is applied to an argument (i.e., is part of a \(\beta\)-redex) and there is quantum available, a closure containing the argument is placed in the environment area. Figure 4.11 illustrates this situation.
+LAMBDA Instruction The LAMBDA instruction is responsible for implementing Rules C1-C3 and Rule C9. If the LAMBDA is applied to an argument (i.e., is part of a \(\beta\)-redex) and there is quantum available, a closure containing the argument is placed in the environment area. Figure 4.11 illustrates this situation.
 
 If the LAMBDA is not part of a \(\beta\)-redex or the quantum is exhausted, an unbound variable is placed in the environment and the LAMBDA copies itself into the result graph. procedure LAMBDA
 
@@ -648,17 +632,11 @@ env --- env-1 env-data --- fspdata env --- env-1
 
 % Source PDF page 68
 
-\begin{verbatim}
-[LAMBDA= | + pe [LAMBDA= |
-\end{verbatim}
-
-eee] A pe ay: --- fay: f --- ] --- fsp a, + 1: [APP +\} fsp : : : : [ CLOSURE @\}\textbackslash{}+ env ----e a2: [s+ env i | a ) a3 - 1:| xa) ec Before After
-
-\begin{quote}\small
-Figure 4.11: Execution of a LAMBDA instruction that is part of a \(\beta\)-redex. A closure for
-\end{quote}
-
-the argument is placed in the environment.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-11.png}
+\caption{Execution of a LAMBDA instruction that is part of a \(\beta\)-redex. A closure for the argument is placed in the environment.}
+\end{figure}
 
 % Source PDF page 69
 
