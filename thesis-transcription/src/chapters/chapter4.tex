@@ -1567,64 +1567,91 @@ environment by the VAR instruction, yielding expression (**).
 
 \subsection{Local Mutual Recursion}
 
-The LETREC abstraction mechanism of THOR is used to create local mutually recursive expressions. Its complicated behavior is implemented using three instructions: RBLOCK
+The LETREC abstraction mechanism of THOR is used to create local mutually recursive
+expressions. Its complicated behavior is implemented using three instructions: RBLOCK
+(Recursion BLOCK), RECP (REC Pointer), and RUP (Recursive UPdate). The RBLOCK and RUP
+instructions cooperate to build the recursive context of the LETREC. (It may be helpful to
+review Section 3.7.2 before reading further.) The RECP instruction accesses binding
+expressions in this recursive context. The LETREC compilation rule is
 
-\begin{verbatim}
-(Recursion BLOCK), RECP (REC Pointer), and RUP (Recursive UPdate). The RBLOCK
-\end{verbatim}
+\[
+\begin{aligned}
+C[\THOR{(LETREC ((}x_1\ e_1\THOR{)}\cdots\THOR{(}x_n\ e_n\THOR{)) }e\THOR{)}, s] ={}&
+  \THOR{(RBLOCK (SYM }x_1\THOR{):}C[e_1,s']\THOR{):}\\
+& \vdots\\
+& \THOR{(RBLOCK (SYM }x_n\THOR{):}C[e_n,s']\THOR{):}\\
+& \THOR{(RUP }n\THOR{):}\\
+& C[e,s']
+\end{aligned}
+\]
 
-and RUP instructions cooperate to build the recursive context of the LETREC. (It may be helpful to review Section 3.7.2 before Teading further.) The RECP instruction accesses binding expressions in this recursive context. The LETREC compilation rule is
-
-\begin{verbatim}
-C[(LETREC ((2y €1) +++ (tq e,)) e), s]=
-(RBLOCK (SYM 2;):C[e;, s‘]):
-(RBLOCK (SYM z,):Clep, 8‘):
-(RUP n):
-\end{verbatim}
-
-C[e, s'] where s! = 4:---:2,38 The (SYM z;) instruction at the start of each RBLOCK argument stores the symbolic name of the ith LETREC binding variable, and is only used during de-compilation.* ------------\_\_ `The LAMBDA instruction uses its data field to store the symbolic name of its binding variable. The data field of the RBLOCK instruction must point to the binding expression, so the binding variable must be stored elsewhere.
+where \(s' = x_1:\cdots:x_n:s\). The \THOR{(SYM }\(x_i\)\THOR{)} instruction at the start
+of each RBLOCK argument stores the symbolic name of the \(i\)th LETREC binding variable,
+and is only used during de-compilation.\footnote{The LAMBDA instruction uses its data
+field to store the symbolic name of its binding variable. The data field of the RBLOCK
+instruction must point to the binding expression, so the binding variable must be stored
+elsewhere.}
 
 % Source PDF page 82
 
-Constructing the Recursive Context The group of n RBLOCK instructions in the problem graph form the BLOCK construct of Section 3.7.2. When executed in the forward mode with quantum available, the RBLOCK instructions create the LETREC's recursive context by placing partially filled REC constructs in the environment area, The missing information in the RECs is then filled in by the RUP instruction.
+\paragraph{Constructing the Recursive Context}
+The group of \(n\) RBLOCK instructions in the problem graph form the BLOCK construct of
+Section 3.7.2. When executed in the forward mode with quantum available, the RBLOCK
+instructions create the LETREC's recursive context by placing partially filled REC
+constructs in the environment area. The missing information in the RECs is then filled in
+by the RUP instruction.
 
-If the quantum is exhausted, however, the RBLOCK instructions do not create a re- cursive context. Instead, they prepare the binding expressions and body of the LETREC for A-substitution by copying themselves to the result graph and placing UBVs for each LETREC binding variable in the environment. The RUP instruction completes the preparation by pushing n path pointers onto the control stack, which will be used later when the RBLOCKs are executed in reverse. When executed in reverse, the RBLOCK acts much like an APP instruction, initiating the traversal of its binding expression. procedure RBLOCK
+If the quantum is exhausted, however, the RBLOCK instructions do not create a recursive
+context. Instead, they prepare the binding expressions and body of the LETREC for
+\(\beta\)-substitution by copying themselves to the result graph and placing UBVs for each
+LETREC binding variable in the environment. The RUP instruction completes the preparation
+by pushing \(n\) path pointers onto the control stack, which will be used later when the
+RBLOCKs are executed in reverse. When executed in reverse, the RBLOCK acts much like an
+APP instruction, initiating the traversal of its binding expression.
 
-if d= F then
+\begin{alltt}
+procedure RBLOCK
+  if \(\rt{d} = F\) then
+    ;;; Forward Execution
+    if \(\rt{q} > 0\) then
+      ;;; Place Partially Filled REC Construct in Environment
+      \(\rt{env} \leftarrow \rt{env}-3\)
+      \(\rtfield{env}{opcode} \leftarrow REC\)
+      \(\rtfield{env}{data} \leftarrow (\rtfield{pc}{data})+1\)
+    else
+      ;;; Place Unbound Variable in Environment
+      \(\phi \leftarrow \phi+1\)
+      \(\rt{env} \leftarrow \rt{env}+1\)
+      \(\rtfield{env}{opcode} \leftarrow \phi\)
+    ;;; Continue Walking Down Problem Graph
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution, Traverse Binding Expression
+    ;;; Restore Correct Path Pointer from Control Stack
+    \(\vdots\)
+    ;;; Save Fire and Prim Registers on Control Stack
+    \(\vdots\)
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    \(\rtfield{fsp}{opcode} \leftarrow JOIN\)
+    \(\rtfield{fsp}{data} \leftarrow \rt{pc}\)
+    \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+    \(\rt{argcnt} \leftarrow -1\)
+end RBLOCK
+\end{alltt}
 
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
-
-if q > O then
-
-\begin{verbatim}
-333 Place Partially Filled REC Construct in Environment
-\end{verbatim}
-
-env --- env-3 env-opcode «+ REC env-data --- (pe---data)+i else
-
-\begin{verbatim}
-333 Place Unbound Variable in Environment
-\end{verbatim}
-
-@ --- gti env --- envti envopcode --- \(\phi\)
-
-\begin{verbatim}
-333 Continue Walking Down Problem Graph
-\end{verbatim}
-
-pe --- peri else i3i Reverse Execution, Traverse Binding Expression 33 Restore Correct Path Pointer from Control Stack
-
-\begin{verbatim}
-i3j Save Fire and Prim Registers on Control Stack
-\end{verbatim}
-
-fsp --- fap fsp---opcode «+ JOIN fspodata --- pe pe pe---data argent --- -1 end RBLOCK The assignment of -1 to argent during reverse execution is to counteract the effects of executing the (SYM z,) instruction that begins the binding expression code sequence. This SYM instruction is only to be used in de-compilation of the LETREC expression; it should not participate in reduction. To ensure that it is not considered as part of a A-redex, the
+The assignment of -1 to \(argcnt\) during reverse execution is to counteract the effects
+of executing the \THOR{(SYM }\(x_i\)\THOR{)} instruction that begins the binding expression
+code sequence. This SYM instruction is only to be used in de-compilation of the LETREC
+expression; it should not participate in reduction. To ensure that it is not considered as
+part of a \(\beta\)-redex, the
 
 % Source PDF page 83
 
-argent is offset by one. When the (SYM z;) instruction is executed, it is copied to the result graph (which is the desired action) and the argent is incremented to zero. Note that when a REC is formed in the environment, the pointer to the binding expression code is incremented so that it does not include the (SYM 2;) instruction.
+\(argcnt\) is offset by one. When the \THOR{(SYM }\(x_i\)\THOR{)} instruction is executed, it
+is copied to the result graph (which is the desired action) and the \(argcnt\) is
+incremented to zero. Note that when a REC is formed in the environment, the pointer to the
+binding expression code is incremented so that it does not include the \THOR{(SYM }\(x_i\)\THOR{)}
+instruction.
 
 When executed in the forward direction with quantum available, the recursive update instruction completes filling in the REC constructs by inserting pointers to the recursive context and the start of the LETREC's BLOCK construct. If the quantum is exhausted, the current path pointer is pushed onto the control stack n times, once for each RBLOCK instruction in the LETREC. procedure RUP
 
