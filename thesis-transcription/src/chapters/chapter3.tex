@@ -69,14 +69,14 @@ There are also metalinguistic mechanisms for associating symbols with
 expressions and defining structure types. The association mechanism is analogous
 to Scheme's~[15] \THOR{define} special form and is written
 \[
-s = e
+s \equiv e
 \]
 where \(s\) is a symbol and \(e\) is a well-formed expression. All of these
 associations together form a definition context within which expressions are
 reduced. The mechanism for defining structure types is similar to CommonLisp's
 [31] \THOR{defstruct} special form, and is written
 \[
-s \mapsto s_1\ldots s_n,
+s \vdash s_1\ldots s_n,
 \]
 where \(s\) is the structure's tag and the \(s_i\) are symbols used to refer to
 components of the structure. Such a structure definition generates a set of
@@ -88,13 +88,13 @@ The syntax of THOR differs in one major respect from that of the pure
 closed.\footnote{This notion of closed is somewhat different from the
 \lambdacalculus's. In the \lambdacalculus{} the meaning of a closed expression
 is completely independent of the context in which it occurs. This property does
-not necessarily hold for THOR because of the value of symbolic constants depends
+not necessarily hold for THOR because the value of symbolic constants depends
 on the current definition context.} THOR replaces the identifiers of the pure
 \lambdacalculus{} with symbols. Symbols that are within the scope of a
 \THOR{LAMBDA}-binding of the same name are considered to be variables; all other
 symbols are considered to be symbolic constants. It may appear that this results
 in some loss of expressive power, but that is really not the case. Through the
-use of \(=\), symbolic constants perform the same role as free variables (i.e.,
+use of \(\equiv\), symbolic constants perform the same role as free variables (i.e.,
 they are identifiers for some expression known only in a larger scope).
 
 \section{Notation}
@@ -112,7 +112,7 @@ of new \(\lambda\)'s introduced by \(\eta\)-extension; \(q\) is the number of
 allowed contractions remaining; \(\rho\) is the redex store; and \(e\) is the
 THOR construct being reduced.
 
-The \(\delta\) mapping is the definition context created through use of \(=\) to
+The \(\delta\) mapping is the definition context created through use of \(\equiv\) to
 associate symbols to expressions; its value is supplied as part of every
 reduction sequence's initial configuration and remains invariant during
 reduction. The initial value of \(\phi\) is always zero, and \(\rho\) is always
