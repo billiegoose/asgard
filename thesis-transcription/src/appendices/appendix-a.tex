@@ -4,36 +4,36 @@
 
 The trigonometric function \(\sin(x)\) can be represented by the Taylor Series
 \[
-\sum_{i=0}^{\infty}(-1)^i {1\over(2i+1)!}x^{2i+1}.
+\sum_{i=0}^{\infty}(-1)^i \frac{1}{(2i+1)!}x^{2i+1}.
 \]
 The finite approximation of this infinite series serves as the basis of sine
 function. The sine program is based on a constructive mathematics approach
 advocated in~[51].
 
-\begin{verbatim}
-sine-benchmark = sine pi
+\begin{alltt}
+sine-benchmark \(\equiv\) sine pi
 
-sine = (lambda (x)
+sine \(\equiv\) (lambda (x)
          (period-maker sine-full (minus (/ pi 2)) (* 2 pi) x))
 
-sine-full = (lambda (x)
+sine-full \(\equiv\) (lambda (x)
               (reflection-maker sine-half (/ pi 2) x))
 
-sine-half = (lambda (x)
+sine-half \(\equiv\) (lambda (x)
               (let ((x2 (* x x)))
                 (sine-series x x2)))
 
-sine-series = (lambda (x x2)
+sine-series \(\equiv\) (lambda (x x2)
                 (* x (horners-rule
                       sine-coefficient
                       (sine-number-of-terms epsilon pi)
                       x2)))
 
-sine-coefficient = (lambda (i)
+sine-coefficient \(\equiv\) (lambda (i)
                     (/ (expt -1.0 i)
                        (factorial (1+ (* 2 i)))))
 
-sine-number-of-terms =
+sine-number-of-terms \(\equiv\)
   (lambda (eps value)
     (letrec ((loop
               (lambda (i)
@@ -43,11 +43,11 @@ sine-number-of-terms =
                     (loop (1+ i))))))
       (loop (ceiling (/ (- value 1) 2))))))
 
-epsilon = 0.000001
+epsilon \(\equiv\) 0.000001
 
-pi = 3.1415927
+pi \(\equiv\) 3.1415927
 
-horners-rule =
+horners-rule \(\equiv\)
   (lambda (coefficient length variable)
     (letrec ((term
               (lambda (n)
@@ -57,13 +57,13 @@ horners-rule =
                        (* variable (term (1+ n))))))))
       (term 0)))
 
-period-maker = (lambda (fcn a period x)
+period-maker \(\equiv\) (lambda (fcn a period x)
                  (let ((cycles (floor (/ (- x a) period))))
                    (fcn (- x (* cycles period)))))
 
-reflection-maker = (lambda (fcn axis x)
+reflection-maker \(\equiv\) (lambda (fcn axis x)
                      (fcn (if (< x axis) x (- (* 2 axis) x))))
-\end{verbatim}
+\end{alltt}
 
 \section{The GAME Program}
 
@@ -71,32 +71,32 @@ The game program uses the alpha-beta procedure to evaluate the ``goodness'' of a
 particular move in a two player board game. This program is based on an article
 by Hughes~[28].
 
-\begin{verbatim}
-game-benchmark = evaluate 1
+\begin{alltt}
+game-benchmark \(\equiv\) evaluate 1
 
-tree = label subtrees
+tree \(\vdash\) label subtrees
 
-empty-board = [e e e e e e e e e]
+empty-board \(\equiv\) [e e e e e e e e e]
 
-evaluate = (lambda (depth)
+evaluate \(\equiv\) (lambda (depth)
              (maximise (maptree static
                                 (prune depth (gametree)))))
 
-gametree = reptree moves empty-board
+gametree \(\equiv\) reptree moves empty-board
 
-maptree = (lambda (f)
+maptree \(\equiv\) (lambda (f)
             (redtree (lambda (label subtrees)
                        (make-tree (f label) subtrees))
                      cons
-                     0))
+                     []))
 
-maximise = (lambda (tree)
+maximise \(\equiv\) (lambda (tree)
              (if (null? (tree-subtrees tree))
                  (tree-label tree)
                  (maximum (map minimise
                                (tree-subtrees tree)))))
 
-maximum =
+maximum \(\equiv\)
   (lambda (list)
     (letrec ((maximum1
               (lambda (list x)
@@ -106,13 +106,13 @@ maximum =
                               (max x (car list)))))))
       (maximum1 (cdr list) (car list))))
 
-minimise = (lambda (tree)
+minimise \(\equiv\) (lambda (tree)
              (if (null? (tree-subtrees tree))
                  (tree-label tree)
                  (minimum (map maximise
                                (tree-subtrees tree)))))
 
-minimum =
+minimum \(\equiv\)
   (lambda (list)
     (letrec ((minimum1
               (lambda (list x)
@@ -122,7 +122,7 @@ minimum =
                               (min x (car list)))))))
       (minimum1 (cdr list) (car list))))
 
-moves =
+moves \(\equiv\)
   (lambda (board)
     (letrec ((moves1
               (lambda (player front back)
@@ -139,21 +139,21 @@ moves =
                                 (cdr back)))))))
       (moves1 (whose-turn? board) nil board)))
 
-prune = (lambda (depth tree)
+prune \(\equiv\) (lambda (depth tree)
           (if (= depth 0)
-              (make-tree (tree-label tree) 1)
+              (make-tree (tree-label tree) [])
               (make-tree (tree-label tree)
                          (map (prune (1- depth))
                               (tree-subtrees tree)))))
 
-redtree = (lambda (node-op list-op basis tree)
+redtree \(\equiv\) (lambda (node-op list-op basis tree)
             (node-op (tree-label tree)
                      (redtree1 node-op
                                list-op
                                basis
                                (tree-subtrees tree))))
 
-redtree1 = (lambda (node-op list-op basis subtrees)
+redtree1 \(\equiv\) (lambda (node-op list-op basis subtrees)
              (if (null? subtrees)
                  basis
                  (list-op (redtree node-op
@@ -165,15 +165,15 @@ redtree1 = (lambda (node-op list-op basis subtrees)
                                     basis
                                     (cdr subtrees)))))
 
-reduce = (lambda (f id list)
+reduce \(\equiv\) (lambda (f id list)
            (if (null? list)
                id
                (f (car list) (reduce f id (cdr list)))))
 
-reptree = (lambda (f a)
+reptree \(\equiv\) (lambda (f a)
             (make-tree a (map (reptree f) (f a))))
 
-static =
+static \(\equiv\)
   (lambda (board)
     (let ((player (whose-turn? board)))
       (letrec
@@ -187,7 +187,7 @@ static =
                     (eval (cdr board) 0 (max rating best)))))))
         (eval board 0 0))))
 
-whose-turn? = (lambda (board)
+whose-turn? \(\equiv\) (lambda (board)
                 (letrec ((ecount
                           (lambda (l)
                             (if (null? l)
@@ -197,5 +197,5 @@ whose-turn? = (lambda (board)
                                     (ecount (cdr l)))))))
                   (if (even? (ecount board)) X O)))
 
-++ = (lambda (a b) (reduce cons b a))
-\end{verbatim}
+\texttt{++} \(\equiv\) (lambda (a b) (reduce cons b a))
+\end{alltt}
