@@ -1148,84 +1148,83 @@ end INT
 
 \subsection{Symbolic Constants}
 
-Symbolic constants are different from the other basic data types in two ways. First, they are not passive. If a symbol has an associated definition and conditions are appropriate, the symbol reduces to its definition. Second, symbolic constants are `indirect' values that
+Symbolic constants are different from the other basic data types in two ways. First, they
+are not passive. If a symbol has an associated definition and conditions are appropriate,
+the symbol reduces to its definition. Second, symbolic constants are `indirect' values that
 
 % Source PDF page 74
 
-do not `contain' the symbols they represent (at least not in the same sense that integer instructions actually contain the binary representation of an integer value). Each symbolic constant contains a pointer to an entry in a hash table. The hash table entry contains the printed representation of the symbol and information about any associated definitions.
+do not `contain' the symbols they represent (at least not in the same sense that integer
+instructions actually contain the binary representation of an integer value). Each symbolic
+constant contains a pointer to an entry in a hash table. The hash table entry contains the
+printed representation of the symbol and information about any associated definitions.
 
-The physical representation of the hash table and how it is managed are not of impor- tance. It is enough to know that the THOR compiler takes care of the details of hash table management and symbol definitions. The hash table and defined expressions are stored in low graph memory, in front of the problem graph area. Entries in the hash table shall be considered abstract objects with only one property of interest --- a symbol's associated definition. The address of the code for the defined expression shall be retrieved by refer- encing the definition field of the symbol in the same way as opcode and data fields are referenced. If there is no definition associated with a symbol, the definition field shall have the value L.
+The physical representation of the hash table and how it is managed are not of importance.
+It is enough to know that the THOR compiler takes care of the details of hash table
+management and symbol definitions. The hash table and defined expressions are stored in
+low graph memory, in front of the problem graph area. Entries in the hash table shall be
+considered abstract objects with only one property of interest --- a symbol's associated
+definition. The address of the code for the defined expression shall be retrieved by
+referencing the definition field of the symbol in the same way as opcode and data fields
+are referenced. A missing associated definition is represented by \(\perp\).
 
-The behavior of the SYM instruction executed in the forward direction is fairly straight- forward. There are three cases to consider:
+The behavior of the SYM instruction executed in the forward direction is fairly
+straightforward. There are three cases to consider:
 
-1. The instruction is not at the head of a spine --- the instruction is copied into the result graph and forward execution continues.
+\begin{enumerate}
+\item The instruction is not at the head of a spine --- the instruction is copied into the result graph and forward execution continues.
 
-2. The instruction is at the head of a spine and there is either no associated definition or the quantum is exhausted --- the instruction is copied into the result graph and execution switches from forward to reverse.
+\item The instruction is at the head of a spine and there is either no associated definition or the quantum is exhausted --- the instruction is copied into the result graph and execution switches from forward to reverse.
 
-3. The instruction is at the head, quantum is available and there is a definition associated with the symbol --- the definition code is executed.
+\item The instruction is at the head, quantum is available and there is a definition associated with the symbol --- the definition code is executed.
+\end{enumerate}
 
-The behavior of the SYM instruction in reverse is more complicated. If the symbol is to be replaced by its definition, this is done by converting the SYM instruction into an APP instruction which points to the symbol's definition code. The APP instruction expects an environment path to have been pushed onto the control stack earlier, so the SYM instruction must now do this. Because all definitions are closed expressions', any environment path will suffice; the easiest thing to do is push whatever happens to be in the env register.
-
-?Closed in the THOR sense, as discussed in Chapter 3.
+The behavior of the SYM instruction in reverse is more complicated. If the symbol is to
+be replaced by its definition, this is done by converting the SYM instruction into an APP
+instruction which points to the symbol's definition code. The APP instruction expects an
+environment path to have been pushed onto the control stack earlier, so the SYM instruction
+must now do this. Because all definitions are closed expressions,\footnote{Closed in the
+THOR sense, as discussed in Chapter 3.} any environment path will suffice; the easiest
+thing to do is push whatever happens to be in the \(env\) register.
 
 % Source PDF page 75
 
-procedure SYM if d=F
-
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
-
-if (pe-head = FALSE) or (g = 0) or (pe----definition = 1) then
-
-\begin{verbatim}
-333 Copy Symbol into Result Graph
-\end{verbatim}
-
-fsp --- fspti Sspapcode --- pc---opcode fspdata --- pc---data if pe---head = TRUE then
-
-\begin{verbatim}
-i33 Begin Walking Up the Result Graph
-\end{verbatim}
-
-pe --- fsp-1 d<B else Pe --- peti else if (q > 0) and (pe---head = TRUE) then
-
-\begin{verbatim}
-333 Replace Symbol by its Definition
-\end{verbatim}
-
-pe + pe-definition qeg-i else
-
-\begin{verbatim}
-333 Reverse Execution
-\end{verbatim}
-
-if (q = 0) or (pe+definition = 1) then
-
-\begin{verbatim}
-333 Do Not Replace Symbol by Definition
-\end{verbatim}
-
-pe = pe-t else if q > 0 then
-
-\begin{verbatim}
-333 Replace Symbol by its Definition
-333 Convert SYM to APP Instruction
-\end{verbatim}
-
-pe-opcode «\textasciitilde{} APP pe>data ---- pe-definition
-
-\begin{verbatim}
-333 Push Path Pointer onto Control Stack
-\end{verbatim}
-
-cm ctl c---data --- env
-
-\begin{verbatim}
-333 Decrement Quantum
-\end{verbatim}
-
-q+ q-i : end SYM
+\begin{alltt}
+procedure SYM
+  if \(\rt{d} = F\)
+    ;;; Forward Execution
+    if \((\rtfield{pc}{head} = FALSE)\) or \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \perp)\) then
+      ;;; Copy Symbol into Result Graph
+      \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+      \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
+      \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
+      if \(\rtfield{pc}{head} = TRUE\) then
+        ;;; Begin Walking Up the Result Graph
+        \(\rt{pc} \leftarrow \rt{fsp}-1\)
+        \(\rt{d} \leftarrow B\)
+      else
+        \(\rt{pc} \leftarrow \rt{pc}+1\)
+    else if \((\rt{q} > 0)\) and \((\rtfield{pc}{head} = TRUE)\) then
+      ;;; Replace Symbol by its Definition
+      \(\rt{pc} \leftarrow \rtfield{pc}{definition}\)
+      \(\rt{q} \leftarrow \rt{q}-1\)
+  else
+    ;;; Reverse Execution
+    if \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \perp)\) then
+      ;;; Do Not Replace Symbol by Definition
+      \(\rt{pc} \leftarrow \rt{pc}-1\)
+    else if \(\rt{q} > 0\) then
+      ;;; Replace Symbol by its Definition
+      ;;; Convert SYM to APP Instruction
+      \(\rtfield{pc}{opcode} \leftarrow APP\)
+      \(\rtfield{pc}{data} \leftarrow \rtfield{pc}{definition}\)
+      ;;; Push Path Pointer onto Control Stack
+      \(\rt{c} \leftarrow \rt{c}+1\)
+      \(\rtfield{c}{data} \leftarrow env\)
+      ;;; Decrement Quantum
+      \(\rt{q} \leftarrow \rt{q}-1\)
+end SYM
+\end{alltt}
 
 \subsection{Built-In Primitives}
 
