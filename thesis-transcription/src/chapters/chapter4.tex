@@ -517,7 +517,7 @@ case is:
 \langle\!\langle F,\phi,q_0,\rho,c,\rho(i),r\rangle\!\rangle
 \longmapsto \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle F,\phi,q_1,\rho',c,e,r\rangle\!\rangle
+&\langle\!\langle B,\phi,q_1,\rho',c,e,r\rangle\!\rangle
 \qquad \mathrm{con2}
 \end{align*}
 
@@ -541,11 +541,9 @@ also congruent to the right hand side of the conclusion of Rule 4:
 \paragraph{Case 5: \(e\) is an unbound variable.}
 The operational semantics of unbound variables is described by Rule 5:
 \[
-\frac{
-  \langle \delta,\phi,q,\rho,(\THOR{UBV}\ i)\rangle
-  \longmapsto
-  \langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle
-}{}
+\langle \delta,\phi,q,\rho,(\THOR{UBV}\ i)\rangle
+\longmapsto
+\langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle
 \]
 
 This behavior is directly implemented by Rule C7. The SSM execution sequence
