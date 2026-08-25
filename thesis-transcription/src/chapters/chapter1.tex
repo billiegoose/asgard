@@ -1,0 +1,63 @@
+\chapter{Introduction}
+
+This dissertation is concerned with the design of computing architectures which
+support the implementation of \emph{declarative} programming languages. Programs
+in declarative languages describe \emph{what} values are computed, unlike
+programs in conventional imperative languages (such as PASCAL or ADA) which
+describe \emph{how} values are computed. This fundamental shift in viewpoint is
+made possible by rejecting the von-Neumann model of computation and adopting
+models which are firmly rooted in mathematics.
+
+Traditionally, there have been two distinct types of declarative language:
+\emph{functional} and \emph{logic}. Functional languages are based on the
+\lambdacalculus{} or recursive equation systems. Logic languages, on the other
+hand, are based on a procedural interpretation of the first order predicate
+calculus. In recent years it has become apparent that these two paradigms are
+different aspects of a single underlying theory based on meaning-preserving
+transformations, and the integration of functions and relations into a single
+language is a very active area of research.
+
+The mathematical foundations of declarative languages endow them with elegant
+semantics and an expressiveness that is unsurpassed among programming languages.
+Such power does not come for free, however, and declarative languages pay a stiff
+price in terms of implementation efficiency on conventional von-Neumann
+computers. In order to increase the efficiency of declarative languages,
+implementors have gradually chipped away at their mathematical foundations,
+eliminating features which are too expensive.
+
+The research described here is an attempt to redress this situation, primarily
+with regard to functional languages based on the \lambdacalculus. The work
+described herein is motivated by the conviction that a full and complete
+implementation of the \lambdabetacalculus{} is desirable from both a theoretical
+and a practical standpoint. If conventional von-Neumann computers are not well
+suited to implement the \lambdacalculus, why not design a computer that is? This
+dissertation explores this idea, starting with the theory of the
+\lambdacalculus{} and progressing to the design of a sequential computing
+architecture which directly implements the \lambdabetacalculus{} as its native
+machine language.\footnote{This work is based on an invention by Dr. Klaus J.
+Berkling entitled ``Lambda Calculus Computer,'' U.S. Patent Application No.
+247,622, filing date 22 September 1988. Inquiries regarding the
+commercialization of the head order reduction technology presented herein should
+be directed to Syracuse University.} Interestingly, the resulting architecture,
+named \RED{2},\footnote{This architecture is the second in a series of reduction
+machines that began with \RED{1}, developed by Berkling and his colleagues at
+GMD~[32]. \RED{1} is a string reduction machine for the \lambdacalculus,
+\RED{2} is a graph reduction machine for the \lambdacalculus, and \RED{3} is
+planned to provide a complete integration of the \ensuremath{\lambda}- and
+predicate calculi.} turns out to be quite close to conventional von-Neumann
+technology.
+
+The organization of this dissertation presents an ordered development of
+\RED{2}, from theory to machine. Chapter 2 presents the theory of the
+\lambdacalculus{} and some of the reasons why it is so difficult to implement.
+An equivalent, operationally oriented theory is then presented as the basis for a
+machine implementation. Chapter 3 introduces the syntax and operational semantics
+of THOR, an extension of the \lambdacalculus{} which is the assembly language
+for \RED{2}. The architecture of \RED{2} is presented in Chapter 4. A conscious
+attempt is made in Chapters 2--4 to establish, through both formal and informal
+arguments, that \RED{2} correctly implements the complete
+\lambdabetacalculus. In Chapter 5 the performance of \RED{2} is evaluated with
+respect to other implementation techniques and several enhancements to the
+architecture are presented. Chapter 6, the final chapter, explores the
+possibility of implementing the Horn clause subset of the predicate calculus on
+\RED{2}.

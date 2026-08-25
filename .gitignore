@@ -1,0 +1,16 @@
+.DS_Store
+.venv/
+.pi/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+dist/
+build/
+*.egg-info/
+htmlcov/
+.coverage
+.coverage.*
+thesis-transcription/build/
+Hilton_AAI9111882.pdf
