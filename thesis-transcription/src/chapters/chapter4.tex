@@ -26,7 +26,7 @@ A simple and straightforward graph representation for expressions is demonstrate
 
 The binary tree representation satisfies two of the three constraints: it supports the decompilation of expressions and the identification and contraction of redexes. The normal order reduction sequence of an expression can be found by making an inorder traversal of the expression's graph representation. Such a traversal amounts to recursively walking down each spine of the graph, which is simple to implement using either a stack or a pointer reversal technique.
 
-The binary tree representation, however, requires a lot of memory bandwidth. In addi- tion to the cost of maintaining a stack or reverse-pointer chain, moving from an abstraction node to its body requires two memory reads --- one read to get the address of the body and another read to get its contents. Moving to either the operator or operand of an application node also costs two reads. This high bandwidth requirement limits the performance of any machine using a binary tree representation.
+The binary tree representation, however, requires a lot of memory bandwidth. In addition to the cost of maintaining a stack or reverse-pointer chain, moving from an abstraction node to its body requires two memory reads --- one read to get the address of the body and another read to get its contents. Moving to either the operator or operand of an application node also costs two reads. This high bandwidth requirement limits the performance of any machine using a binary tree representation.
 
 \paragraph{The Linear Graph Representation}
 
@@ -81,7 +81,7 @@ machine configuration:
 \begin{itemize}
 \item \(d\), a flag indicating the current direction of traversal, which is either
 F for forward or B for backward.
-\item \(c\), the control stack, which temporarily stores copies of \(p\) during
+\item \(c\), the control stack, which temporarily stores copies of \(\rho\) during
 reduction. The control stack is introduced to facilitate the evolution of the SSM
 into RED2, where the control stack is used to store other things as well.
 \item \(g\), the graph stack, which initially contains the graph to be reduced and
@@ -92,11 +92,12 @@ traversal.
 
 The SSM configuration has the form
 
-\begin{verbatim}
-<d, $, 9, ps ¢, 9, 7>
-\end{verbatim}
+\[
+\langle\!\langle d,\phi,q,\rho,c,g,r\rangle\!\rangle
+\]
 
-Since this machine deals only with the pure \lambdacalculus{}, the definition context 6 is omitted.
+Since this machine deals only with the pure \lambdacalculus{}, the definition
+context \(\delta\) is omitted.
 
 The control unit of the Simple Stack Machine is specified by the ordered transition rules presented in Figure 4.5. Once each machine cycle, the left hand side of each rule is checked in the order presented to see if it matches the current machine configuration; if so, the current configuration is modified to match the right hand side of the rule and the machine advances to the next cycle. The only parts of the graph visible to the control unit are the nodes at the top of the p and r stacks.
 
