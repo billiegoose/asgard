@@ -52,8 +52,8 @@ clauses.
 At first glance, it may seem that \lambdacalculus{} systems based on reduction
 and relational systems based on resolution are fundamentally different. This is
 not the case; it is possible to design functional languages which are executed
-by techniques similar to resolution~[46][45][18][8], and relational languages
-which are executed by reduction~[49][10][17].
+by techniques similar to resolution [46] [45] [18] [8], and relational languages
+which are executed by reduction [49] [10] [17].
 
 The RED project seeks to combine both functions and relations symmetrically in a
 single coherent framework based upon reduction.\footnote{A symmetrical
@@ -236,7 +236,7 @@ of their quantifier and cannot be ``pulled'' out of this scoping.
 
 Unlike higher-order unification of quantified terms, which has received much
 attention~[27], the literature on first-order unification is scant, consisting
-primarily of work done by Staples and Robinson~[57][55]. The Staples-Robinson
+primarily of work done by Staples and Robinson [57] [55]. The Staples-Robinson
 unification algorithm operates on expressions which use named identifiers to
 represent variables and requires special mechanisms to avoid name clashes and to
 determine if a variable is free or bound. The unification algorithm presented
@@ -619,7 +619,7 @@ substitution for any goal expression, even though more than one may exist. The
 utility of THOR-L would be greatly enhanced if it could generate all of the
 correct answer substitutions for a goal. One possible way to do this is to treat
 relations as set-valued functions which return a set or list of tuples
-containing all the answers to a goal query~[49][17]. Such a solution is not
+containing all the answers to a goal query [49] [17]. Such a solution is not
 practical with the current design of RED2 because of its memory management
 policies; the set of solutions can be generated, but it would be thrown away
 before all the solutions could be accessed. If a separate memory area for
