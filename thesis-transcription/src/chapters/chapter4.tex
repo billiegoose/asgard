@@ -1653,34 +1653,51 @@ incremented to zero. Note that when a REC is formed in the environment, the poin
 binding expression code is incremented so that it does not include the \THOR{(SYM }\(x_i\)\THOR{)}
 instruction.
 
-When executed in the forward direction with quantum available, the recursive update instruction completes filling in the REC constructs by inserting pointers to the recursive context and the start of the LETREC's BLOCK construct. If the quantum is exhausted, the current path pointer is pushed onto the control stack n times, once for each RBLOCK instruction in the LETREC. procedure RUP
+When executed in the forward direction with quantum available, the recursive update
+instruction completes filling in the REC constructs by inserting pointers to the recursive
+context and the start of the LETREC's BLOCK construct. If the quantum is exhausted, the
+current path pointer is pushed onto the control stack \(n\) times, once for each RBLOCK
+instruction in the LETREC.
 
-if d = F then
+\begin{alltt}
+procedure RUP
+  if \(\rt{d} = F\) then
+    ;;; Forward Execution
+    \(\rtsd \leftarrow \rtfield{pc}{data}\)        ;;; \(\rtsd \leftarrow n\)
+    if \(\rt{q} > 0\) then
+      ;;; Complete RECs in Environment
+      \(\rtsa \leftarrow \rt{env}\)
+      loop while \(\rtsd > 0\)
+        \((\rtsa+1)\rightarrow\mathit{data} \leftarrow \rt{env}\)       ;;; Pointer to Recursive Context
+        \((\rtsa+2)\rightarrow\mathit{data} \leftarrow \rt{pc}-(\rtfield{pc}{data})\)  ;;; Pointer to BLOCK Construct
+        \(\rtsa \leftarrow \rtsa+3\)
+        \(\rtsd \leftarrow \rtsd-1\)
+    else
+      ;;; Push Path Pointers on Control Stack
+      loop while \(\rtsd > 0\)
+        \(\rt{c} \leftarrow \rt{c}+1\)
+        \(\rtfield{c}{data} \leftarrow env\)
+        \(\rtsd \leftarrow \rtsd-1\)
+      ;;; Copy RUP Instruction to Result Graph
+      \(\vdots\)
+    ;;; Continue Walking Down Problem Graph
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    ;;; Reverse Execution
+    ;;; Continue Walking Up Result Graph
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end RUP
+\end{alltt}
 
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
+The RUP instruction is very similar to Henderson's recursive apply (RAP) instruction
+[24, p. 310], which is used to create recursive binding contexts in the SECD machine.
 
-Sq < pcdata 33 Sd on if q > 0 then 313 Complete RECs in Environment 8g --- env loop while sy > 0
-
-\begin{verbatim}
-(sat1) data + env 33 Pointer to Recursive Context
-(sa+2)data — pe-(pedata) ii Pointer to BLOCK Construct
-\end{verbatim}
-
-Sq  8g+3 Sd --- Sqr-1 else 33; Push Path Pointers on Control Stack loop while sy > 0 € --- ctl edata --- env Sd --- sqrl
-
-\begin{verbatim}
-333 Copy RUP Instruction to Result Graph
-\end{verbatim}
-
-33 Continue Walking Down Problem Graph pe --- peri else
-
-\begin{verbatim}
-333 Reverse Execution
-\end{verbatim}
-
-ii; Continue Walking Up Result Graph ; pe --- pe-t end RUP The RUP instruction is very similar to Henderson's recursive apply (RAP) instruction [24, p- 310], which is used to create recursive binding contexts in the SECD machine. Accessing the Recursive Context Access to the binding expressions in the recursive context is controlled by the RECP instruc- tion. Access takes place in two stages. First, when a LETREC recursion variable accesses the redex store and dereferences to a REC construct, a RECP instruction pointing to that REC construct is generated. Second, execution of this RECP instruction accesses the BLOCK construct and makes the binding expression available for reduction.
+\paragraph{Accessing the Recursive Context}
+Access to the binding expressions in the recursive context is controlled by the RECP
+instruction. Access takes place in two stages. First, when a LETREC recursion variable
+accesses the redex store and dereferences to a REC construct, a RECP instruction pointing
+to that REC construct is generated. Second, execution of this RECP instruction accesses the
+BLOCK construct and makes the binding expression available for reduction.
 
 % Source PDF page 84
 
