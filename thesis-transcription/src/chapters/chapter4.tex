@@ -1701,72 +1701,54 @@ BLOCK construct and makes the binding expression available for reduction.
 
 % Source PDF page 84
 
-When there is quantum available, a RECP at the head of a spine acts like an indirection pointer to the binding expression and a RECP that is not at the head of a spine behaves in a way similar to the APP instruction. When the quantum is exhausted, however, the RECP is responsible for reconstructing the LETREC expression around the recursion variable. procedure RECP if d=F
+When there is quantum available, a RECP at the head of a spine acts like an indirection
+pointer to the binding expression and a RECP that is not at the head of a spine behaves in
+a way similar to the APP instruction. When the quantum is exhausted, however, the RECP is
+responsible for reconstructing the LETREC expression around the recursion variable.
 
-\begin{verbatim}
-333 Forward Execution
-\end{verbatim}
+\begin{alltt}
+procedure RECP
+  if \(\rt{d} = F\)
+    ;;; Forward Execution
+    if \(\rtfield{pc}{head} = FALSE\)
+      ;;; Copy RECP Instruction into Result Graph
+      \(\vdots\)
+    else if \(\rt{q} > 0\) then
+      \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+      ;;; Restore Path for Binding Expression
+      \(\rt{env} \leftarrow \rt{env}+1\)
+      \(\rtfield{env}{opcode} \leftarrow PNP\)
+      \(\rtfield{env}{data} \leftarrow (\rt{pc}+1)\rightarrow\mathit{data}\)
+      ;;; Execute Binding Expression
+      \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+      \(\rt{q} \leftarrow \rt{q}-1\)
+    else
+      ;;; Reconstruct LETREC Around Variable
+      call RECONSTRUCT
+  else
+    ;;; Reverse Execution
+    if \(\rt{q} > 0\) then
+      ;;; Execute Binding Expression
+      \(\rt{q} \leftarrow \rt{q}-1\)
+      \(\rtsa \leftarrow \rtfield{pc}{data}\)
+      ;;; Convert RECP to APP Instruction
+      \(\rtfield{pc}{opcode} \leftarrow APP\)
+      \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+      ;;; Push Path Pointer for LETREC onto Control Stack
+      \(\rt{c} \leftarrow \rt{c}+1\)
+      \(\rtfield{c}{data} \leftarrow (\rtsa+1)\rightarrow\mathit{data}\)
+    else
+      ;;; Reconstruct LETREC Around Variable
+      ;;; Place JOIN Instruction into Result Graph
+      \(\vdots\)
+      ;;; Save Firing Registers on Control Stack
+      \(\vdots\)
+      call RECONSTRUCT
+end RECP
+\end{alltt}
 
-if pe---head = FALSE
-
-\begin{verbatim}
-333 Copy RECP Instruction into Result Graph
-\end{verbatim}
-
-else if g > 0 then pe --- pe>data
-
-\begin{verbatim}
-333 Restore Path for Binding Expression
-\end{verbatim}
-
-env --- envti env-opcode < PNP env-data --- (peti)---data
-
-\begin{verbatim}
-333 Execute Binding Expression
-\end{verbatim}
-
-pe --- peodata qe q-1 else
-
-\begin{verbatim}
-333 Reconstruct LETREC Around Variable
-\end{verbatim}
-
-call RECONSTRUCT else
-
-\begin{verbatim}
-333 Reverse Execution
-\end{verbatim}
-
-if q > O then
-
-\begin{verbatim}
-333 Execute Binding Expression
-\end{verbatim}
-
-q- 9-1 Sq + pce-data
-
-\begin{verbatim}
-333 Convert RECP to APP Instruction
-\end{verbatim}
-
-pc---opcode < APP pe---data «--- s,----data
-
-\begin{verbatim}
-333 Push Path Pointer for LETREC onto Control Stack
-\end{verbatim}
-
-\begin{itemize}
-\item --- ctl
-\end{itemize}
-
-c-data --- (s,+1)data else 33; Reconstruct LETREC Around Variable
-
-\begin{verbatim}
-333 Place JOIN Instruction into Result Graph
-i33 Save Firing Registers on Control Stack
-\end{verbatim}
-
-call RECONSTRUCT end RECP A LETREC is reconstructed around a recursion variable by copying the LETREC's RBLOCK instructions in front of the variable. This new expression should be traversed in an envi-
+A LETREC is reconstructed around a recursion variable by copying the LETREC's RBLOCK
+instructions in front of the variable. This new expression should be traversed in an envi-
 
 % Source PDF page 85
 
