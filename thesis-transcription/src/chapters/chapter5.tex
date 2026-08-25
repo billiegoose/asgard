@@ -49,12 +49,14 @@ long each interpreter took to execute a benchmark.
 \centering
 \begin{tabular}{llrrr}
 \hline
-Program & Machine & Memory Usage & Instructions & Execution Time\\
+Program & Machine & \begin{tabular}{@{}c@{}}Memory Usage\\(Words)\end{tabular}
+& \begin{tabular}{@{}c@{}}Instructions\\Executed\end{tabular}
+& \begin{tabular}{@{}c@{}}Execution Time\\(Seconds)\end{tabular}\\
 \hline
-sine & RED2 & 322 & 3,226 & 0.54\\
-sine & WINTER & 24,887 & 10,226 & 1.87\\
-game & RED2 & 1,952 & 1,274,107 & 100.0\\
-game & WINTER & 58,918 & 157,224 & 12.10\\
+sine & RED2 & 322 & 3,226 & 0.33\\
+sine & WINTER & 24,708 & 9,234 & 1.10\\
+game & RED2 & 1,952 & 1,227,197 & 100.0\\
+game & WINTER & 18,816 & 6,697 & 0.8\\
 \hline
 \end{tabular}
 \caption{Benchmark comparison of RED2 with WINTER, an implementation of the
@@ -129,10 +131,12 @@ as many times as needed.
 \centering
 \begin{tabular}{lrrr}
 \hline
-Program Phase & Memory Usage & Instructions & Execution Time\\
+Task & \begin{tabular}{@{}c@{}}Memory Usage\\(Words)\end{tabular}
+& \begin{tabular}{@{}c@{}}Instructions\\Executed\end{tabular}
+& \begin{tabular}{@{}c@{}}Execution Time\\(Seconds)\end{tabular}\\
 \hline
-build tree & 670 & 40,210 & 2.43\\
-evaluate tree & 1,176 & 93,706 & 5.80\\
+build tree & 2,670 & 40,120 & 2.63\\
+evaluate tree & 1,176 & 93,796 & 5.60\\
 total cost & 3,846 & 133,916 & 8.23\\
 \hline
 \end{tabular}
