@@ -1530,24 +1530,24 @@ work together to allow the components to be accessed by a certain class of
 
 Applying a structure to a such a selector expression yields the \(i\)th component. For a
 selector to work properly, \(n\) should be equal to the number of components in the
-structure. When a structure type is defined using the \(:=\) mechanism, selector
+structure. When a structure type is defined using the \(\vdash\) mechanism, selector
 expressions are automatically defined for each component of the structure. For example,
 the definition
 
 \[
-\THOR{PAIR := CAR CDR}
+\THOR{PAIR }\vdash\THOR{ CAR CDR}
 \]
 
 generates
 
 \[
-\THOR{CAR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR)))}
+\THOR{CAR }\equiv\THOR{ (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR)))}
 \]
 
 and
 
 \[
-\THOR{CDR = (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CDR))).}
+\THOR{CDR }\equiv\THOR{ (LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CDR))).}
 \]
 
 An example reduction sequence illustrates how these selectors work:
