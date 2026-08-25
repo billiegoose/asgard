@@ -267,7 +267,7 @@ U* n lambda.e0 lambda.e1 = U* (n+1) e0 e1
 U* n (e0 e1) (e2 e3) = (U* n e0 e2) and (U* n e1 e3)
 U* n (VAR i) (VAR i) = true
 U* n (VAR i) e =
-  if i < n then false
+  if i < n then false                                      <<
   else U* n sigma[i-n] e
 U* n e (VAR i) = U* n (VAR i) e
 U* n (UBV i) (UBV i) = true
@@ -282,12 +282,12 @@ U* n e0 e1 = false
 
 The Q-UNIFY procedure is identical in most respects to unification procedures
 for unquantified expressions; the differences being the argument \(n\) to U*
-and the test performed on the line marked by \(<\). These two differences are
+and the test performed on the line marked by \(\ll\). These two differences are
 necessary to ensure Q-UNIFY only binds free variables. Free variables can easily
 be detected, because their binding index will reach beyond the
 \(\lambda\)-bindings encountered thus far by U*. The number of
 \(\lambda\)-bindings encountered is recorded by \(n\), and the test for ensuring
-only free variables get bound is performed on the line marked by \(<\).
+only free variables get bound is performed on the line marked by \(\ll\).
 
 The OCCURS function performs an occurs check to detect if the free variable
 represented by index \(i\) occurs in the expression \(e\) and also checks to see
@@ -303,7 +303,7 @@ O* lb ub lambda.e = O* (lb+1) (ub+1) e
 O* lb ub (e0 e1) = (O* lb ub e0) or (O* lb ub e1)
 O* lb ub (VAR j) =
   if lb < j < ub then true
-  else if j > ub then O* lb ub sigma[j-lb]
+  else if j >= ub then O* lb ub sigma[j-lb]
   else false
 O* lb ub (UBV j) =
   if i = j then true
