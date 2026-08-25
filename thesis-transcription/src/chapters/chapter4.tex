@@ -956,95 +956,135 @@ end VAR
 
 \subsection{Optimizing Single Instruction Arguments}
 
-Consider arguments consisting of a single variable node; in the linear graph representation they have the form :
+Consider arguments consisting of a single variable node; in the linear graph representation
+they have the form
 
-\begin{verbatim}
-+++ :(APP (VAR i)):-.-
-\end{verbatim}
+\[
+\cdots:\THOR{(APP (VAR }i\THOR{))}:\cdots
+\]
 
-Such arguments are expensive in both memory space and processing time. The compiled code for such an argument consists of two words, an APP and a VAR instruction: m: APP n nm: VAR i This code is wasteful in space because the APP is the same size as the expression it points to, which consists only of the VAR instruction. Why not drop the APP and place the variable in location m, with some suitable marking to indicate the variable is an argument? This can indeed be done by adding a new instruction, APP-VAR, to replace the APP and VAR. combination. Optimizing the Problem Graph Introducing the APP-VAR instruction also streamlines execution of the problem graph in the forward direction. When the APP-VAR is executed in the forward direction, its variable can be immediately dereferenced. The action taken depends on the variable's value:
+Such arguments are expensive in both memory space and processing time.
+
+The compiled code for such an argument consists of two words, an \THOR{APP} and a
+\THOR{VAR} instruction:
+
+\[
+\begin{array}{rll}
+\vdots\\
+m: & \THOR{APP} & n\\
+\vdots\\
+n: & \THOR{VAR} & i\\
+\vdots
+\end{array}
+\]
+
+This code is wasteful in space because the \THOR{APP} is the same size as the
+expression it points to, which consists only of the \THOR{VAR} instruction. Why not
+drop the \THOR{APP} and place the variable in location \(m\), with some suitable
+marking to indicate the variable is an argument? This can indeed be done by adding
+a new instruction, \THOR{APP-VAR}, to replace the \THOR{APP} and \THOR{VAR}
+combination.
+
+\paragraph{Optimizing the Problem Graph}
+
+Introducing the \THOR{APP-VAR} instruction also streamlines execution of the
+problem graph in the forward direction. When the \THOR{APP-VAR} is executed in the
+forward direction, its variable can be immediately dereferenced. The action taken
+depends on the variable's value:
 
 \begin{itemize}
-\item If the value is a UBV, the corrected variable index is computed and stored in the result
+\item If the value is a \THOR{UBV}, the corrected variable index is computed and stored
+in the result graph as an \THOR{APP-VAR} instruction. This eliminates the argument
+traversal that would have taken place using the \THOR{APP} and \THOR{VAR}
+combination, saving five memory operations.
+
+\item If the value is a closure, an \THOR{APP} instruction pointing to the closure's
+expression is placed into the result graph and the closure's path pointer is pushed
+on the control stack. When this \THOR{APP} instruction is executed in reverse, it
+will produce the same result as executing the \THOR{CLOSURE} instruction.
 \end{itemize}
 
-graph as an APP-VAR instruction. This eliminates the argument traversal that would have taken place using the APP and VAR combination, saving five memory operations.
-
-\begin{itemize}
-\item If the value is a closure, an APP instruction pointing to the closure's expression is
-\end{itemize}
-
-placed into the result graph and the closure's Path pointer is pushed on the control stack. When this APP instruction is executed in reverse, it will produce the same result as executing the CLOSURE instruction. The register transfer code needed to implement the APP-VAR instruction is more compli- cated than that of the VAR instruction, but the benefits of the optimization outweigh this one-time cost.
+The register transfer code needed to implement the \THOR{APP-VAR} instruction is
+more complicated than that of the \THOR{VAR} instruction, but the benefits of the
+optimization outweigh this one-time cost.
 
 % Source PDF page 71
 
-procedure APP-VAR ifd=F 33 Forward Execution
+\begin{alltt}
+procedure APP-VAR
+  if \(\rt{d} = F\) then
+    ;;; Forward Execution
+    ;;; Call Procedure LOOKUP to Dereference Variable
+    \(\rtsd \leftarrow \rtfield{pc}{data}\)
+    call LOOKUP
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+    \(\rt{fsp} \leftarrow \rt{fsp}+1\)
+    if \(\rtsa\rightarrow\mathit{opcode} = UBV\) then
+      ;;; Correct Index and Place into Result Graph
+      \(\rtfield{fsp}{opcode} \leftarrow APP\textrm{-}VAR\)
+      \(\rtfield{fsp}{data} \leftarrow \phi-(\rtsa\rightarrow\mathit{data})\)
+    else
+      ;;; Value is a Closure
+      ;;; Push Closure Path Pointer onto Control Stack
+      \(\rt{c} \leftarrow \rt{c}+1\)
+      \(\rtfield{c}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+      ;;; Place APP Pointing to Closure Expression into Result Graph
+      \(\rtsa \leftarrow \rtsa+1\)
+      \(\rtfield{fsp}{opcode} \leftarrow APP\)
+      \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+  else
+    ;;; Reverse Execution
+    ;;; Continue Walking Up Result Graph
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end APP-VAR
+\end{alltt}
 
-\begin{verbatim}
-333 Call Procedure LOOKUP to Dereference Variable
-\end{verbatim}
+The \THOR{LAMBDA} instruction must also be changed so that it knows an
+\THOR{APP-VAR} instruction as a \(\beta\)-redex argument should cause an unbound
+variable to be placed in the environment, and not a closure. Here again is a
+savings of a substantial number of memory operations.
 
-Sq --- pe-data call LOOKUP pe --- pert fsp --- fsp+1 if sa---opcode = UBV then
+\paragraph{Optimizing the Result Graph}
 
-\begin{verbatim}
-333 Correct Index and Place into Result Graph
-\end{verbatim}
-
-fspopcode --- APP-VAR fspodata --- \$-(s,data) else 33\} Value is a Closure
-
-\begin{verbatim}
-333 Push Closure Path Pointer onto Control Stack
-\end{verbatim}
-
-ce --- cti c-data --- s,+data
-
-\begin{verbatim}
-i33 Place APP Pointing to Closure Expression into Result Graph
-\end{verbatim}
-
-8q --- Sati Ssp-opcode --- APP fspodata --- s,data else
-
-\begin{verbatim}
-333 Reverse Execution
-\end{verbatim}
-
-33 Continue Walking Up Result Graph pe =\textasciitilde{} pe\textasciitilde{}t end APP-VAR The LAMBDA instruction must also be changed so that it knows an APP-VAR instruction as a \(\beta\)-redex argument should cause an unbound variable to be placed in the environment, and not a closure. Here again is a savings of a substantial number of memory operations. Optimizing the Result Graph Single VAR instruction arguments can also be generated as the result of reducing a multiple instruction argument. From the standpoint of memory management (and for the sake of symmetry) it is desirable to convert these single VAR instruction results into APP-VAR ; instructions in the parent spine. This is accomplished by modifying the JOIN instruction to place an APP-VAR instruction into the parent spine if appropriate. The space occupied by the VAR and JOIN instructions can then be reclaimed.
+Single \THOR{VAR} instruction arguments can also be generated as the result of
+reducing a multiple instruction argument. From the standpoint of memory management
+(and for the sake of symmetry) it is desirable to convert these single \THOR{VAR}
+instruction results into \THOR{APP-VAR} instructions in the parent spine. This is
+accomplished by modifying the \THOR{JOIN} instruction to place an \THOR{APP-VAR}
+instruction into the parent spine if appropriate. The space occupied by the
+\THOR{VAR} and \THOR{JOIN} instructions can then be reclaimed.
 
 % Source PDF page 72
 
-procedure JOIN 33\} Reverse Execution Only, Rule C10
+\begin{alltt}
+procedure JOIN
+  ;;; Reverse Execution Only, Rule C10
+  ;;; \(\rtsa \leftarrow\) Address of Reduced Argument
+  \(\rtsa \leftarrow \rt{pc}+1\)
+  \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+  if \(\rtsa\rightarrow\mathit{opcode} = VAR\) then *
+    ;;; Insert APP-VAR into Parent Spine *
+    \(\rtfield{pc}{opcode} \leftarrow APP\textrm{-}VAR\) *
+    \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathit{data}\) *
+    \(\rt{fsp} \leftarrow \rt{fsp}-2\) *
+  else *
+    ;;; Insert Reduced Argument into APP in Parent Spine
+    \(\rtfield{pc}{data} \leftarrow \rtsa\)
+  ;;; Continue Walking Up Parent Spine
+  \(\rt{pc} \leftarrow \rt{pc}-1\)
+end JOIN
+\end{alltt}
 
-\begin{verbatim}
-333 Sa + Address of Reduced Argument
-\end{verbatim}
-
-Sq peri pe --- peodata if s,----opcode = VAR then *
-
-\begin{verbatim}
-333 Insert APP-VAR into Parent Spine *
-\end{verbatim}
-
-pe---opcode <- APP-VAR *
-
-\begin{verbatim}
-pe-data «— s,—->data *
-\end{verbatim}
-
-fsp--- fsp-2 * else * 33 Insert Reduced Argument into APP in Parent Spine pe-data + 3,
-
-\begin{verbatim}
-333 Continue Walking Up Parent Spine
-\end{verbatim}
-
-pe --- pe-i end JOIN The modifications to the original JOIN instruction are marked with an asterisk (*).
+The modifications to the original \THOR{JOIN} instruction are marked with an
+asterisk (*).
 
 \section{RED2}
 
-The pRED machine reduces only the pure \lambdacalculus{}. To extend wRED from the pure \lambdacalculus{} to THOR, a variety of changes must be made. These changes include adding instructions for the basic THOR data types and providing support for built-in primitive operators, lazy structures, and mutual recursion. The RED2 machine results from making these changes to \(\mu\)RED.
+The \(\mu\)RED machine reduces only the pure \lambdacalculus{}. To extend \(\mu\)RED from the pure \lambdacalculus{} to THOR, a variety of changes must be made. These changes include adding instructions for the basic THOR data types and providing support for built-in primitive operators, lazy structures, and mutual recursion. The RED2 machine results from making these changes to \(\mu\)RED.
 
 \subsection{The Head Flag}
 
-The transition from phRED to RED? will increase the number of instructions substantially. As more instructions and their single instruction argument variants are added, the com- plexity of the LAMBDA and APP-VAR instructions increases. Rather than create lots of variant instructions, a more modular approach to the single instruction argument problem is to designate a single bit of the opcode field to indicate whether or not an instruction is at the head of a spine. This bit will be called the head flag. This is identical in most respects to creating a new instruction type, but has the advantage that the LAMBDA and APP-VAR can deal with entire classes of instructions in a uniform way by testing the head flag.
+The transition from \(\mu\)RED to RED2 will increase the number of instructions substantially. As more instructions and their single instruction argument variants are added, the complexity of the LAMBDA and APP-VAR instructions increases. Rather than create lots of variant instructions, a more modular approach to the single instruction argument problem is to designate a single bit of the opcode field to indicate whether or not an instruction is at the head of a spine. This bit will be called the head flag. This is identical in most respects to creating a new instruction type, but has the advantage that the LAMBDA and APP-VAR can deal with entire classes of instructions in a uniform way by testing the head flag.
 
 The head flag will be visually represented by a circle preceding an instruction's opcode value. If the head flag is set (or TRUE) the circle will be filled; otherwise, it will be hollow. For example, the code sequence for
 
