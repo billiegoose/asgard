@@ -14,23 +14,15 @@ The design and performance of reduction machines are strongly influenced by the 
 
 \paragraph{Binary Tree Representation}
 
-A simple and straightforward graph representation for expressions is demonstrated in Figure 4.1. Expressions are represented as binary trees composed of three types of nodes: abstraction nodes, where one branch points to the bound variable and the other Points to the body; application nodes, where one branch points to the operator and the other points to the operand; and variable nodes, which form the leaves of the tree. The Spine of an
+A simple and straightforward graph representation for expressions is demonstrated in Figure 4.1. Expressions are represented as binary trees composed of three types of nodes: abstraction nodes, where one branch points to the bound variable and the other points to the body; application nodes, where one branch points to the operator and the other points to the operand; and variable nodes, which form the leaves of the tree. The spine of an expression graph is defined to be the path from the graph's root to its leftmost variable node.
 
 % Source PDF page 49
 
-LIN al LIN fl LIN
-
-\begin{verbatim}
-[AP]
-\end{verbatim}
-
-AR fa] BI fal
-
-\begin{quote}\small
-Figure 4.1: A straightforward graph representation of (Aab.(a (6 a))).
-\end{quote}
-
-expression graph is defined to be the path from the graph's root to its leftmost variable node.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-1.png}
+\caption{A straightforward graph representation of \((\lambda ab.(a\ (b\ a)))\).}
+\end{figure}
 
 The binary tree representation satisfies two of the three constraints: it supports the decompilation of expressions and the identification and contraction of redexes. The normal order reduction sequence of an expression can be found by making an inorder traversal of the expression's graph representation. Such a traversal amounts to recursively walking down each spine of the graph, which is simple to implement using either a stack or a pointer reversal technique.
 
@@ -46,34 +38,21 @@ A modification to the binary tree representation reduces bandwidth requirements,
 \item Variable nodes have a single field which contains the variable's identifier.
 \end{itemize}
 
-\begin{quote}\small
 Figure 4.2 shows how the graph in Figure 4.1 is represented using the above conventions.
-\end{quote}
 
 % Source PDF page 50
 
-0: [Xa] 1: A] 2: [AP\_||---+ 4: [APT] ----. 6: [VAR Ta] a:[VAR]a] 5: [VAR [5]
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-2.png}
+\caption{The linear graph representation of \((\lambda ab.(a\ (b\ a)))\). Each node is labeled with an address.}
+\end{figure}
 
-\begin{quote}\small
-Figure 4.2: The linear graph representation of (Aab.(a (b a))). Each node is labeled with
-\end{quote}
-
-an address.
-
-\begin{verbatim}
-C[(LAMBDA (2 --- tm) €), 8] =
-(LAMBDA z;): --+:(LAMBDA Zn): Cle, 21: + 12m :5]
-C{(e1 €2), s] = (APP C[ez, s]): Clei, 3]
-C[z, 5] = (VAR indez(z, s))
-\end{verbatim}
-
-where inde2(z, z:s') = 0; indea(z, y:s') = index(z, s') +1, 2 \(\phi\) y;
-
-\begin{quote}\small
-Figure 4.3: Compiler from the pure \lambdacalculus{} subset of THOR to the linear graph repre-
-\end{quote}
-
-sentation. The first argument to C is a THOR expression; the second argument is a scope list, which is initially empty (O). The colon (:) is an infix sequence constructor.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.76\textwidth]{assets/chapter4/figure-4-3.png}
+\caption{Compiler from the pure \lambdacalculus{} subset of THOR to the linear graph representation. The first argument to \(C\) is a THOR expression; the second argument is a scope list, which is initially empty \((\emptyset)\). The colon (:) is an infix sequence constructor.}
+\end{figure}
 
 Traversing a linear graph is easy. To move down the spine of a graph you move to the next node in memory, and to move up the spine you move to the previous node in memory. Because the addresses of abstraction bodies and application operators are computed instead of read from the graph, memory bandwidth and storage requirements are reduced by roughly one-half.
 
@@ -83,16 +62,11 @@ Figure 4.3 presents a compiler for translating the pure \lambdacalculus{} subset
 
 the linear graph representation. Figure 4.4 shows an example linear graph produced by this compiler. Although variables are now represented by DeBruijn indices instead of named identifiers, abstraction nodes still record identifier names for use in de-compilation.
 
-\begin{verbatim}
-C[(CLAMBDA (A) A) (LAMBDA (B) B)), @) =
-(APP (LAMBDA B):(VAR 0)):
-(LAMBDA A):
-(VAR 0)
-\end{verbatim}
-
-\begin{quote}\small
-Figure 4.4: An example of compilation to the linear graph representation.
-\end{quote}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-4.png}
+\caption{An example of compilation to the linear graph representation.}
+\end{figure}
 
 % Source PDF page 51
 
@@ -152,34 +126,11 @@ spine and traversal of the parent spine continues (Rule C10).
 
 % Source PDF page 52
 
-\begin{verbatim}
-Cl. <F, ¢, 0, p, c, (LAMBDA 2z):g, r>> +>
-KF, $+ 1, 0, (UBV $+ 1):p, c, g, (LAMBDA z):r>
-C2. <F, 4, 4, po, pie, (LAMBDA =):g, (APP e)ir>
-<F, ¢,¢—1, (CLOSURE e p1):po, c, 9, >
-C3. <F, ¢, q, p, ¢, (LAMBDA 2):g, r> >
-<F, $+1, 4, (UBV $+ 1):p, c, 9, (LAMBDA 2):r>
-C4. <F, 4, 9, p, ¢, (APP e):g, >> >
-<F, 4, 9; P, pic, g, (APP e):r>
-C5. <F, ¢, @, p, ¢, (VAR i), r> >
-<P, %, 4g, p, ¢, pli), r>
-C6. <F, ¢, 9g, po, c, (CLOSURE e p1), > Ro
-<P, $, 9, pi, ¢, e, T>
-C7. <F, $, 9, p, ¢, (UBV 4), r> >
-<B, ¢, q, p: ¢; (VAR ¢ — i), r>
-C8. <B, ¢, 9, po; M1:¢, 9, (APP e):r> H+
-<F, ¢; % pis ¢, €, (JOIN g):r->
-C9. <B, ¢, 9, p, c, g, (LAMBDA z)ir> Ro
-<B, ¢— 1,4, p,c, (LAMBDA z):9, r>
-C10. <B, ¢, q, p, ¢, e, (JOIN g):r>> H+
-<B, ¢, 9, ps ¢, (APP e):g, r>
-Cll. <B, 4, q, p, c, 9, (STOP)> +>
-<B, ¢, 9, p, ¢, g, (STOP) >
-\end{verbatim}
-
-\begin{quote}\small
-Figure 4.5: Transition rules for implementing the control unit of the Simple Stack Machine.
-\end{quote}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-5.png}
+\caption{Transition rules for implementing the control unit of the Simple Stack Machine.}
+\end{figure}
 
 % Source PDF page 53
 
@@ -199,51 +150,11 @@ It is possible to prove the control rules presented in Figure 4.5 correctly impl
 
 % Source PDF page 54
 
-\begin{verbatim}
-Initial Configuration
-<F, 0, 5, @, @,
-(APP (LAMBDA B):(VAR 0)):(LAMBDA A):(VAR 0),
-(STOP)>
-Cycle 1: Apply Rule C4
-<F, 0, 5, D, B:@,
-(LAMBDA A):(VAR 0),
-(APP (LAMBDA B):(VAR 0)):(STOP)>
-Cycle 2: Apply Rule C2
-<F, 0, 4, (CLOSURE (LAMBDA B):(VAR 0) @):0, @,
-(VAR 0),
-(STOP)>
-Cycle 3: Apply Rule C5
-<F, 0, 4, (CLOSURE (LAMBDA B):(VAR 0) @):@, @,
-(CLOSURE (LAMBDA B):(VAR 0) @),
-(STOP)>
-Cycle 4: Apply Rule C6
-<F, 0, 4, G, ,
-(LAMBDA B):(VAR 0),
-(STOP)>
-Cycle 5: Apply Rule C3
-<F, 1, 4, (UBV 1):@, @,
-(VAR 0),
-(LAMBDA B):(STOP)>>
-Cycle 6: Apply Rule C5
-<F, 1, 4, (UBV 1):0, @,
-(UBV 1),
-(LAMBDA B):(STOP)>>
-Cycle 7: Apply Rule C7
-<B, 1, 4, (UBV 1):0, @,
-(VAR 0),
-(LAMBDA B):(STOP)>
-Cycle 8: Apply Rule C9
-<B, 0, 4, (UBV 1):0, 0,
-(LAMBDA B):(VAR 0),
-(STOP)>
-Cycle 9: Apply Rule C11, Thereby Stopping Machine
-\end{verbatim}
-
-\begin{quote}\small
-Figure 4.6: Sample execution of the expression ((Aa.a)(Ab.b)) by the Simple Stack Machine,
-\end{quote}
-
-with an initial quantum value of 5.
+\begin{figure}[p]
+\centering
+\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-6.png}
+\caption{Sample execution of the expression \(((\lambda a.a)(\lambda b.b))\) by the Simple Stack Machine, with an initial quantum value of 5.}
+\end{figure}
 
 % Source PDF page 55
 
