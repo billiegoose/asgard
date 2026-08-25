@@ -462,97 +462,155 @@ The SSM execution sequence for an abstraction is:
 
 % Source PDF page 58
 
-\begin{verbatim}
-<F, ¢, qo; p, ¢, (LAMBDA 2):e, r>> +
-Rule C3: <F, +1, go, (UBV $+ 1):p, ¢, e, (LAMBDA z):ir>t conl
-<B, +1, 41, pi, ¢, €, (LAMBDA z):7>> +> con2
-Rule C9: <B, ¢, 91, p1, ¢, (LAMBDA 2):e’, r> con3
-\end{verbatim}
+\begin{align*}
+&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{LAMBDA}\ x):e,r\rangle\!\rangle
+\longmapsto\\
+\text{Rule C3: }&
+\langle\!\langle F,\phi+1,q_0,(\THOR{UBV}\ \phi+1):\rho,c,e,(\THOR{LAMBDA}\ x):r\rangle\!\rangle
+\longmapsto \mathrm{con1}\\
+&\vdots\\
+&\langle\!\langle B,\phi+1,q_1,\rho_1,c,e',(\THOR{LAMBDA}\ x):r\rangle\!\rangle
+\longmapsto \mathrm{con2}\\
+\text{Rule C9: }&
+\langle\!\langle B,\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
+\qquad \mathrm{con3}
+\end{align*}
 
-Obligation 1. There are no application conditions that need to be satisfied. Obligation 2. Rule C3 extends the redex store with a UBV object and also increments
+\paragraph{Obligation 1.} There are no application conditions that need to be
+satisfied.
 
-\begin{itemize}
-\item by one. Later, Rule C9 decrements \(\phi\) by one, thereby restoring its original value.
-\end{itemize}
+\paragraph{Obligation 2.} Rule C3 extends the redex store with a UBV object and
+also increments \(\phi\) by one. Later, Rule C9 decrements \(\phi\) by one,
+thereby restoring its original value.
 
-Obligation 3. From obligations 1 and 2, it is seen that configuration con] is equivalent to the left hand side of the premise of Rule 3. By the induction hypothesis, configuration con2 is congruent to the right hand side of the premise. By inspection, configuration con3 is congruent to the right hand side of the conclusion of Rule 3:
+\paragraph{Obligation 3.} From obligations 1 and 2, it is seen that
+configuration con1 is equivalent to the left hand side of the premise of Rule
+3. By the induction hypothesis, configuration con2 is congruent to the right
+hand side of the premise. By inspection, configuration con3 is congruent to the
+right hand side of the conclusion of Rule 3:
+\[
+\langle\!\langle B,\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
+\simeq
+\langle \delta,\phi,q_1,\rho,\lambda e'\rangle.
+\]
 
-\begin{verbatim}
-KB, ¢, m1, pi, ¢, (LAMBDA 2):e', r> ~ (5, $, a1, p, Ae’).
-\end{verbatim}
+\paragraph{Case 4: \(e\) is a variable.}
+The operational semantics of variables is described by Rule 4:
+\[
+\frac{
+  \langle \delta,\phi,q_0,\rho,(\THOR{VAR}\ i)\rangle
+  \longmapsto
+  \langle \delta,\phi,q_1,\rho,e\rangle
+}{
+  \langle \delta,\phi,q_0,\rho,\rho(i)\rangle
+  \longmapsto
+  \langle \delta,\phi,q_1,\rho,e\rangle
+}
+\]
 
-Case 4: e is a variable. The operational semantics of variables is described by Rule 4:
+This behavior is implemented by Rule C5. The SSM execution sequence for this
+case is:
+\begin{align*}
+&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{VAR}\ i),r\rangle\!\rangle
+\longmapsto\\
+\text{Rule C5: }&
+\langle\!\langle F,\phi,q_0,\rho,c,\rho(i),r\rangle\!\rangle
+\longmapsto \mathrm{con1}\\
+&\vdots\\
+&\langle\!\langle F,\phi,q_1,\rho',c,e,r\rangle\!\rangle
+\qquad \mathrm{con2}
+\end{align*}
 
-\begin{verbatim}
-(5, 9, go, p, (VAR i)) ++ (6, 6, a1, p, €)
-(8, $, G01 Ps p(i)) —> (6, b, a1, p, e)
-\end{verbatim}
+\paragraph{Obligation 1.} There are no application conditions that need to be
+satisfied.
 
-This behavior is implemented by Rule C5. The SSM execution sequence for this case is:
+\paragraph{Obligation 2.} There are no modifications to \(\phi\), \(q\), or
+\(\rho\) in Rule 4, and none are performed by Rule C5.
 
-\begin{verbatim}
-<F, ¢, go, p, ¢, (VAR i), r> H>
-Rule C5: <F, ¢, go, p, ¢, p(t), m> rR conl
-<F, ¢, 0, p', ¢, €, 7 > con2
-\end{verbatim}
+\paragraph{Obligation 3.} Rule C5 replaces a variable by its value, which is
+extracted from the redex store. By inspection, configuration con1 is equivalent
+to the left hand side of the premise of Rule 4; by the induction hypothesis,
+con2 is congruent to the right hand side of the premise. By inspection, con2 is
+also congruent to the right hand side of the conclusion of Rule 4:
+\[
+\langle\!\langle B,\phi,q_1,\rho',c,e,r\rangle\!\rangle
+\simeq
+\langle \delta,\phi,q_1,\rho,e\rangle.
+\]
 
-Obligation 1. There are no application conditions that need to be satisfied.
+\paragraph{Case 5: \(e\) is an unbound variable.}
+The operational semantics of unbound variables is described by Rule 5:
+\[
+\frac{
+  \langle \delta,\phi,q,\rho,(\THOR{UBV}\ i)\rangle
+  \longmapsto
+  \langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle
+}{}
+\]
 
-Obligation 2. There are no modifications to \(\phi\), q, or p in Rule 4, and none are per- formed by Rule C5.
-
-Obligation 3. Rule C5 replaces a variable by its value, which is extracted from the redex store. By inspection, configuration con] is equivalent to the left hand side of the premise of Rule 4; by the induction hypothesis, con2 is congruent to the right hand side of the premise. By inspection, con2 is also congruent to the right hand side of the conclusion . of Rule 4:
-
-\begin{verbatim}
-<B, ¢, M1, p', ¢, e, > ~ (5, o, 1, p, €).
-\end{verbatim}
-
-Case 5: e is an unbound variable. The operational semantics of unbound variables is described by Rule 5:
-
-\begin{verbatim}
-(5, $, q) p, (UBV i)) +> (5, 4, 4g, p, (VAR o— i)
-SE Pe NOs Ps Fs P» (VAR $ — 7)
-\end{verbatim}
-
-This behavior is directly implemented by Rule C7. The SSM execution sequence for this case is:
-
-\begin{verbatim}
-<F, 4, q, p, ¢, (UBV i), r>
-Rule C7: <B, ¢, q, p, ¢, (VAR ¢-i), r>
-\end{verbatim}
+This behavior is directly implemented by Rule C7. The SSM execution sequence
+for this case is:
+\begin{align*}
+&\langle\!\langle F,\phi,q,\rho,c,(\THOR{UBV}\ i),r\rangle\!\rangle
+\longmapsto\\
+\text{Rule C7: }&
+\langle\!\langle B,\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
+\end{align*}
 
 % Source PDF page 59
 
-There are no application conditions to satisfy, state modifications to perform, or premises to validate. It is directly seen that
+There are no application conditions to satisfy, state modifications to perform,
+or premises to validate. It is directly seen that
+\[
+\langle\!\langle B,\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
+\simeq
+\langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle.
+\]
 
-\begin{verbatim}
-<B, ¢, 9, Pp) ¢ (VAR ¢~ i), r> ~ (6, 4, 9, p, (VAR $- 3).
-\end{verbatim}
+\paragraph{Case 6: \(e\) is a closure.}
+The operational semantics of closures is described by Rule 6:
+\[
+\frac{
+  \langle \delta,\phi,q_0,\rho_0,(\THOR{CLOSURE}\ e\ \rho_1)\rangle
+  \longmapsto
+  \langle \delta,\phi,q_1,\rho_0,e'\rangle
+}{
+  \langle \delta,\phi,q_0,\rho_1,e\rangle
+  \longmapsto
+  \langle \delta,\phi,q_1,\rho_1,e'\rangle
+}
+\]
 
-Case 6: e is a closure. The operational semantics of closures is described by Rule 6:
+This behavior is implemented by Rule C6. The SSM execution sequence for this
+case is:
+\begin{align*}
+&\langle\!\langle F,\phi,q_0,\rho_0,c,(\THOR{CLOSURE}\ e\ \rho_1),r\rangle\!\rangle
+\longmapsto\\
+\text{Rule C6: }&
+\langle\!\langle F,\phi,q_0,\rho_1,c,e,r\rangle\!\rangle
+\longmapsto \mathrm{con1}\\
+&\vdots\\
+&\langle\!\langle B,\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
+\qquad \mathrm{con2}
+\end{align*}
 
-\begin{verbatim}
-(8, $, Go, Po, (CLOSURE e p1)) — (5, 4, 41, po, €’)
-\end{verbatim}
+\paragraph{Obligation 1.} There are no application conditions that need to be
+satisfied.
 
-AS2 Pr F0> POr Vee © P1)) > (9, Py My Por €)
+\paragraph{Obligation 2.} There are no state modifications that need to be
+performed.
 
-\begin{verbatim}
-(5, $, Gos P1, €) +> (6, , G1, pi, e’)
-\end{verbatim}
-
-This behavior is implemented by Rule C6. The SSM execution sequence for this case is:
-
-\begin{verbatim}
-<F, $, Go, po, ¢, (CLOSURE e p,), 72> +>
-Rule C6: <F, ¢, qo, pi, ¢, €, T> > conl
-<KB, ¢, 11, par &, €, 7D con2
-\end{verbatim}
-
-Obligation 1. There are no application conditions that need to be satisfied. Obligation 2. There are no state modifications that need to be performed. Obligation 3. Rule C6 extracts the expression and redex store from the closure object and installs them in the configuration. By inspection it is seen that configuration con1 is equivalent to the left hand side of the premise of Rule 6; by the induction hypothesis, configuration con2 is congruent to the right hand side of the premise. Again, by inspection, con2 is congruent to the right hand side of the conclusion of Rule 6:
-
-\begin{verbatim}
-<B, 9, m1, pr, ¢, e', r> ~ (5, b, G1, po, e').
-\end{verbatim}
+\paragraph{Obligation 3.} Rule C6 extracts the expression and redex store from
+the closure object and installs them in the configuration. By inspection it is
+seen that configuration con1 is equivalent to the left hand side of the premise
+of Rule 6; by the induction hypothesis, configuration con2 is congruent to the
+right hand side of the premise. Again, by inspection, con2 is congruent to the
+right hand side of the conclusion of Rule 6:
+\[
+\langle\!\langle B,\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
+\simeq
+\langle \delta,\phi,q_1,\rho_0,e'\rangle.
+\]
 
 \section{Mapping the SSM onto Hardware: \(\mu\)RED}
 
