@@ -1,0 +1,552 @@
+\chapter{Analysis and Enhancement of RED2}
+
+This chapter analyzes the performance of RED2 in the context of another
+\lambdacalculus{} system and presents several ways the RED2 architecture might
+be enhanced.
+
+\section{Comparing RED2 with the Three Instruction Machine}
+
+Insight into the efficiency of RED2 as an implementation vehicle can be gained
+by comparing it to other architectures which reduce the \lambdacalculus{}.
+Unfortunately, for reasons presented in Chapter 2, there is a lack of
+high-performance implementations of the complete \lambdacalculus{} to use as a
+basis of comparison. There is, however, a growing number of high-performance
+architectures for functional languages which implement a significant portion of
+the \lambdacalculus{}. Functional languages are generally used in lieu of the
+\lambdacalculus{} because of their greater efficiency, so comparing RED2 to one
+of these architectures would indicate if RED2 makes the complete
+\lambdacalculus{} feasible for routine programming.
+
+The functional architecture chosen for comparison is the Three Instruction
+Machine~[19][20]. The Three Instruction Machine was chosen for two reasons: it
+is currently considered one of the most efficient implementation techniques for
+functional languages, and I had access to a Three Instruction Machine abstract
+machine implementation, called WINTER~[29], and its implementors (who assisted
+in my analysis). My observations are very general in nature, so a detailed
+description of how the Three Instruction Machine or WINTER works is not
+necessary. The reader interested in such information is referred to the
+citations given above.
+
+Table 5.1 presents measurements of the memory usage and execution times for two
+benchmark programs. The sine program is a constructive mathematics approach to
+programming the trigonometric sine function. It consists mainly of
+\(\beta\)-substitutions and higher-order function manipulations. The game program
+estimates how good a position a game player is in by looking ahead several
+moves in a simple two player game. This program consists mainly of data
+structure manipulations. The THOR code for both programs is listed in Appendix
+A.
+
+The benchmarks were executed on abstract machine interpreters for RED2 and
+WINTER. The source code of the benchmark programs was compiled to the
+instruction set of the target architecture (either RED2 or WINTER) and the
+resulting machine language program was then executed by an interpreter which
+simulates the target machine. Both interpreters provide monitoring facilities
+for gathering run-time performance statistics. The memory usage and instruction
+counts are for the simulated architecture, but the execution times indicate how
+long each interpreter took to execute a benchmark.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{llrrr}
+\hline
+Program & Machine & Memory Usage & Instructions & Execution Time\\
+\hline
+sine & RED2 & 322 & 3,226 & 0.54\\
+sine & WINTER & 24,887 & 10,226 & 1.87\\
+game & RED2 & 1,952 & 1,274,107 & 100.0\\
+game & WINTER & 58,918 & 157,224 & 12.10\\
+\hline
+\end{tabular}
+\caption{Benchmark comparison of RED2 with WINTER, an implementation of the
+Three Instruction Machine.}
+\end{table}
+
+All of the benchmark programs were run on the same Intel 80386-based personal
+computer. Both interpreters were written in Microsoft C using similar coding
+techniques and eight byte long simulated instruction words. Neither interpreter
+has been optimized to a significant extent; the authors of both systems believe
+optimizations could improve the execution speed of the interpreters a similar
+amount (about 50\%).
+
+It is difficult (and dangerous) to make comparisons based solely on the number
+of instructions executed by each architecture without having actual hardware
+implementations to examine. Each instruction set can be implemented in many
+different ways, with a wide variation in performance. Also, the grain size of
+the two instruction sets might be different. Looking only at the instruction
+counts of the sine program, one might conclude that perhaps each RED2
+instruction did three times the work and took three times as long to execute as
+each of the WINTER instructions. The abstract interpreter execution times
+provide a way to calibrate the instruction set grain sizes; the ratios of the
+execution times and the ratios of instruction counts match fairly closely for
+both benchmarks, indicating that the instruction sets are of comparable grain
+size.
+
+The instruction counts and execution times taken together form a legitimate
+basis for comparing the relative execution speeds of the two architectures.
+
+Two programs may seem like an absurdly small sample set upon which to base a
+comparison, and in general I would agree. However, I am not making an in-depth
+analysis; I am only looking for some relative indication of merit. These two
+particular programs were chosen because they vividly illustrate what is good and
+what is bad about the RED2 architecture.
+
+The sine program illustrates where RED2 excels---performing the basic
+operations of the \lambdacalculus{}. This comes as no surprise, because this is
+exactly what RED2 was designed to do. What is surprising is the dramatic
+difference in memory space required by each architecture: RED2 uses less than
+one seventy-fifth of the memory used by WINTER. The primary reason for this is
+that RED2 continually recycles spent memory locations, eliminating the need for
+an explicit garbage collection mechanism (more will be said about this in the
+next section). The version of WINTER used in these tests uses most memory
+locations only once, and then must wait until a garbage collector reclaims them.
+More sophisticated implementations of the Three Instruction Machine, such as
+the one described in~[6], reduce the memory space consumption by more than
+50\%.
+
+The game program illustrates where RED2 performs worst---data structure
+manipulation. This is unfortunate, because data structure manipulation is a
+dominant feature of most functional programs. An investigation into the behavior
+of the game program indicates that most of the inefficiency is caused by RED2's
+current inability to share computed data structures. (The reasons for this are
+presented in the next section, along with possible remedies.) This conclusion is
+supported by analytical and empirical arguments.
+
+First, the analytical argument. The game program evaluates how good a particular
+move in a board game is by exploring possible future outcomes of the game if the
+move is taken. This is done by generating a tree of game-boards containing all
+possible future moves and then evaluating each game-board in the tree for
+favorable outcomes. The tree of game-boards is created by the function
+\THOR{gametree}. The \THOR{gametree} function is passed as an argument to
+\THOR{evaluate}, which examines each game-board in the tree. The tree is a
+computed data structure and is not shared, so each time \THOR{evaluate} asks
+for a new game-board to examine, a portion of the tree must be re-created by
+reducing the \THOR{gametree} function. As a result, RED2 spends most of its
+time re-creating the tree of game-boards. WINTER, on the other hand, does share
+computed data structures; the tree only has to be created once and can be used
+as many times as needed.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lrrr}
+\hline
+Program Phase & Memory Usage & Instructions & Execution Time\\
+\hline
+build tree & 670 & 40,210 & 2.43\\
+evaluate tree & 1,176 & 93,706 & 5.80\\
+total cost & 3,846 & 133,916 & 8.23\\
+\hline
+\end{tabular}
+\caption{Experimental evidence suggesting that RED2 performed poorly on the
+game program because of its current inability to share computed data
+structures.}
+\end{table}
+
+Table 5.2 presents empirical data to support my conclusion. The game program
+was modified so that an actual tree of game-boards was provided to
+\THOR{evaluate} instead of the \THOR{gametree} function. Because the tree is no
+longer a computed data structure, it can be shared. The run-time measurements
+in Table 5.2 indicate that if RED2 could share computed data structures, its
+performance would increase by an order of magnitude for this example.
+
+\section{Sharing}
+
+The performance analysis in the previous section indicates RED2 does not
+perform well for some programs because it does not allow certain types of
+expressions to be shared. Why is this so, and what can be done to remedy the
+situation? To answer these questions requires a discussion about sharing and how
+RED2 manages its memory.
+
+When a \(\beta\)-redex is contracted, the redex's argument is substituted for
+each occurrence of the redex's bound variable. One way to do this is to
+substitute a separate copy of the argument for each bound variable occurrence.
+This approach produces the correct result expression, but is wasteful because
+each of the argument copies are reduced separately. A more efficient approach is
+to reduce a single copy of the argument and share the reduced value among all
+the bound variable occurrences.
+
+Sharing of argument values occurs naturally when applicative order reduction is
+used because arguments are reduced before substitution. Normal order reduction,
+however, must be modified to incorporate sharing. In environment-based
+implementations, the required changes are minor. The first time an argument is
+accessed from the environment, it is reduced in isolation (i.e., not as part of
+an application). The value of the reduced argument is substituted for the bound
+variable and, if the reduced argument is closed, the environment is modified so
+as to return the reduced value upon subsequent
+accesses.\footnote{Open expressions cannot easily be shared because their free
+variables must be adjusted properly each time the expression is substituted.
+Unlike the \lambdacalculus{}, most programming languages do not allow the use
+of free variables, so closedness is seldom recognized as a requirement for
+sharing.} The argument must be reduced in isolation because subtle binding
+errors may occur in certain cases where the argument is an abstraction which is
+substituted into the head of an expression. An alternative is to reduce
+arguments as part of the result graph and forbidding the sharing of arguments in
+a head position.
+
+\subsection{Why RED2 Can't Always Share}
+
+The memory usage of RED2 during reduction is regimented and very well behaved.
+In the graph memory area, memory is allocated and released only at the free
+space pointer (fsp). When a reduced subgraph is no longer immediately needed
+(i.e., does not form part of the final result graph), it is promptly discarded
+by adjusting the fsp. Figure 5.1 illustrates how the binary arithmetic
+primitives adjust the fsp after firing to discard unnecessary graph nodes. A
+similar situation occurs in the environment area: memory is allocated and
+released only at the environment pointer (env). When a portion of the redex
+store is no longer required, it is discarded and its space reclaimed by
+adjusting the env.
+
+\begin{quote}\small
+Figure 5.1: All of RED2's built-in primitive operations assist in memory
+management. In this example an arithmetic primitive discards graph nodes which
+are no longer accessible by adjusting the fsp. The pictures show the tip of the
+result graph just before and just after the addition primitive is fired.
+\end{quote}
+
+The prompt discarding of nodes which do not form part of the final result graph
+is vital to preserving the contiguous nature of subgraph spines and ensuring the
+correct operation of RED2. The IF conditional primitive illustrates the need for
+discarding nodes. Consider the expression
+\[
+\THOR{(IF }cond\ e_t\ e_f\THOR{) }arg_1\ldots arg_n.
+\]
+The IF selects either \(e_t\) or \(e_f\) to be applied to \(n\) arguments. For
+the selected expression to be properly applied to the arguments, the IF subgraph
+must be cleared from the result graph and the fsp adjusted to point at
+\(arg_1\); otherwise, the arguments will not be visible to the control unit.
+Figure 5.2 shows the state of the result graph just before and after the IF
+primitive fires.
+
+\begin{quote}\small
+Figure 5.2: The IF primitive demonstrates why subgraphs must be promptly
+discarded when no longer part of the result graph. For the arguments to be
+visible to the RED2 control unit, the IF subgraph must be discarded after the
+primitive is fired.
+\end{quote}
+
+Implicit in the correct implementation of sharing is the requirement that the
+expression being shared exist in memory until it is no longer needed. LISP
+systems~[3] and most functional language implementations meet this requirement
+by storing expressions in a heap which is maintained by a garbage collector;
+expressions are retained in memory until the garbage collector detects they are
+no longer accessible.\footnote{Compile-time analysis can often detect when an
+expression will no longer be accessible and can be safely discarded~[23][30].
+Such analyses are not perfect, however, so garbage collection is still
+required.} Because RED2 discards expressions which are not immediately needed as
+part of the result graph, the requirement that sharable expressions be
+accessible in memory cannot always be satisfied. Therefore, RED2 cannot share
+many types of expressions, including computed data structures.
+
+\subsection{What RED2 Can Share}
+
+There are two types of expressions that are guaranteed to exist in RED2's memory
+and be accessible until no longer needed, thereby opening up the possibility of
+sharing. The first type are the expressions which are part of the final result
+graph. In general, however, it is difficult to decide at run-time if a given
+expression will be part of the final result graph. Such a decision requires
+global knowledge about the current machine state and in-depth knowledge of how
+each THOR primitive is implemented. As of yet, I have not found a satisfactory
+solution to this problem and do not share expressions in the final result graph.
+
+The second type of expressions are arguments that reduce to atomic data values,
+such as integers or symbols. All atomic data objects are closed expressions, so
+one of the two criteria for sharing is automatically met. The other criterion,
+that the shared expression be accessible until it is no longer needed, is
+satisfied by overwriting the argument's closure in the environment with the
+reduced data value. This can be done because closures occupy two words of memory
+and atomic values occupy only one word. The memory management policy of RED2
+guarantees that every environment entry is accessible until it is no longer
+needed.
+
+To implement the sharing of arguments that reduce to atomic data values, minor
+modifications must be made to the VAR and JOIN instructions and a new
+instruction, EP (Environment Pointer), must be added:
+
+\begin{itemize}
+\item If a VAR instruction which is not at the head of a spine is executed in
+the forward direction and dereferences to a closure, an EP instruction is placed
+into the result graph with a data field containing the closure's address in the
+environment. Figure 5.3 illustrates the effect of the modified VAR in this
+situation.
+\item When a JOIN instruction inserts a single instruction result into its
+parent spine, a check is made to see if the insertion point is an EP
+instruction. If so, the result is also written to the location indicated by the
+EP's data field, overwriting the closure that was there. In this way the reduced
+argument's value is shared through the environment. Figure 5.4 illustrates the
+effect of the modified JOIN.
+\item The EP instruction retrieves the value of the environment entry it points
+to. If the value is still a closure, the closure is activated; if the value is
+an atomic data object, the object is copied into the result graph.
+\end{itemize}
+
+These relatively simple modifications produce a dramatic decrease in the number
+of memory cycles required for the reduction of many expressions.
+
+\subsection{Extending RED2 to Increase Sharing}
+
+The policy of immediately discarding subgraphs which do not form part of the
+final result graph prevents RED2 from sharing closed, non-atomic expressions.
+Can RED2 be changed to admit more sharing? The answer is both yes and no:
+complete sharing of all sharable expressions is not possible without a major
+redesign of RED2, but near-maximal sharing is within the boundaries of the
+current RED2 architecture.
+
+The discarding of subgraphs is mandatory for the current design of RED2 to work
+correctly; to amend this would require significant architectural changes. Such
+changes are possible, but experiments performed along these lines indicate the
+resulting architecture loses much of the elegance and simplicity of RED2. In
+particular, memory consumption increases significantly, approaching that of
+WINTER.
+
+A less radical approach than completely overhauling RED2 is to add a separate
+memory area, the structure area, for storing data structures. Currently, RED2
+treats structures the same as other expressions; however, the architecture could
+be changed to treat structures differently, especially in terms of memory
+management. Structures would only be created and reduced in the structure area,
+and would not be discarded immediately when not part of the final result graph.
+A garbage collection mechanism would be introduced to manage the structure area;
+the other memory areas would still be managed by the RED2 primitives. Such
+changes would allow closed data structures (including computed data structures)
+to be shared.\footnote{Arguments that reduce to unbound variables can also be
+shared, but their DeBruijn indices must be decremented by \(\phi\) before they
+are written over the argument's closure.}
+
+\begin{quote}\small
+Figure 5.3: Forward execution of a VAR instruction that is not the head of a
+spine. The variable is dereferenced, and if its value is a closure, an EP
+instruction pointing to the closure is added to the result graph.
+\end{quote}
+
+\begin{quote}\small
+Figure 5.4: Execution of a JOIN instruction. If the destination of the JOIN is
+an EP and the reduced argument is an atomic value, the atomic value overwrites
+the closure pointed to by the EP. In this way, the reduced argument is shared
+through the environment.
+\end{quote}
+
+\subsection{Detecting Closed Expressions}
+
+If RED2 is modified so that non-atomic expressions can be shared, a mechanism
+for determining if an expression is closed with respect to free variables must
+be incorporated into the architecture.
+
+One way to determine if an expression is closed is to detect if its variables
+``reach'' beyond the bindings in the expression. The reach of an expression is
+recursively defined as follows:
+
+\begin{itemize}
+\item The reach of all constants is \(-1\).
+\item The reach of a variable is equal to its DeBruijn index.
+\item The reach of an application is the maximum of its operator's reach and its
+operand's reach.
+\item The reach of an abstraction is the reach of its body minus one.
+\end{itemize}
+
+If the reach of an expression is less than zero, the expression is closed;
+otherwise, it is open. With the addition of one new register to RED2, the
+calculation of an expression's reach is simple to perform during graph
+traversal. The main implementation cost is that the contents of this register
+must be saved on the control stack before the argument of an APP instruction is
+reduced.
+
+Experiments indicate the reach calculation increases the number of memory cycles
+needed to reduce an expression by about 5\%; the exact cost varies from
+expression to expression and depends on the number of APP instructions executed
+during reduction.
+
+\section{Towards Implementing \(\eta\)-Reduction}
+
+The domain of RED2 was chosen to be the \lambdabetacalculus{} instead of the
+\(\lambda\beta\eta\)-calculus for efficiency reasons. At the current time, a
+complete implementation of \(\eta\)-reduction is prohibitively expensive in terms
+of memory cycles; however, RED2 can be modified to implement an almost-complete
+version of the \(\lambda\beta\eta\)-calculus for a fraction of the cost of a
+complete version.
+
+The \(\eta\)-reduction rule states that
+\[
+\lambda z.(e z)\longrightarrow e
+\]
+if \(z\) does not occur as a free variable in \(e\). An \(\eta\)-redex can arise
+in two ways: as part of an original \(\lambda\)-expression or as a result of
+\(\beta\)-reduction. An example of the first type is the expression
+\[
+\lambda z.((\lambda y.y)\ z),
+\]
+which is easily seen to be an \(\eta\)-redex. The second type of redex is more
+difficult to detect; the \(\eta\)-redex in the expression
+\[
+\lambda z.(((\lambda y.\lambda z.z)\ z)\ z)
+\]
+only becomes obvious after the inner \(\beta\)-redex is contracted, yielding
+\[
+\lambda z.((\lambda z.z)\ z).
+\]
+Detecting \(\eta\)-redexes of this type sometimes requires parts of an
+expression to be traversed more than once. It is this re-traversal which makes
+implementing \(\eta\)-reduction so expensive.
+
+If one is willing to forgo the detection and contraction of every
+\(\eta\)-redex, RED2 can be modified to implement a nearly complete version of
+the \(\lambda\beta\eta\)-calculus with about a factor of two decrease in
+performance. The modified RED2 presented here may not detect every
+\(\eta\)-redex because expressions are only traversed once; \(\beta\)-redexes
+are contracted during the walk down the spines, and detected \(\eta\)-redexes
+are contracted during the walk back up the spines.
+
+The key to efficiently implementing near complete \(\eta\)-reduction is to
+detect if an abstraction's bound variable is encountered more than once during
+the traversal of the abstraction's body. If the bound variable is never
+encountered during traversal, there is no possibility of the abstraction being
+part of an \(\eta\)-redex. If the bound variable occurs only once, immediately
+after the abstraction's LAMBDA instruction, then an \(\eta\)-redex has been
+found. If the bound variable occurs more than once the abstraction may be part
+of an \(\eta\)-redex, but a second traversal of the body is necessary to find
+out for sure. Instead of making the second traversal, RED2 forgoes any attempt
+at \(\eta\)-reducing the abstraction.
+
+Only those abstractions which are not part of a \(\beta\)-redex are of
+interest,\footnote{If an \(\eta\)-redex is the operator of a \(\beta\)-redex, it
+will disappear when the \(\beta\)-redex is contracted; if it is the operand of a
+\(\beta\)-redex, it may reappear in one or more places, and each copy would be
+handled separately in the normal course of reduction.} so only occurrences of
+variables that dereference to unbound variable objects need to be counted during
+traversal. Two bits of each unbound variable (UBV) entry in the environment are
+designated to record the number of times the UBV is referenced. These two bits
+are called the reference bits. When a UBV entry is initially placed into the
+environment area by a LAMBDA instruction, the reference bits are set to zero.
+The first time a UBV is accessed, the lower reference bit is set to one; each
+subsequent access sets the upper reference bit to one. In this way, the
+reference bits indicate if a UBV has been referenced zero, one, or more than one
+times.
+
+The LAMBDA instruction is modified to look for \(\eta\)-redexes during reverse
+execution. When a LAMBDA is executed in reverse, it checks to see if the first
+instruction in the abstraction body is a non-head VAR instruction with a
+DeBruijn index of 0. If this is the case, the reference bits of the LAMBDA's
+unbound variable entry in the environment are checked to see if the variable
+occurred only once, thereby indicating the LAMBDA and VAR instructions form an
+\(\eta\)-redex. To facilitate examining the reference bits of the LAMBDA's
+unbound variable entry, a pointer to the entry is pushed on the control stack
+during forward execution when the UBV is first placed into the environment
+area. During reverse execution, this pointer is popped off the control stack by
+the LAMBDA instruction.
+
+A detected \(\eta\)-redex is contracted by overwriting its constituent LAMBDA
+and VAR instructions with a special marker, such as a NO-OP (NO OPeration)
+instruction. The NO-OP instructions are ignored by the RED2 control unit, making
+them effectively invisible. Figure 5.5 illustrates the detection and contraction
+of an \(\eta\)-redex.
+
+\begin{quote}\small
+Figure 5.5: Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
+executed in reverse, it checks to see if the next instruction in memory is a
+non-head VAR with a DeBruijn index of 0. If this is the case, and the reference
+bits of the LAMBDA's unbound variable entry in the environment are 01, these two
+instructions form an \(\eta\)-redex. The redex is contracted by overwriting the
+LAMBDA and VAR instructions with no-operation instructions.
+\end{quote}
+
+When an \(\eta\)-redex is contracted, the DeBruijn index of each variable in the
+redex's body must be decremented by one to compensate for the lost abstraction.
+This can be done by the printing mechanism after reduction is completed.
+
+This proposed implementation of \(\eta\)-reduction is not complete because not
+all \(\eta\)-redexes are detected and contracted. The redexes in question are a
+subclass of those \(\eta\)-redexes which only become visible after
+\(\beta\)-reduction. Only abstractions whose bound variable is encountered once
+during forward traversal are considered as candidate \(\eta\)-redexes. For
+instance, the \(\eta\)-redex in the expression
+\[
+\lambda z.(((\lambda y.\lambda z.z)\ (z\ z))\ z)
+\]
+would be detected because the variable \(z\) is only encountered once during
+forward traversal; the occurrences in the subexpression are never encountered.
+The expression
+\[
+\lambda z.(((\lambda y.\lambda z.z)\ z)\ z)
+\]
+is an example of an \(\eta\)-redex that is not detected, because the \(z\)
+variable is encountered twice during forward traversal.
+
+The modifications described in this section have not been made a permanent part
+of RED2. The degradation in performance is not worth the small gains in
+reduction. Although I have no evidence beyond ``programmer's intuition'', I do
+not think \(\eta\)-redexes are common or very relevant to everyday programming
+tasks. More importantly, I am uneasy with the concept of ``almost complete''
+reduction systems. The incompleteness weakens the system considerably from a
+theoretical view.
+
+\section{Enhanced Compilation and von-Neumann Plus Architectures}
+
+The instruction set presented in the previous chapter is designed to reduce THOR
+expressions in the most general way possible, with a minimum of compilation.
+Each instruction (I am referring primarily to the primitive operations) must be
+capable of handling many different possible cases. For example, the addition
+primitive must deal with arguments of all kinds: integers, floats, unbound
+variables, irreducible applications, etc. Implementing such generality is
+expensive in terms of hardware and execution time.
+
+There are many cases where such generality is not needed. During compilation it
+is possible to detect when a more restricted form of an instruction could be
+used. Arithmetic expressions are a good example. When the argument(s) of an
+arithmetic operator are known to be numbers, it is not necessary to prime the
+firing mechanism and traverse the argument(s) before performing the operation;
+the operation can be performed immediately. These new ``immediate''
+instructions treat the result graph like a value stack and are similar to the
+instructions found in stack-based computers.
+
+For instance, Figure 5.6 compares the compilation of the expression
+\[
+\THOR{(+ (* 2 3) (* 4 5))}
+\]
+using general and immediate instructions. The general instructions take 43
+memory cycles to reduce the expression completely, while the immediate
+instructions only take 20 memory cycles.\footnote{These numbers seem large, but
+remember that no data registers are being used to cache the operands. An actual
+hardware implementation of RED2 would probably include such registers, thereby
+cutting the number of memory cycles required to reduce most expressions.} The
+more arithmetic operations an expression contains, the greater the savings
+provided by immediate instructions.
+
+\begin{verbatim}
+        (General)             (Immediate)
+
+0: oAPP 3                0: oINT 3
+1: oAPP 6                1: oINT 2
+2: ePRIM_2 +             2: oIMM *
+3: oINT 3                3: oINT 4
+4: oINT 2                4: oINT 5
+5: ePRIM_2 *             5: oIMM *
+6: oINT 5                6: eIMM +
+7: oINT 4
+8: ePRIM_2 *
+\end{verbatim}
+
+\begin{quote}\small
+Figure 5.6: A comparison of code sequences for the expression \(2 \times 3 +
+4 \times 5\). The sequence on the left was generated using the general
+instructions and compiler introduced in the previous chapter; the sequence on
+the right was generated using more specialized, immediate instructions and a
+smarter compiler.
+\end{quote}
+
+The utility of immediate instructions extends far beyond arithmetic expressions.
+These instructions provide an efficient way for RED2 to implement statically
+typed functional languages, which do not utilize the complete
+\lambdacalculus{}. Such languages exclude the use of free (unbound) variables
+and perform extensive type checking at compile time; both of these
+characteristics allow a considerable increase in run-time performance.
+
+As its instruction set expands and becomes more specialized, RED2 begins to look
+like a conventional von-Neumann computer. In fact, the ideal way to implement
+RED2 may be to simply add the instruction set introduced in Chapter 4 to an
+existing machine. Such a hybrid, or von-Neumann Plus,\footnote{This term is
+attributable to Berkling.} architecture would provide an execution platform for
+both imperative and declarative programs and provides exciting possibilities for
+combining the two paradigms.
+
+Experiments performed using a microprogrammable AMD-29300 Evaluation System~[39]
+indicate that such a hybrid computer is quite feasible. An instruction set for
+reducing the pure \lambdacalculus{} was microcoded for the 29300 using only 125
+out of 16,384 available words of microprogram memory, leaving ample space for
+the inclusion of a conventional instruction set.
