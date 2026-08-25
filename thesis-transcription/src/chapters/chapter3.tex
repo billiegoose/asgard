@@ -1,0 +1,1140 @@
+\chapter{The Operational Semantics of THOR}
+
+Although the pure \lambdacalculus{} is powerful enough to compute all
+computable functions, it is not always a convenient medium in which to program.
+If one wishes to deal with data objects (integers, for example) a suitable
+encoding in terms of \(\lambda\)-expressions must be found. Rather than use such
+encodings for common data types, it is more convenient (in both human and
+machine terms) to extend the \lambdacalculus{} to include common data types and
+rewrite rules for manipulating these types. Such an extension is commonly called
+an ``enriched'' or ``applied'' \lambdacalculus.\footnote{RED2 directly supports
+the character, integer, floating point, and symbol data types. Special
+\(\lambda\)-expression encodings are used to represent structures, which are
+compound data types.}
+
+This chapter presents such an extension, The Head Order Reduction Language
+(THOR). THOR is a conservative extension of the pure \lambdacalculus, which
+means that all expressions reducible in the pure \lambdacalculus{} are
+reducible in THOR and all expressions that are not reducible in the pure
+\lambdacalculus{} are not reducible in THOR. Like the pure \lambdacalculus,
+THOR is untyped.
+
+THOR is the assembly language for RED2. Compared to other assembly languages,
+THOR is very high level in nature. THOR is a small but fairly complete
+functional programming language, albeit a rather old fashioned one when compared
+to ``modern'' functional languages such as Haskell~[26]. THOR is designed so
+that it can be used either ``as is'' or as a compilation target for other
+functional languages.
+
+This chapter presents a formal semantics for THOR, using Plotkin's structural
+approach~[44]. The meaning of each construct in THOR is given by rules which
+describe the construct's behavior in terms of abstract machine configurations.
+These rules are sometimes rather tedious, but their use is justified because of
+the semantic complexities introduced by partial evaluation and incremental
+reduction.
+
+\section{The Syntax of Thor}
+
+The domain of THOR is the set of well-formed expressions defined by the
+following formulae:
+\[
+\begin{array}{rcl}
+\langle expression\rangle &::=& \langle exp\rangle^+\\
+\langle exp\rangle &::=& (\langle expression\rangle) \mid
+  \langle abstraction\rangle \mid \langle constant\rangle \mid
+  \langle structure\rangle\\
+\langle abstraction\rangle &::=&
+  \THOR{(LAMBDA (}\langle symbol\rangle^+\THOR{) }\langle expression\rangle\THOR{)}
+  \mid \THOR{(LETREC (}\langle binding\text{-}pair\rangle^+\THOR{) }
+  \langle expression\rangle\THOR{)}\\
+\langle binding\text{-}pair\rangle &::=&
+  \THOR{(}\langle symbol\rangle\ \langle exp\rangle\THOR{)}\\
+\langle constant\rangle &::=&
+  \langle character\rangle \mid \langle integer\rangle \mid
+  \langle float\rangle \mid \langle symbol\rangle\\
+\langle structure\rangle &::=&
+  \THOR{\{}\langle symbol\rangle\ \langle exp\rangle^*\THOR{\}}.
+\end{array}
+\]
+A superscript \(+\) means one or more occurrences and a superscript \(*\) means
+zero or more occurrences. A lexical description of each constant type is
+omitted; when a constant is presented, its type will be obvious.
+
+The symbol which is the first component of a structure is called its tag. The
+tag can loosely be thought of as a type identifier; however, this is a bit
+ambiguous because THOR is an untyped language.
+
+There are also metalinguistic mechanisms for associating symbols with
+expressions and defining structure types. The association mechanism is analogous
+to Scheme's~[15] \THOR{define} special form and is written
+\[
+s = e
+\]
+where \(s\) is a symbol and \(e\) is a well-formed expression. All of these
+associations together form a definition context within which expressions are
+reduced. The mechanism for defining structure types is similar to CommonLisp's
+[31] \THOR{defstruct} special form, and is written
+\[
+s \mapsto s_1\ldots s_n,
+\]
+where \(s\) is the structure's tag and the \(s_i\) are symbols used to refer to
+components of the structure. Such a structure definition generates a set of
+\(n\) structure accessors. These mechanisms are only available at the RED2 top
+level and are not a part of THOR per se.
+
+The syntax of THOR differs in one major respect from that of the pure
+\lambdacalculus{} presented in Chapter 2 - all expressions in THOR are
+closed.\footnote{This notion of closed is somewhat different from the
+\lambdacalculus's. In the \lambdacalculus{} the meaning of a closed expression
+is completely independent of the context in which it occurs. This property does
+not necessarily hold for THOR because of the value of symbolic constants depends
+on the current definition context.} THOR replaces the identifiers of the pure
+\lambdacalculus{} with symbols. Symbols that are within the scope of a
+\THOR{LAMBDA}-binding of the same name are considered to be variables; all other
+symbols are considered to be symbolic constants. It may appear that this results
+in some loss of expressive power, but that is really not the case. Through the
+use of \(=\), symbolic constants perform the same role as free variables (i.e.,
+they are identifiers for some expression known only in a larger scope).
+
+\section{Notation}
+
+\subsection{Configurations}
+
+The semantics of THOR are presented in terms of configurations, which are
+5-tuples describing the state of an abstract machine which reduces THOR
+expressions. Configuration tuples are of the form
+\[
+\cfg{\delta}{\phi}{q}{\rho}{e}
+\]
+where \(\delta\) is a mapping from symbols to expressions; \(\phi\) is the count
+of new \(\lambda\)'s introduced by \(\eta\)-extension; \(q\) is the number of
+allowed contractions remaining; \(\rho\) is the redex store; and \(e\) is the
+THOR construct being reduced.
+
+The \(\delta\) mapping is the definition context created through use of \(=\) to
+associate symbols to expressions; its value is supplied as part of every
+reduction sequence's initial configuration and remains invariant during
+reduction. The initial value of \(\phi\) is always zero, and \(\rho\) is always
+empty (\(\Omega\)) in the initial configuration. The number of allowed
+contractions, \(q\), is supplied by the user as part of the initial
+configuration and may decrease in value during reduction. The initial expression
+\(e\) is supplied by the user as well.
+
+The mappings \(\delta\) and \(\rho\) are partial functions which are made
+complete by extending them to return the value bottom (\(\bot\)) everywhere they
+are undefined. If \(\delta\) is applied to a symbol which does not have an
+associated definition, \(\bot\) is returned. Likewise, if the index supplied to
+\(\rho\) exceeds the number of entries in the redex store, \(\bot\) is returned.
+
+The number of contractions initially allowed by the user, \(q\), shall be
+referred to as the quantum. When this number is exhausted (i.e., \(q=0\)), I
+shall say the quantum has \emph{expired}. (Quantum is an operating systems term
+for the amount of time a process is allowed to run before it is swapped out of
+the CPU by the scheduler. It seems an appropriate name for the remaining
+contraction count.)
+
+\subsection{Reduction Rules}
+
+Reduction rules describe allowable transitions from one configuration to
+another. For instance, the rule
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{x}\redsto
+      \cfg{\delta}{\phi}{q}{\rho}{x}}
+     {x\in \Int}
+\]
+specifies that integers reduce to themselves. The \(\redsto\) symbol is
+pronounced as ``reduces to.'' A reduction rule consists of a conclusion (the
+reduction above the line), zero or more premises (any reductions below the
+line), and zero or more application conditions (also below the line). The
+conclusion is valid if all premises are valid and all application conditions are
+satisfied.
+
+The reduction rules have both a proof theoretic reading and an operational
+reading. Under the proof theoretic reading, the rules defining a construct are
+used as proof rules to justify instances of the \(\redsto\) relation. A proof
+for a reduction is a tree whose structure closely resembles the structure of the
+expression being reduced. Under this view, the result of reducing an expression
+is computed by constructing such a proof tree.
+
+\begin{figure}
+\[
+\begin{array}{rcl}
+T[\THOR{(LAMBDA }(x_1\ldots x_m)\ e\THOR{)},s]
+  &=& \lambda^m T[e,x_1:\cdots:x_m:s]\\
+T[\THOR{(LETREC }((x_1\ e_1)\ldots(x_m\ e_m))\ e\THOR{)},s]
+  &=& \THOR{(LETREC }(T[e_1,s']\ldots T[e_m,s'])\ T[e,s']\THOR{)}\\
+&& \text{where } s'=x_1:\cdots:x_m:s\\
+T[\THOR{\{}x\ e_1\ldots e_n\THOR{\}},s]
+  &=& \THOR{\{}x\ T[e_1,s]\ldots T[e_n,s]\THOR{\}}\\
+T[(e_1e_2),s] &=& (T[e_1,s]\ T[e_2,s])\\
+T[x,s] &=& index(x,s,0)
+\end{array}
+\]
+where
+\[
+\begin{array}{rcl}
+index(x,x:s,i)&=&\THOR{(VAR }i\THOR{)}\\
+index(x,y:s,i)&=&index(x,s,i+1),\quad x\ne y\\
+index(x,\Omega,i)&=&x.
+\end{array}
+\]
+\caption{Translation from THOR to the constructs used in the semantic rules.
+The first argument to \(T\) is a THOR expression, and the second argument is the
+expression's scope list. The colon (:) is an infix sequence constructor and
+\(\Omega\) is the empty sequence.}
+\end{figure}
+
+Under the operational reading, the reduction rules specify an abstract
+interpreter that initially has a configuration \(\cfg{\delta}{0}{q}{\Omega}{e}\)
+and produces a final configuration \(\cfg{\delta}{\phi}{q'}{\rho}{e'}\) such
+that
+\[
+\cfg{\delta}{0}{q}{\Omega}{e}\redsto
+\cfg{\delta}{\phi}{q'}{\rho}{e'}
+\]
+is a valid computation. If the reduction rules correctly implement the
+\lambdacalculus, the above implies that under definition context \(\delta\),
+\[
+e\longrightarrow e'
+\]
+after \(q-q'\) contractions. The interpreter proceeds by selecting a reduction
+rule with a conclusion whose left hand side matches the current configuration
+and whose application conditions are satisfied, and then performing the
+reductions specified by the premises. This results in a valid configuration on
+the right hand side of the conclusion.
+
+The translation from THOR expressions to the constructs used in the reduction
+rules is presented in Figure 3.1.
+
+Closures and unbound variables, which are not part of the \lambdacalculus{}
+proper but are part of its implementation, are represented by \THOR{(CLOSURE e
+p)} and \THOR{(UBV i)} respectively.
+
+\subsection{Miscellaneous}
+
+The set of objects belonging to each data type will be abbreviated as follows:
+\(\Char\) is the set of all characters; \(\Int\) is the set of all integers;
+\(\Float\) is the set of all floating point numbers; \(\Sym\) is the set of all
+symbols; and \(\Struct\) is the set of all structures. Likewise, the classes of
+\(\lambda\)-expressions will also be abbreviated: \(\Abstr\) is the set of all
+\(\lambda\)-abstractions, \(\App\) is the set of all applications, and \(\Var\)
+is the set of variables.
+
+In some of the rules, upper-case letters such as \(E\) will be used to denote an
+expression that has already been reduced.
+
+\section{The Pure \(\lambda\)-calculus}
+
+The operational semantics of the pure \lambdacalculus{} is described by six
+reduction rules which correspond closely to the final head order reduction rules
+presented in Section 2.4.1. The differences between these rule sets can be
+accounted for by the abstract machine nature of the operational semantics and
+the inclusion of incremental reduction. The meaning of the first rule will be
+discussed in some detail in order for the reader to get accustomed to this style
+of semantics; later rules will be presented without such detail when it is not
+needed.
+
+\subsubsection*{Rule 1 (\(\beta\)-Reduction)}
+\[
+\frac{
+  \cfg{\delta}{\phi}{q_0-1}{\rho'}{e_0}\redsto
+  \cfg{\delta}{\phi}{q_1}{\rho'}{e_2}
+}{
+  \cfg{\delta}{\phi}{q_0}{\rho}{((\lambda e_0)e_1)}\redsto
+  \cfg{\delta}{\phi}{q_1}{\rho}{e_2}
+}
+\quad
+\begin{array}{l}
+\rho'=\rho+[\THOR{(CLOSURE }e_1\ \rho\THOR{)}]\\
+q_0>0
+\end{array}
+\]
+Rule 1 corresponds to \(\beta'''_{ext}\). If there is still quantum remaining
+(\(q_0>0\)), the \(\beta\)-redex is contracted. The argument and a pointer to
+the current redex store are wrapped in an explicit closure object that is then
+added to the redex store; the quantum is decremented. Reduction of \(e_0\)
+continues, eventually yielding some expression \(e_2\) after
+\(q_0-q_1-1\) contractions have taken place.
+
+If the quantum is exhausted, this rule is not valid; the \(\beta\)-redex will be
+treated as an application and interpreted by Rule 2.
+
+Note that in the conclusion, both configurations have the same redex store
+\(\rho\), even though \(e_2\) was generated by reducing \(e_0\) in the extended
+store \(\rho'\). This is correct, because after \(e_0\) is reduced the extension
+is no longer necessary. This implies that an implementation of THOR is free to
+discard the extension after \(e_0\) has been reduced, and reclaim the space used
+by the extension. Thus, the reduction rules can be used as a basis for proving
+the correctness of some aspects of an implementation. Such information will be
+exploited in Chapter 4; I will wait until then to point out further
+implementation aspects of the reduction rules.
+
+\subsubsection*{Rule 2 (Application)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0}{\rho}{e_0}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{E_0}
+\qquad
+\cfg{\delta}{\phi}{q_1}{\rho}{(E_0e_1)}\redsto
+\cfg{\delta}{\phi}{q_2}{\rho}{e_2}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{(e_0e_1)}\redsto
+\cfg{\delta}{\phi}{q_2}{\rho}{e_2}
+}
+\]
+Rule 2 corresponds to \(\Omega'\), but is more restrictive. By specifying the
+operator is reduced before the operand, Rule 2 constrains THOR to the normal
+order reduction strategy. As was the case with the final head order reduction
+rules, it is necessary to impose a partial ordering on these rules so that Rule
+1 is applied before Rule 2.
+
+\subsubsection*{Rule 3 (Abstraction)}
+\[
+\frac{
+\cfg{\delta}{\phi+1}{q_0}{\rho'}{e}\redsto
+\cfg{\delta}{\phi+1}{q_1}{\rho'}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\lambda e}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{\lambda e'}
+}
+\quad
+\rho'=\rho+[\THOR{(UBV }\phi+1\THOR{)}]
+\]
+Rule 3 corresponds to \(\eta'''_{ext}\). An \(\eta\)-extension is performed and
+the unbound variable index is placed in the redex store.
+
+\subsubsection*{Rule 4 (Variables)}
+\[
+\cfg{\delta}{\phi}{q}{\rho}{\THOR{(VAR }i\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q}{\rho}{\rho(i)}
+\]
+Rule 4 extracts the value of a variable from the redex store. This value is
+either a closure (put in the redex store by Rule 1) or an unbound variable index
+(put in by Rule 3). This rule corresponds to \(\beta'''_h\).
+
+\subsubsection*{Rule 5 (Unbound Variables)}
+\[
+\cfg{\delta}{\phi}{q}{\rho}{\THOR{(UBV }i\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q}{\rho}{\THOR{(VAR }\phi-i\THOR{)}}.
+\]
+Rule 5 replaces unbound variable indices with corrected DeBruijn indices, and
+corresponds to \(\Phi\).
+
+\subsubsection*{Rule 6 (Closures)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0}{\rho_1}{e}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho_1}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho_0}{\THOR{(CLOSURE }e\ \rho_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho_0}{e'}
+}
+\]
+Rule 6 specifies that the value of a closure is the closure's expression \(e\)
+reduced in the closure's context \(\rho_1\). This rule does not directly
+correspond to any of the final head order reduction rules; it is necessary
+because the abstract machine uses explicit closure objects from which \(e\) and
+\(\rho_1\) must be extracted.
+
+\section{Adding in Data Objects}
+
+There are two classes of data objects in THOR: the constants, which are atomic
+objects; and structures, which are composite objects built from other structures
+or constants.
+
+\subsection{Constants}
+
+With the exception of symbols, the constants reduce to themselves:
+
+\subsubsection*{Rule 7 (Constants)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{x}\redsto
+      \cfg{\delta}{\phi}{q}{\rho}{x}}
+     {x\in \Int\cup\Float\cup\Char}
+\]
+If a symbol does not have a definition or the quantum has expired, the symbol is
+treated as a symbolic constant which reduces to itself:
+
+\subsubsection*{Rule 8 (Symbolic Constants)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{s}\redsto
+      \cfg{\delta}{\phi}{q}{\rho}{s}}
+     {s\in\Sym\qquad \delta(s)=\bot\vee q=0}
+\]
+If a symbol has an expression associated with it, the symbol reduces to that
+expression if there is quantum left:
+
+\subsubsection*{Rule 9 (Definitions)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\delta(s)}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{s}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\quad
+s\in\Sym,\ q_0>0
+\]
+Note that it costs one contraction to replace a symbol by its definition.
+
+\subsection{Primitive Operations on Constants}
+
+THOR and RED2 provide a variety of primitive built-in operations for the
+constants. They fall into three groups: unary primitives, binary primitives, and
+type predicates. All three groups of operators are strict; that is, the correct
+number of arguments must be reduced before an operator is applied. Except for
+the type of operands the primitives take, the reduction rules for each set of
+constants are the same. Therefore, I will only present rules for the integers:
+
+\subsubsection*{Rule 10 (Unary Operator)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{(@\ n)}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{e}}
+     {q>0\qquad n\in\Int\qquad e=@n}
+\]
+
+\subsubsection*{Rule 11 (Binary Operator)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{(@\ n_0\ n_1)}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{e}}
+     {q>0\qquad n_0,n_1\in\Int\qquad e=n_0@n_1}
+\]
+
+\subsubsection*{Rule 12 (Type Predicate - True Case)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(INTEGER? }n\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{TRUE}}}
+     {q>0\qquad n\in\Int}
+\]
+
+\subsubsection*{Rule 13 (Type Predicate - False Case)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(INTEGER? }E\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{FALSE}}}
+     {q>0\qquad E\notin \Int\cup\App\cup\Var}
+\]
+The unary and binary operators behave as one would expect, but the type
+predicates hold a surprise. Rule 12 specifies that \THOR{(INTEGER? n)} is
+\THOR{TRUE} when \(n\) is an integer, but Rule 13 does not specify the result is
+\THOR{FALSE} in all other cases, as one might expect. Rule 13 specifies the
+result is \THOR{FALSE} only if \(E\) is either a non-integer constant, a
+structure, or an abstraction. Therefore, if \(E\) is an unbound variable or an
+irreducible application, neither rule is valid.
+
+The semantics for type predicates is specified this way to accommodate partial
+evaluation. THOR's policy towards partial evaluation is to perform contractions
+only whenever there is enough information available to do so. In the case that
+\(E\) is a variable which was not bound by \(\beta\)-reduction, there is no
+information about the variable, so a type predicate cannot be contracted. If
+\(E\) is an irreducible application, it is also the case that no information is
+available. This situation can occur when a symbol in the irreducible expression
+has not been associated with a definition; for example,
+\[
+\THOR{(INTEGER? (FOO x))}
+\]
+where \THOR{FOO} has not yet been defined.
+
+If \(E\) is an abstraction, there is enough information for type predicates to
+make a decision. It is not possible for an argument that is an abstraction to
+become anything other than an abstraction; so for example
+\[
+\THOR{(INTEGER? (LAMBDA (X) e))}
+\]
+can safely contract to \THOR{FALSE} no matter what \(e\) is.
+
+\subsection{Structures}
+
+Structures are tagged, lazy~[21] composite data objects. Lazy objects in THOR
+shield their components from reduction - the components are not reduced when
+the structure is created nor when the structure itself is reduced. Components
+can only be reduced after they have been extracted from a structure. This is not
+to say that the components of a structure are unaffected by reduction; on the
+contrary, it is important that their free variables participate in
+\(\beta\)-substitution. For example, the expression
+\[
+\THOR{(LAMBDA (X Y) \{PAIR (FOO X) (* Y 3)\}) 5}
+\]
+reduces to
+\[
+\THOR{(LAMBDA (Y) \{PAIR (FOO 5) (* Y 3)\})}.
+\]
+The components of the \THOR{PAIR} structure will not be reduced until they have
+been extracted by an accessor.
+
+The semantics of structures can easily be captured by manipulating \(q\) to
+prevent reduction of the component expressions:
+
+\subsubsection*{Rule 14 (Structures)}
+\[
+\frac{
+\cfg{\delta}{\phi}{0}{\rho}{e_i}\redsto
+\cfg{\delta}{\phi}{0}{\rho}{e'_i},\ \forall i\in\{0\ldots n\}
+}{
+\cfg{\delta}{\phi}{q}{\rho}{\{s\ e_0\ldots e_n\}}\redsto
+\cfg{\delta}{\phi}{q}{\rho}{\{s\ e'_0\ldots e'_n\}}
+}
+\]
+When a structure is reduced, the number of allowed contractions is temporarily
+set to zero. This allows \(\beta\)-substitution of free variables to take place
+but prevents redexes from being contracted.
+
+The components of a structure can be extracted by structure accessors, and a
+structure's tag can be extracted by the built-in \THOR{TAG} operator:
+
+\subsubsection*{Rule 15 (Structure Accessors)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{e_i}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{(s_i\ \{s\ e_0\ldots e_n\})}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}
+\quad q_0>0,\ 0\le i\le n
+\]
+
+\subsubsection*{Rule 16 (TAG)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(TAG }\{s\ e_0\ldots e_i\}\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{s}}
+     {q>0}
+\]
+There is also a type predicate for structures, which behaves similarly to the
+type predicates for constants.
+
+THOR has one predefined type of structure, the \THOR{PAIR}, from which lists are
+constructed. The \THOR{PAIR} structure is defined by
+\[
+\THOR{PAIR := CAR CDR}.
+\]
+For convenience, a special syntax will be used for lists:
+\[
+\THOR{[}e_1\mid e_2\THOR{]}
+\]
+translates into
+\[
+\THOR{\{PAIR }e_1\ e_2\THOR{\}}.
+\]
+The symbol \THOR{NIL} is taken to be the empty list, which may also be written
+as \THOR{[]}. Multiple item lists which end with the symbol \THOR{NIL} can be
+written as
+\[
+\THOR{[}e_1\ldots e_n\THOR{]},
+\]
+which translates into nested \THOR{PAIR} structures. The symbols \THOR{CAR} and
+\THOR{CDR} can be used to select the first and second components of pairs,
+respectively.
+
+\section{Logical Primitives}
+
+In THOR, boolean values are represented by the symbolic constants \THOR{TRUE}
+and \THOR{FALSE}. The logical primitives are \THOR{NOT}, \THOR{AND} and
+\THOR{OR}.
+
+The \THOR{NOT} is a strict unary operator with simple semantics:
+
+\subsubsection*{Rule 17 (NOT - Case 1)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(NOT TRUE)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{FALSE}}}
+     {q>0}
+\]
+
+\subsubsection*{Rule 18 (NOT - Case 2)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(NOT FALSE)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{TRUE}}}
+     {q>0}
+\]
+The \THOR{AND} and \THOR{OR} can take any number of arguments, and their
+semantics are more complicated. Since these two primitives are symmetrical, only
+the semantics for \THOR{AND} will be presented. The simple case occurs when
+there is only one argument, which reduces to \THOR{TRUE}:
+
+\subsubsection*{Rule 19 (AND - Case 1)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(AND TRUE)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{TRUE}}}
+     {q>0}
+\]
+When there is more than one argument, \THOR{AND} reduces them one at a time from
+left to right. If an argument reduces to \THOR{TRUE}, it is discarded, thereby
+reducing the number of arguments by one:
+
+\subsubsection*{Rule 20 (AND - Case 2)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND }E_0\ldots E_i\ e_i\ldots e_n\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(AND }E_0\ldots E_i\ \THOR{TRUE}\ e_i\ldots e_n\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\]
+where \(E_j\notin\{\THOR{TRUE},\THOR{FALSE}\}\), \(q_0,n>0\), and \(i\ge0\).
+If all the arguments reduce to \THOR{TRUE}, then eventually Rule 19 can be used.
+No information is provided by arguments that do not reduce to either
+\THOR{TRUE} or \THOR{FALSE}, so these arguments are left alone.
+
+Finally, if any of the arguments reduce to \THOR{FALSE}, the entire \THOR{AND}
+construct reduces to \THOR{FALSE}:
+
+\subsubsection*{Rule 21 (AND - Case 3)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(AND }E_0\ldots E_i\ \THOR{FALSE}\ e_i\ldots e_n\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{FALSE}}}
+     {E_j\notin\{\THOR{TRUE},\THOR{FALSE}\},\ q>0,\ n>0}
+\]
+As was the case with type predicates, partial evaluation has a strong influence
+on \THOR{AND}'s semantics. A decision to reduce the \THOR{AND} construct to
+either \THOR{TRUE} or \THOR{FALSE} is made only if enough information is
+available. Here are a few examples that illustrate the semantics of the
+\THOR{AND}:
+\begin{verbatim}
+(AND (< 3 4) (ODD? 5)) -> (AND TRUE (ODD? 5))
+                         -> (AND (ODD? 5))
+                         -> (AND TRUE)
+                         -> TRUE
+
+(AND (> 3 4) (ODD? 5)) -> (AND FALSE (ODD? 5))
+                         -> FALSE
+
+(LAMBDA (X) (AND (> X 4) (ODD? 5)))
+  -> (LAMBDA (X) (AND (> X 4) TRUE))
+  -> (LAMBDA (X) (AND (> X 4)))
+
+(LAMBDA (X) (AND (> X 4) (EVEN? 5)))
+  -> (LAMBDA (X) (AND (> X 4) FALSE))
+  -> (LAMBDA (X) FALSE)
+\end{verbatim}
+
+\section{The Conditional Expression}
+
+There is only one conditional primitive in THOR: the \THOR{IF}. The \THOR{IF}
+is a ternary operator that is strict only in its first operand. The first
+operand is called the condition, the second is the true branch, and the third is
+the false branch.
+
+If the condition is \THOR{TRUE}, the \THOR{IF} construct reduces to the true
+branch:
+
+\subsubsection*{Rule 22 (IF - True Case)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{e_t}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(IF TRUE }e_t\ e_f\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}
+\quad q_0>0
+\]
+
+If the condition is \THOR{FALSE}, the \THOR{IF} construct reduces to the false
+branch:
+
+\subsubsection*{Rule 23 (IF - False Case)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{e_f}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(IF FALSE }e_t\ e_f\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}
+\quad q_0>0
+\]
+
+If the condition is not \THOR{TRUE} or \THOR{FALSE}, then neither of the two
+branches are reduced:
+
+\subsubsection*{Rule 24 (IF - Non-boolean Case)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0}{\rho}{e_c}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'_c}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(IF }e_c\ e_t\ e_f\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{\THOR{(IF }e'_c\ e_t\ e_f\THOR{)}}
+}
+\quad e'_c\notin\{\THOR{TRUE},\THOR{FALSE}\}
+\]
+None of the reduction rules presented prior to Rule 24 truly depend on the
+sequential, normal order reduction strategy of RED2. A different reduction
+ordering would still produce the same answer, if given sufficient quantum. Rule
+24, however, depends on RED2's specified reduction strategy; the condition must
+be reduced before either branch is reduced. This violates the first
+Church-Rosser Theorem. As long as THOR runs on the RED2 machine, this is rather
+inconsequential. If at some future time THOR is implemented in a parallel
+reduction environment, this rule might need to be changed.
+
+Rule 24 is designed to prevent unwarranted recursion in the true and false
+branches when the condition is not a boolean value. I consider the problem of
+controlling recursion more important than satisfying the Church-Rosser property.
+
+\section{Recursion}
+
+There are three forms of recursion in THOR: explicit single recursion using the
+\THOR{Y} operator; explicit multiple recursion using the \THOR{LETREC}
+abstraction mechanism; and implicit recursion accomplished through symbols that
+have associated definitions.
+
+\subsection{The Y Operator}
+
+The \THOR{Y} operator, or fixpoint combinator as it is sometimes called, is used
+for creating explicit recursion. It has a simple semantics:
+
+\subsubsection*{Rule 25 (Y Combinator)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{(e\ \THOR{(Y }e\THOR{)})}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(Y }e\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}
+\quad q_0>0
+\]
+The \THOR{Y} can be used to create recursive functions and represent infinite
+data structures. An expression for computing the factorial of an integer is
+presented as an example of recursion using the \THOR{Y} operator:
+\begin{verbatim}
+(Y (lambda (fact n) (if (= n 0) 1 (* n (fact (1- n))))))
+\end{verbatim}
+Note that \THOR{fact} is a variable, which gets bound to the entire recursive
+expression during reduction.
+
+The fixpoint combinator could also be implemented by any of several
+\(\lambda\)-expressions, including
+\[
+(\lambda x.((\lambda y.x(yy))(\lambda y.x(yy))))
+\]
+which is due to Curry~[25]. The advantage of using a \(\lambda\)-expression for
+\THOR{Y} is that no new reduction mechanisms need be introduced. There are
+several disadvantages to using \(\lambda\)-expressions to implement the fixpoint
+combinator, however. For one thing, implementing \THOR{Y} directly as a
+primitive machine operation is more efficient in both time and space than using
+a \(\lambda\)-expression. But more importantly, the \THOR{Y} primitive retains
+its identity throughout a reduction sequence.
+
+Retaining identity is important in an incremental reduction system. When a
+person steps through a reduction sequence, it is desirable that the output
+(reduced) expressions are easily recognized as resulting from the input
+expressions. Most of the primitives in THOR, such as the arithmetic primitives,
+are local in nature and easily retain their identity. The fixpoint combinator is
+global in nature and can affect many parts of an expression, so retaining
+identity is more difficult.
+
+A comparison of the reduction sequences of the factorial expression described
+earlier illuminate the identity problems associated with recursion. Using a
+\(\lambda\)-expression to implement the fixpoint combinator yields a reduction
+sequence that gets complicated quickly; if you were shown only the third
+expression, would you be able to clearly identify what was going on? Now examine
+the reduction sequence for the \THOR{Y} primitive:
+\begin{verbatim}
+((Y (LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))) 3)
+  -> ((LAMBDA (N)
+        (IF (= N 0)
+            1
+            (* N ((Y (LAMBDA (FACT N)
+                       (IF (= N 0) 1 (* N (FACT (1- N))))))
+                  (1- N)))))
+      3)
+  -> (IF (= 3 0)
+         1
+         (* 3 ((Y (LAMBDA (FACT N)
+                    (IF (= N 0) 1 (* N (FACT (1- N))))))
+               (1- 3))))
+\end{verbatim}
+The latter sequence is easier to comprehend. Use of the \THOR{Y} operator does
+not always make recursive reduction sequences easy to follow, but it does make
+recursion easier to spot than using a \(\lambda\)-expression.
+
+\subsection{Mutual Recursion with LETREC}
+
+The \THOR{LETREC} abstraction mechanism provides a way to create local mutually
+recursive expressions. It is a complicated mechanism, so it will be described in
+some detail. As a reminder of its syntax, here again is its form:
+\[
+\THOR{(LETREC ((}var_1\ exp_1\THOR{) ... (}var_n\ exp_n\THOR{)) }body\THOR{)}
+\]
+The \THOR{LETREC} allows any \(var_i\) to be correctly referenced inside any of
+the \(exp_i\) and the body. As a highly contrived example of mutual recursion,
+the following expression determines if an integer is even:
+\begin{verbatim}
+(lambda (x)
+  (letrec ((even? (lambda (n) (if (= n 0) TRUE (odd? (1- n)))))
+           (odd?  (lambda (n) (if (= n 0) FALSE (even? (1- n))))))
+    (even? x)))
+\end{verbatim}
+
+The \THOR{LETREC} can be implemented in the following way. Each of the
+\((var_i\ exp_i)\) pairs form a \(\beta\)-redex. When the \THOR{LETREC} is
+reduced, the redex store \(\rho\) is updated so that:
+\[
+\rho'=\rho+[\THOR{(CLOSURE }exp_1\ \rho'\THOR{)},\ldots,
+             \THOR{(CLOSURE }exp_n\ \rho'\THOR{)}].
+\]
+The new \(\rho'\) will be called the recursive context of the \THOR{LETREC}.
+Mutually recursive references are allowed in the \(exp_i\) because the redex
+store pointer of each closure in \(\rho'\) is such that it includes the entire
+recursive context.
+
+The need to accommodate incremental reduction, however, invalidates this simple
+approach. The recursive context created by a \THOR{LETREC} may need to exist
+throughout the entire reduction of the \THOR{LETREC}'s body, which may take many
+contractions. However, the quantum may expire before the body is completely
+reduced. Therefore, some sort of mechanism must exist for reconstructing the
+recursive context wherever it will be needed again. This can be done by
+reconstructing the \THOR{LETREC}'s original form around every one of the
+recursive variables that exist in the partially reduced body.
+
+An example of the desired behavior helps clarify the discussion. The expression
+\begin{verbatim}
+(letrec ((x [1 | y])
+         (y [2 | x]))
+  x)
+\end{verbatim}
+describes an infinite list of alternating 1's and 2's. Reducing with a quantum
+of 1 allows the \THOR{LETREC} to create the recursive context and have its body,
+\THOR{x}, be expanded to \THOR{[1 | y]}. But now the quantum is exhausted, and
+all of the recursion variables in the body must be ``wrapped'' in a
+reconstructed \THOR{LETREC}. So the expression is now:
+\begin{verbatim}
+[1 | (letrec ((x [1 | y]) (y [2 | x])) y)]
+\end{verbatim}
+The cdr of this list is now of a form similar to that of the original
+expression, and its reduction sequence unfolds in a similar way. Ignoring for a
+moment that the \THOR{PAIR} structure comprising the list prevents the reduction
+of its components, another reduction gives
+\begin{verbatim}
+[1 2] (letrec ((x [1 | y]) (y [2 | x])) x)]
+\end{verbatim}
+The reduction sequence can continue on in this fashion, ad infinitum.
+
+Two new types of object are introduced to implement the recursive context and
+help reconstruct \THOR{LETREC} binding expressions: \THOR{BLOCK}s and
+\THOR{REC}s. A \THOR{BLOCK} saves all of the binding expressions so that they
+may be recalled, and \THOR{REC}s provides a way to access the binding
+expressions stored in a \THOR{BLOCK}.
+
+\subsubsection*{Rule 26 (LETREC - Case 1)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0}{\rho'}{e}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho'}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(LETREC }(e_1\ldots e_n)\ e\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e'}
+}
+\]
+\[
+\rho'=\rho+[\THOR{(REC }n\ \rho'\ b\THOR{)},\ldots,
+            \THOR{(REC }1\ \rho'\ b\THOR{)}],
+\qquad b=\THOR{(BLOCK }e_1\ldots e_n\THOR{)},\quad q_0>0.
+\]
+When a \THOR{LETREC} is reduced, a new \THOR{BLOCK} is created containing all of
+the binding expressions and a \THOR{REC} is placed in the redex store for each
+binding expression. There is no contraction charge for creating this recursion
+context.
+
+If a \THOR{LETREC} is to be reduced after the quantum has expired, the recursive
+context is not created. Instead, each of the recursive bindings is treated like
+an unbound variable. The binding expressions and the body are allowed to
+participate in \(\beta\)-substitution:
+
+\subsubsection*{Rule 27 (LETREC - Case 2)}
+\[
+\frac{
+\cfg{\delta}{\phi+n}{0}{\rho'}{e}\redsto
+\cfg{\delta}{\phi+n}{0}{\rho'}{e'}
+\qquad
+\cfg{\delta}{\phi+n}{0}{\rho'}{e_i}\redsto
+\cfg{\delta}{\phi+n}{0}{\rho'}{e'_i}
+}{
+\cfg{\delta}{\phi}{0}{\rho}{\THOR{(LETREC }(e_1\ldots e_n)\ e\THOR{)}}\redsto
+\cfg{\delta}{\phi}{0}{\rho}{\THOR{(LETREC }(e'_1\ldots e'_n)\ e'\THOR{)}}
+}
+\]
+\[
+\rho'=\rho+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}].
+\]
+
+When a \THOR{REC} is selected from the redex store by a variable, it reduces to
+its corresponding binding expression stored in its \THOR{BLOCK}:
+
+\subsubsection*{Rule 28 (Rec - Case 1)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho_1}{e_i}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho_1}{e'}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho_0}{\THOR{(REC }i\ \rho_1\ b\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho_0}{e'}
+}
+\quad b=\THOR{(BLOCK }e_1\ldots e_n\THOR{)},\ q_0>0
+\]
+
+Reducing a \THOR{REC} costs one contraction. If the quantum has expired when a
+\THOR{REC} is reduced, the \THOR{LETREC} construct must be reconstructed and
+``wrapped'' around the variable the \THOR{REC} represents:
+
+\subsubsection*{Rule 29 (Rec - Case 2)}
+\[
+\frac{
+\cfg{\delta}{\phi+n}{0}{\rho'}{e_j}\redsto
+\cfg{\delta}{\phi+n}{0}{\rho'}{e'_j},\ \forall j\in\{1\ldots n\}
+}{
+\cfg{\delta}{\phi}{0}{\rho_0}{\THOR{(REC }i\ \rho_1\ b\THOR{)}}\redsto
+\cfg{\delta}{\phi}{0}{\rho_0}{\THOR{(LETREC }(e'_1\ldots e'_n)\ \THOR{(VAR }i\THOR{))}}
+}
+\]
+\[
+\rho'=\rho_0+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}],
+\qquad b=\THOR{(BLOCK }e_1\ldots e_n\THOR{)}.
+\]
+
+As is the case with the fixpoint operator, mutual recursion can also be
+accomplished using special \(\lambda\)-expressions. The reasons for preferring
+the \THOR{LETREC} primitive are identical to those given for the \THOR{Y}
+primitive. In the case of mutual recursion, the argument is even stronger
+because expressions get larger and more complicated than in the single recursion
+case.
+
+\subsection{Recursion via Symbol Definitions}
+
+Recursion can be obtained implicitly through the reduction of symbols that have
+been associated with expressions by the use of the \(=\) mechanism. This is the
+method of recursion most people are familiar with. To contrast this method with
+using the \THOR{Y} operator, here is another expression for computing
+factorials:
+\begin{verbatim}
+fact = (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))
+\end{verbatim}
+In this expression, \THOR{fact} is not a variable, but a symbolic constant (that
+just happens to be on both sides of the definition). When the symbol
+\THOR{fact} is encountered as an operator during reduction, it is replaced by
+its defining expression. Rule 8 governs this situation.
+
+This method of recursion is generally used in LISP systems~[3]. It is a popular
+implementation technique because it allows all global definitions to be mutually
+recursive.
+
+\subsection{Controlling Recursion}
+
+If checks are not placed on recursion, it will often consume all of the
+available contractions. For example, the nonsense expression \THOR{(Y 1)} will
+continue expanding until the quantum is exhausted.\footnote{Although the
+resulting expression, \THOR{(1 1 1 ...)}, may not have any meaning to a
+particular human observer, it is a legal THOR expression. THOR is filled with
+such ``nonsense'' expressions; that makes THOR wonderfully flexible and allows
+you to assign whatever meaning you wish to many kinds of expressions.}
+Fortunately, most uses of recursion are sensible in nature. Recursion is
+generally used for two purposes: implementing self-referential functions and
+representing infinite data structures. Each of these uses provides a different
+way of controlling recursive expansion.
+
+When recursion is used in self-referential functions, it is usually within the
+context of some conditional which prevents recursing infinitely. For example, in
+the \THOR{FACT} function defined earlier, the conditional test \THOR{(= N 0)} is
+used to stop recursion when \(N\) becomes zero. This is all good, fine, and
+obvious - but what about situations involving partial evaluation, where
+conditional tests might not reduce to either \THOR{TRUE} or \THOR{FALSE}? I
+would like to reduce
+\[
+\THOR{(lambda (x) (fact x))}
+\]
+and get back
+\[
+\THOR{(lambda (x) (if (= x 0) 1 (* x (fact (1- x)))))}
+\]
+instead of an expression where the \THOR{FACT} in the false branch of the
+\THOR{IF} keeps expanding until the quantum is exhausted. It is for this reason
+that the semantics of \THOR{IF} specify that neither the true nor false branch
+is reduced if the condition does not reduce to \THOR{TRUE} or \THOR{FALSE}. By
+not reducing either branch in this example, the recursive expansion of
+\THOR{FACT} is prevented.
+
+The charge of one contraction for reducing a \THOR{REC} is also part of the
+machinery for controlling recursion. If there were no charge, \THOR{REC}s could
+infinitely expand during the \(\beta\)-substitution of the true and false
+branches of an \THOR{IF} with a non-boolean condition. Because of the charge,
+Rule 29 is used in this situation instead of Rule 28.
+
+The lazy semantics of structures control the recursive expansion of infinite
+data structures. For example,
+\[
+\THOR{(Y (lambda (x) [1 | x]))}
+\]
+reduces to
+\[
+\THOR{[1 | (Y (lambda (x) [1 | x]))]},
+\]
+even if given infinite quantum.
+
+\section{The \(\alpha\)-Equality Predicate}
+
+The final primitive operation to be presented is the \THOR{EQUAL?} predicate,
+which tests two expressions for \(\alpha\)-equality. In the \lambdacalculus, two
+expressions are \(\alpha\)-equivalent if they are structurally (syntactically)
+the same except for their bound variable names.
+
+\THOR{EQUAL?} is a strict binary operator that works by decomposing its
+arguments into their atomic constituents and then checking these for syntactic
+equality. If all the parts are equal, the result is \THOR{TRUE}; if the parts
+are not equal, the result is \THOR{FALSE}; and if some of the parts are unbound
+variables, then the result will be a new expression that is a conjunction of
+equality tests on the unbound variables. If any of the constituents are
+structures, the components of the structures will be reduced before they are
+compared. The test for \(\alpha\)-equality may take many contractions to
+complete.
+
+The arguments to \THOR{EQUAL?} are first reduced, and then passed on to the
+primitive \THOR{EQUAL*}\footnote{\THOR{EQUAL*} is internal to RED2 and is not
+directly accessible to users.} which treats the arguments as purely syntactic
+objects:
+
+\subsubsection*{Rule 30 (Alpha Equality)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* 0 }E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL? }E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\]
+The first argument to \THOR{EQUAL*} is a count of the \(\lambda\)'s that have
+been encountered so far in the decomposition of \(E_0\) and \(E_1\). This value
+will be needed in case the quantum expires before the equality check is
+completed.
+
+\THOR{EQUAL*} proceeds to decompose compound arguments into their components,
+and check the components for equality:
+
+\subsubsection*{Rule 31 (Equality: Applications)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND (EQUAL* }n\ E_0\ E_2\THOR{) (EQUAL* }n\ E_1\ E_3\THOR{))}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ (E_0\ E_1)\ (E_2\ E_3)\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\quad q_0>0
+\]
+
+\subsubsection*{Rule 32 (Equality: Abstractions)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(EQUAL* }n+1\ E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \lambda.E_0\ \lambda.E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\quad q_0>0
+\]
+
+\subsubsection*{Rule 33 (Equality: Structures)}
+\[
+\frac{
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND }(equal_0)\ldots(equal_i)\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}{
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \{s\ e_0\ldots e_i\}\ \{s\ e'_0\ldots e'_i\}\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_1}{\rho}{e}
+}
+\quad q_0>0
+\]
+where \(equal_j=\THOR{(EQUAL? }\lambda^n.e_j\ \lambda^n.e'_j\THOR{)}\).
+Rule 32 strips off a \(\lambda\) from the expressions, adding one to the
+\(\lambda\) count. Rule 33 decomposes structures, reducing the structure
+components before testing them for pairwise equality. Before reducing the
+components, however, it is necessary to re-create the proper binding context so
+that the DeBruijn indices inside the component expressions are correct. Note
+that both structures' tag must be the same and the structures must have the same
+number of components.
+
+If the arguments being compared are identical atomic objects, then the result of
+\THOR{EQUAL*} is \THOR{TRUE}:
+
+\subsubsection*{Rule 34 (Equality: Identical Atomic Objects)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL* }n\ E\ E\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{TRUE}}}
+     {E\notin\Struct\cup\App\cup\Abstr,\ q>0}
+\]
+Note that two identical unbound variables are \(\alpha\)-equal; the expression
+\[
+\THOR{(LAMBDA (X) (EQUAL? X X))}
+\]
+reduces to \(\THOR{(LAMBDA (X) TRUE)}\).
+
+If one of the arguments is an unbound variable (or if both arguments are
+different unbound variables), then a decision about equality cannot be made. If
+this is the case, the arguments are wrapped back up in the appropriate number of
+\(\lambda\)'s and left alone:
+
+\subsubsection*{Rule 35 (Equality: Variable 1)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL* }n\ \THOR{(VAR }i\THOR{)}\ E\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL? }\lambda^n.\THOR{(VAR }i\THOR{)}\ \lambda^n.E\THOR{)}}}
+     {i>n}
+\]
+
+\subsubsection*{Rule 36 (Equality: Variable 2)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL* }n\ E\ \THOR{(VAR }i\THOR{)}\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL? }\lambda^n.E\ \lambda^n.\THOR{(VAR }i\THOR{)}\THOR{)}}}
+     {i>n}
+\]
+Note the stipulation that \(i>n\) in both rules; this means that \THOR{(VAR i)}
+must be free with respect to the original expressions being checked for
+\(\alpha\)-equality. This condition ensures that
+\[
+\THOR{(EQUAL? (LAMBDA (X) X) (LAMBDA (Y) 2))}
+\]
+reduces to \THOR{FALSE}, while
+\[
+\THOR{(LAMBDA (X) (EQUAL? (LAMBDA (Y) X) (LAMBDA (Y) 2)))}
+\]
+reduces to itself because there is not enough information to decide whether
+\THOR{X} is 2.
+
+If the arguments are not \(\alpha\)-equal, the result is \THOR{FALSE}:
+
+\subsubsection*{Rule 37 (Equality: Unequal Objects)}
+\[
+\frac{\cfg{\delta}{\phi}{q}{\rho}{\THOR{(EQUAL* }n\ E_0\ E_1\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{q-1}{\rho}{\THOR{FALSE}}}
+     {E_0\ne E_1,\ q>0}
+\]
+The condition \(E_0\ne E_1\) does not need to call on some higher authority to
+check for inequality\footnote{If such an authority existed, then it could have
+been called on to check for equality, saving the need for so many rules.} if a
+partial ordering is imposed on Rules 31-37 so that Rule 37 is tried last. If
+Rule 37 is ever valid under this ordering, then this condition must be true.
+
+Finally, there is the case of an expired quantum:
+
+\subsubsection*{Rule 38 (Equality: Expired Quantum)}
+\[
+\frac{\cfg{\delta}{\phi}{0}{\rho}{\THOR{(EQUAL* }n\ E_0\ E_1\THOR{)}}\redsto
+      \cfg{\delta}{\phi}{0}{\rho}{\THOR{(EQUAL? }\lambda^n.E_0\ \lambda^n.E_1\THOR{)}}}
+     {}
+\]
+The arguments are wrapped back up in their \(\lambda\)'s, and a new
+\THOR{EQUAL?} expression is returned. Here are a few examples to illustrate the
+behavior of \THOR{EQUAL?}:
+\begin{verbatim}
+(equal? 1 1) -> true
+(equal? (a b) (a b)) -> true
+(lambda (x) (equal? (a 1) (x 1))) -> (lambda (x) (equal? a x))
+(equal? (lambda (a) a) (lambda (b) b)) -> true
+(equal? (lambda (x) 1) (lambda (x) x)) -> false
+(lambda (x) (equal? [1 x 3] [1 2 3]))
+  -> (lambda (x) (equal? x 2))
+(equal? {node 2 (+ 1 4)} {node 2 5}) -> true
+\end{verbatim}
