@@ -1,0 +1,201 @@
+\chapter{Benchmark Programs}
+
+\section{The SINE Program}
+
+The trigonometric function \(\sin(x)\) can be represented by the Taylor Series
+\[
+\sum_{i=0}^{\infty}(-1)^i {1\over(2i+1)!}x^{2i+1}.
+\]
+The finite approximation of this infinite series serves as the basis of sine
+function. The sine program is based on a constructive mathematics approach
+advocated in~[51].
+
+\begin{verbatim}
+sine-benchmark = sine pi
+
+sine = (lambda (x)
+         (period-maker sine-full (minus (/ pi 2)) (* 2 pi) x))
+
+sine-full = (lambda (x)
+              (reflection-maker sine-half (/ pi 2) x))
+
+sine-half = (lambda (x)
+              (let ((x2 (* x x)))
+                (sine-series x x2)))
+
+sine-series = (lambda (x x2)
+                (* x (horners-rule
+                      sine-coefficient
+                      (sine-number-of-terms epsilon pi)
+                      x2)))
+
+sine-coefficient = (lambda (i)
+                    (/ (expt -1.0 i)
+                       (factorial (1+ (* 2 i)))))
+
+sine-number-of-terms =
+  (lambda (eps value)
+    (letrec ((loop
+              (lambda (i)
+                (if (< (abs ((sine-term i) value))
+                       (abs eps))
+                    (1- i)
+                    (loop (1+ i))))))
+      (loop (ceiling (/ (- value 1) 2))))))
+
+epsilon = 0.000001
+
+pi = 3.1415927
+
+horners-rule =
+  (lambda (coefficient length variable)
+    (letrec ((term
+              (lambda (n)
+                (if (= n length)
+                    (coefficient n)
+                    (+ (coefficient n)
+                       (* variable (term (1+ n))))))))
+      (term 0)))
+
+period-maker = (lambda (fcn a period x)
+                 (let ((cycles (floor (/ (- x a) period))))
+                   (fcn (- x (* cycles period)))))
+
+reflection-maker = (lambda (fcn axis x)
+                     (fcn (if (< x axis) x (- (* 2 axis) x))))
+\end{verbatim}
+
+\section{The GAME Program}
+
+The game program uses the alpha-beta procedure to evaluate the ``goodness'' of a
+particular move in a two player board game. This program is based on an article
+by Hughes~[28].
+
+\begin{verbatim}
+game-benchmark = evaluate 1
+
+tree = label subtrees
+
+empty-board = [e e e e e e e e e]
+
+evaluate = (lambda (depth)
+             (maximise (maptree static
+                                (prune depth (gametree)))))
+
+gametree = reptree moves empty-board
+
+maptree = (lambda (f)
+            (redtree (lambda (label subtrees)
+                       (make-tree (f label) subtrees))
+                     cons
+                     0))
+
+maximise = (lambda (tree)
+             (if (null? (tree-subtrees tree))
+                 (tree-label tree)
+                 (maximum (map minimise
+                               (tree-subtrees tree)))))
+
+maximum =
+  (lambda (list)
+    (letrec ((maximum1
+              (lambda (list x)
+                (if (null? list)
+                    x
+                    (maximum1 (cdr list)
+                              (max x (car list)))))))
+      (maximum1 (cdr list) (car list))))
+
+minimise = (lambda (tree)
+             (if (null? (tree-subtrees tree))
+                 (tree-label tree)
+                 (minimum (map maximise
+                               (tree-subtrees tree)))))
+
+minimum =
+  (lambda (list)
+    (letrec ((minimum1
+              (lambda (list x)
+                (if (null? list)
+                    x
+                    (minimum1 (cdr list)
+                              (min x (car list)))))))
+      (minimum1 (cdr list) (car list))))
+
+moves =
+  (lambda (board)
+    (letrec ((moves1
+              (lambda (player front back)
+                (if (null? back)
+                    nil
+                    (if (equal? (car back) E)
+                        (cons (++ (reverse front)
+                                  (cons player (cdr back)))
+                              (moves1 player
+                                      (cons (car back) front)
+                                      (cdr back)))
+                        (moves1 player
+                                (cons (car back) front)
+                                (cdr back)))))))
+      (moves1 (whose-turn? board) nil board)))
+
+prune = (lambda (depth tree)
+          (if (= depth 0)
+              (make-tree (tree-label tree) 1)
+              (make-tree (tree-label tree)
+                         (map (prune (1- depth))
+                              (tree-subtrees tree)))))
+
+redtree = (lambda (node-op list-op basis tree)
+            (node-op (tree-label tree)
+                     (redtree1 node-op
+                               list-op
+                               basis
+                               (tree-subtrees tree))))
+
+redtree1 = (lambda (node-op list-op basis subtrees)
+             (if (null? subtrees)
+                 basis
+                 (list-op (redtree node-op
+                                   list-op
+                                   basis
+                                   (car subtrees))
+                          (redtree1 node-op
+                                    list-op
+                                    basis
+                                    (cdr subtrees)))))
+
+reduce = (lambda (f id list)
+           (if (null? list)
+               id
+               (f (car list) (reduce f id (cdr list)))))
+
+reptree = (lambda (f a)
+            (make-tree a (map (reptree f) (f a))))
+
+static =
+  (lambda (board)
+    (let ((player (whose-turn? board)))
+      (letrec
+        ((eval
+          (lambda (board rating best)
+            (if (null? board)
+                (max best rating)
+                (if (or (equal? (car board) player)
+                        (equal? (car board) E))
+                    (eval (cdr board) (1+ rating) best)
+                    (eval (cdr board) 0 (max rating best)))))))
+        (eval board 0 0))))
+
+whose-turn? = (lambda (board)
+                (letrec ((ecount
+                          (lambda (l)
+                            (if (null? l)
+                                0
+                                (if (equal? E (car l))
+                                    (+ 1 (ecount (cdr l)))
+                                    (ecount (cdr l)))))))
+                  (if (even? (ecount board)) X O)))
+
+++ = (lambda (a b) (reduce cons b a))
+\end{verbatim}
