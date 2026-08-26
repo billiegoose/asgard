@@ -1177,13 +1177,13 @@ Finally, there is the case of an expired quantum:
 The arguments are wrapped back up in their \(\lambda\)'s, and a new
 \THOR{EQUAL?} expression is returned. Here are a few examples to illustrate the
 behavior of \THOR{EQUAL?}:
-\begin{verbatim}
-(equal? 1 1) -> true
-(equal? (a b) (a b)) -> true
-(lambda (x) (equal? (a 1) (x 1))) -> (lambda (x) (equal? a x))
-(equal? (lambda (a) a) (lambda (b) b)) -> true
-(equal? (lambda (x) 1) (lambda (x) x)) -> false
-(lambda (x) (equal? [1 x 3] [1 2 3]))
-  -> (lambda (x) (equal? x 2))
-(equal? {node 2 (+ 1 4)} {node 2 5}) -> true
-\end{verbatim}
+\begin{alltt}
+(equal?  1 1) \(\longrightarrow\)  true
+(equal?  (a b) (a b)) \(\longrightarrow\)  true
+(lambda (x) (equal?  (a 1) (x 1))) \(\longrightarrow\)  (lambda (x) (equal?  a x))
+(equal?  (lambda (a) a) (lambda (b) b)) \(\longrightarrow\)  true
+(equal?  (lambda (x) 1) (lambda (x) x)) \(\longrightarrow\)  false
+(lambda (x) (equal?  [1 x 3] [1 2 3])) \(\longrightarrow\)
+        (lambda (x) (equal?  x 2))
+(equal?  \{node 2 (+ 1 4)\} \{node 2 5\}) \(\longrightarrow\)  true
+\end{alltt}
