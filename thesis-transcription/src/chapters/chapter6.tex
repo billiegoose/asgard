@@ -262,26 +262,24 @@ Q-UNIFY is called, each element of \(\sigma\) should initially be unbound,
 signified by containing the value \THOR{(UBV i)} where \(i\) is the index of
 the element's free variable.
 
-\begin{verbatim}
-Q-UNIFY e0 e1 sigma = U* 0 e0 e1
+\begin{alltt}
+Q-UNIFY \(e\sb{0}\) \(e\sb{1}\) \(\sigma\) = U* 0 \(e\sb{0}\) \(e\sb{1}\)
 
 where
-U* n lambda.e0 lambda.e1 = U* (n+1) e0 e1
-U* n (e0 e1) (e2 e3) = (U* n e0 e2) and (U* n e1 e3)
-U* n (VAR i) (VAR i) = true
-U* n (VAR i) e =
-  if i < n then false                                      <<
-  else U* n sigma[i-n] e
-U* n e (VAR i) = U* n (VAR i) e
-U* n (UBV i) (UBV i) = true
-U* n (UBV i) e =
-  if sigma[i] = (UBV i) then
-    if OCCURS i n e sigma then false
-    else sigma[i] <- e; true
-  else U* n sigma[i] e
-U* n e (UBV i) = U* n (UBV i) e
-U* n e0 e1 = false
-\end{verbatim}
+U* \(n\) \(\lambda.e\sb{0}\)     \(\lambda.e\sb{1}\)     =  U* (\(n\)+1) \(e\sb{0}\) \(e\sb{1}\)
+U* \(n\) (\(e\sb{0}\) \(e\sb{1}\))   (\(e\sb{2}\) \(e\sb{3}\))   =  (U* \(n\) \(e\sb{0}\) \(e\sb{2}\)) and (U* \(n\) \(e\sb{1}\) \(e\sb{3}\))
+U* \(n\) (VAR \(i\)) (VAR \(i\)) =  true
+U* \(n\) (VAR \(i\)) \(e\)       =  if \(i < n\) then false                 \(\ll\)
+                              else U* \(n\) \(\sigma[i-n]\) \(e\)
+U* \(n\) \(e\)       (VAR \(i\)) =  U* \(n\) (VAR \(i\)) \(e\)
+U* \(n\) (UBV \(i\)) (UBV \(i\)) =  true
+U* \(n\) (UBV \(i\)) \(e\)       =  if \(\sigma[i]\) = (UBV \(i\)) then
+                                if (OCCURS \(i\) \(n\) \(e\) \(\sigma\)) then false
+                                else \(\sigma[i]\leftarrow e\); true
+                              else U* \(n\) \(\sigma[i]\) \(e\)
+U* \(n\) \(e\)       (UBV \(i\)) =  U* \(n\) (UBV \(i\)) \(e\)
+U* \(n\) \(e\sb{0}\)     \(e\sb{1}\)     =  false
+\end{alltt}
 
 The Q-UNIFY procedure is identical in most respects to unification procedures
 for unquantified expressions; the differences being the argument \(n\) to U*
@@ -298,20 +296,18 @@ if binding variable \(i\) to \(e\) will cause any scope violations. If either
 of these conditions is true, then OCCURS returns true; otherwise OCCURS returns
 false.
 
-\begin{verbatim}
-OCCURS i ub e sigma = O* 0 ub e
+\begin{alltt}
+OCCURS \(i\) \(ub\) \(e\) \(\sigma\) = O* 0 \(ub\) \(e\)
 
 where
-O* lb ub lambda.e = O* (lb+1) (ub+1) e
-O* lb ub (e0 e1) = (O* lb ub e0) or (O* lb ub e1)
-O* lb ub (VAR j) =
-  if lb < j < ub then true
-  else if j >= ub then O* lb ub sigma[j-lb]
-  else false
-O* lb ub (UBV j) =
-  if i = j then true
-  else false
-\end{verbatim}
+O* \(lb\) \(ub\) \(\lambda.e\)       =  O* (\(lb\)+1) (\(ub\)+1) \(e\)
+O* \(lb\) \(ub\) (\(e\sb{0}\) \(e\sb{1}\))   =  (O* \(lb\) \(ub\) \(e\sb{0}\)) or (O* \(lb\) \(ub\) \(e\sb{1}\))
+O* \(lb\) \(ub\) (VAR \(j\))     =  if \(lb < j < ub\) then true
+                              else if \(j \geq ub\) then O* \(lb\) \(ub\) \(\sigma[j-lb]\)
+                              else false
+O* \(lb\) \(ub\) (UBV \(j\))     =  if \(i = j\) then true
+                              else false
+\end{alltt}
 
 The O* function uses an upper and lower bound on allowable binding indices to
 detect if a scope violation occurs. The upper bound, \(ub\), is the minimum
@@ -332,11 +328,11 @@ to RED2 and cannot be accessed directly from THOR. Recursion is avoided by
 rewriting the U* expression according to the rules in the Q-UNIFY algorithm; for
 example, the expression
 \[
-\THOR{(U* }n\ (e_0\ e_1)\ (e_2\ e_3)\THOR{)}
+\THOR{(U* }n\ (e\sb{0}\ e\sb{1})\ (e\sb{2}\ e\sb{3})\THOR{)}
 \]
 is transformed into the expression
 \[
-\THOR{(AND (U* }n\ e_0\ e_2\THOR{) (U* }n\ e_1\ e_3\THOR{))}.
+\THOR{(AND (U* }n\ e\sb{0}\ e\sb{2}\THOR{) (U* }n\ e\sb{1}\ e\sb{3}\THOR{))}.
 \]
 Each rewrite costs one reduction. All of the graph rewrites can be done in situ
 except for the application and structure cases. The OCCURS check is not
@@ -453,9 +449,9 @@ Note that this modification does not necessarily make the value of delayed
 bindings available to every one of the variable's occurrences. It only makes the
 value available to those occurrences which come after the binding has been made.
 For example, in the expression
-\begin{verbatim}
-(LAMBDA (X) ... X ... (UNIFY X 2) ... X ...)
-\end{verbatim}
+\begin{alltt}
+(LAMBDA (X) ... X ... (UNIFY X 2) ... \underline{X} ...)
+\end{alltt}
 the binding of X to 2 is only seen by the underlined occurrence of X. To avoid
 ``missing'' a variable binding, the unifications in a relation's definition must
 be carefully ordered. Such operational concerns are unfortunate because they
