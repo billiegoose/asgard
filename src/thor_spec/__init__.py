@@ -18,6 +18,7 @@ from thor_spec.ast import (
 from thor_spec.core import FuelExhaustedError, Machine, MachineStatus, StepResult
 from thor_spec.parser import parse_expr, parse_program
 from thor_spec.pretty import to_source
+from thor_spec.semantics import ReductionResult, reduce_expr, translate
 from thor_spec.version import __version__
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "Machine",
     "MachineStatus",
     "Program",
+    "ReductionResult",
     "StepResult",
     "StructDef",
     "StructLit",
@@ -41,5 +43,7 @@ __all__ = [
     "__version__",
     "parse_expr",
     "parse_program",
+    "reduce_expr",
     "to_source",
+    "translate",
 ]
