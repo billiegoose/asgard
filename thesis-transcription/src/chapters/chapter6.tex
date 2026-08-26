@@ -127,12 +127,12 @@ R=\lambda x_1\ldots x_n.(E_1\vee\cdots\vee E_k)
 \]
 which will be written in THOR-L as
 \begin{alltt}
-R \(\equiv\) (LAMBDA (\(x_1 \cdots x_n\)) (\(\vee\) \(E_1 \cdots E_k\))).
+R \(\equiv\) (LAMBDA (\(x\sb{1} \cdots x\sb{n}\)) (\(\vee\) \(E\sb{1} \cdots E\sb{k}\))).
 \end{alltt}
 Each of the \(E_i\) general forms will be written
 \begin{alltt}
-(LAMBDA (\(y_1 \cdots y_p\)) (\(\wedge\) (UNIFY \(z_1\) \(t_1\)) \(\cdots\) (UNIFY \(z_n\) \(t_n\))
-                     \(L_1 \cdots L_m\))).
+(LAMBDA (\(y\sb{1} \cdots y\sb{p}\)) (\(\wedge\) (UNIFY \(z\sb{1}\) \(t\sb{1}\)) \(\cdots\) (UNIFY \(z\sb{n}\) \(t\sb{n}\))
+                     \(L\sb{1} \cdots L\sb{m}\))).
 \end{alltt}
 The binary primitive UNIFY will be introduced in the next section; the meaning
 of \(\wedge\) and \(\vee\) will be discussed in the section on search.
@@ -475,9 +475,9 @@ result, which should be the expression
 \end{verbatim}
 The second problem is more subtle. In the expression
 \begin{verbatim}
-(LAMBDA (X Z) ... (LAMBDA (Y) ... (UNIFY X [Y|Y]) ...) ...)
+(LAMBDA (X Z) ... (LAMBDA (Y) ... (UNIFY X [Y|Y]) ...) ...),
 \end{verbatim}
-the variable X gets bound to an expression structure containing Y, which is a
+The variable X gets bound to an expression structure containing Y, which is a
 quantified variable of smaller scope. In the resulting expression, the scope of
 Y should be extended to include the scope of X:
 \begin{verbatim}
@@ -582,13 +582,13 @@ return no result.
 \section{Negation}
 
 Logical negation in THOR-L is implemented by the NOT primitive, which uses the
-negation as failure rule~[14]. This rule states that if an attempt to prove some
+\emph{negation as failure} rule~[14]. This rule states that if an attempt to prove some
 goal G fails, then infer \(\neg G\). The NOT primitive reduces its single
 argument \(e\); if \(e\) reduces to FALSE, \(\neg e\) is inferred to be true so
 \THOR{(NOT e)} reduces to TRUE. Conversely, if \(e\) reduces to TRUE then
 \(\neg e\) is inferred to be FALSE, so \THOR{(NOT e)} reduces to FALSE.
 
-The perils of negation as failure are well documented~[41]. The IF conditional
+\emph{The perils of negation as failure} are well documented~[41]. The IF conditional
 primitive of THOR-L eliminates the need for most uses of negation as failure and
 often leads to a much clearer formulation of programs than is otherwise
 possible.
@@ -617,7 +617,7 @@ It was mentioned earlier that THOR-L provides at most a single correct answer
 substitution for any goal expression, even though more than one may exist. The
 utility of THOR-L would be greatly enhanced if it could generate all of the
 correct answer substitutions for a goal. One possible way to do this is to treat
-relations as set-valued functions which return a set or list of tuples
+relations as \emph{set-valued functions} which return a set or list of tuples
 containing all the answers to a goal query [49] [17]. Such a solution is not
 practical with the current design of RED2 because of its memory management
 policies; the set of solutions can be generated, but it would be thrown away
@@ -626,7 +626,7 @@ structures is implemented, as suggested in Section 5.2.3, the set of solutions
 could safely be stored there for future use.
 
 It is possible with the current RED2 design to generate a disjunction of tuples
-containing all of the correct answer substitutions to a goal query, albeit there
+containing \underline{all} of the correct answer substitutions to a goal query, albeit there
 is no mechanism for accessing these tuples. This is done by using a different
 clause representation and exploiting the semantics of the OR primitive.
 
@@ -643,7 +643,7 @@ made during the refutation, and continue reducing the other branches in the
 search.
 
 To make this approach general, a new representation must be chosen for
-relations. The new representation is based on the continuation passing model of
+relations. The new representation is based on the \emph{continuation passing} model of
 PROLOG presented in~[16]. As in Clark's representation, each relation is
 represented by a single function; however, the literals in each clause of the
 relation are composed as nested function applications instead of being part of a
@@ -658,10 +658,10 @@ P(t_1,\ldots,t_n)\leftarrow R(\ldots),S(\ldots).
 \]
 is represented by the function
 \begin{alltt}
-P \(\equiv\) (LAMBDA (\(x_1 \cdots x_n\) CONT)
-      (OR (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) CONT)
-          (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) (Q ... CONT))
-          (AND (UNIFY \(x_1\) \(t_1\)) \(\cdots\) (UNIFY \(x_n\) \(t_n\)) (R ... (S ... CONT)))))
+P \(\equiv\) (LAMBDA (\(x\sb{1} \cdots x\sb{n}\) CONT)
+      (OR (AND (UNIFY \(x\sb{1}\) \(t\sb{1}\)) \(\cdots\) (UNIFY \(x\sb{n}\) \(t\sb{n}\)) CONT)
+          (AND (UNIFY \(x\sb{1}\) \(t\sb{1}\)) \(\cdots\) (UNIFY \(x\sb{n}\) \(t\sb{n}\)) (Q ... CONT))
+          (AND (UNIFY \(x\sb{1}\) \(t\sb{1}\)) \(\cdots\) (UNIFY \(x\sb{n}\) \(t\sb{n}\)) (R ... (S ... CONT)))))
 \end{alltt}
 The continuation parameter CONT is used to pass an expression whose value will
 be returned if the relation reduces to TRUE. This expression will be evaluated
