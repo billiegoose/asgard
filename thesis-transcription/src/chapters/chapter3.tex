@@ -76,7 +76,7 @@ associations together form a \emph{definition context} within which expressions 
 reduced. The mechanism for defining structure types is similar to CommonLisp's
 [31] \THOR{defstruct} special form, and is written
 \[
-s \vdash s_1\ldots s_n,
+s \vDash s_1\ldots s_n,
 \]
 where \(s\) is the structure's tag and the \(s_i\) are symbols used to refer to
 components of the structure. Such a structure definition generates a set of
@@ -507,7 +507,7 @@ type predicates for constants.
 THOR has one predefined type of structure, the \THOR{PAIR}, from which lists are
 constructed. The \THOR{PAIR} structure is defined by
 \[
-\THOR{PAIR }\vdash\THOR{ CAR CDR}.
+\THOR{PAIR }\vDash\THOR{ CAR CDR}.
 \]
 For convenience, a special syntax will be used for lists:
 \[
