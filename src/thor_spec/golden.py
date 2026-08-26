@@ -10,7 +10,7 @@ from thor_spec.pretty import to_source
 from thor_spec.primitives import install_struct_definition
 from thor_spec.red2.compiler import compile_definitions, compile_expr
 from thor_spec.red2.machine import Red2Machine
-from thor_spec.red2.primitives import instructions_to_expr, register_struct_accessors
+from thor_spec.red2.primitives import register_struct_accessors
 from thor_spec.semantics import reduce_expr
 
 ModelName = Literal["thor", "red2"]
@@ -74,7 +74,7 @@ def _run_expr(
             definitions=compile_definitions(definitions),
         )
         machine.run()
-        return to_source(instructions_to_expr(machine.result_instructions()))
+        return to_source(machine.result_expr())
     msg = f"unknown execution model: {model}"
     raise ValueError(msg)
 

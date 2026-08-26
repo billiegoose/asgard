@@ -5,6 +5,7 @@ from enum import Enum, auto
 from itertools import pairwise
 from typing import assert_never
 
+from thor_spec.ast import App, Binding, Expr, Lambda, LetRec, StructLit, Symbol, Var
 from thor_spec.red2.instructions import (
     DefinitionImage,
     Instruction,
@@ -15,6 +16,7 @@ from thor_spec.red2.primitives import (
     FALSE,
     TRUE,
     fire_primitive,
+    instruction_to_expr,
     primitive_name,
     struct_accessor,
 )
@@ -127,6 +129,7 @@ class Red2Machine:
         )
         self._definitions = _parse_definitions(definitions)
         self._result: tuple[Instruction, ...] = ()
+        self._result_term: _Term | None = None
         self._executed = False
         self.state = MachineState(
             memory=list(image.instructions),
@@ -147,6 +150,7 @@ class Red2Machine:
 
         if not self._executed:
             reduced = self._reduce(self._source, ())
+            self._result_term = reduced
             self._result = tuple(_ResultEmitter().emit(reduced))
             self._executed = True
             self.state.direction = Direction.B
@@ -175,6 +179,18 @@ class Red2Machine:
             for inst in self._result
             if inst.opcode not in {Opcode.JOIN, Opcode.STOP, Opcode.CLOSURE, Opcode.REC}
         )
+
+    def result_expr(self) -> Expr:
+        """Return the reduced RED2 term as user-facing THOR AST.
+
+        RED2 instruction memory may contain placeholder/bookkeeping opcodes such
+        as PNP while representing partial results. CLI output should reflect the
+        reduced THOR term, not leak those internal environment cells.
+        """
+        if self._result_term is None:
+            self.run()
+        assert self._result_term is not None
+        return _term_to_expr(self._result_term)
 
     def _reduce(self, term: _Term, env: _Env) -> _Term:
         if isinstance(term, _ClosureTerm):
@@ -726,6 +742,46 @@ class _ResultEmitter:
                 )
             return
         assert_never(term)
+
+
+def _term_to_expr(term: _Term) -> Expr:
+    if isinstance(term, _ClosureTerm):
+        return _term_to_expr(term.term)
+    if isinstance(term, _RecTerm):
+        return LetRec(
+            tuple(
+                Binding(name, _term_to_expr(expr))
+                for name, expr in zip(term.names, term.expressions, strict=True)
+            ),
+            Var(term.index, term.names[term.index]),
+        )
+    if isinstance(term, _VarTerm):
+        return Var(term.index, term.name)
+    if isinstance(term, _LambdaTerm):
+        return Lambda(term.params, _term_to_expr(term.body))
+    if isinstance(term, _AppTerm):
+        return App(
+            (
+                _term_to_expr(term.operator),
+                *tuple(_term_to_expr(arg) for arg in term.args),
+            )
+        )
+    if isinstance(term, _StructTerm):
+        return StructLit(term.tag, tuple(_term_to_expr(field) for field in term.fields))
+    if isinstance(term, _LetRecTerm):
+        return LetRec(
+            tuple(
+                Binding(name, _term_to_expr(expr))
+                for name, expr in zip(term.names, term.expressions, strict=True)
+            ),
+            _term_to_expr(term.body),
+        )
+    if isinstance(term, _InstrTerm):
+        expr = instruction_to_expr(term.inst)
+        if expr is not None:
+            return expr
+        return Symbol(term.inst.opcode.name)
+    assert_never(term)
 
 
 def _lambda_arity(metadata: object) -> int | None:
