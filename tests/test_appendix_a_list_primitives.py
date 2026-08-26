@@ -1,5 +1,3 @@
-import pytest
-
 from thor_spec.golden import run_source
 
 
@@ -18,10 +16,6 @@ def test_cons_car_cdr_null_match_on_pair_lists() -> None:
     assert_parity("(null? (foo x))", "(NULL? (foo x))")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Deferred to Task 5: RED2 recursive top-level definitions are required.",
-)
 def test_append_operator_can_be_defined_from_reduce_and_cons() -> None:
     source = """
     reduce == (lambda (f id list)

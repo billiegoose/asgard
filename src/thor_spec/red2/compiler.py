@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 
 from thor_spec.ast import (
@@ -14,7 +15,12 @@ from thor_spec.ast import (
     Symbol,
     Var,
 )
-from thor_spec.red2.instructions import Instruction, Opcode, ProgramImage
+from thor_spec.red2.instructions import (
+    DefinitionImage,
+    Instruction,
+    Opcode,
+    ProgramImage,
+)
 
 Scope = tuple[str, ...]
 
@@ -189,3 +195,10 @@ class _Compiler:
 def compile_expr(expr: Expr) -> ProgramImage:
     """Compile a THOR AST into deterministic linear RED2 graph memory."""
     return _Compiler().compile(expr)
+
+
+def compile_definitions(definitions: Mapping[str, Expr]) -> DefinitionImage:
+    """Compile top-level THOR definitions for native RED2 symbol lookup."""
+    return DefinitionImage(
+        {name: compile_expr(expr) for name, expr in definitions.items()}
+    )

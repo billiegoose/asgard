@@ -46,6 +46,11 @@ class ProgramImage:
     metadata: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
 
+@dataclass(frozen=True, slots=True)
+class DefinitionImage:
+    programs: Mapping[str, ProgramImage]
+
+
 HEAD_SHIFT = 31
 OPCODE_SHIFT = 24
 DATA_MASK = (1 << OPCODE_SHIFT) - 1

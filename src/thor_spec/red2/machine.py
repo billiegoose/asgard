@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from itertools import pairwise
 from typing import assert_never
 
-from thor_spec.red2.instructions import Instruction, Opcode, ProgramImage
+from thor_spec.red2.instructions import (
+    DefinitionImage,
+    Instruction,
+    Opcode,
+    ProgramImage,
+)
 from thor_spec.red2.primitives import (
     FALSE,
     TRUE,
@@ -108,12 +114,18 @@ class Red2Machine:
     and traceable to the linear instruction image.
     """
 
-    def __init__(self, image: ProgramImage, quantum: int) -> None:
+    def __init__(
+        self,
+        image: ProgramImage,
+        quantum: int,
+        definitions: DefinitionImage | None = None,
+    ) -> None:
         self._problem_memory = list(image.instructions)
         self._stop_pc = self._find_stop(image)
         self._source = _ProgramParser(self._problem_memory, image.metadata).parse(
             image.entry,
         )
+        self._definitions = _parse_definitions(definitions)
         self._result: tuple[Instruction, ...] = ()
         self._executed = False
         self.state = MachineState(
@@ -188,7 +200,7 @@ class Red2Machine:
         if isinstance(term, _LetRecTerm):
             return self._reduce_letrec(term, env)
         if isinstance(term, _InstrTerm):
-            return term
+            return self._reduce_instruction(term, env)
         if isinstance(term, _AppTerm):
             return self._reduce_app(term, env)
         assert_never(term)
@@ -206,6 +218,14 @@ class Red2Machine:
             return False
         self.state.q -= 1
         return True
+
+    def _reduce_instruction(self, term: _InstrTerm, env: _Env) -> _Term:
+        inst = term.inst
+        if inst.opcode is Opcode.SYM and isinstance(inst.data, str):
+            definition = self._definitions.get(inst.data)
+            if definition is not None and self._contract():
+                return self._reduce(definition, env)
+        return term
 
     def _reduce_app(self, term: _AppTerm, env: _Env) -> _Term:
         operator = self._reduce(term.operator, env)
@@ -228,9 +248,17 @@ class Red2Machine:
                     (*argument_closures, *lambda_env),
                 )
             else:
-                reduced_body = _ClosureTerm(
-                    _LambdaTerm(lambda_term.params[bind_count:], lambda_term.body),
-                    (*argument_closures, *lambda_env),
+                remaining_params = lambda_term.params[bind_count:]
+                placeholder_env = tuple(
+                    _ClosureTerm(_VarTerm(index, name), ())
+                    for index, name in enumerate(remaining_params)
+                )
+                reduced_body = _LambdaTerm(
+                    remaining_params,
+                    self._reduce(
+                        lambda_term.body,
+                        (*argument_closures, *placeholder_env, *lambda_env),
+                    ),
                 )
             remaining_args = term.args[bind_count:]
             if not remaining_args:
@@ -238,7 +266,10 @@ class Red2Machine:
             return self._reduce(_AppTerm(reduced_body, remaining_args), env)
         if isinstance(operator, _StructTerm) and term.args:
             return self._reduce_struct_application(operator, term.args, env)
-        return _AppTerm(operator, term.args)
+        return _AppTerm(
+            operator,
+            tuple(self._reduce_no_contract(arg, env) for arg in term.args),
+        )
 
     def _reduce_primitive(
         self,
@@ -471,22 +502,26 @@ class _ProgramParser:
         self._metadata = metadata if isinstance(metadata, dict) else {}
 
     def parse(self, pc: int) -> _Term:
+        term, _next_pc, _head = self._parse_with_span(pc)
+        return term
+
+    def _parse_with_span(self, pc: int) -> tuple[_Term, int, bool]:
         inst = self._memory[pc]
         if inst.opcode is Opcode.APP:
             return self._parse_app(pc)
         if inst.opcode is Opcode.LAMBDA:
             return self._parse_lambda(pc)
         if inst.opcode is Opcode.VAR:
-            return _VarTerm(_int_data(inst))
+            return _VarTerm(_int_data(inst)), pc + 1, inst.head
         if inst.opcode is Opcode.UBV:
-            return _VarTerm(_int_data(inst))
+            return _VarTerm(_int_data(inst)), pc + 1, inst.head
         if inst.opcode is Opcode.STRUCT:
             return self._parse_struct(pc)
         if inst.opcode is Opcode.RBLOCK:
             return self._parse_letrec(pc)
-        return _InstrTerm(inst)
+        return _InstrTerm(inst), pc + 1, inst.head
 
-    def _parse_app(self, pc: int) -> _Term:
+    def _parse_app(self, pc: int) -> tuple[_Term, int, bool]:
         app_insts: list[Instruction] = []
         operator_pc = pc
         while (
@@ -495,11 +530,45 @@ class _ProgramParser:
         ):
             app_insts.append(self._memory[operator_pc])
             operator_pc += 1
-        operator = self.parse(operator_pc)
-        args = tuple(self.parse(_int_data(inst)) for inst in app_insts)
-        return _AppTerm(operator, args)
+        return self._parse_app_from_parts(tuple(app_insts), operator_pc)
 
-    def _parse_lambda(self, pc: int) -> _Term:
+    def _parse_app_from_parts(
+        self,
+        app_insts: tuple[Instruction, ...],
+        operator_pc: int,
+    ) -> tuple[_Term, int, bool]:
+        drop_index = _first_drop_index(tuple(_int_data(inst) for inst in app_insts))
+        if drop_index is not None:
+            inner, inner_next, inner_head = self._parse_app_from_parts(
+                app_insts[drop_index:],
+                operator_pc,
+            )
+            outer_args_with_spans = tuple(
+                self._parse_with_span(_int_data(inst))
+                for inst in app_insts[:drop_index]
+            )
+            outer_args = tuple(term for term, _next_pc, _head in outer_args_with_spans)
+            next_pc = max(
+                (
+                    inner_next,
+                    *(next_pc for _term, next_pc, _head in outer_args_with_spans),
+                ),
+                default=inner_next,
+            )
+            return _AppTerm(inner, outer_args), next_pc, inner_head
+
+        operator, operator_next, operator_head = self._parse_with_span(operator_pc)
+        args_with_spans = tuple(
+            self._parse_with_span(_int_data(inst)) for inst in app_insts
+        )
+        args = tuple(term for term, _next_pc, _head in args_with_spans)
+        next_pc = max(
+            (operator_next, *(next_pc for _term, next_pc, _head in args_with_spans)),
+            default=operator_next,
+        )
+        return _AppTerm(operator, args), next_pc, operator_head
+
+    def _parse_lambda(self, pc: int) -> tuple[_Term, int, bool]:
         params: list[str] = []
         body_pc = pc
         while (
@@ -509,20 +578,49 @@ class _ProgramParser:
             data = self._memory[body_pc].data
             params.append(data if isinstance(data, str) else str(data))
             body_pc += 1
-        body = self.parse(body_pc)
-        return _LambdaTerm(tuple(params), body)
+        body, next_pc, body_head = self._parse_flat_body(body_pc)
+        return _LambdaTerm(tuple(params), body), next_pc, body_head
 
-    def _parse_struct(self, pc: int) -> _Term:
+    def _parse_flat_body(self, pc: int) -> tuple[_Term, int, bool]:
+        items: list[_Term] = []
+        cursor = pc
+        root_head = False
+        while (
+            cursor < len(self._memory)
+            and self._memory[cursor].opcode is not Opcode.STOP
+        ):
+            term, cursor, root_head = self._parse_with_span(cursor)
+            items.append(term)
+            if root_head:
+                break
+        if not items:
+            return _InstrTerm(Instruction(Opcode.STOP, 0)), cursor, root_head
+        if len(items) == 1:
+            return items[0], cursor, root_head
+        return _AppTerm(items[0], tuple(items[1:])), cursor, root_head
+
+    def _parse_struct(self, pc: int) -> tuple[_Term, int, bool]:
         inst = self._memory[pc]
         tag = inst.data if isinstance(inst.data, str) else str(inst.data)
-        field_terms: list[_Term] = []
+        field_terms_with_spans: list[tuple[_Term, int, bool]] = []
         cursor = pc + 1
         while cursor < len(self._memory) and self._memory[cursor].opcode is Opcode.APP:
-            field_terms.append(self.parse(_int_data(self._memory[cursor])))
+            field_terms_with_spans.append(
+                self._parse_with_span(_int_data(self._memory[cursor]))
+            )
             cursor += 1
-        return _StructTerm(tag, tuple(reversed(field_terms)))
+        root_head = False
+        if cursor < len(self._memory):
+            root_head = self._memory[cursor].head
+            cursor += 1
+        next_pc = max(
+            (cursor, *(next_pc for _term, next_pc, _head in field_terms_with_spans)),
+            default=cursor,
+        )
+        field_terms = tuple(term for term, _next_pc, _head in field_terms_with_spans)
+        return _StructTerm(tag, tuple(reversed(field_terms))), next_pc, root_head
 
-    def _parse_letrec(self, pc: int) -> _Term:
+    def _parse_letrec(self, pc: int) -> tuple[_Term, int, bool]:
         blocks: list[Instruction] = []
         cursor = pc
         while (
@@ -531,13 +629,24 @@ class _ProgramParser:
             blocks.append(self._memory[cursor])
             cursor += 1
         if cursor >= len(self._memory) or self._memory[cursor].opcode is not Opcode.RUP:
-            return _InstrTerm(self._memory[pc])
+            inst = self._memory[pc]
+            return _InstrTerm(inst), pc + 1, inst.head
         names = self._metadata.get(f"letrec:{pc}:names")
         if not isinstance(names, tuple) or len(names) != len(blocks):
             names = tuple(_fallback_name(index) for index in range(len(blocks)))
-        expressions = tuple(self.parse(_int_data(block)) for block in blocks)
-        body = self.parse(cursor + 1)
-        return _LetRecTerm(names, expressions, body)
+        expressions_with_spans = tuple(
+            self._parse_with_span(_int_data(block)) for block in blocks
+        )
+        body, body_next, body_head = self._parse_with_span(cursor + 1)
+        next_pc = max(
+            (
+                body_next,
+                *(next_pc for _term, next_pc, _head in expressions_with_spans),
+            ),
+            default=body_next,
+        )
+        expressions = tuple(term for term, _next_pc, _head in expressions_with_spans)
+        return _LetRecTerm(names, expressions, body), next_pc, body_head
 
 
 class _ResultEmitter:
@@ -616,9 +725,28 @@ class _ResultEmitter:
         assert_never(term)
 
 
-def _as_lambda(term: _Term, fallback_env: _Env) -> tuple[_LambdaTerm | None, _Env]:
+def _parse_definitions(definitions: DefinitionImage | None) -> dict[str, _Term]:
+    if definitions is None:
+        return {}
+    return {
+        name: _ProgramParser(
+            list(image.instructions),
+            image.metadata,
+        ).parse(image.entry)
+        for name, image in definitions.programs.items()
+    }
+
+
+def _first_drop_index(values: tuple[int, ...]) -> int | None:
+    for index, (left, right) in enumerate(pairwise(values), 1):
+        if right < left:
+            return index
+    return None
+
+
+def _as_lambda(term: _Term, _fallback_env: _Env) -> tuple[_LambdaTerm | None, _Env]:
     if isinstance(term, _LambdaTerm):
-        return term, fallback_env
+        return term, ()
     if isinstance(term, _ClosureTerm) and isinstance(term.term, _LambdaTerm):
         return term.term, term.env
     return None, ()
