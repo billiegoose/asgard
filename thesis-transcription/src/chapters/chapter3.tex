@@ -1044,10 +1044,10 @@ objects:
 \subsubsection*{Rule 30 (Alpha Equality)}
 \[
 \frac{
-\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* 0 }E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL? }E_0\ E_1\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }{
-\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL? }E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* 0 }E_0\ E_1\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }
 \]
@@ -1061,23 +1061,25 @@ and check the components for equality:
 
 \subsubsection*{Rule 31 (Equality: Applications)}
 \[
+\resizebox{\textwidth}{!}{$\displaystyle
 \frac{
-\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND (EQUAL* }n\ E_0\ E_2\THOR{) (EQUAL* }n\ E_1\ E_3\THOR{))}}\redsto
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ (E_0\ E_1)\ (E_2\ E_3)\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }{
-\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ (E_0\ E_1)\ (E_2\ E_3)\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND (EQUAL* }n\ E_0\ E_2\THOR{) (EQUAL* }n\ E_1\ E_3\THOR{))}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }
 \quad q_0>0
+$}
 \]
 
 \subsubsection*{Rule 32 (Equality: Abstractions)}
 \[
 \frac{
-\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(EQUAL* }n+1\ E_0\ E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \lambda.E_0\ \lambda.E_1\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }{
-\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \lambda.E_0\ \lambda.E_1\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(EQUAL* }n+1\ E_0\ E_1\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }
 \quad q_0>0
@@ -1085,16 +1087,17 @@ and check the components for equality:
 
 \subsubsection*{Rule 33 (Equality: Structures)}
 \[
+\resizebox{\textwidth}{!}{$\displaystyle
 \frac{
-\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND }(equal_0)\ldots(equal_i)\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \{s\ e_0\ldots e_i\}\ \{s\ e'_0\ldots e'_i\}\THOR{)}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }{
-\cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(EQUAL* }n\ \{s\ e_0\ldots e_i\}\ \{s\ e'_0\ldots e'_i\}\THOR{)}}\redsto
+\cfg{\delta}{\phi}{q_0-1}{\rho}{\THOR{(AND (EQUAL? }\lambda^n.e_0\ \lambda^n.e'_0\THOR{) }\ldots\THOR{ (EQUAL? }\lambda^n.e_i\ \lambda^n.e'_i\THOR{))}}\redsto
 \cfg{\delta}{\phi}{q_1}{\rho}{e}
 }
 \quad q_0>0
+$}
 \]
-where \(equal_j=\THOR{(EQUAL? }\lambda^n.e_j\ \lambda^n.e'_j\THOR{)}\).
 Rule 32 strips off a \(\lambda\) from the expressions, adding one to the
 \(\lambda\) count. Rule 33 decomposes structures, reducing the structure
 components before testing them for pairwise equality. Before reducing the
