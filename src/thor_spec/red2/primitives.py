@@ -22,6 +22,27 @@ TRUE = Instruction(Opcode.PRIM_0, "TRUE", head=True)
 FALSE = Instruction(Opcode.PRIM_0, "FALSE", head=True)
 
 
+def register_struct_accessors(tag: str, accessors: tuple[str, ...]) -> tuple[str, ...]:
+    """Register source-generated structure accessors as RED2 native selectors."""
+    register_struct_arity(tag, len(accessors))
+    names: list[str] = []
+    for index, accessor in enumerate(accessors):
+        for name in _struct_accessor_names(tag, accessor):
+            _STRUCT_ACCESSORS[name] = (tag, index)
+            names.append(name)
+    return tuple(dict.fromkeys(names))
+
+
+def register_struct_arity(tag: str, arity: int) -> None:
+    """Teach RED2 result decompilation the field count for a source struct."""
+    _STRUCT_ARITIES[tag] = arity
+
+
+def struct_accessor(name: str) -> tuple[str, int] | None:
+    """Return ``(tag, field_index)`` for a registered native selector name."""
+    return _STRUCT_ACCESSORS.get(name)
+
+
 def fire_primitive(
     name: str,
     args: tuple[Instruction, ...],
@@ -235,6 +256,19 @@ def _is_nil(inst: Instruction) -> bool:
     return inst.opcode is Opcode.PRIM_0 and inst.data == "NIL"
 
 
+def _struct_accessor_names(tag: str, accessor: str) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            (
+                accessor,
+                f"{tag}-{accessor}",
+                f"{tag.upper()}-{accessor.upper()}",
+                f"{tag.lower()}-{accessor.lower()}",
+            )
+        )
+    )
+
+
 class _InstructionReader:
     def __init__(self, instructions: tuple[Instruction, ...]) -> None:
         self.instructions = instructions
@@ -291,3 +325,5 @@ _UNARY_PRIMITIVES = {
 }
 _TYPE_PREDICATES = {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "STRUCTURE?"}
 _STRUCT_ARITIES = {"PAIR": 2}
+_STRUCT_ACCESSORS: dict[str, tuple[str, int]] = {}
+register_struct_accessors("PAIR", ("CAR", "CDR"))

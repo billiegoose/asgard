@@ -56,10 +56,58 @@ def install_struct_accessors(
     ``(LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR)))``.
     """
     for accessor in accessors:
-        definitions[accessor] = Lambda(
-            (tag,),
-            App((Symbol(tag), Lambda(accessors, Symbol(accessor)))),
-        )
+        definitions[accessor] = _struct_accessor_lambda(tag, accessors, accessor)
+
+
+def install_struct_definition(
+    tag: str,
+    accessors: tuple[str, ...],
+    definitions: MutableMapping[str, Expr],
+) -> None:
+    """Install Appendix A constructor and selector helpers for a structure."""
+    install_struct_accessors(tag, accessors, definitions)
+    constructor = Lambda(
+        accessors,
+        StructLit(tag, tuple(Symbol(accessor) for accessor in accessors)),
+    )
+    for name in _struct_constructor_names(tag):
+        definitions[name] = constructor
+    for accessor in accessors:
+        accessor_lambda = _struct_accessor_lambda(tag, accessors, accessor)
+        for name in _struct_accessor_names(tag, accessor):
+            definitions[name] = accessor_lambda
+
+
+def _struct_accessor_lambda(
+    tag: str,
+    accessors: tuple[str, ...],
+    accessor: str,
+) -> Lambda:
+    return Lambda(
+        (tag,),
+        App((Symbol(tag), Lambda(accessors, Symbol(accessor)))),
+    )
+
+
+def _struct_constructor_names(tag: str) -> tuple[str, ...]:
+    return _unique_names(
+        f"make-{tag}",
+        f"MAKE-{tag}",
+        f"MAKE-{tag.upper()}",
+        f"make-{tag.lower()}",
+    )
+
+
+def _struct_accessor_names(tag: str, accessor: str) -> tuple[str, ...]:
+    return _unique_names(
+        f"{tag}-{accessor}",
+        f"{tag.upper()}-{accessor.upper()}",
+        f"{tag.lower()}-{accessor.lower()}",
+    )
+
+
+def _unique_names(*names: str) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(names))
 
 
 def try_reduce_primitive(app: App, state: EvalState) -> Expr | None:

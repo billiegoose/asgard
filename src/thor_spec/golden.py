@@ -18,10 +18,10 @@ from thor_spec.ast import (
 from thor_spec.normalization import normalize_program
 from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
-from thor_spec.primitives import install_struct_accessors
+from thor_spec.primitives import install_struct_definition
 from thor_spec.red2.compiler import compile_expr
 from thor_spec.red2.machine import Red2Machine
-from thor_spec.red2.primitives import instructions_to_expr
+from thor_spec.red2.primitives import instructions_to_expr, register_struct_accessors
 from thor_spec.semantics import reduce_expr
 
 ModelName = Literal["thor", "red2"]
@@ -47,16 +47,26 @@ def run_source(
 
 def _run_program(program: Program, *, model: ModelName, quantum: int) -> list[str]:
     definitions = _initial_definitions()
+    red2_native_definitions = _initial_red2_native_definitions(definitions)
     results: list[str] = []
     for form in program.forms:
         if isinstance(form, Definition):
-            definitions[form.name] = form.expr
+            if not _is_existing_self_alias(form, definitions):
+                definitions[form.name] = form.expr
             continue
         if isinstance(form, StructDef):
-            install_struct_accessors(form.tag, form.accessors, definitions)
+            install_struct_definition(form.tag, form.accessors, definitions)
+            for name in register_struct_accessors(form.tag, form.accessors):
+                red2_native_definitions[name] = definitions[name]
             continue
         results.append(
-            _run_expr(form, model=model, quantum=quantum, definitions=definitions)
+            _run_expr(
+                form,
+                model=model,
+                quantum=quantum,
+                definitions=definitions,
+                red2_native_definitions=red2_native_definitions,
+            )
         )
     return results
 
@@ -67,12 +77,16 @@ def _run_expr(
     model: ModelName,
     quantum: int,
     definitions: Mapping[str, Expr],
+    red2_native_definitions: Mapping[str, Expr],
 ) -> str:
     if model == "thor":
         reduced = reduce_expr(expr, quantum=quantum, definitions=definitions)
         return to_source(reduced.expr)
     if model == "red2":
-        expanded = _expand_definitions(expr, _red2_source_definitions(definitions))
+        expanded = _expand_definitions(
+            expr,
+            _red2_source_definitions(definitions, red2_native_definitions),
+        )
         machine = Red2Machine(compile_expr(expanded), quantum=quantum)
         machine.run()
         return to_source(instructions_to_expr(machine.result_instructions()))
@@ -82,20 +96,40 @@ def _run_expr(
 
 def _initial_definitions() -> dict[str, Expr]:
     definitions: dict[str, Expr] = {}
-    install_struct_accessors("PAIR", ("CAR", "CDR"), definitions)
+    install_struct_definition("PAIR", ("CAR", "CDR"), definitions)
     return definitions
 
 
-def _red2_source_definitions(definitions: Mapping[str, Expr]) -> dict[str, Expr]:
+def _initial_red2_native_definitions(
+    definitions: Mapping[str, Expr],
+) -> dict[str, Expr]:
     return {
-        name: expr
-        for name, expr in definitions.items()
-        if not _is_red2_native_definition(name, expr)
+        name: definitions[name]
+        for name in register_struct_accessors("PAIR", ("CAR", "CDR"))
+        if name in definitions
     }
 
 
-def _is_red2_native_definition(name: str, expr: Expr) -> bool:
-    return name in _RED2_NATIVE_ACCESSORS and expr == _NATIVE_PAIR_DEFINITIONS.get(name)
+def _is_existing_self_alias(
+    form: Definition,
+    definitions: Mapping[str, Expr],
+) -> bool:
+    return (
+        isinstance(form.expr, Symbol)
+        and form.expr.name == form.name
+        and form.name in definitions
+    )
+
+
+def _red2_source_definitions(
+    definitions: Mapping[str, Expr],
+    red2_native_definitions: Mapping[str, Expr],
+) -> dict[str, Expr]:
+    return {
+        name: expr
+        for name, expr in definitions.items()
+        if red2_native_definitions.get(name) != expr
+    }
 
 
 def _expand_definitions(
@@ -162,6 +196,3 @@ def _expand_definitions(
         )
     return expr
 
-
-_RED2_NATIVE_ACCESSORS = frozenset({"CAR", "CDR"})
-_NATIVE_PAIR_DEFINITIONS = _initial_definitions()

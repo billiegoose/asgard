@@ -5,7 +5,13 @@ from enum import Enum, auto
 from typing import assert_never
 
 from thor_spec.red2.instructions import Instruction, Opcode, ProgramImage
-from thor_spec.red2.primitives import FALSE, TRUE, fire_primitive, primitive_name
+from thor_spec.red2.primitives import (
+    FALSE,
+    TRUE,
+    fire_primitive,
+    primitive_name,
+    struct_accessor,
+)
 
 
 class Direction(Enum):
@@ -208,14 +214,25 @@ class Red2Machine:
             return self._reduce_primitive(primitive, operator, term.args, env)
         lambda_term, lambda_env = _as_lambda(operator, env)
         if lambda_term is not None and term.args:
-            if not self._contract():
+            bind_count = min(len(lambda_term.params), len(term.args), self.state.q)
+            if bind_count == 0:
                 return _AppTerm(operator, term.args)
-            argument_closure = _ClosureTerm(term.args[0], env)
-            reduced_body = self._reduce(
-                lambda_term.body,
-                (argument_closure, *lambda_env),
+            for _ in range(bind_count):
+                self._contract()
+            argument_closures = tuple(
+                _ClosureTerm(arg, env) for arg in term.args[:bind_count]
             )
-            remaining_args = term.args[1:]
+            if bind_count == len(lambda_term.params):
+                reduced_body = self._reduce(
+                    lambda_term.body,
+                    (*argument_closures, *lambda_env),
+                )
+            else:
+                reduced_body = _ClosureTerm(
+                    _LambdaTerm(lambda_term.params[bind_count:], lambda_term.body),
+                    (*argument_closures, *lambda_env),
+                )
+            remaining_args = term.args[bind_count:]
             if not remaining_args:
                 return reduced_body
             return self._reduce(_AppTerm(reduced_body, remaining_args), env)
@@ -240,8 +257,10 @@ class Red2Machine:
             return self._reduce_logical(args, env, true_identity=False)
         if name == "CONS" and len(args) == 2:
             return self._reduce_cons(operator, args, env)
-        if name in {"CAR", "CDR"} and len(args) == 1:
-            return self._reduce_accessor(name, args[0], env)
+        accessor = struct_accessor(name)
+        if accessor is not None and len(args) == 1:
+            tag, field_index = accessor
+            return self._reduce_accessor(name, tag, field_index, operator, args[0], env)
         if name == "NULL?" and len(args) == 1:
             return self._reduce_null(operator, args[0], env)
         if name == "TAG" and len(args) == 1:
@@ -351,17 +370,24 @@ class Red2Machine:
             return _AppTerm(operator, (head, tail))
         return _StructTerm("PAIR", (head, tail))
 
-    def _reduce_accessor(self, name: str, arg: _Term, env: _Env) -> _Term:
+    def _reduce_accessor(
+        self,
+        name: str,
+        tag: str,
+        field_index: int,
+        operator: _Term,
+        arg: _Term,
+        env: _Env,
+    ) -> _Term:
         value = self._reduce(arg, env)
         if (
             not isinstance(value, _StructTerm)
-            or value.tag != "PAIR"
-            or len(value.fields) != 2
+            or value.tag != tag
+            or field_index >= len(value.fields)
         ):
-            return _AppTerm(_InstrTerm(Instruction(Opcode.PRIM_1, name)), (value,))
+            return _AppTerm(_native_unary_operator(name, operator), (value,))
         if not self._contract():
-            return _AppTerm(_InstrTerm(Instruction(Opcode.PRIM_1, name)), (value,))
-        field_index = 0 if name == "CAR" else 1
+            return _AppTerm(_native_unary_operator(name, operator), (value,))
         return self._reduce(value.fields[field_index], env)
 
     def _reduce_null(self, operator: _Term, arg: _Term, env: _Env) -> _Term:
@@ -484,9 +510,7 @@ class _ProgramParser:
             params.append(data if isinstance(data, str) else str(data))
             body_pc += 1
         body = self.parse(body_pc)
-        for param in reversed(params):
-            body = _LambdaTerm((param,), body)
-        return body
+        return _LambdaTerm(tuple(params), body)
 
     def _parse_struct(self, pc: int) -> _Term:
         inst = self._memory[pc]
@@ -612,6 +636,12 @@ def _term_instruction(term: _Term) -> Instruction | None:
     if isinstance(term, _StructTerm):
         return Instruction(Opcode.STRUCT, term.tag, head=True)
     return None
+
+
+def _native_unary_operator(name: str, operator: _Term) -> _Term:
+    if isinstance(operator, _InstrTerm):
+        return operator
+    return _InstrTerm(Instruction(Opcode.PRIM_1, name))
 
 
 def _is_nil_term(term: _Term) -> bool:
