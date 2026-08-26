@@ -12,7 +12,7 @@ deal with these issues are recounted, and an alternate interpretation of the
 operational \lambdacalculus{} based on Berkling's head order reduction
 theory~[11] is offered as a viable solution to these problems.
 
-\section{The Pure Untyped \lambdacalculus}
+\section{The Pure Untyped \(\lambda\)-Calculus}
 
 \subsection{Syntax}
 
@@ -90,11 +90,11 @@ subtle, and expensive to detect and correct.
 There are three rewrite rules defined on \(\lambda\)-expressions:
 
 \begin{enumerate}
-\item \(\alpha\)-conversion:
+\item \(\underline{\alpha\text{-conversion}}\):
   \(\lambda x.e \longleftrightarrow \lambda y.[y/x]e\), where \(y \notin \fv(e)\).
-\item \(\beta\)-conversion:
+\item \(\underline{\beta\text{-conversion}}\):
   \((\lambda x.e_1)e_2 \longleftrightarrow [e_2/x]e_1\).
-\item \(\eta\)-conversion:
+\item \(\underline{\eta\text{-conversion}}\):
   \(\lambda x.(e\ x) \longleftrightarrow e\), if \(x \notin \fv(e)\).
 \end{enumerate}
 
@@ -108,11 +108,12 @@ only concerned with implementing the \lambdabetacalculus, which is composed of
 only the first two rules. Furthermore, \(\beta\)-conversion will be restricted
 so that conversion can only happen in one direction:
 \[
-\beta\text{-Reduction:}\quad (\lambda x.e_1)e_2 \longrightarrow [e_2/x]e_1 .
+\underline{\beta\text{-Reduction:}}\quad
+(\lambda x.e_1)e_2 \longrightarrow [e_2/x]e_1 .
 \]
-The notation \(\longrightarrow\) will be used to denote the reflexive,
+The notation \(\overset{*}{\longrightarrow}\) will be used to denote the reflexive,
 transitive closure of \(\longrightarrow\) including \(\alpha\)-conversions, and
-\(\longrightarrow^n\) will denote \(n\) applications of the
+\(\overset{n}{\longrightarrow}\) will denote \(n\) applications of the
 \(\beta\)-reduction rule with possible \(\alpha\)-conversions.
 
 \subsection{Normal Form}
@@ -265,11 +266,11 @@ implementation. Take, for example, the following normal order reduction
 sequence, where the redex to be contracted is underlined:
 \[
 \begin{aligned}
-(\lambda x.\lambda y.y\ x\ x)(\lambda z.((\lambda w.w)\ z))
+\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.((\lambda w.w)\ z))}
 &\longrightarrow\\
-(\lambda y.y\ (\lambda z.((\lambda w.w)\ z))\ (\lambda z.((\lambda w.w)\ z)))
+(\lambda y.y\ \underline{(\lambda z.((\lambda w.w)\ z))}\ (\lambda z.((\lambda w.w)\ z)))
 &\longrightarrow\\
-(\lambda y.y\ (\lambda z.z)\ (\lambda z.((\lambda w.w)\ z)))
+(\lambda y.y\ (\lambda z.z)\ \underline{(\lambda z.((\lambda w.w)\ z))})
 &\longrightarrow\\
 (\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
 \end{aligned}
@@ -279,9 +280,9 @@ argument is reduced separately. However, if the order of redex contraction is
 changed, the argument need only be reduced once:
 \[
 \begin{aligned}
-(\lambda x.\lambda y.y\ x\ x)(\lambda z.((\lambda w.w)\ z))
+(\lambda x.\lambda y.y\ x\ x)(\lambda z.\underline{((\lambda w.w)\ z)})
 &\longrightarrow\\
-(\lambda x.\lambda y.y\ x\ x)(\lambda z.z)
+\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.z)}
 &\longrightarrow\\
 (\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
 \end{aligned}
@@ -302,7 +303,7 @@ which are more efficient than normal order reduction~[34]. However, because
 normal order reduction is simple to implement and always produces a normal form
 when one exists, it was chosen as the reduction strategy for RED2. It will later
 be shown how to regain much of the savings of applicative order reduction by
-sharing the results of some subgraph reductions.
+\emph{sharing} the results of some subgraph reductions.
 
 \subsection{Substitution}
 
