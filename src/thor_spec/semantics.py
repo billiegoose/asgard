@@ -113,13 +113,14 @@ class _Reducer:
         if isinstance(value, Block):
             return value
         if isinstance(value, Lambda):
-            placeholders = tuple(
-                UBV(phi + len(value.params) - offset, name)
-                for offset, name in enumerate(value.params)
-            )
+            placeholders = _ubv_store(value.params, phi)
             return Lambda(
                 value.params,
-                self.reduce(value.body, placeholders + store, phi + len(value.params)),
+                self.reduce_no_contract(
+                    value.body,
+                    placeholders + store,
+                    phi + len(value.params),
+                ),
             )
         if isinstance(value, App):
             return self._reduce_app(value, store, phi)

@@ -20,6 +20,8 @@ from thor_spec.ast import (
 _SYMBOL_ALIASES = {
     "lambda": "LAMBDA",
     "if": "IF",
+    "and": "AND",
+    "or": "OR",
     "letrec": "LETREC",
     "nil": "NIL",
     "car": "CAR",

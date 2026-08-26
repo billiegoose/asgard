@@ -29,12 +29,13 @@ def test_lambda_application_compiles_to_linear_spine_with_stop() -> None:
     ]
 
 
-def test_head_flag_marks_spine_head() -> None:
+def test_head_flag_marks_lambda_body_application_head() -> None:
     image = compile_expr(parse_expr("(LAMBDA (A B) A B)"))
-    assert [(i.opcode, i.head) for i in image.instructions[:4]] == [
+    assert [(i.opcode, i.head) for i in image.instructions[:5]] == [
         (Opcode.LAMBDA, False),
         (Opcode.LAMBDA, False),
-        (Opcode.VAR, False),
+        (Opcode.APP, False),
+        (Opcode.VAR, True),
         (Opcode.VAR, True),
     ]
 

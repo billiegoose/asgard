@@ -571,9 +571,12 @@ class _ProgramParser:
     def _parse_lambda(self, pc: int) -> tuple[_Term, int, bool]:
         params: list[str] = []
         body_pc = pc
+        arity_metadata = self._metadata.get(f"lambda:{pc}:arity")
+        arity = _lambda_arity(arity_metadata)
         while (
             body_pc < len(self._memory)
             and self._memory[body_pc].opcode is Opcode.LAMBDA
+            and (arity is None or len(params) < arity)
         ):
             data = self._memory[body_pc].data
             params.append(data if isinstance(data, str) else str(data))
@@ -723,6 +726,19 @@ class _ResultEmitter:
                 )
             return
         assert_never(term)
+
+
+def _lambda_arity(metadata: object) -> int | None:
+    if (
+        isinstance(metadata, tuple)
+        and len(metadata) == 1
+        and isinstance(metadata[0], str)
+    ):
+        try:
+            return int(metadata[0])
+        except ValueError:
+            return None
+    return None
 
 
 def _parse_definitions(definitions: DefinitionImage | None) -> dict[str, _Term]:

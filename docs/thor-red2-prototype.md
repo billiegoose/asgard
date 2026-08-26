@@ -25,9 +25,11 @@ PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
   `red2/machine.py`, and `red2/primitives.py` map the same AST to the Chapter 4
   RED2 execution model: instruction memory, head flags, stacks, lookup, strict
   primitives, structures, and recursive blocks.
-- `tests/fixtures/appendix_a/sine_core.thor` and
-  `tests/fixtures/appendix_a/game_core.thor` cover executable Appendix A SINE
-  and GAME core subsets with THOR/RED2 parity smoke tests.
+- `tests/fixtures/appendix_a/sine_core.thor`,
+  `tests/fixtures/appendix_a/sine_full.thor`,
+  `tests/fixtures/appendix_a/game_core.thor`, and
+  `tests/fixtures/appendix_a/game_full.thor` cover executable Appendix A SINE
+  and GAME benchmark fixtures with THOR/RED2 parity smoke tests.
 - `vscode-thor/` contains a local VS Code-compatible TextMate syntax extension
   for `.thor` files, with examples derived from THOR fixtures.
 - `src/thor_spec/red2/pipelinec_vectors.py` and `pypeline_red2/red2_stepper.py`
@@ -37,14 +39,13 @@ PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
 
 ## Known Omissions
 
-- Full floating-point coercions are not modeled beyond the prototype subset.
-- Appendix A SINE coverage is limited to an exact, deterministic core fixture;
-  full numeric SINE precision is not modeled in the faithful prototype unless
-  separately requested.
-- Appendix A GAME coverage is limited to a finite tree/static-evaluation core
-  fixture; the full move generator and full alpha-beta search remain out of
-  scope unless separately requested.
-- All character operators from a complete language runtime are not implemented.
+- Full floating-point coercions are not modeled beyond the prototype and
+  Appendix A SINE benchmark subset.
+- Appendix A GAME is covered at the dissertation benchmark gate of
+  `evaluate 1` over the nine root move outcomes; deeper search remains outside
+  the default quantum gate.
+- Character constants, symbol predicates, and equality are covered; a complete
+  non-benchmark character library is not implemented.
 - FPGA synthesis automation is not part of this milestone.
 - Performance-accurate memory reclamation is not attempted.
 - Vendor tool integration is intentionally out of scope for the default tests.

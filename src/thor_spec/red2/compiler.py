@@ -97,13 +97,12 @@ class _Compiler:
             return
 
     def _emit_lambda(self, expr: Lambda, scope: Scope, *, head: bool) -> None:
+        lambda_start = len(self._instructions)
+        self._metadata[f"lambda:{lambda_start}:arity"] = (str(len(expr.params)),)
         for param in expr.params:
             self._emit(Opcode.LAMBDA, param, head=False)
         extended_scope = expr.params + scope
-        if isinstance(expr.body, App):
-            self._emit_flat_spine(expr.body.items, extended_scope, final_head=head)
-        else:
-            self._emit_expr(expr.body, extended_scope, head=head)
+        self._emit_expr(expr.body, extended_scope, head=head)
 
     def _emit_flat_spine(
         self, items: tuple[Expr, ...], scope: Scope, *, final_head: bool

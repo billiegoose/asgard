@@ -5,8 +5,10 @@ from thor_spec.pretty import to_source
 
 
 def test_lowercase_special_forms_normalize_to_core_names() -> None:
-    expr = normalize_expr(parse_expr("(lambda (x) (if (null? x) nil (car x)))"))
-    assert to_source(expr) == "(LAMBDA (x) (IF (NULL? x) NIL (CAR x)))"
+    expr = normalize_expr(
+        parse_expr("(lambda (x) (if (or (null? x) false) nil (car x)))")
+    )
+    assert to_source(expr) == "(LAMBDA (x) (IF (OR (NULL? x) FALSE) NIL (CAR x)))"
 
 
 def test_let_desugars_to_lambda_application() -> None:
