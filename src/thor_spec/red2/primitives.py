@@ -106,6 +106,8 @@ def _fire_without_quantum(
 ) -> Instruction | None:
     if name in _BINARY_PRIMITIVES and len(args) == 2:
         return _fire_binary(name, args[0], args[1])
+    if name == "NULL?" and len(args) == 1:
+        return _fire_null(args[0])
     if name in _UNARY_PRIMITIVES and len(args) == 1:
         return _fire_unary(name, args[0])
     if name in _TYPE_PREDICATES and len(args) == 1:
@@ -135,6 +137,14 @@ def _fire_unary(name: str, arg: Instruction) -> Instruction | None:
         if _is_false(arg):
             return TRUE
     return None
+
+
+def _fire_null(arg: Instruction) -> Instruction | None:
+    if _is_nil(arg):
+        return TRUE
+    if arg.opcode in {Opcode.APP, Opcode.VAR, Opcode.UBV}:
+        return None
+    return FALSE
 
 
 def _fire_binary(
@@ -221,6 +231,10 @@ def _is_false(inst: Instruction) -> bool:
     return inst.opcode is Opcode.PRIM_0 and inst.data == "FALSE"
 
 
+def _is_nil(inst: Instruction) -> bool:
+    return inst.opcode is Opcode.PRIM_0 and inst.data == "NIL"
+
+
 class _InstructionReader:
     def __init__(self, instructions: tuple[Instruction, ...]) -> None:
         self.instructions = instructions
@@ -273,6 +287,7 @@ _UNARY_PRIMITIVES = {
     "FLOOR",
     "MINUS",
     "NOT",
+    "NULL?",
 }
 _TYPE_PREDICATES = {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "STRUCTURE?"}
 _STRUCT_ARITIES = {"PAIR": 2}

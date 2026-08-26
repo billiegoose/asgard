@@ -238,8 +238,12 @@ class Red2Machine:
             return self._reduce_logical(args, env, true_identity=True)
         if name == "OR":
             return self._reduce_logical(args, env, true_identity=False)
+        if name == "CONS" and len(args) == 2:
+            return self._reduce_cons(operator, args, env)
         if name in {"CAR", "CDR"} and len(args) == 1:
             return self._reduce_accessor(name, args[0], env)
+        if name == "NULL?" and len(args) == 1:
+            return self._reduce_null(operator, args[0], env)
         if name == "TAG" and len(args) == 1:
             arg = self._reduce(args[0], env)
             if isinstance(arg, _StructTerm) and self._contract():
@@ -335,6 +339,18 @@ class Red2Machine:
             tuple(kept),
         )
 
+    def _reduce_cons(
+        self,
+        operator: _Term,
+        args: tuple[_Term, ...],
+        env: _Env,
+    ) -> _Term:
+        head = self._reduce(args[0], env)
+        tail = self._reduce(args[1], env)
+        if not self._contract():
+            return _AppTerm(operator, (head, tail))
+        return _StructTerm("PAIR", (head, tail))
+
     def _reduce_accessor(self, name: str, arg: _Term, env: _Env) -> _Term:
         value = self._reduce(arg, env)
         if (
@@ -347,6 +363,18 @@ class Red2Machine:
             return _AppTerm(_InstrTerm(Instruction(Opcode.PRIM_1, name)), (value,))
         field_index = 0 if name == "CAR" else 1
         return self._reduce(value.fields[field_index], env)
+
+    def _reduce_null(self, operator: _Term, arg: _Term, env: _Env) -> _Term:
+        value = self._reduce(arg, env)
+        if _is_nil_term(value):
+            if self._contract():
+                return _InstrTerm(TRUE)
+            return _AppTerm(operator, (value,))
+        if _is_irreducible_term(value):
+            return _AppTerm(operator, (value,))
+        if self._contract():
+            return _InstrTerm(FALSE)
+        return _AppTerm(operator, (value,))
 
     def _reduce_struct_application(
         self,
@@ -584,6 +612,15 @@ def _term_instruction(term: _Term) -> Instruction | None:
     if isinstance(term, _StructTerm):
         return Instruction(Opcode.STRUCT, term.tag, head=True)
     return None
+
+
+def _is_nil_term(term: _Term) -> bool:
+    inst = _term_instruction(term)
+    return inst is not None and inst.opcode is Opcode.PRIM_0 and inst.data == "NIL"
+
+
+def _is_irreducible_term(term: _Term) -> bool:
+    return isinstance(term, _AppTerm | _VarTerm)
 
 
 def lookup(index: int, state: MachineState) -> int:

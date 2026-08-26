@@ -154,6 +154,12 @@ def _reduce_unary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr |
     arg = state.reducer.reduce(args[0], state.store, state.phi)
     if state.reducer.remaining == 0:
         return App((Symbol(name), arg))
+    if name in {"CAR", "CDR"}:
+        if isinstance(arg, StructLit) and arg.tag == "PAIR" and len(arg.fields) == 2:
+            state.reducer.contract()
+            field_index = 0 if name == "CAR" else 1
+            return state.reducer.reduce(arg.fields[field_index], state.store, state.phi)
+        return App((Symbol(name), arg))
     result: Expr | None = None
     if name == "1-" and isinstance(arg, Integer):
         result = Integer(arg.value - 1)
@@ -179,6 +185,8 @@ def _reduce_unary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr |
             result = Integer(ceil(value))
     elif name == "EVEN?" and isinstance(arg, Integer):
         result = TRUE if arg.value % 2 == 0 else FALSE
+    elif name == "NULL?":
+        result = _null_result(arg)
     elif name == "NOT" and _is_true(arg):
         result = FALSE
     elif name == "NOT" and _is_false(arg):
@@ -264,7 +272,17 @@ def _apply_binary(name: str, left: Expr, right: Expr) -> Expr | None:
         return _constant_equal(left, right)
     if name == "EQUAL?":
         return TRUE if _alpha_equal(left, right) else FALSE
+    if name == "CONS":
+        return StructLit("PAIR", (left, right))
     return None
+
+
+def _null_result(expr: Expr) -> Expr | None:
+    if isinstance(expr, Symbol) and expr.name == "NIL":
+        return TRUE
+    if isinstance(expr, App | Var):
+        return None
+    return FALSE
 
 
 def _number_value(expr: Expr) -> int | float | None:
@@ -334,10 +352,13 @@ _UNARY_PRIMITIVES = {
     "1-",
     "1+",
     "ABS",
+    "CAR",
+    "CDR",
     "CEILING",
     "EVEN?",
     "FLOOR",
     "MINUS",
+    "NULL?",
     "NOT",
     "TAG",
 }
@@ -349,6 +370,7 @@ _BINARY_PRIMITIVES = {
     "<",
     ">",
     "=",
+    "CONS",
     "EQUAL?",
     "EXPT",
     "MAX",
