@@ -33,8 +33,8 @@ The binary tree representation, however, requires a lot of memory bandwidth. In 
 A modification to the binary tree representation reduces bandwidth requirements, supports de-compilation, and provides better support for graph traversal. If memory is viewed as a linear sequence of graph nodes, expressions can be represented in a linear fashion by adopting certain memory conventions:
 
 \begin{itemize}
-\item Abstraction nodes have only one field, which contains the bound variable; the body is always located in the next sequential node in memory.
-\item Application nodes also have only one field, which points to the operand; the operator is always located in the next sequential node in memory.
+\item Abstraction nodes have only one field, which contains the bound variable; \emph{the body is always located in the next sequential node in memory.}
+\item Application nodes also have only one field, which points to the operand; \emph{the operator is always located in the next sequential node in memory.}
 \item Variable nodes have a single field which contains the variable's identifier.
 \end{itemize}
 
@@ -56,11 +56,11 @@ Figure 4.2 shows how the graph in Figure 4.1 is represented using the above conv
 
 Traversing a linear graph is easy. To move down the spine of a graph you move to the next node in memory, and to move up the spine you move to the previous node in memory. Because the addresses of abstraction bodies and application operators are computed instead of read from the graph, memory bandwidth and storage requirements are reduced by roughly one-half.
 
-\begin{quote}\small
-Figure 4.3 presents a compiler for translating the pure \lambdacalculus{} subset of THOR into
-\end{quote}
-
-the linear graph representation. Figure 4.4 shows an example linear graph produced by this compiler. Although variables are now represented by DeBruijn indices instead of named identifiers, abstraction nodes still record identifier names for use in de-compilation.
+Figure 4.3 presents a compiler for translating the pure \lambdacalculus{} subset
+of THOR into the linear graph representation. Figure 4.4 shows an example linear
+graph produced by this compiler. Although variables are now represented by
+DeBruijn indices instead of named identifiers, abstraction nodes still record
+identifier names for use in de-compilation.
 
 \begin{figure}[htbp]
 \centering
