@@ -853,7 +853,7 @@ expression, and its reduction sequence unfolds in a similar way. Ignoring for a
 moment that the \THOR{PAIR} structure comprising the list prevents the reduction
 of its components, another reduction gives
 \begin{verbatim}
-[1 2] (letrec ((x [1 | y]) (y [2 | x])) x)]
+[1 2 | (letrec ((x [1 | y]) (y [2 | x])) x)]
 \end{verbatim}
 The reduction sequence can continue on in this fashion, ad infinitum.
 
@@ -890,19 +890,21 @@ participate in \(\beta\)-substitution:
 
 \subsubsection*{Rule 27 (LETREC - Case 2)}
 \[
+\resizebox{\textwidth}{!}{$\displaystyle
 \frac{
 \cfg{\delta}{\phi+n}{0}{\rho'}{e}\redsto
 \cfg{\delta}{\phi+n}{0}{\rho'}{e'}
 \qquad
 \cfg{\delta}{\phi+n}{0}{\rho'}{e_i}\redsto
-\cfg{\delta}{\phi+n}{0}{\rho'}{e'_i}
+\cfg{\delta}{\phi+n}{0}{\rho'}{e'_i},\ \forall i\in\{0\ldots n\}
 }{
 \cfg{\delta}{\phi}{0}{\rho}{\THOR{(LETREC }(e_1\ldots e_n)\ e\THOR{)}}\redsto
 \cfg{\delta}{\phi}{0}{\rho}{\THOR{(LETREC }(e'_1\ldots e'_n)\ e'\THOR{)}}
 }
+$}
 \]
 \[
-\rho'=\rho+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}].
+\rho'=\rho+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}]
 \]
 
 When a \THOR{REC} is selected from the redex store by a variable, it reduces to
@@ -927,15 +929,15 @@ Reducing a \THOR{REC} costs one contraction. If the quantum has expired when a
 \subsubsection*{Rule 29 (Rec - Case 2)}
 \[
 \frac{
-\cfg{\delta}{\phi+n}{0}{\rho'}{e_j}\redsto
-\cfg{\delta}{\phi+n}{0}{\rho'}{e'_j},\ \forall j\in\{1\ldots n\}
+\cfg{\delta}{\phi+n}{0}{\rho'_0}{e_i}\redsto
+\cfg{\delta}{\phi+n}{0}{\rho'_0}{e'_i},\ \forall i\in\{0\ldots n\}
 }{
 \cfg{\delta}{\phi}{0}{\rho_0}{\THOR{(REC }i\ \rho_1\ b\THOR{)}}\redsto
 \cfg{\delta}{\phi}{0}{\rho_0}{\THOR{(LETREC }(e'_1\ldots e'_n)\ \THOR{(VAR }i\THOR{))}}
 }
 \]
 \[
-\rho'=\rho_0+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}],
+\rho'_0=\rho_0+[\THOR{(UBV }\phi+1\THOR{)},\ldots,\THOR{(UBV }\phi+n\THOR{)}],
 \qquad b=\THOR{(BLOCK }e_1\ldots e_n\THOR{)}.
 \]
 
