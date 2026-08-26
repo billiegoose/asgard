@@ -1,12 +1,13 @@
 # Asgard
 
-An executable Python specification for THOR, the machine language described in
-Michael Lee Hilton's 1990 dissertation, *Implementation of Declarative
-Languages*.
+An executable Python specification for THOR and RED2, the reduction models
+presented in Michael Lee Hilton's 1990 dissertation, *Implementation of
+Declarative Languages*.
 
-The first milestone is a small, directly-readable VM that models the thesis
-faithfully. Once that behavior is stable, it can act as the reference model for
-PipelineC/Pypeline HDL or other hardware implementations.
+The prototype favors readable, traceable semantics over production compiler
+features.  The Python THOR interpreter is the reference model; the Python RED2
+machine compiles the same source expressions to a linear instruction graph and
+is checked against THOR with parity tests and a small golden corpus.
 
 ## Local Setup
 
@@ -21,6 +22,33 @@ uv sync
 If `mise` is not installed yet, `uv sync` will still create/use `.venv` with a
 compatible Python when possible.
 
+## CLI Examples
+
+Run one expression with the THOR reference interpreter:
+
+```sh
+uv run thor-spec --model thor --quantum 20 --expr "(+ 2 3)"
+# 5
+```
+
+Run the same expression through the RED2 prototype:
+
+```sh
+uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
+# 5
+```
+
+Run a source file containing definitions, structure declarations, and expression
+forms:
+
+```sh
+uv run thor-spec --file tests/golden/thor_examples.thor
+uv run thor-spec --model red2 --trace --expr "((LAMBDA (X) X) 42)"
+```
+
+`--trace` writes deterministic metadata to stderr; stdout remains result-only so
+it can be compared directly in scripts.
+
 ## Useful Commands
 
 ```sh
@@ -30,11 +58,15 @@ uv run ruff check .
 uv run mypy src tests
 ```
 
-## Current Shape
+## Prototype Scope
 
-- `src/thor_spec/core.py` contains a small fuel-bounded execution loop.
-- `src/thor_spec/cli.py` exposes the project command.
-- `tests/` locks down the scaffold behavior.
-
-The actual THOR graph representation, instruction set, and reduction rules will
-be added after the thesis PDF is available.
+- `src/thor_spec/parser.py`, `pretty.py`, and `semantics.py` implement the THOR
+  source syntax and Chapter 3-style abstract interpreter used as the executable
+  reference.
+- `src/thor_spec/red2/` contains the RED2 instruction contract, compiler, Python
+  machine, and result decompiler used for parity checks.
+- `src/thor_spec/golden.py` provides `run_source(...)`, the shared CLI/golden
+  corpus harness for comparing THOR and RED2 behavior.
+- `pypeline_red2/` contains a fixed-width RED2 stepper artifact for
+  hardware-oriented exploration; the default test suite does not require FPGA
+  vendor tools.
