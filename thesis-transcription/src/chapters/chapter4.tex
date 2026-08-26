@@ -21,7 +21,7 @@ A simple and straightforward graph representation for expressions is demonstrate
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-1.png}
-\caption{A straightforward graph representation of \((\lambda ab.(a\ (b\ a)))\).}
+\caption[Binary tree graph representation]{A straightforward graph representation of \((\lambda ab.(a\ (b\ a)))\).}
 \end{figure}
 
 The binary tree representation satisfies two of the three constraints: it supports the decompilation of expressions and the identification and contraction of redexes. The normal order reduction sequence of an expression can be found by making an inorder traversal of the expression's graph representation. Such a traversal amounts to recursively walking down each spine of the graph, which is simple to implement using either a stack or a pointer reversal technique.
@@ -45,13 +45,13 @@ Figure 4.2 shows how the graph in Figure 4.1 is represented using the above conv
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-2.png}
-\caption{The linear graph representation of \((\lambda ab.(a\ (b\ a)))\). Each node is labeled with an address.}
+\caption[Linear graph representation]{The linear graph representation of \((\lambda ab.(a\ (b\ a)))\). Each node is labeled with an address.}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.76\textwidth]{assets/chapter4/figure-4-3.png}
-\caption{Compiler from the pure \lambdacalculus{} subset of THOR to the linear graph representation. The first argument to \(C\) is a THOR expression; the second argument is a scope list, which is initially empty \((\emptyset)\). The colon (:) is an infix sequence constructor.}
+\caption[THOR to linear graph compiler]{Compiler from the pure \lambdacalculus{} subset of THOR to the linear graph representation. The first argument to \(C\) is a THOR expression; the second argument is a scope list, which is initially empty \((\emptyset)\). The colon (:) is an infix sequence constructor.}
 \end{figure}
 
 Traversing a linear graph is easy. To move down the spine of a graph you move to the next node in memory, and to move up the spine you move to the previous node in memory. Because the addresses of abstraction bodies and application operators are computed instead of read from the graph, memory bandwidth and storage requirements are reduced by roughly one-half.
@@ -65,7 +65,7 @@ identifier names for use in de-compilation.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-4.png}
-\caption{An example of compilation to the linear graph representation.}
+\caption[Example compilation]{An example of compilation to the linear graph representation.}
 \end{figure}
 
 % Source PDF page 51
@@ -130,7 +130,7 @@ spine and traversal of the parent spine continues (Rule C10).
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-5.png}
-\caption{Transition rules for implementing the control unit of the Simple Stack Machine.}
+\caption[Transition rules for the Simple Stack Machine]{Transition rules for implementing the control unit of the Simple Stack Machine.}
 \end{figure}
 
 % Source PDF page 53
@@ -201,7 +201,7 @@ machine configurations, after reduction has taken place.
 \begin{figure}[p]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-6.png}
-\caption{Sample execution of the expression \(((\lambda a.a)(\lambda b.b))\) by the Simple Stack Machine, with an initial quantum value of 5.}
+\caption[Sample execution of the Simple Stack Machine]{Sample execution of the expression \(((\lambda a.a)(\lambda b.b))\) by the Simple Stack Machine, with an initial quantum value of 5.}
 \end{figure}
 
 % Source PDF page 55
@@ -632,7 +632,7 @@ compiles into the linear graph
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-7.png}
-\caption{Memory model of \(\mu\)RED. The size of the graph memory and environment areas change dynamically during reduction, with each area growing towards the other.}
+\caption[The \(\mu\)RED memory model]{Memory model of \(\mu\)RED. The size of the graph memory and environment areas change dynamically during reduction, with each area growing towards the other.}
 \end{figure}
 
 \begin{verbatim}
@@ -705,7 +705,7 @@ The benefit of constant time variable access is outweighed by the expense (in bo
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-8.png}
-\caption{The redex store is a tree which mirrors the syntactic structure of the expression being reduced. On the left is the tree for the expression \((\lambda ab.((\lambda c.(a\ c\ (\lambda d.d)))\ (\lambda e.b\ e)))\). The physical representation of this tree is shown on the right.}
+\caption[The redex store]{The redex store is a tree which mirrors the syntactic structure of the expression being reduced. On the left is the tree for the expression \((\lambda ab.((\lambda c.(a\ c\ (\lambda d.d)))\ (\lambda e.b\ e)))\). The physical representation of this tree is shown on the right.}
 \end{figure}
 
 shared. Instead of placing a copy of the current path in a closure, \(\mu\)RED puts in a pointer to the current path.
@@ -798,7 +798,7 @@ procedure APP
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-9.png}
-\caption{Execution of an APP instruction in the reverse direction. The environment is cut back using the path pointer on top of the control stack. A JOIN instruction is added to the result graph. The argument pointed to by the APP is executed in the forward direction.}
+\caption[Reverse APP instruction]{Execution of an APP instruction in the reverse direction. The environment is cut back using the path pointer on top of the control stack. A JOIN instruction is added to the result graph. The argument pointed to by the APP is executed in the forward direction.}
 \end{figure}
 
 % Source PDF page 66
@@ -851,7 +851,7 @@ end JOIN
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.68\textwidth]{assets/chapter4/figure-4-10.png}
-\caption{Execution of the JOIN instruction inserts a reduced argument into its parent spine.}
+\caption[Execution of JOIN instruction]{Execution of the JOIN instruction inserts a reduced argument into its parent spine.}
 \end{figure}
 
 \paragraph{LAMBDA Instruction}
@@ -890,7 +890,7 @@ procedure LAMBDA
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-11.png}
-\caption{Execution of a LAMBDA instruction that is part of a \(\beta\)-redex. A closure for the argument is placed in the environment.}
+\caption[Execution of LAMBDA instruction]{Execution of a LAMBDA instruction that is part of a \(\beta\)-redex. A closure for the argument is placed in the environment.}
 \end{figure}
 
 % Source PDF page 69

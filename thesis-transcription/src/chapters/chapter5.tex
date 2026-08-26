@@ -59,7 +59,7 @@ game & RED2 & 1,952 & 1,227,197 & 100.0\\
 game & WINTER & 18,816 & 6,697 & 0.8\\
 \hline
 \end{tabular}
-\caption{Benchmark comparison of RED2 with WINTER, an implementation of the
+\caption[Comparison of RED2 and WINTER]{Benchmark comparison of RED2 with WINTER, an implementation of the
 Three Instruction Machine.}
 \end{table}
 
@@ -140,7 +140,7 @@ evaluate tree & 1,176 & 93,796 & 5.60\\
 total cost & 3,846 & 133,916 & 8.23\\
 \hline
 \end{tabular}
-\caption{Experimental evidence suggesting that RED2 performed poorly on the
+\caption[Sharing analysis]{Experimental evidence suggesting that RED2 performed poorly on the
 game program because of its current inability to share computed data
 structures.}
 \end{table}
@@ -202,7 +202,7 @@ adjusting the env.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-1.png}
-\caption{All of RED2's built-in primitive operations assist in memory
+\caption[Incremental memory management]{All of RED2's built-in primitive operations assist in memory
 management. In this example an arithmetic primitive discards graph nodes which
 are no longer accessible by adjusting the \(fsp\). The pictures show the tip of
 the result graph just before and just after the addition primitive is fired.}
@@ -225,7 +225,7 @@ primitive fires.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-2.png}
-\caption{The IF primitive demonstrates why subgraphs must be promptly
+\caption[Discarding subgraphs]{The IF primitive demonstrates why subgraphs must be promptly
 discarded when no longer part of the result graph. For the arguments to be
 visible to the RED2 control unit, the IF subgraph must be discarded after the
 primitive is fired.}
@@ -321,7 +321,7 @@ are written over the argument's closure.}
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-3.png}
-\caption{Forward execution of a VAR instruction that is not the head of a
+\caption[Implementing sharing, Part 1]{Forward execution of a VAR instruction that is not the head of a
 spine. The variable is dereferenced, and if its value is a closure, an EP
 instruction pointing to the closure is added to the result graph.}
 \end{figure}
@@ -329,7 +329,7 @@ instruction pointing to the closure is added to the result graph.}
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-4.png}
-\caption{Execution of a JOIN instruction. If the destination of the JOIN is an
+\caption[Implementing Sharing: Part 2]{Execution of a JOIN instruction. If the destination of the JOIN is an
 EP and the reduced argument is an atomic value, the atomic value overwrites the
 closure pointed to by the EP. In this way, the reduced argument is shared
 through the environment.}
@@ -452,7 +452,7 @@ of an \(\eta\)-redex.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-5.png}
-\caption{Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
+\caption[Contraction of an \(\eta\)-redex]{Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
 executed in reverse, it checks to see if the next instruction in memory is a
 non-head VAR with a DeBruijn index of 0. If this is the case, and the reference
 bits of the LAMBDA's unbound variable entry in the environment are 01, these two
@@ -526,7 +526,7 @@ provided by immediate instructions.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.62\textwidth]{assets/chapter5/figure-5-6.png}
-\caption{A comparison of code sequences for the expression \(2 \times 3 +
+\caption[Comparing general and immediate instructions]{A comparison of code sequences for the expression \(2 \times 3 +
 4 \times 5\). The sequence on the left was generated using the general
 instructions and compiler introduced in the previous chapter; the sequence on
 the right was generated using more specialized, immediate instructions and a
