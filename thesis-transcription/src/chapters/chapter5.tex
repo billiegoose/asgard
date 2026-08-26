@@ -376,22 +376,22 @@ complete version.
 
 The \(\eta\)-reduction rule states that
 \[
-\lambda z.(e z)\longrightarrow e
+\lambda x.(e x)\longrightarrow e
 \]
-if \(z\) does not occur as a free variable in \(e\). An \(\eta\)-redex can arise
+if \(x\) does not occur as a free variable in \(e\). An \(\eta\)-redex can arise
 in two ways: as part of an original \(\lambda\)-expression or as a result of
 \(\beta\)-reduction. An example of the first type is the expression
 \[
-\lambda z.((\lambda y.y)\ z),
+\lambda x.((\lambda y.y)\ x),
 \]
 which is easily seen to be an \(\eta\)-redex. The second type of redex is more
 difficult to detect; the \(\eta\)-redex in the expression
 \[
-\lambda z.(((\lambda y.\lambda z.z)\ z)\ z)
+\lambda x.(((\lambda y.\lambda z.z)\ x)\ x)
 \]
 only becomes obvious after the inner \(\beta\)-redex is contracted, yielding
 \[
-\lambda z.((\lambda z.z)\ z).
+\lambda x.((\lambda z.z)\ x).
 \]
 Detecting \(\eta\)-redexes of this type sometimes requires parts of an
 expression to be traversed more than once. It is this re-traversal which makes
@@ -471,15 +471,16 @@ subclass of those \(\eta\)-redexes which only become visible after
 during forward traversal are considered as candidate \(\eta\)-redexes. For
 instance, the \(\eta\)-redex in the expression
 \[
-\lambda z.(((\lambda y.\lambda z.z)\ (z\ z))\ z)
+\lambda x.(((\lambda y.\lambda z.z)\ \underline{(x\ x)})\ \underline{\underline{x}})
 \]
-would be detected because the variable \(z\) is only encountered once during
-forward traversal; the occurrences in the subexpression are never encountered.
+would be detected because the variable \(x\) is only encountered once (the
+doubly underlined occurrence) during forward traversal; the occurrences in the
+singly underlined subexpression are never encountered.
 The expression
 \[
-\lambda z.(((\lambda y.\lambda z.z)\ z)\ z)
+\lambda x.(((\lambda y.\lambda z.z)\ x)\ x)
 \]
-is an example of an \(\eta\)-redex that is not detected, because the \(z\)
+is an example of an \(\eta\)-redex that is not detected, because the \(x\)
 variable is encountered twice during forward traversal.
 
 The modifications described in this section have not been made a permanent part
@@ -490,7 +491,7 @@ tasks. More importantly, I am uneasy with the concept of ``almost complete''
 reduction systems. The incompleteness weakens the system considerably from a
 theoretical view.
 
-\section{Enhanced Compilation and von-Neumann Plus Architectures}
+\section[Enhanced Compilation]{Enhanced Compilation and von-Neumann Plus Architectures}
 
 The instruction set presented in the previous chapter is designed to reduce THOR
 expressions in the most general way possible, with a minimum of compilation.
