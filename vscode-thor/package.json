@@ -1,0 +1,36 @@
+{
+  "name": "thor-syntax",
+  "displayName": "THOR Syntax",
+  "description": "Local VS Code syntax highlighting for THOR .thor source files.",
+  "version": "0.1.0",
+  "publisher": "asgard-local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "thor",
+        "aliases": [
+          "THOR",
+          "thor"
+        ],
+        "extensions": [
+          ".thor"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "thor",
+        "scopeName": "source.thor",
+        "path": "./syntaxes/thor.tmLanguage.json"
+      }
+    ]
+  }
+}

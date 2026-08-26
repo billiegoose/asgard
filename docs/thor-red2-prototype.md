@@ -28,6 +28,8 @@ PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
 - `tests/fixtures/appendix_a/sine_core.thor` and
   `tests/fixtures/appendix_a/game_core.thor` cover executable Appendix A SINE
   and GAME core subsets with THOR/RED2 parity smoke tests.
+- `vscode-thor/` contains a local VS Code-compatible TextMate syntax extension
+  for `.thor` files, with examples derived from THOR fixtures.
 - `src/thor_spec/red2/pipelinec_vectors.py` and `pypeline_red2/red2_stepper.py`
   trace the Chapter 4 instruction encoding into a small PypelineC stepper subset
   with golden vectors. See `pypeline_red2/README.md` for the optional external

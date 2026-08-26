@@ -1,0 +1,165 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "THOR",
+  "scopeName": "source.thor",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#definitions"
+    },
+    {
+      "include": "#struct-definitions"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#primitives"
+    },
+    {
+      "include": "#punctuation"
+    },
+    {
+      "include": "#symbols"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.semicolon.thor",
+          "match": ";.*$"
+        },
+        {
+          "name": "comment.line.number-sign.thor",
+          "match": "#(?!\\\\).*$"
+        }
+      ]
+    },
+    "definitions": {
+      "patterns": [
+        {
+          "name": "meta.definition.function.thor",
+          "match": "^\\s*([^\\s(){}\\[\\]|;#]+)\\s*(==)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.definition.thor"
+            },
+            "2": {
+              "name": "storage.type.function.thor"
+            }
+          }
+        }
+      ]
+    },
+    "struct-definitions": {
+      "patterns": [
+        {
+          "name": "meta.definition.struct.thor",
+          "match": "^\\s*([^\\s(){}\\[\\]|;#]+)\\s*(\\|=)\\s*(.*)$",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.struct.thor"
+            },
+            "2": {
+              "name": "storage.type.struct.thor"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "name": "variable.parameter.struct-field.thor",
+                  "match": "[^\\s(){}\\[\\]|;#]+"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.thor",
+          "match": "(?i)(?<![^\\s(){}\\[\\]|])(?:lambda|letrec|let|if|y)(?![^\\s(){}\\[\\]|])"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.thor",
+          "match": "#\\\\(?:space|newline|tab|[^\\s(){}\\[\\]|;#]+)"
+        },
+        {
+          "name": "constant.language.boolean.thor",
+          "match": "(?i)(?<![^\\s(){}\\[\\]|])(?:true|false)(?![^\\s(){}\\[\\]|])"
+        },
+        {
+          "name": "constant.language.nil.thor",
+          "match": "(?i)(?<![^\\s(){}\\[\\]|])nil(?![^\\s(){}\\[\\]|])"
+        },
+        {
+          "name": "constant.numeric.thor",
+          "match": "(?<![^\\s(){}\\[\\]|])[+-]?(?:(?:\\d+\\.\\d*)|(?:\\d*\\.\\d+))(?:[eE][+-]?\\d+)?(?![^\\s(){}\\[\\]|])|(?<![^\\s(){}\\[\\]|])[+-]?\\d+[eE][+-]?\\d+(?![^\\s(){}\\[\\]|])|(?<![^\\s(){}\\[\\]|])[+-]?\\d+(?![^\\s(){}\\[\\]|])"
+        }
+      ]
+    },
+    "primitives": {
+      "patterns": [
+        {
+          "name": "support.function.primitive.thor",
+          "match": "(?i)(?<![^\\s(){}\\[\\]|])(?:and|or|abs|car|cdr|ceiling|even\\?|floor|minus|null\\?|not|tag|cons|equal\\?|expt|max|min|integer\\?|float\\?|char\\?|symbol\\?|structure\\?)(?![^\\s(){}\\[\\]|])"
+        },
+        {
+          "name": "keyword.operator.primitive.thor",
+          "match": "(?<![^\\s(){}\\[\\]|])(?:1-|1\\+|\\+|-|\\*|/|<|>|=)(?![^\\s(){}\\[\\]|])"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.definition.list.begin.thor",
+          "match": "\\["
+        },
+        {
+          "name": "punctuation.definition.list.end.thor",
+          "match": "\\]"
+        },
+        {
+          "name": "punctuation.definition.struct.begin.thor",
+          "match": "\\{"
+        },
+        {
+          "name": "punctuation.definition.struct.end.thor",
+          "match": "\\}"
+        },
+        {
+          "name": "punctuation.section.expression.begin.thor",
+          "match": "\\("
+        },
+        {
+          "name": "punctuation.section.expression.end.thor",
+          "match": "\\)"
+        },
+        {
+          "name": "punctuation.separator.dotted-list.thor",
+          "match": "\\|"
+        }
+      ]
+    },
+    "symbols": {
+      "patterns": [
+        {
+          "name": "variable.other.symbol.thor",
+          "match": "[^\\s(){}\\[\\]|;#]+"
+        }
+      ]
+    }
+  }
+}
