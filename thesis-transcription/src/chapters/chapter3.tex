@@ -652,14 +652,22 @@ branches are reduced:
 
 \subsubsection*{Rule 24 (IF - Non-boolean Case)}
 \[
+\resizebox{\textwidth}{!}{$\displaystyle
 \frac{
+\begin{gathered}
 \cfg{\delta}{\phi}{q_0}{\rho}{e_c}\redsto
-\cfg{\delta}{\phi}{q_1}{\rho}{e'_c}
+\cfg{\delta}{\phi}{q_1}{\rho}{e'_c}\\
+\cfg{\delta}{\phi}{0}{\rho}{e_t}\redsto
+\cfg{\delta}{\phi}{0}{\rho}{e'_t}\\
+\cfg{\delta}{\phi}{0}{\rho}{e_f}\redsto
+\cfg{\delta}{\phi}{0}{\rho}{e'_f}
+\end{gathered}
 }{
 \cfg{\delta}{\phi}{q_0}{\rho}{\THOR{(IF }e_c\ e_t\ e_f\THOR{)}}\redsto
-\cfg{\delta}{\phi}{q_1}{\rho}{\THOR{(IF }e'_c\ e_t\ e_f\THOR{)}}
+\cfg{\delta}{\phi}{q_1}{\rho}{\THOR{(IF }e'_c\ e'_t\ e'_f\THOR{)}}
 }
 \quad e'_c\notin\{\THOR{TRUE},\THOR{FALSE}\}
+$}
 \]
 None of the reduction rules presented prior to Rule 24 truly depend on the
 sequential, normal order reduction strategy of RED2. A different reduction
