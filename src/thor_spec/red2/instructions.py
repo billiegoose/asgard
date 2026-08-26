@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, auto
 
 
@@ -43,6 +43,7 @@ class ProgramImage:
     instructions: tuple[Instruction, ...]
     entry: int
     symbol_table: Mapping[str, int]
+    metadata: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 HEAD_SHIFT = 31

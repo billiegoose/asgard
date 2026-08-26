@@ -39,6 +39,8 @@ _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "STRUCTURE?": 1,
     "NOT": 1,
     "TAG": 1,
+    "CAR": 1,
+    "CDR": 1,
 }
 _NON_STRICT_SYMBOLS = frozenset({"AND", "OR", "IF", "Y"})
 
@@ -47,11 +49,17 @@ class _Compiler:
     def __init__(self) -> None:
         self._instructions: list[Instruction] = []
         self._symbol_table: dict[str, int] = {}
+        self._metadata: dict[str, tuple[str, ...]] = {}
 
     def compile(self, expr: Expr) -> ProgramImage:
         self._emit_expr(expr, (), head=True)
         self._emit(Opcode.STOP, 0, head=True)
-        return ProgramImage(tuple(self._instructions), 0, dict(self._symbol_table))
+        return ProgramImage(
+            tuple(self._instructions),
+            0,
+            dict(self._symbol_table),
+            dict(self._metadata),
+        )
 
     def _emit_expr(self, expr: Expr, scope: Scope, *, head: bool) -> None:
         if isinstance(expr, Var):
@@ -137,11 +145,14 @@ class _Compiler:
 
     def _emit_letrec(self, expr: LetRec, scope: Scope, *, head: bool) -> None:
         block_positions: list[tuple[int, Expr]] = []
+        letrec_start = len(self._instructions)
+        names = tuple(binding.name for binding in expr.bindings)
+        self._metadata[f"letrec:{letrec_start}:names"] = names
         for binding in expr.bindings:
             position = self._emit(Opcode.RBLOCK, 0, head=False)
             block_positions.append((position, binding.expr))
         self._emit(Opcode.RUP, len(expr.bindings), head=False)
-        extended_scope = tuple(binding.name for binding in expr.bindings) + scope
+        extended_scope = names + scope
         self._emit_expr(expr.body, extended_scope, head=head)
         for block_position, binding_expr in block_positions:
             binding_entry = len(self._instructions)
