@@ -738,24 +738,59 @@ identity is more difficult.
 A comparison of the reduction sequences of the factorial expression described
 earlier illuminate the identity problems associated with recursion. Using a
 \(\lambda\)-expression to implement the fixpoint combinator yields a reduction
-sequence that gets complicated quickly; if you were shown only the third
-expression, would you be able to clearly identify what was going on? Now examine
-the reduction sequence for the \THOR{Y} primitive:
-\begin{verbatim}
+sequence:
+\begin{alltt}
+(((LAMBDA (X) ((LAMBDA (Y) (X (Y Y)))
+              (LAMBDA (Y) (X (Y Y)))))
+  (LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N))))))
+ 3) \(\longrightarrow\)
+
+(((LAMBDA (Y)
+    ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+     (Y Y)))
+  (LAMBDA (Y)
+    ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+     (Y Y))))
+ 3) \(\xrightarrow{2}\)
+
+(((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+  ((LAMBDA (Y)
+     ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+      (Y Y)))
+   (LAMBDA (Y)
+     ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+      (Y Y)))))
+ 3) \(\longrightarrow\)
+
+(IF (= 3 0)
+    1
+    (* 3 ((LAMBDA (Y)
+            ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+             (Y Y)))
+          (LAMBDA (Y)
+            ((LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))
+             (Y Y)))
+          (1- 3))))
+\end{alltt}
+The expressions in this sequence get complicated quickly; if you were shown only
+the third expression, would you be able to clearly identify what was going on?
+(Consider the case of several interacting recursive functions.) Now examine the
+reduction sequence for the \THOR{Y} primitive:
+\begin{alltt}
 ((Y (LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))) 3)
-  -> ((LAMBDA (N)
+  \(\xrightarrow{2}\) ((LAMBDA (N)
         (IF (= N 0)
             1
             (* N ((Y (LAMBDA (FACT N)
                        (IF (= N 0) 1 (* N (FACT (1- N))))))
                   (1- N)))))
       3)
-  -> (IF (= 3 0)
+  \(\longrightarrow\) (IF (= 3 0)
          1
          (* 3 ((Y (LAMBDA (FACT N)
                     (IF (= N 0) 1 (* N (FACT (1- N))))))
                (1- 3))))
-\end{verbatim}
+\end{alltt}
 The latter sequence is easier to comprehend. Use of the \THOR{Y} operator does
 not always make recursive reduction sequences easy to follow, but it does make
 recursion easier to spot than using a \(\lambda\)-expression.
