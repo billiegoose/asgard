@@ -48,6 +48,14 @@ uv run thor-spec --file tests/golden/thor_examples.thor
 uv run thor-spec --model red2 --trace --expr "((LAMBDA (X) X) 42)"
 ```
 
+Compare THOR and RED2 at each contraction-prefix quantum from `0` through `N`:
+
+```sh
+uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
+```
+
+`--model parity` exits 0 when every prefix matches and exits 1 with the first
+mismatching quantum when RED2 and THOR use different intermediate scheduling.
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
 it can be compared directly in scripts.
 

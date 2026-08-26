@@ -7,6 +7,7 @@ from typing import TextIO
 
 from thor_spec import __version__
 from thor_spec.golden import DEFAULT_QUANTUM, ModelName, run_source
+from thor_spec.lockstep import compare_prefixes
 from thor_spec.parser import ParseError
 
 
@@ -22,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--model",
-        choices=("thor", "red2"),
+        choices=("thor", "red2", "parity"),
         default="thor",
         help="execution model to run (default: thor)",
     )
@@ -50,9 +51,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
-    model = _model_name(args.model)
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
+        if args.model == "parity":
+            return _run_parity(source, quantum=args.quantum)
+        model = _model_name(args.model)
         output = run_source(source, model=model, quantum=args.quantum)
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"thor-spec: {error}", file=sys.stderr)
@@ -68,6 +71,25 @@ def main(argv: list[str] | None = None) -> int:
         )
     if output:
         print(output)
+    return 0
+
+
+def _run_parity(source: str, *, quantum: int) -> int:
+    result = compare_prefixes(source, max_quantum=quantum)
+    mismatch = result.first_mismatch
+    if mismatch is not None:
+        print(f"parity mismatch at quantum {mismatch.quantum}", file=sys.stderr)
+        print(f"thor: {mismatch.thor}", file=sys.stderr)
+        print(f"red2: {mismatch.red2}", file=sys.stderr)
+        return 1
+    final = result.snapshots[-1].thor if result.snapshots else ""
+    print(
+        "parity ok: "
+        f"{len(result.snapshots)} prefix snapshot(s) matched through quantum {quantum}",
+        file=sys.stderr,
+    )
+    if final:
+        print(final)
     return 0
 
 

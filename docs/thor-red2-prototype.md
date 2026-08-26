@@ -69,3 +69,29 @@ Both commands should print:
 ```text
 5
 ```
+
+## Lockstep Parity Mode
+
+`thor-spec --model parity` compares THOR and RED2 at contraction-prefix
+snapshots. For `--quantum N`, it runs both models for every quantum from `0`
+through `N`, alpha-normalizes bound-variable rendering differences such as RED2
+`(VAR 0)` output, and reports the first prefix where the user-facing expressions
+differ.
+
+This is stronger than completion-only parity, but it is not a claim that THOR's
+recursive reducer and RED2's internal machine phases schedule every intermediate
+recursive application identically. Some programs can diverge at an intermediate
+prefix and reconverge at a later quantum; in that case parity mode is a
+diagnostic that points at the earliest scheduling/equivalence gap.
+
+Example matching-prefix check:
+
+```sh
+uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
+```
+
+Example diagnostic check that reports the first Fibonacci prefix mismatch:
+
+```sh
+uv run thor-spec --model parity --quantum 75 --file vscode-thor/examples/fibonacci.thor
+```
