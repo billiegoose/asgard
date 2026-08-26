@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from math import ceil, floor
 from operator import add, mul, sub, truediv
 
 from thor_spec.ast import (
@@ -115,6 +116,19 @@ def _fire_without_quantum(
 def _fire_unary(name: str, arg: Instruction) -> Instruction | None:
     if name == "1-" and arg.opcode is Opcode.INT and isinstance(arg.data, int):
         return Instruction(Opcode.INT, arg.data - 1, head=True)
+    value = _number_value(arg)
+    if name == "1+" and value is not None:
+        return _number_result(value + 1)
+    if name == "MINUS" and value is not None:
+        return _number_result(-value)
+    if name == "ABS" and value is not None:
+        return _number_result(abs(value))
+    if name == "FLOOR" and value is not None:
+        return Instruction(Opcode.INT, floor(value), head=True)
+    if name == "CEILING" and value is not None:
+        return Instruction(Opcode.INT, ceil(value), head=True)
+    if name == "EVEN?" and arg.opcode is Opcode.INT and isinstance(arg.data, int):
+        return TRUE if arg.data % 2 == 0 else FALSE
     if name == "NOT":
         if _is_true(arg):
             return FALSE
@@ -154,6 +168,18 @@ def _fire_binary(
         if left.opcode is Opcode.INT and right.opcode is Opcode.INT:
             return Instruction(Opcode.INT, int(value), head=True)
         return Instruction(Opcode.FLOAT, float(value), head=True)
+    if name in {"EXPT", "MAX", "MIN"}:
+        left_value = _number_value(left)
+        right_value = _number_value(right)
+        if left_value is None or right_value is None:
+            return None
+        if name == "EXPT":
+            return _number_result(left_value**right_value)
+        if name == "MAX":
+            return _number_result(
+                left_value if left_value >= right_value else right_value
+            )
+        return _number_result(left_value if left_value <= right_value else right_value)
     if name in {"=", "EQUAL?"}:
         left_expr = instruction_to_expr(left)
         right_expr = instruction_to_expr(right)
@@ -161,6 +187,20 @@ def _fire_binary(
             return None
         return TRUE if left_expr == right_expr else FALSE
     return None
+
+
+def _number_value(inst: Instruction) -> int | float | None:
+    if inst.opcode in {Opcode.INT, Opcode.FLOAT} and isinstance(inst.data, int | float):
+        return inst.data
+    return None
+
+
+def _number_result(value: int | float) -> Instruction:
+    if isinstance(value, float):
+        if value.is_integer():
+            return Instruction(Opcode.INT, int(value), head=True)
+        return Instruction(Opcode.FLOAT, value, head=True)
+    return Instruction(Opcode.INT, value, head=True)
 
 
 def _predicate_matches(name: str, arg: Instruction) -> bool:
@@ -223,7 +263,16 @@ class _InstructionReader:
         return Symbol(inst.opcode.name)
 
 
-_BINARY_PRIMITIVES = {"+", "-", "*", "/", "<", ">", "=", "EQUAL?"}
-_UNARY_PRIMITIVES = {"1-", "NOT"}
+_BINARY_PRIMITIVES = {"+", "-", "*", "/", "<", ">", "=", "EQUAL?", "EXPT", "MAX", "MIN"}
+_UNARY_PRIMITIVES = {
+    "1-",
+    "1+",
+    "ABS",
+    "CEILING",
+    "EVEN?",
+    "FLOOR",
+    "MINUS",
+    "NOT",
+}
 _TYPE_PREDICATES = {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "STRUCTURE?"}
 _STRUCT_ARITIES = {"PAIR": 2}

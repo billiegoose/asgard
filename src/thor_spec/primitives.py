@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
+from math import ceil, floor
 from operator import add, mul, sub, truediv
 from typing import Protocol
 
@@ -156,6 +157,28 @@ def _reduce_unary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr |
     result: Expr | None = None
     if name == "1-" and isinstance(arg, Integer):
         result = Integer(arg.value - 1)
+    elif name == "1+":
+        value = _number_value(arg)
+        if value is not None:
+            result = _number_result(value + 1)
+    elif name == "MINUS":
+        value = _number_value(arg)
+        if value is not None:
+            result = _number_result(-value)
+    elif name == "ABS":
+        value = _number_value(arg)
+        if value is not None:
+            result = _number_result(abs(value))
+    elif name == "FLOOR":
+        value = _number_value(arg)
+        if value is not None:
+            result = Integer(floor(value))
+    elif name == "CEILING":
+        value = _number_value(arg)
+        if value is not None:
+            result = Integer(ceil(value))
+    elif name == "EVEN?" and isinstance(arg, Integer):
+        result = TRUE if arg.value % 2 == 0 else FALSE
     elif name == "NOT" and _is_true(arg):
         result = FALSE
     elif name == "NOT" and _is_false(arg):
@@ -225,11 +248,37 @@ def _apply_binary(name: str, left: Expr, right: Expr) -> Expr | None:
         if isinstance(left, Integer) and isinstance(right, Integer):
             return Integer(int(value))
         return Float(float(value))
+    if name in {"EXPT", "MAX", "MIN"}:
+        if not isinstance(left, Integer | Float) or not isinstance(
+            right, Integer | Float
+        ):
+            return None
+        if name == "EXPT":
+            return _number_result(left.value**right.value)
+        if name == "MAX":
+            return _number_result(
+                left.value if left.value >= right.value else right.value
+            )
+        return _number_result(left.value if left.value <= right.value else right.value)
     if name == "=":
         return _constant_equal(left, right)
     if name == "EQUAL?":
         return TRUE if _alpha_equal(left, right) else FALSE
     return None
+
+
+def _number_value(expr: Expr) -> int | float | None:
+    if isinstance(expr, Integer | Float):
+        return expr.value
+    return None
+
+
+def _number_result(value: int | float) -> Expr:
+    if isinstance(value, float):
+        if value.is_integer():
+            return Integer(int(value))
+        return Float(value)
+    return Integer(value)
 
 
 def _predicate_matches(name: str, arg: Expr) -> bool:
@@ -281,6 +330,28 @@ def _is_false(expr: Expr) -> bool:
     return isinstance(expr, Symbol) and expr.name == "FALSE"
 
 
-_UNARY_PRIMITIVES = {"1-", "NOT", "TAG"}
-_BINARY_PRIMITIVES = {"+", "-", "*", "/", "<", ">", "=", "EQUAL?"}
+_UNARY_PRIMITIVES = {
+    "1-",
+    "1+",
+    "ABS",
+    "CEILING",
+    "EVEN?",
+    "FLOOR",
+    "MINUS",
+    "NOT",
+    "TAG",
+}
+_BINARY_PRIMITIVES = {
+    "+",
+    "-",
+    "*",
+    "/",
+    "<",
+    ">",
+    "=",
+    "EQUAL?",
+    "EXPT",
+    "MAX",
+    "MIN",
+}
 _TYPE_PREDICATES = {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "STRUCTURE?"}
