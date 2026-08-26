@@ -58,7 +58,32 @@ class Char:
     value: str
 
 
-Expr = Var | Lambda | App | LetRec | StructLit | Symbol | Integer | Float | Char
+@dataclass(frozen=True, slots=True)
+class Block:
+    expressions: tuple[Expr, ...]
+    names: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Rec:
+    index: int
+    store: tuple[object, ...]
+    block: Block
+
+
+Expr = (
+    Var
+    | Lambda
+    | App
+    | LetRec
+    | StructLit
+    | Symbol
+    | Integer
+    | Float
+    | Char
+    | Block
+    | Rec
+)
 
 
 @dataclass(frozen=True, slots=True)

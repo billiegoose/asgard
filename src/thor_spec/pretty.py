@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from thor_spec.ast import (
     App,
+    Block,
     Char,
     Expr,
     Float,
     Integer,
     Lambda,
     LetRec,
+    Rec,
     StructLit,
     Symbol,
     Var,
@@ -34,6 +36,11 @@ def to_source(expr: Expr) -> str:
             return list_source
         fields = " ".join(to_source(field) for field in expr.fields)
         return f"{{{expr.tag}{f' {fields}' if fields else ''}}}"
+    if isinstance(expr, Block):
+        fields = " ".join(to_source(item) for item in expr.expressions)
+        return f"(BLOCK{f' {fields}' if fields else ''})"
+    if isinstance(expr, Rec):
+        return f"(REC {expr.index})"
     if isinstance(expr, Symbol):
         return expr.name
     if isinstance(expr, Integer):
