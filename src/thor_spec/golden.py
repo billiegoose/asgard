@@ -15,6 +15,7 @@ from thor_spec.ast import (
     StructLit,
     Symbol,
 )
+from thor_spec.normalization import normalize_program
 from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
 from thor_spec.primitives import install_struct_accessors
@@ -39,7 +40,7 @@ def run_source(
     expression forms.  Definitions update the context for following forms;
     expression results are rendered one per output line.
     """
-    program = parse_program(source)
+    program = normalize_program(parse_program(source))
     results = _run_program(program, model=model, quantum=quantum)
     return "\n".join(results)
 

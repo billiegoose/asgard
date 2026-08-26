@@ -21,6 +21,7 @@ from thor_spec.ast import (
     Symbol,
     TopLevel,
 )
+from thor_spec.normalization import desugar_let
 
 
 class ParseError(ValueError):
@@ -230,6 +231,9 @@ class Parser:
         if _is_atom(first, "LETREC"):
             self._position += 1
             return self.parse_letrec_tail()
+        if _is_atom(first, "LET"):
+            self._position += 1
+            return self.parse_let_tail()
 
         items: list[Expr] = []
         while True:
@@ -261,13 +265,23 @@ class Parser:
         return Lambda(tuple(params), body)
 
     def parse_letrec_tail(self) -> LetRec:
+        bindings = self.parse_binding_list("LETREC")
+        body = self.parse_body_until(TokenKind.RPAREN, "LETREC")
+        return LetRec(bindings, body)
+
+    def parse_let_tail(self) -> App:
+        bindings = self.parse_binding_list("LET")
+        body = self.parse_body_until(TokenKind.RPAREN, "LET")
+        return desugar_let(bindings, body)
+
+    def parse_binding_list(self, form_name: str) -> tuple[Binding, ...]:
         self.consume(TokenKind.LPAREN)
         bindings: list[Binding] = []
         while True:
             self.skip_newlines()
             token = self.peek()
             if token is None:
-                msg = "unterminated LETREC binding list"
+                msg = f"unterminated {form_name} binding list"
                 raise ParseError(msg)
             if token.kind is TokenKind.RPAREN:
                 self._position += 1
@@ -278,8 +292,7 @@ class Parser:
             self.skip_newlines()
             self.consume(TokenKind.RPAREN)
             bindings.append(Binding(name, expr))
-        body = self.parse_body_until(TokenKind.RPAREN, "LETREC")
-        return LetRec(tuple(bindings), body)
+        return tuple(bindings)
 
     def parse_body_until(self, end_kind: TokenKind, form_name: str) -> Expr:
         expressions: list[Expr] = []
@@ -349,7 +362,11 @@ class Parser:
 
 
 def _is_atom(token: Token | None, text: str) -> bool:
-    return token is not None and token.kind is TokenKind.ATOM and token.text == text
+    return (
+        token is not None
+        and token.kind is TokenKind.ATOM
+        and token.text.upper() == text
+    )
 
 
 def _atom_expr(text: str) -> Expr:
