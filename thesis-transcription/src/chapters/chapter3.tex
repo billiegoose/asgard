@@ -13,7 +13,7 @@ the character, integer, floating point, and symbol data types. Special
 compound data types.}
 
 This chapter presents such an extension, The Head Order Reduction Language
-(THOR). THOR is a conservative extension of the pure \lambdacalculus, which
+(THOR). THOR is a \emph{conservative extension} of the pure \lambdacalculus, which
 means that all expressions reducible in the pure \lambdacalculus{} are
 reducible in THOR and all expressions that are not reducible in the pure
 \lambdacalculus{} are not reducible in THOR. Like the pure \lambdacalculus,
@@ -61,7 +61,7 @@ A superscript \(\dagger\) means one or more occurrences and a superscript
 \(*\) means zero or more occurrences. A lexical description of each constant
 type is omitted; when a constant is presented, its type will be obvious.
 
-The symbol which is the first component of a structure is called its tag. The
+The symbol which is the first component of a structure is called its \emph{tag}. The
 tag can loosely be thought of as a type identifier; however, this is a bit
 ambiguous because THOR is an untyped language.
 
@@ -72,7 +72,7 @@ to Scheme's~[15] \THOR{define} special form and is written
 s \equiv e
 \]
 where \(s\) is a symbol and \(e\) is a well-formed expression. All of these
-associations together form a definition context within which expressions are
+associations together form a \emph{definition context} within which expressions are
 reduced. The mechanism for defining structure types is similar to CommonLisp's
 [31] \THOR{defstruct} special form, and is written
 \[
@@ -92,7 +92,7 @@ not necessarily hold for THOR because the value of symbolic constants depends
 on the current definition context.} THOR replaces the identifiers of the pure
 \lambdacalculus{} with symbols. Symbols that are within the scope of a
 \THOR{LAMBDA}-binding of the same name are considered to be variables; all other
-symbols are considered to be symbolic constants. It may appear that this results
+symbols are considered to be \emph{symbolic constants}. It may appear that this results
 in some loss of expressive power, but that is really not the case. Through the
 use of \(\equiv\), symbolic constants perform the same role as free variables (i.e.,
 they are identifiers for some expression known only in a larger scope).
@@ -101,7 +101,7 @@ they are identifiers for some expression known only in a larger scope).
 
 \subsection{Configurations}
 
-The semantics of THOR are presented in terms of configurations, which are
+The semantics of THOR are presented in terms of \emph{configurations}, which are
 5-tuples describing the state of an abstract machine which reduces THOR
 expressions. Configuration tuples are of the form
 \[
@@ -122,13 +122,13 @@ configuration and may decrease in value during reduction. The initial expression
 \(e\) is supplied by the user as well.
 
 The mappings \(\delta\) and \(\rho\) are partial functions which are made
-complete by extending them to return the value bottom (\(\bot\)) everywhere they
+complete by extending them to return the value \emph{bottom} (\(\bot\)) everywhere they
 are undefined. If \(\delta\) is applied to a symbol which does not have an
 associated definition, \(\bot\) is returned. Likewise, if the index supplied to
 \(\rho\) exceeds the number of entries in the redex store, \(\bot\) is returned.
 
 The number of contractions initially allowed by the user, \(q\), shall be
-referred to as the quantum. When this number is exhausted (i.e., \(q=0\)), I
+referred to as the \emph{quantum}. When this number is exhausted (i.e., \(q=0\)), I
 shall say the quantum has \emph{expired}. (Quantum is an operating systems term
 for the amount of time a process is allowed to run before it is swapped out of
 the CPU by the scheduler. It seems an appropriate name for the remaining
@@ -144,9 +144,9 @@ another. For instance, the rule
      {x\in \Int}
 \]
 specifies that integers reduce to themselves. The \(\redsto\) symbol is
-pronounced as ``reduces to.'' A reduction rule consists of a conclusion (the
-reduction above the line), zero or more premises (any reductions below the
-line), and zero or more application conditions (also below the line). The
+pronounced as ``reduces to.'' A reduction rule consists of a \emph{conclusion} (the
+reduction above the line), zero or more \emph{premises} (any reductions below the
+line), and zero or more \emph{application conditions} (also below the line). The
 conclusion is valid if all premises are valid and all application conditions are
 satisfied.
 
@@ -196,7 +196,7 @@ that
 is a valid computation. If the reduction rules correctly implement the
 \lambdacalculus, the above implies that under definition context \(\delta\),
 \[
-e\longrightarrow e'
+e\overset{*}{\longrightarrow} e'
 \]
 after \(q-q'\) contractions. The interpreter proceeds by selecting a reduction
 rule with a conclusion whose left hand side matches the current configuration
