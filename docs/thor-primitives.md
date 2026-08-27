@@ -170,6 +170,43 @@ They are not all present today.
 - Field access by index.
 - Better diagnostics for applying the wrong accessor to a structure.
 
+## Simulator IO Actions
+
+`thor-spec --io` runs the final top-level expression as a host-simulated IO
+action. Pure `thor`/`red2` execution is unchanged unless `--io` is explicitly
+passed.
+
+IO mode reserves stdout for simulated UART output. The CLI prints the final IO
+action result and device diagnostics to stderr so stdout can be piped as a byte
+stream.
+
+### IO Combinators
+
+- `IO-RETURN` — lift a pure THOR value into an IO action.
+- `IO-BIND` — sequence an action and pass its result to a unary lambda that
+  returns the next action.
+- `IO-THEN` — sequence two actions, discarding the first result.
+
+Example:
+
+```lisp
+(IO-BIND (UART-RX)
+  (LAMBDA (byte)
+    (UART-TX byte)))
+```
+
+### Simulated Device Actions
+
+- `UART-RX` — read one byte/character from stdin and return its integer code, or
+  `NIL` at EOF.
+- `UART-TX` — write one integer byte to stdout and return `NIL`.
+- `LEDS` — write an LED-bank diagnostic line to stderr and return `NIL`.
+- `TICKS` — return a deterministic simulator tick counter.
+
+The surface API hides explicit world-token threading. Internally these actions
+should be understood as the simulator-facing equivalent of world-transforming
+operations; future FPGA work can lower them to UART, LED, and timer ports.
+
 ### Error and Undefined-Value Semantics
 
 - A deliberate `ERROR` or `BOTTOM` value.

@@ -60,8 +60,20 @@ uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
 diverge. It reports each mismatch range with the THOR/RED2 expressions at that
 range's first quantum and the range's reconvergence point, if any. It exits 0
 when the final quantum matches and exits 1 when the final quantum still differs.
+
+Run the final expression as a simulated IO action, with UART bytes on stdout and
+diagnostics on stderr:
+
+```sh
+printf A | uv run thor-spec --io --model thor \
+  --expr "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"
+# stdout: A
+# stderr: io result: NIL
+```
+
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
-it can be compared directly in scripts.
+it can be compared directly in scripts outside IO mode, and remains UART-only in
+IO mode.
 
 ## Useful Commands
 

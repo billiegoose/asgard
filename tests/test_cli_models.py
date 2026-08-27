@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pytest import CaptureFixture
+from io import StringIO
+
+from pytest import CaptureFixture, MonkeyPatch
 
 from thor_spec.cli import main
 
@@ -76,6 +78,41 @@ def test_cli_parity_model_exits_one_when_final_snapshot_mismatches(
     assert "parity mismatch at quantum 3" in captured.err
     assert "parity did not reconverge by quantum 3" in captured.err
     assert "parity final quantum 3 mismatched" in captured.err
+
+
+def test_cli_io_mode_uses_stdout_for_uart_and_stderr_for_result(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["--io", "--model", "thor", "--expr", "(UART-TX 65)"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "A"
+    assert captured.err == "io result: NIL\n"
+
+
+def test_cli_io_mode_reads_uart_from_stdin(
+    capsys: CaptureFixture[str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sys.stdin", StringIO("B"))
+
+    assert main(
+        [
+            "--io",
+            "--model",
+            "red2",
+            "--expr",
+            "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))",
+        ]
+    ) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "B"
+    assert captured.err == "io result: NIL\n"
+
+
+def test_cli_io_mode_rejects_parity_model(capsys: CaptureFixture[str]) -> None:
+    assert main(["--io", "--model", "parity", "--expr", "(UART-TX 65)"]) == 2
+    captured = capsys.readouterr()
+    assert "--io supports only --model thor or --model red2" in captured.err
 
 
 def test_cli_parity_model_rejects_negative_quantum(

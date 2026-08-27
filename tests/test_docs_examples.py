@@ -23,3 +23,6 @@ def test_readme_links_primitive_reference() -> None:
     primitive_reference = Path("docs/thor-primitives.md").read_text()
     assert "Current Primitives" in primitive_reference
     assert "Future Primitive Candidates" in primitive_reference
+    assert "Simulator IO Actions" in primitive_reference
+    assert "UART-RX" in primitive_reference
+    assert "UART-TX" in primitive_reference

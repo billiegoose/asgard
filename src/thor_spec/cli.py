@@ -7,6 +7,7 @@ from typing import TextIO
 
 from thor_spec import __version__
 from thor_spec.golden import DEFAULT_QUANTUM, ModelName, run_source
+from thor_spec.io_runtime import run_io_source
 from thor_spec.lockstep import ParityResult, compare_prefixes
 from thor_spec.parser import ParseError
 
@@ -41,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="write deterministic trace metadata to stderr",
     )
+    parser.add_argument(
+        "--io",
+        action="store_true",
+        help="run the final expression as a simulated IO action",
+    )
     return parser
 
 
@@ -53,6 +59,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
+        if args.io:
+            return _run_io(source, model_value=args.model, quantum=args.quantum)
         if args.model == "parity":
             return _run_parity(source, quantum=args.quantum)
         model = _model_name(args.model)
@@ -71,6 +79,26 @@ def main(argv: list[str] | None = None) -> int:
         )
     if output:
         print(output)
+    return 0
+
+
+def _run_io(source: str, *, model_value: object, quantum: int) -> int:
+    if model_value == "parity":
+        print(
+            "thor-spec: --io supports only --model thor or --model red2",
+            file=sys.stderr,
+        )
+        return 2
+    model = _model_name(model_value)
+    result = run_io_source(
+        source,
+        model=model,
+        quantum=quantum,
+        stdin=sys.stdin,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+    print(f"io result: {result}", file=sys.stderr)
     return 0
 
 
