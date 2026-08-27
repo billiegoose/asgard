@@ -12,6 +12,7 @@ def run_io(
     *,
     stdin_text: str = "",
     model: ModelName = "thor",
+    quantum: int = 100,
 ) -> tuple[str, str, str]:
     stdin = StringIO(stdin_text)
     stdout = StringIO()
@@ -19,7 +20,7 @@ def run_io(
     result = run_io_source(
         source,
         model=model,
-        quantum=100,
+        quantum=quantum,
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
@@ -114,4 +115,44 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     )
     assert red2_result == result
     assert red2_stdout == stdout
+    assert red2_stderr == stderr
+
+
+def test_hangman_fixture_wins_with_all_word_letters() -> None:
+    source = Path("examples/hangman.thor").read_text()
+
+    result, stdout, stderr = run_io(source, stdin_text="ASGRD", quantum=1000)
+
+    assert result == "NIL"
+    assert "WIN\n" in stdout
+    assert stderr == ""
+
+    red2_result, red2_stdout, red2_stderr = run_io(
+        source,
+        stdin_text="ASGRD",
+        model="red2",
+        quantum=1000,
+    )
+    assert red2_result == result
+    assert "WIN\n" in red2_stdout
+    assert red2_stderr == stderr
+
+
+def test_hangman_fixture_loses_after_three_misses() -> None:
+    source = Path("examples/hangman.thor").read_text()
+
+    result, stdout, stderr = run_io(source, stdin_text="xyzuvw", quantum=1000)
+
+    assert result == "NIL"
+    assert "LOSE\n" in stdout
+    assert stderr == ""
+
+    red2_result, red2_stdout, red2_stderr = run_io(
+        source,
+        stdin_text="xyzuvw",
+        model="red2",
+        quantum=1000,
+    )
+    assert red2_result == result
+    assert "LOSE\n" in red2_stdout
     assert red2_stderr == stderr

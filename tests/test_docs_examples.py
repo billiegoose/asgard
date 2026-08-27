@@ -44,3 +44,17 @@ def test_top_level_examples_are_canonical() -> None:
     assert "examples/uart-caesar-plus4.thor" in readme
     assert "vscode-thor/examples/uart-caesar-plus4.thor" not in readme
     assert "rot-upper ==" in caesar
+
+
+def test_hangman_example_documents_utility_sections() -> None:
+    readme = Path("README.md").read_text()
+    hangman = Path("examples/hangman.thor").read_text()
+
+    assert "examples/hangman.thor" in readme
+    for section in [
+        "; --- constants ---",
+        "; --- UART text utilities ---",
+        "; --- Hangman rendering ---",
+        "; --- game loop ---",
+    ]:
+        assert section in hangman

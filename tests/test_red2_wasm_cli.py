@@ -139,3 +139,35 @@ def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
     assert result.stdout == "efgBCD!"
     assert "io result: NIL" in result.stderr
     assert "red2 result:" not in result.stderr
+
+
+def test_rust_red2_vm_io_runs_hangman_win_path(tmp_path: Path) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
+
+    result = run_rust_vm(
+        bytecode,
+        quantum=1000,
+        io_mode=True,
+        stdin="ASGRD",
+    )
+
+    assert result.returncode == 0
+    assert "WIN\n" in result.stdout
+    assert "io result: NIL" in result.stderr
+    assert "red2 result:" not in result.stderr
+
+
+def test_rust_red2_vm_io_runs_hangman_three_miss_lose_path(tmp_path: Path) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
+
+    result = run_rust_vm(
+        bytecode,
+        quantum=1000,
+        io_mode=True,
+        stdin="xyzuvw",
+    )
+
+    assert result.returncode == 0
+    assert "LOSE\n" in result.stdout
+    assert "io result: NIL" in result.stderr
+    assert "red2 result:" not in result.stderr

@@ -153,8 +153,17 @@ cargo build -p red2-wasm --target wasm32-wasi
 printf 'abcXYZ!\033' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/caesar.red2 --io
 ```
 
-In IO mode, stdout is the simulated UART byte stream (`efgBCD!` for the example
-above). Final IO diagnostics such as `io result: NIL` are written to stderr.
+Run the Hangman example:
+
+```sh
+uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
+printf 'ASGRD' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 1000
+printf 'ASGRD' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/hangman.red2 --io --quantum 1000
+```
+
+In IO mode, stdout is the simulated UART byte stream (`efgBCD!` for the Caesar
+example above, or rendered game text for Hangman). Final IO diagnostics such as
+`io result: NIL` are written to stderr.
 
 Next VM milestones:
 

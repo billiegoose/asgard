@@ -18,7 +18,7 @@
 - Completion notification uses `afplay /System/Library/Sounds/Glass.aiff` after fresh verification.
 - Keep final gates green: `cargo test -p red2-wasm`, `uv run pytest`, `uv run ruff check .`, `uv run mypy src tests`.
 
-**Acceptance:** suite — `examples/hangman.thor` wins with input `ASGRD`, loses with input `xyzuvw`, runs through native Rust bytecode, and runs through Wasmtime bytecode with UART output on stdout.
+**Acceptance:** suite — `examples/hangman.thor` wins with input `ASGRD`, loses after three misses with input `xyzuvw`, runs through native Rust bytecode, and runs through Wasmtime bytecode with UART output on stdout.
 
 ---
 
@@ -40,7 +40,7 @@
 **Parallelization rationale:** The THOR fixture and Python IO acceptance can be developed independently of Rust-specific integration tests.
 
 - [ ] Add failing `tests/test_io_runtime.py` test that reads `examples/hangman.thor`, feeds `ASGRD`, and asserts stdout contains `WIN\n` for both `model="thor"` and `model="red2"`.
-- [ ] Add failing `tests/test_io_runtime.py` test that feeds `xyzuvw` and asserts stdout contains `LOSE\n` for both models.
+- [ ] Add failing `tests/test_io_runtime.py` test that feeds `xyzuvw` and asserts stdout contains `LOSE\n` after three misses for both models.
 - [ ] Add failing docs/examples test that asserts README mentions `examples/hangman.thor` and the file has utility section comments.
 - [ ] Create `examples/hangman.thor` with constants, helpers, render functions, update helpers, `loop`, and top-level action.
 - [ ] Run `uv run pytest tests/test_io_runtime.py tests/test_docs_examples.py -v`.
@@ -66,7 +66,7 @@
 Only modify `red2-wasm/src/vm.rs` if Hangman exposes a real missing runtime behavior.
 
 - [ ] Add failing pytest that compiles `examples/hangman.thor`, runs native Rust CLI with `--io`, input `ASGRD`, and asserts stdout contains `WIN\n` and stderr contains `io result: NIL`.
-- [ ] Add failing pytest that compiles `examples/hangman.thor`, runs native Rust CLI with `--io`, input `xyzuvw`, and asserts stdout contains `LOSE\n` and stderr contains `io result: NIL`.
+- [ ] Add failing pytest that compiles `examples/hangman.thor`, runs native Rust CLI with `--io`, input `xyzuvw`, and asserts stdout contains `LOSE\n` after three misses and stderr contains `io result: NIL`.
 - [ ] If a test fails because Rust lacks a primitive/control form that the Python models handle, add the smallest Rust VM support and rerun the focused failing test.
 - [ ] Run `cargo test -p red2-wasm` and `uv run pytest tests/test_red2_wasm_cli.py -v`.
 

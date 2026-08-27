@@ -217,6 +217,8 @@ Example fixtures:
 - `examples/uart-caesar-plus4.thor` continually reads bytes, rotates
   letters by +4, echoes non-letters unchanged, and stops when it reads ESC
   (`27`). Ctrl-C stops the host process.
+- `examples/hangman.thor` runs a small fixed-word Hangman game over UART. It
+  prints `WIN` when `ASGARD` has been guessed and `LOSE` after three misses.
 
 Run them with `thor-spec --io --model thor` or `thor-spec --io --model red2`.
 

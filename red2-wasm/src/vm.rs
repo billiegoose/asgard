@@ -11,6 +11,7 @@ pub enum Expr {
     Var(usize, Option<String>),
     Lambda(Vec<String>, Box<Expr>),
     App(Vec<Expr>),
+    Closure(Box<Expr>, Vec<Expr>),
 }
 
 impl Expr {
@@ -25,6 +26,7 @@ impl Expr {
             Expr::Lambda(params, body) => {
                 format!("(LAMBDA ({}) {})", params.join(" "), body.to_source())
             }
+            Expr::Closure(expr, _) => expr.to_source(),
             Expr::App(items) => {
                 let inner = items
                     .iter()
@@ -180,15 +182,22 @@ struct Reducer<'a> {
 impl Reducer<'_> {
     fn reduce(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
         match expr {
-            Expr::Var(index, _) => Ok(env.get(index).cloned().unwrap_or(Expr::Var(index, None))),
-            Expr::Symbol(name) => self.resolve_symbol(name, env),
+            Expr::Var(index, _) => match env.get(index) {
+                Some(Expr::Closure(expr, captured_env)) => {
+                    self.reduce((**expr).clone(), captured_env)
+                }
+                Some(value) => self.reduce(value.clone(), env),
+                None => Ok(Expr::Var(index, None)),
+            },
+            Expr::Closure(expr, captured_env) => self.reduce(*expr, &captured_env),
+            Expr::Symbol(name) => self.resolve_symbol(name),
             Expr::App(items) => self.reduce_app(items, env),
             Expr::Lambda(params, body) => Ok(Expr::Lambda(params, body)),
             value => Ok(value),
         }
     }
 
-    fn resolve_symbol(&mut self, name: String, env: &[Expr]) -> Result<Expr, Red2Error> {
+    fn resolve_symbol(&mut self, name: String) -> Result<Expr, Red2Error> {
         if let Some(bundle) = self.bundle {
             if let Some(program) = bundle.definition(&name) {
                 if self.remaining == 0 {
@@ -196,7 +205,7 @@ impl Reducer<'_> {
                 }
                 self.contract();
                 let mut parser = Parser { program };
-                return self.reduce(parser.parse(program.entry as usize)?, env);
+                return self.reduce(parser.parse(program.entry as usize)?, &[]);
             }
         }
         Ok(Expr::Symbol(name))
@@ -218,20 +227,31 @@ impl Reducer<'_> {
         }
         if let Expr::Lambda(params, body) = operator.clone() {
             if !params.is_empty() && !args.is_empty() && self.remaining > 0 {
-                self.contract();
-                let bound_arg = self.reduce(args[0].clone(), env)?;
-                let mut next_env = vec![bound_arg];
+                let bind_count = params.len().min(args.len()).min(self.remaining as usize);
+                if bind_count == 0 {
+                    return Ok(Expr::App(items));
+                }
+                for _ in 0..bind_count {
+                    self.contract();
+                }
+                let mut next_env = Vec::with_capacity(bind_count + env.len());
+                for arg in &args[..bind_count] {
+                    next_env.push(self.reduce(arg.clone(), env)?);
+                }
                 next_env.extend_from_slice(env);
-                let reduced = if params.len() == 1 {
+                let reduced = if bind_count == params.len() {
                     self.reduce(*body, &next_env)?
                 } else {
-                    Expr::Lambda(params[1..].to_vec(), body)
+                    Expr::Closure(
+                        Box::new(Expr::Lambda(params[bind_count..].to_vec(), body)),
+                        next_env,
+                    )
                 };
-                if args.len() == 1 {
+                if bind_count == args.len() {
                     return Ok(reduced);
                 }
                 let mut next_items = vec![reduced];
-                next_items.extend_from_slice(&args[1..]);
+                next_items.extend_from_slice(&args[bind_count..]);
                 return self.reduce(Expr::App(next_items), env);
             }
         }
@@ -341,9 +361,13 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
     fn run_action(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
         match expr {
             Expr::Var(index, _) => match env.get(index) {
+                Some(Expr::Closure(expr, captured_env)) => {
+                    self.run_action((**expr).clone(), captured_env)
+                }
                 Some(value) => self.run_action(value.clone(), env),
                 None => Err(Red2Error(format!("unbound IO variable: {index}"))),
             },
+            Expr::Closure(expr, captured_env) => self.run_action(*expr, &captured_env),
             Expr::Symbol(name) => {
                 if name == "UART-RX" {
                     let mut byte = [0u8; 1];
@@ -362,7 +386,7 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
                     .and_then(|bundle| bundle.definition(&name))
                 {
                     let mut parser = Parser { program };
-                    return self.run_action(parser.parse(program.entry as usize)?, env);
+                    return self.run_action(parser.parse(program.entry as usize)?, &[]);
                 }
                 Err(Red2Error(format!("not an IO action: {name}")))
             }
@@ -444,7 +468,7 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
             }
             let mut next_env = Vec::with_capacity(args.len() + env.len());
             for arg in args {
-                next_env.push(self.reducer.reduce(arg.clone(), env)?);
+                next_env.push(Expr::Closure(Box::new(arg.clone()), env.to_vec()));
             }
             next_env.extend_from_slice(env);
             return self.run_action(*body, &next_env);
