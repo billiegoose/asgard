@@ -146,28 +146,31 @@ def test_rust_red2_vm_io_runs_hangman_win_path(tmp_path: Path) -> None:
 
     result = run_rust_vm(
         bytecode,
-        quantum=1000,
+        quantum=2000,
         io_mode=True,
         stdin="ASGRD",
     )
 
     assert result.returncode == 0
+    assert "GUESS LETTERS; ESC QUITS\n" in result.stdout
+    assert "HIT\n" in result.stdout
     assert "WIN\n" in result.stdout
     assert "io result: NIL" in result.stderr
     assert "red2 result:" not in result.stderr
 
 
-def test_rust_red2_vm_io_runs_hangman_three_miss_lose_path(tmp_path: Path) -> None:
+def test_rust_red2_vm_io_runs_hangman_six_miss_lose_path(tmp_path: Path) -> None:
     bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
 
     result = run_rust_vm(
         bytecode,
-        quantum=1000,
+        quantum=2000,
         io_mode=True,
         stdin="xyzuvw",
     )
 
     assert result.returncode == 0
+    assert result.stdout.count("MISS\n") == 6
     assert "LOSE\n" in result.stdout
     assert "io result: NIL" in result.stderr
     assert "red2 result:" not in result.stderr

@@ -38,9 +38,10 @@ The UART protocol is deterministic and script-friendly:
 7. Non-matching guesses increment misses.
 8. Repeat.
 
-The first implementation is a short three-miss game so Rust VM integration tests
-stay fast. For canned input `ASGRD`, stdout should contain a final `WIN\n`. For
-canned input `xyzuvw`, stdout should contain a final `LOSE\n`.
+The implementation allows six misses. For canned input `ASGRD`, stdout should
+contain instructions, `HIT\n` feedback, and a final `WIN\n`. For canned input
+`xyzuvw`, stdout should contain six `MISS\n` feedback lines and a final
+`LOSE\n`.
 
 ## Utility Style
 

@@ -121,9 +121,11 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
 def test_hangman_fixture_wins_with_all_word_letters() -> None:
     source = Path("examples/hangman.thor").read_text()
 
-    result, stdout, stderr = run_io(source, stdin_text="ASGRD", quantum=1000)
+    result, stdout, stderr = run_io(source, stdin_text="ASGRD", quantum=1500)
 
     assert result == "NIL"
+    assert "GUESS LETTERS; ESC QUITS\n" in stdout
+    assert "HIT\n" in stdout
     assert "WIN\n" in stdout
     assert stderr == ""
 
@@ -131,19 +133,22 @@ def test_hangman_fixture_wins_with_all_word_letters() -> None:
         source,
         stdin_text="ASGRD",
         model="red2",
-        quantum=1000,
+        quantum=1500,
     )
     assert red2_result == result
+    assert "GUESS LETTERS; ESC QUITS\n" in red2_stdout
+    assert "HIT\n" in red2_stdout
     assert "WIN\n" in red2_stdout
     assert red2_stderr == stderr
 
 
-def test_hangman_fixture_loses_after_three_misses() -> None:
+def test_hangman_fixture_loses_after_six_misses() -> None:
     source = Path("examples/hangman.thor").read_text()
 
-    result, stdout, stderr = run_io(source, stdin_text="xyzuvw", quantum=1000)
+    result, stdout, stderr = run_io(source, stdin_text="xyzuvw", quantum=1500)
 
     assert result == "NIL"
+    assert stdout.count("MISS\n") == 6
     assert "LOSE\n" in stdout
     assert stderr == ""
 
@@ -151,8 +156,9 @@ def test_hangman_fixture_loses_after_three_misses() -> None:
         source,
         stdin_text="xyzuvw",
         model="red2",
-        quantum=1000,
+        quantum=1500,
     )
     assert red2_result == result
+    assert red2_stdout.count("MISS\n") == 6
     assert "LOSE\n" in red2_stdout
     assert red2_stderr == stderr

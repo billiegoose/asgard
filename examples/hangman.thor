@@ -15,7 +15,7 @@ ESC == 27
 NL == 10
 SPACE == 32
 UNDERSCORE == 95
-MAX-MISSES == 3
+MAX-MISSES == 6
 
 ; --- boolean and state utilities ---
 win? == (lambda (known-a known-s known-g known-r known-d)
@@ -83,6 +83,16 @@ emit-6 == (lambda (a b c d e f next)
             (IO-THEN (UART-TX f)
               next)))))))
 
+emit-7 == (lambda (a b c d e f g next)
+  (IO-THEN (UART-TX a)
+    (IO-THEN (UART-TX b)
+      (IO-THEN (UART-TX c)
+        (IO-THEN (UART-TX d)
+          (IO-THEN (UART-TX e)
+            (IO-THEN (UART-TX f)
+              (IO-THEN (UART-TX g)
+                next))))))))
+
 emit-newline == (lambda (next)
   (IO-THEN (UART-TX NL) next))
 
@@ -92,6 +102,24 @@ emit-known == (lambda (known byte next)
       (IO-THEN (UART-TX UNDERSCORE) next)))
 
 ; --- Hangman rendering ---
+emit-instructions == (lambda (next)
+  (emit-6 71 85 69 83 83 SPACE
+    (emit-7 76 69 84 84 69 82 83
+      (emit-6 59 SPACE 69 83 67 SPACE
+        (emit-5 81 85 73 84 83
+          (emit-newline next))))))
+
+emit-hit == (lambda (next)
+  (emit-4 72 73 84 NL next))
+
+emit-miss == (lambda (next)
+  (emit-5 77 73 83 83 NL next))
+
+emit-feedback == (lambda (guess next)
+  (if (hit? guess)
+      (emit-hit next)
+      (emit-miss next)))
+
 emit-title == (lambda (next)
   (emit-6 72 65 78 71 58 SPACE next))
 
@@ -130,15 +158,19 @@ loop == (lambda (known-a known-s known-g known-r known-d misses ignored)
             (LAMBDA (guess)
               (if (= guess ESC)
                   (IO-RETURN NIL)
-                  (loop (known-a-after known-a guess)
-                        (known-s-after known-s guess)
-                        (known-g-after known-g guess)
-                        (known-r-after known-r guess)
-                        (known-d-after known-d guess)
-                        (misses-after misses guess)
-                        NIL)))))))
+                  (IO-THEN
+                    (emit-feedback guess (IO-RETURN NIL))
+                    (loop (known-a-after known-a guess)
+                          (known-s-after known-s guess)
+                          (known-g-after known-g guess)
+                          (known-r-after known-r guess)
+                          (known-d-after known-d guess)
+                          (misses-after misses guess)
+                          NIL))))))))
 
 ; --- top-level action ---
 (IO-THEN
-  (render FALSE FALSE FALSE FALSE FALSE 0 (IO-RETURN NIL))
-  (loop FALSE FALSE FALSE FALSE FALSE 0 NIL))
+  (emit-instructions (IO-RETURN NIL))
+  (IO-THEN
+    (render FALSE FALSE FALSE FALSE FALSE 0 (IO-RETURN NIL))
+    (loop FALSE FALSE FALSE FALSE FALSE 0 NIL)))
