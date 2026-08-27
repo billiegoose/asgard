@@ -116,6 +116,20 @@ class _IoRuntime:
             raise IoRuntimeError(msg)
         name = action.items[0].name
         args = action.items[1:]
+        if name == "IF" and len(args) == 3:
+            condition = self._pure(args[0])
+            if isinstance(condition, Symbol) and condition.name == "TRUE":
+                return self.run(args[1])
+            if isinstance(condition, Symbol) and condition.name == "FALSE":
+                return self.run(args[2])
+            msg = (
+                "IO IF condition did not reduce to TRUE or FALSE: "
+                f"{to_source(condition)}"
+            )
+            raise IoRuntimeError(msg)
+        definition = self._definitions.get(name)
+        if isinstance(definition, Lambda):
+            return self.run(_apply_lambda(definition, args))
         if name == "IO-RETURN" and len(args) == 1:
             return self._pure(args[0])
         if name == "IO-BIND" and len(args) == 2:
@@ -178,6 +192,16 @@ def _apply_unary_lambda(expr: Expr, value: Expr) -> Expr:
         msg = f"IO-BIND expects a unary lambda, got {to_source(expr)}"
         raise IoRuntimeError(msg)
     return _substitute(expr.body, expr.params[0], value)
+
+
+def _apply_lambda(expr: Lambda, args: tuple[Expr, ...]) -> Expr:
+    if len(args) != len(expr.params):
+        msg = f"expected {len(expr.params)} argument(s), got {len(args)}"
+        raise IoRuntimeError(msg)
+    body = expr.body
+    for name, value in zip(expr.params, args, strict=True):
+        body = _substitute(body, name, value)
+    return body
 
 
 def _substitute(expr: Expr, name: str, value: Expr) -> Expr:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
 from math import ceil, floor
-from operator import add, mul, sub, truediv
+from operator import add, mod, mul, sub, truediv
 from typing import Protocol
 
 from thor_spec.ast import (
@@ -268,7 +268,7 @@ def _reduce_type_predicate(
 
 
 def _apply_binary(name: str, left: Expr, right: Expr) -> Expr | None:
-    if name in {"+", "-", "*", "/", "<", ">"}:
+    if name in {"+", "-", "*", "/", "<", ">", "<=", ">=", "MOD"}:
         if not isinstance(left, Integer | Float) or not isinstance(
             right, Integer | Float
         ):
@@ -277,6 +277,14 @@ def _apply_binary(name: str, left: Expr, right: Expr) -> Expr | None:
             return TRUE if left.value < right.value else FALSE
         if name == ">":
             return TRUE if left.value > right.value else FALSE
+        if name == "<=":
+            return TRUE if left.value <= right.value else FALSE
+        if name == ">=":
+            return TRUE if left.value >= right.value else FALSE
+        if name == "MOD":
+            if isinstance(left, Integer) and isinstance(right, Integer):
+                return Integer(mod(left.value, right.value))
+            return None
         if name == "/":
             value = truediv(left.value, right.value)
             if (
@@ -404,11 +412,14 @@ _BINARY_PRIMITIVES = {
     "/",
     "<",
     ">",
+    "<=",
+    ">=",
     "=",
     "CONS",
     "EQUAL?",
     "EXPT",
     "MAX",
     "MIN",
+    "MOD",
 }
 _TYPE_PREDICATES = {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "STRUCTURE?"}

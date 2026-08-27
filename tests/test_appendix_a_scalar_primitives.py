@@ -19,6 +19,11 @@ def test_appendix_a_numeric_primitives_match() -> None:
         "(max 3 9)": "9",
         "(min 3 9)": "3",
         "(even? 8)": "TRUE",
+        "(<= 3 3)": "TRUE",
+        "(<= 4 3)": "FALSE",
+        "(>= 4 3)": "TRUE",
+        "(>= 2 3)": "FALSE",
+        "(mod 29 26)": "3",
     }
     for source, expected in cases.items():
         assert both(source) == (expected, expected)

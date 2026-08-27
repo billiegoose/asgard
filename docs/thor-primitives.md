@@ -56,6 +56,7 @@ not shadowed by a local binder.
 - `EXPT` — exponentiation.
 - `MAX` — numeric maximum.
 - `MIN` — numeric minimum.
+- `MOD` — integer modulo.
 
 Integer arithmetic preserves integer results where the implementation can do so;
 otherwise numeric operations may produce floating-point values.
@@ -64,6 +65,8 @@ otherwise numeric operations may produce floating-point values.
 
 - `<` — numeric less-than.
 - `>` — numeric greater-than.
+- `<=` — numeric less-than-or-equal.
+- `>=` — numeric greater-than-or-equal.
 - `=` — equality for constants.
 - `EQUAL?` — structural/alpha equality for THOR expressions.
 
@@ -140,9 +143,9 @@ They are not all present today.
 
 ### Numeric Completeness
 
-- `<=`, `>=`, `/=`, or `NOT=` comparisons.
+- `/=`, or `NOT=` comparisons.
 - `ZERO?`, `POSITIVE?`, `NEGATIVE?`, `ODD?`.
-- `MOD`, `QUOTIENT`, `REMAINDER`.
+- `QUOTIENT`, `REMAINDER`.
 - More explicit integer/float coercions.
 - Safer division behavior or documented divide-by-zero semantics.
 
@@ -206,6 +209,16 @@ Example:
 The surface API hides explicit world-token threading. Internally these actions
 should be understood as the simulator-facing equivalent of world-transforming
 operations; future FPGA work can lower them to UART, LED, and timer ports.
+
+Example fixtures:
+
+- `vscode-thor/examples/uart-alphanumerics.thor` prints `0-9`, `A-Z`, `a-z`,
+  and a newline, then stops.
+- `vscode-thor/examples/uart-caesar-plus4.thor` continually reads bytes, rotates
+  letters by +4, echoes non-letters unchanged, and stops when it reads ESC
+  (`27`). Ctrl-C stops the host process.
+
+Run them with `thor-spec --io --model thor` or `thor-spec --io --model red2`.
 
 ### Error and Undefined-Value Semantics
 

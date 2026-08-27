@@ -1,17 +1,24 @@
 from __future__ import annotations
 
 from io import StringIO
+from pathlib import Path
 
+from thor_spec.golden import ModelName
 from thor_spec.io_runtime import run_io_source
 
 
-def run_io(source: str, *, stdin_text: str = "") -> tuple[str, str, str]:
+def run_io(
+    source: str,
+    *,
+    stdin_text: str = "",
+    model: ModelName = "thor",
+) -> tuple[str, str, str]:
     stdin = StringIO(stdin_text)
     stdout = StringIO()
     stderr = StringIO()
     result = run_io_source(
         source,
-        model="thor",
+        model=model,
         quantum=100,
         stdin=stdin,
         stdout=stdout,
@@ -74,3 +81,37 @@ def test_io_actions_can_be_named_by_top_level_definition() -> None:
     assert result == "NIL"
     assert stdout == "!!"
     assert stderr == ""
+
+
+def test_alphanumerics_fixture_prints_digits_letters_and_newline() -> None:
+    source = Path("vscode-thor/examples/uart-alphanumerics.thor").read_text()
+
+    result, stdout, stderr = run_io(source)
+
+    assert result == "NIL"
+    assert stdout == "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"
+    assert stderr == ""
+
+    red2_result, red2_stdout, red2_stderr = run_io(source, model="red2")
+    assert red2_result == result
+    assert red2_stdout == stdout
+    assert red2_stderr == stderr
+
+
+def test_caesar_fixture_rotates_letters_until_escape() -> None:
+    source = Path("vscode-thor/examples/uart-caesar-plus4.thor").read_text()
+
+    result, stdout, stderr = run_io(source, stdin_text="ABYZabyz-09\x1bignored")
+
+    assert result == "NIL"
+    assert stdout == "EFCDefcd-09"
+    assert stderr == ""
+
+    red2_result, red2_stdout, red2_stderr = run_io(
+        source,
+        stdin_text="ABYZabyz-09\x1bignored",
+        model="red2",
+    )
+    assert red2_result == result
+    assert red2_stdout == stdout
+    assert red2_stderr == stderr

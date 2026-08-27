@@ -69,6 +69,8 @@ printf A | uv run thor-spec --io --model thor \
   --expr "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"
 # stdout: A
 # stderr: io result: NIL
+
+uv run thor-spec --io --model thor --file vscode-thor/examples/uart-alphanumerics.thor
 ```
 
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so

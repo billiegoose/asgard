@@ -35,6 +35,8 @@ _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "/": 2,
     "<": 2,
     ">": 2,
+    "<=": 2,
+    ">=": 2,
     "=": 2,
     "EQUAL?": 2,
     "1-": 1,
@@ -47,6 +49,7 @@ _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "TAG": 1,
     "CAR": 1,
     "CDR": 1,
+    "MOD": 2,
 }
 _NON_STRICT_SYMBOLS = frozenset({"AND", "OR", "IF", "Y"})
 

@@ -36,6 +36,7 @@ _SYMBOL_ALIASES = {
     "expt": "EXPT",
     "max": "MAX",
     "min": "MIN",
+    "mod": "MOD",
     "even?": "EVEN?",
     "true": "TRUE",
     "false": "FALSE",

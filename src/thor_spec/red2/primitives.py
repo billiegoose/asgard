@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from math import ceil, floor
-from operator import add, mul, sub, truediv
+from operator import add, mod, mul, sub, truediv
 
 from thor_spec.ast import (
     App,
@@ -171,7 +171,7 @@ def _fire_null(arg: Instruction) -> Instruction | None:
 def _fire_binary(
     name: str, left: Instruction, right: Instruction
 ) -> Instruction | None:
-    if name in {"+", "-", "*", "/", "<", ">"}:
+    if name in {"+", "-", "*", "/", "<", ">", "<=", ">=", "MOD"}:
         if left.opcode not in {Opcode.INT, Opcode.FLOAT} or right.opcode not in {
             Opcode.INT,
             Opcode.FLOAT,
@@ -185,6 +185,14 @@ def _fire_binary(
             return TRUE if left.data < right.data else FALSE
         if name == ">":
             return TRUE if left.data > right.data else FALSE
+        if name == "<=":
+            return TRUE if left.data <= right.data else FALSE
+        if name == ">=":
+            return TRUE if left.data >= right.data else FALSE
+        if name == "MOD":
+            if left.opcode is Opcode.INT and right.opcode is Opcode.INT:
+                return Instruction(Opcode.INT, mod(left.data, right.data), head=True)
+            return None
         if name == "/":
             value = truediv(left.data, right.data)
             if (
@@ -302,7 +310,22 @@ class _InstructionReader:
         return Symbol(inst.opcode.name)
 
 
-_BINARY_PRIMITIVES = {"+", "-", "*", "/", "<", ">", "=", "EQUAL?", "EXPT", "MAX", "MIN"}
+_BINARY_PRIMITIVES = {
+    "+",
+    "-",
+    "*",
+    "/",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "=",
+    "EQUAL?",
+    "EXPT",
+    "MAX",
+    "MIN",
+    "MOD",
+}
 _UNARY_PRIMITIVES = {
     "1-",
     "1+",

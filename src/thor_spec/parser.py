@@ -129,6 +129,13 @@ def tokenize(source: str) -> list[Token]:
             index += 2
             column += 2
             continue
+        if source.startswith("<=", index) or source.startswith(">=", index):
+            tokens.append(
+                Token(TokenKind.ATOM, source[index : index + 2], line, column)
+            )
+            index += 2
+            column += 2
+            continue
         if char == "|" and source.startswith("|=", index):
             tokens.append(Token(TokenKind.STRUCTDEF, "|=", line, column))
             index += 2
