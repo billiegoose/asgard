@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import StringIO
+from pathlib import Path
 
 from pytest import CaptureFixture, MonkeyPatch
 
@@ -113,6 +114,36 @@ def test_cli_io_mode_rejects_parity_model(capsys: CaptureFixture[str]) -> None:
     assert main(["--io", "--model", "parity", "--expr", "(UART-TX 65)"]) == 2
     captured = capsys.readouterr()
     assert "--io supports only --model thor or --model red2" in captured.err
+
+
+def test_cli_compile_and_run_red2_bytecode(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "add.red2"
+
+    assert main(["compile-red2", "--expr", "(+ 2 3)", "--output", str(output)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "wrote RED2 bytecode" in captured.err
+    assert output.read_bytes().startswith(b"RED2")
+
+    assert main(["run-red2", "--bytecode", str(output), "--quantum", "20"]) == 0
+    assert capsys.readouterr().out == "5\n"
+
+
+def test_cli_compile_red2_rejects_program_without_expression(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "bad.red2"
+
+    assert (
+        main(["compile-red2", "--expr", "answer == 42", "--output", str(output)])
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "compile-red2 requires a final expression" in captured.err
 
 
 def test_cli_parity_model_rejects_negative_quantum(

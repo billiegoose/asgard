@@ -11,7 +11,9 @@ is checked against THOR with parity tests and a small golden corpus. See
 [`docs/thor-red2-prototype.md`](docs/thor-red2-prototype.md) for thesis
 traceability notes and known omissions. See
 [`docs/thor-primitives.md`](docs/thor-primitives.md) for the current primitive
-surface and candidate future additions.
+surface and candidate future additions. See
+[`docs/red2-bytecode.md`](docs/red2-bytecode.md) for the serializable `.red2`
+bytecode format.
 
 ## Local Setup
 
@@ -81,6 +83,8 @@ IO mode.
 
 ```sh
 uv run thor-spec --help
+uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
+uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 uv run pytest
 uv run ruff check .
 uv run mypy src tests

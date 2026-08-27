@@ -6,10 +6,16 @@ from pathlib import Path
 from typing import TextIO
 
 from thor_spec import __version__
+from thor_spec.ast import Definition, Expr, StructDef
 from thor_spec.golden import DEFAULT_QUANTUM, ModelName, run_source
 from thor_spec.io_runtime import run_io_source
 from thor_spec.lockstep import ParityResult, compare_prefixes
-from thor_spec.parser import ParseError
+from thor_spec.normalization import normalize_program
+from thor_spec.parser import ParseError, parse_program
+from thor_spec.pretty import to_source
+from thor_spec.red2.binary import decode_program_image, encode_program_image
+from thor_spec.red2.compiler import compile_expr
+from thor_spec.red2.machine import Red2Machine
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -51,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "compile-red2":
+        return _compile_red2_command(argv[1:])
+    if argv and argv[0] == "run-red2":
+        return _run_red2_command(argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.expr is None and args.file is None:
@@ -80,6 +91,66 @@ def main(argv: list[str] | None = None) -> int:
     if output:
         print(output)
     return 0
+
+
+def _compile_red2_command(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="thor-spec compile-red2",
+        description="Compile THOR source to a .red2 bytecode image.",
+    )
+    source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument("--expr", help="THOR expression or program source")
+    source_group.add_argument("--file", type=Path, help="path to THOR source")
+    parser.add_argument("--output", type=Path, required=True, help="output .red2 path")
+    args = parser.parse_args(argv)
+    try:
+        source = args.expr if args.expr is not None else args.file.read_text()
+        image = compile_expr(_final_expression(source))
+        args.output.write_bytes(encode_program_image(image))
+    except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
+        print(f"thor-spec: {error}", file=sys.stderr)
+        return 2
+    print(f"wrote RED2 bytecode: {args.output}", file=sys.stderr)
+    return 0
+
+
+def _run_red2_command(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="thor-spec run-red2",
+        description="Run a .red2 bytecode image with the Python RED2 machine.",
+    )
+    parser.add_argument("--bytecode", type=Path, required=True, help="input .red2 path")
+    parser.add_argument(
+        "--quantum",
+        type=int,
+        default=DEFAULT_QUANTUM,
+        help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
+    )
+    args = parser.parse_args(argv)
+    try:
+        image = decode_program_image(args.bytecode.read_bytes())
+        machine = Red2Machine(image, quantum=args.quantum)
+        machine.run()
+        output = to_source(machine.result_expr())
+    except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
+        print(f"thor-spec: {error}", file=sys.stderr)
+        return 2
+    if output:
+        print(output)
+    return 0
+
+
+def _final_expression(source: str) -> Expr:
+    program = normalize_program(parse_program(source))
+    final: Expr | None = None
+    for form in program.forms:
+        if isinstance(form, Definition | StructDef):
+            continue
+        final = form
+    if final is None:
+        msg = "compile-red2 requires a final expression"
+        raise ValueError(msg)
+    return final
 
 
 def _run_io(source: str, *, model_value: object, quantum: int) -> int:
