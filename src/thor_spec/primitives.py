@@ -90,24 +90,11 @@ def _struct_accessor_lambda(
 
 
 def _struct_constructor_names(tag: str) -> tuple[str, ...]:
-    return _unique_names(
-        f"make-{tag}",
-        f"MAKE-{tag}",
-        f"MAKE-{tag.upper()}",
-        f"make-{tag.lower()}",
-    )
+    return (f"make-{tag}",)
 
 
 def _struct_accessor_names(tag: str, accessor: str) -> tuple[str, ...]:
-    return _unique_names(
-        f"{tag}-{accessor}",
-        f"{tag.upper()}-{accessor.upper()}",
-        f"{tag.lower()}-{accessor.lower()}",
-    )
-
-
-def _unique_names(*names: str) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(names))
+    return (f"{tag}-{accessor}",)
 
 
 def try_reduce_primitive(app: App, state: EvalState) -> Expr | None:

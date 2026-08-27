@@ -257,16 +257,7 @@ def _is_nil(inst: Instruction) -> bool:
 
 
 def _struct_accessor_names(tag: str, accessor: str) -> tuple[str, ...]:
-    return tuple(
-        dict.fromkeys(
-            (
-                accessor,
-                f"{tag}-{accessor}",
-                f"{tag.upper()}-{accessor.upper()}",
-                f"{tag.lower()}-{accessor.lower()}",
-            )
-        )
-    )
+    return (accessor, f"{tag}-{accessor}")
 
 
 class _InstructionReader:
