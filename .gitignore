@@ -8,6 +8,7 @@ __pycache__/
 *.py[cod]
 dist/
 build/
+target/
 *.egg-info/
 htmlcov/
 .coverage

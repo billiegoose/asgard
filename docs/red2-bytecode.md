@@ -102,16 +102,36 @@ values      repeated value_count times:
   payload   len UTF-8 bytes
 ```
 
-## Rust/WASM VM Roadmap
+## Rust/WASM VM
 
-The next implementation step should be a Rust crate that can:
+The `red2-wasm/` crate is the first non-Python executor for `.red2` bytecode. It
+currently supports a definition-free subset: literals, simple application,
+strict integer arithmetic/comparison primitives, and simple lambda/beta cases.
+It writes VM result diagnostics to stderr and reserves stdout for future
+UART/device IO.
 
-1. Parse this v1 `.red2` container.
-2. Validate magic, version, section lengths, and CRC32.
-3. Execute the instruction stream with behavior matching the Python RED2 VM for
-   definition-free programs.
-4. Compile to WASM so browser tooling and hardware-adjacent simulators can share
-   the same executor.
+Native run:
 
-After that, the format can grow a self-contained bundle section for top-level
-THOR definitions and a flash-oriented image layout for FPGA boards.
+```sh
+uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
+cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
+```
+
+WASI/Wasmtime run:
+
+```sh
+rustup target add wasm32-wasi
+cargo build -p red2-wasm --target wasm32-wasi
+wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
+```
+
+Wasmtime requires `--dir /tmp` or another preopened directory to grant the WASI
+module access to `.red2` files.
+
+Next VM milestones:
+
+1. Bundle top-level definition images into the `.red2` container.
+2. Expand Rust VM coverage for structures, `IF`, `Y`, and `LETREC`.
+3. Add simulator UART/LED IO to the Rust/WASM VM while keeping stdout reserved
+   for UART bytes.
+4. Define a flash-oriented image layout for FPGA boards.

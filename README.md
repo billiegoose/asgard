@@ -85,6 +85,9 @@ IO mode.
 uv run thor-spec --help
 uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
 uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
+cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
+cargo build -p red2-wasm --target wasm32-wasi
+wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
 uv run pytest
 uv run ruff check .
 uv run mypy src tests
