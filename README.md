@@ -9,7 +9,9 @@ features.  The Python THOR interpreter is the reference model; the Python RED2
 machine compiles the same source expressions to a linear instruction graph and
 is checked against THOR with parity tests and a small golden corpus. See
 [`docs/thor-red2-prototype.md`](docs/thor-red2-prototype.md) for thesis
-traceability notes and known omissions.
+traceability notes and known omissions. See
+[`docs/thor-primitives.md`](docs/thor-primitives.md) for the current primitive
+surface and candidate future additions.
 
 ## Local Setup
 

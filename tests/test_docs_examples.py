@@ -15,3 +15,11 @@ def test_readme_mentions_both_models() -> None:
     text = Path("README.md").read_text()
     assert "--model thor" in text
     assert "--model red2" in text
+
+
+def test_readme_links_primitive_reference() -> None:
+    text = Path("README.md").read_text()
+    assert "docs/thor-primitives.md" in text
+    primitive_reference = Path("docs/thor-primitives.md").read_text()
+    assert "Current Primitives" in primitive_reference
+    assert "Future Primitive Candidates" in primitive_reference

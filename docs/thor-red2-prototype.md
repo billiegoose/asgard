@@ -11,6 +11,8 @@ The Python THOR interpreter is the executable semantic reference. The Python
 RED2 machine compiles the same THOR expressions into a linear instruction graph
 and is checked against the THOR result. The `pypeline_red2/` artifact is a
 PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
+The current user-visible primitive surface is documented in
+[`thor-primitives.md`](thor-primitives.md).
 
 ## Thesis Traceability
 
