@@ -132,6 +132,24 @@ def test_cli_compile_and_run_red2_bytecode(
     assert capsys.readouterr().out == "5\n"
 
 
+def test_cli_compile_red2_file_bundles_top_level_definitions(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "inc.thor"
+    source.write_text("inc == (lambda (x) (+ x 1))\n(inc 41)\n")
+    output = tmp_path / "inc.red2"
+
+    assert main(["compile-red2", "--file", str(source), "--output", str(output)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "wrote RED2 bytecode" in captured.err
+    assert output.read_bytes()[4:6] == b"\x02\x00"
+
+    assert main(["run-red2", "--bytecode", str(output), "--quantum", "20"]) == 0
+    assert capsys.readouterr().out == "42\n"
+
+
 def test_cli_compile_red2_rejects_program_without_expression(
     capsys: CaptureFixture[str],
     tmp_path: Path,

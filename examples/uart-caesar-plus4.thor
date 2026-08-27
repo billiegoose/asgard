@@ -2,7 +2,7 @@
 ; through unchanged. ESC (byte 27) stops the loop. Ctrl-C stops the host process.
 ;
 ; Run with:
-;   uv run thor-spec --io --model thor --file vscode-thor/examples/uart-caesar-plus4.thor
+;   uv run thor-spec --io --model thor --file examples/uart-caesar-plus4.thor
 
 rot-upper == (lambda (byte)
   (+ 65 (MOD (+ (- byte 65) 4) 26)))

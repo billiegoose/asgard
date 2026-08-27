@@ -30,7 +30,7 @@ def test_simple_cases_match_at_every_prefix_quantum() -> None:
 
 
 def test_fibonacci_example_reports_first_prefix_mismatch() -> None:
-    source = Path("vscode-thor/examples/fibonacci.thor").read_text()
+    source = Path("examples/fibonacci.thor").read_text()
     result = compare_prefixes(source, max_quantum=75)
 
     assert result.first_mismatch is not None

@@ -72,7 +72,18 @@ printf A | uv run thor-spec --io --model thor \
 # stdout: A
 # stderr: io result: NIL
 
-uv run thor-spec --io --model thor --file vscode-thor/examples/uart-alphanumerics.thor
+uv run thor-spec --io --model thor --file examples/uart-alphanumerics.thor
+uv run thor-spec --io --model thor --file examples/uart-caesar-plus4.thor
+```
+
+Run the UART Caesar example on the Rust RED2 VM, keeping stdout reserved for
+UART bytes:
+
+```sh
+uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
+printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
+# stdout: efgBCD!
+# stderr: io result: NIL
 ```
 
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
@@ -88,6 +99,8 @@ uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 cargo build -p red2-wasm --target wasm32-wasi
 wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
+uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
+printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
 uv run pytest
 uv run ruff check .
 uv run mypy src tests

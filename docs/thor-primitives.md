@@ -212,9 +212,9 @@ operations; future FPGA work can lower them to UART, LED, and timer ports.
 
 Example fixtures:
 
-- `vscode-thor/examples/uart-alphanumerics.thor` prints `0-9`, `A-Z`, `a-z`,
+- `examples/uart-alphanumerics.thor` prints `0-9`, `A-Z`, `a-z`,
   and a newline, then stops.
-- `vscode-thor/examples/uart-caesar-plus4.thor` continually reads bytes, rotates
+- `examples/uart-caesar-plus4.thor` continually reads bytes, rotates
   letters by +4, echoes non-letters unchanged, and stops when it reads ESC
   (`27`). Ctrl-C stops the host process.
 

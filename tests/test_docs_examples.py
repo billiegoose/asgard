@@ -35,3 +35,12 @@ def test_readme_links_red2_bytecode_reference() -> None:
     assert "RED2 Bytecode Format" in bytecode_reference
     assert "Rust/WASM VM" in bytecode_reference
     assert "wasmtime --dir /tmp" in bytecode_reference
+
+
+def test_top_level_examples_are_canonical() -> None:
+    readme = Path("README.md").read_text()
+    caesar = Path("examples/uart-caesar-plus4.thor").read_text()
+
+    assert "examples/uart-caesar-plus4.thor" in readme
+    assert "vscode-thor/examples/uart-caesar-plus4.thor" not in readme
+    assert "rot-upper ==" in caesar

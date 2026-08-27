@@ -5,6 +5,7 @@ from struct import calcsize, pack, unpack_from
 from zlib import crc32
 
 from thor_spec.red2.instructions import (
+    DefinitionImage,
     Instruction,
     InstructionData,
     Opcode,
@@ -12,10 +13,15 @@ from thor_spec.red2.instructions import (
 )
 
 MAGIC = b"RED2"
-VERSION = 1
+VERSION = 2
 _HEADER = "<4sHHIIIII8s"
 _HEADER_SIZE = calcsize(_HEADER)
 _CHECKSUM_SIZE = 4
+_INSTRUCTION = "<BBHI"
+_INSTRUCTION_SIZE = calcsize(_INSTRUCTION)
+_PROGRAM = "<IIII"
+_PROGRAM_SIZE = calcsize(_PROGRAM)
+_SENTINEL_NAME = 0xFFFF_FFFF
 _KIND_INT = 0
 _KIND_STRING = 1
 _KIND_FLOAT = 2
@@ -29,39 +35,78 @@ class Red2BinaryError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class Red2Bundle:
+    """A self-contained RED2 bytecode bundle."""
+
+    entry: ProgramImage
+    definitions: DefinitionImage
+
+
+@dataclass(frozen=True, slots=True)
+class _ProgramRecord:
+    name: str | None
+    image: ProgramImage
+
+
+@dataclass(frozen=True, slots=True)
+class _RawProgramRecord:
+    name_index: int
+    entry: int
+    raw_words: tuple[tuple[Opcode, int, bool, int], ...]
+    metadata: dict[str, tuple[str, ...]]
+
+
+@dataclass(frozen=True, slots=True)
 class _LiteralTables:
     values: tuple[str | float, ...]
     ids: dict[str | float, int]
 
 
 def encode_program_image(image: ProgramImage) -> bytes:
-    """Encode a RED2 program image as deterministic `.red2` bytecode."""
-    literals = _collect_literals(image)
-    instruction_bytes = b"".join(
-        _encode_instruction(inst, literals.ids) for inst in image.instructions
+    """Encode one RED2 program image as deterministic `.red2` bytecode."""
+    return encode_bundle(image)
+
+
+def decode_program_image(data: bytes) -> ProgramImage:
+    """Decode a single-entry deterministic `.red2` bytecode image."""
+    return decode_bundle(data).entry
+
+
+def encode_bundle(
+    entry: ProgramImage,
+    definitions: DefinitionImage | None = None,
+) -> bytes:
+    """Encode a self-contained RED2 bundle as deterministic `.red2` bytecode."""
+    records = [_ProgramRecord(None, entry)]
+    if definitions is not None:
+        records.extend(
+            _ProgramRecord(name, definitions.programs[name])
+            for name in sorted(definitions.programs)
+        )
+    literals = _collect_literals(tuple(records))
+    program_bytes = b"".join(
+        _encode_program(record, literals.ids) for record in records
     )
     literal_bytes = _encode_literals(literals.values)
-    metadata_bytes = _encode_metadata(image.metadata)
     body = pack(
         _HEADER,
         MAGIC,
         VERSION,
         0,
-        image.entry,
-        len(image.instructions),
+        0,
+        len(records),
         len(literals.values),
-        len(image.metadata),
-        len(metadata_bytes),
+        0,
+        0,
         b"\x00" * 8,
     )
-    body += instruction_bytes
+    body += program_bytes
     body += literal_bytes
-    body += metadata_bytes
     return body + pack("<I", crc32(body) & 0xFFFF_FFFF)
 
 
-def decode_program_image(data: bytes) -> ProgramImage:
-    """Decode deterministic `.red2` bytecode into a RED2 program image."""
+def decode_bundle(data: bytes) -> Red2Bundle:
+    """Decode deterministic `.red2` bytecode into a self-contained bundle."""
     if len(data) < _HEADER_SIZE + _CHECKSUM_SIZE:
         msg = "RED2 bytecode too short"
         raise Red2BinaryError(msg)
@@ -70,8 +115,8 @@ def decode_program_image(data: bytes) -> ProgramImage:
         magic,
         version,
         _flags,
-        entry,
-        word_count,
+        entry_index,
+        program_count,
         literal_count,
         meta_count,
         _meta_size,
@@ -88,43 +133,117 @@ def decode_program_image(data: bytes) -> ProgramImage:
     if actual_crc != expected_crc:
         msg = "RED2 bytecode checksum mismatch"
         raise Red2BinaryError(msg)
+    if meta_count != 0:
+        msg = "global metadata records are reserved in RED2 v2"
+        raise Red2BinaryError(msg)
+
     offset = _HEADER_SIZE
-    instructions: list[Instruction] = []
+    raw_programs: list[_RawProgramRecord] = []
+    for _ in range(program_count):
+        raw_program, offset = _decode_program_header_and_body(body, offset)
+        raw_programs.append(raw_program)
+
+    literals, offset = _decode_literals(body, offset, literal_count)
+    if offset != len(body):
+        msg = "RED2 bytecode has trailing or malformed section data"
+        raise Red2BinaryError(msg)
+    if entry_index >= len(raw_programs):
+        msg = f"entry program index out of range: {entry_index}"
+        raise Red2BinaryError(msg)
+
+    programs: list[_ProgramRecord] = []
+    for raw_program in raw_programs:
+        name = _decode_program_name(raw_program.name_index, literals)
+        instructions = tuple(
+            Instruction(opcode, _decode_data(kind, data_field, literals), head)
+            for opcode, kind, head, data_field in raw_program.raw_words
+        )
+        programs.append(
+            _ProgramRecord(
+                name,
+                ProgramImage(instructions, raw_program.entry, {}, raw_program.metadata),
+            )
+        )
+
+    entry = programs[entry_index].image
+    definitions = DefinitionImage(
+        {
+            record.name: record.image
+            for index, record in enumerate(programs)
+            if index != entry_index and record.name is not None
+        }
+    )
+    return Red2Bundle(entry, definitions)
+
+
+def _collect_literals(records: tuple[_ProgramRecord, ...]) -> _LiteralTables:
+    values: list[str | float] = []
+    ids: dict[str | float, int] = {}
+    for record in records:
+        if record.name is not None and record.name not in ids:
+            ids[record.name] = len(values)
+            values.append(record.name)
+        for inst in record.image.instructions:
+            if isinstance(inst.data, str | float) and inst.data not in ids:
+                ids[inst.data] = len(values)
+                values.append(inst.data)
+    return _LiteralTables(tuple(values), ids)
+
+
+def _encode_program(
+    record: _ProgramRecord,
+    literal_ids: dict[str | float, int],
+) -> bytes:
+    name_index = _SENTINEL_NAME if record.name is None else literal_ids[record.name]
+    metadata_bytes = _encode_metadata(record.image.metadata)
+    out = bytearray(
+        pack(
+            _PROGRAM,
+            name_index,
+            record.image.entry,
+            len(record.image.instructions),
+            len(record.image.metadata),
+        )
+    )
+    out += b"".join(
+        _encode_instruction(inst, literal_ids) for inst in record.image.instructions
+    )
+    out += metadata_bytes
+    return bytes(out)
+
+
+def _decode_program_header_and_body(
+    body: bytes,
+    offset: int,
+) -> tuple[_RawProgramRecord, int]:
+    name_index, entry, word_count, meta_count = _read(_PROGRAM, body, offset)
+    offset += _PROGRAM_SIZE
     raw_words: list[tuple[Opcode, int, bool, int]] = []
     for _ in range(word_count):
-        opcode_value, flags, kind, data_field = _read("<BBHI", body, offset)
-        offset += calcsize("<BBHI")
+        opcode_value, flags, kind, data_field = _read(_INSTRUCTION, body, offset)
+        offset += _INSTRUCTION_SIZE
         try:
             opcode = Opcode(opcode_value)
         except ValueError as error:
             msg = f"unknown opcode value: {opcode_value}"
             raise Red2BinaryError(msg) from error
         raw_words.append((opcode, kind, bool(flags & 1), data_field))
-    literals, offset = _decode_literals(body, offset, literal_count)
-    for opcode, kind, head, data_field in raw_words:
-        instructions.append(
-            Instruction(opcode, _decode_data(kind, data_field, literals), head)
-        )
     metadata, offset = _decode_metadata(body, offset, meta_count)
-    if offset != len(body):
-        msg = "RED2 bytecode has trailing or malformed section data"
+    return _RawProgramRecord(name_index, entry, tuple(raw_words), metadata), offset
+
+
+def _decode_program_name(index: int, literals: tuple[str | float, ...]) -> str | None:
+    if index == _SENTINEL_NAME:
+        return None
+    try:
+        literal = literals[index]
+    except IndexError as error:
+        msg = f"program name literal index out of range: {index}"
+        raise Red2BinaryError(msg) from error
+    if not isinstance(literal, str):
+        msg = f"program name literal is not a string: {index}"
         raise Red2BinaryError(msg)
-    return ProgramImage(tuple(instructions), entry, {}, metadata)
-
-
-def _collect_literals(image: ProgramImage) -> _LiteralTables:
-    values: list[str | float] = []
-    ids: dict[str | float, int] = {}
-    for inst in image.instructions:
-        if isinstance(inst.data, str | float) and inst.data not in ids:
-            ids[inst.data] = len(values)
-            values.append(inst.data)
-    for key, value in sorted(image.metadata.items()):
-        for item in (key, *value):
-            if item not in ids:
-                ids[item] = len(values)
-                values.append(item)
-    return _LiteralTables(tuple(values), ids)
+    return literal
 
 
 def _encode_instruction(
@@ -145,7 +264,7 @@ def _encode_instruction(
     else:
         msg = f"unencodable instruction data: {inst.data!r}"
         raise ValueError(msg)
-    return pack("<BBHI", int(inst.opcode), int(inst.head), kind, data)
+    return pack(_INSTRUCTION, int(inst.opcode), int(inst.head), kind, data)
 
 
 def _decode_data(
@@ -159,10 +278,17 @@ def _decode_data(
         return data_field if data_field < 0x8000_0000 else data_field - 0x1_0000_0000
     if kind in {_KIND_STRING, _KIND_FLOAT}:
         try:
-            return literals[data_field]
+            literal = literals[data_field]
         except IndexError as error:
             msg = f"literal index out of range: {data_field}"
             raise Red2BinaryError(msg) from error
+        if kind == _KIND_STRING and not isinstance(literal, str):
+            msg = f"literal index does not reference a string: {data_field}"
+            raise Red2BinaryError(msg)
+        if kind == _KIND_FLOAT and not isinstance(literal, float):
+            msg = f"literal index does not reference a float: {data_field}"
+            raise Red2BinaryError(msg)
+        return literal
     msg = f"unknown instruction data kind: {kind}"
     raise Red2BinaryError(msg)
 
@@ -231,13 +357,21 @@ def _decode_metadata(
     for _ in range(count):
         key_len, value_count = _read("<HH", body, offset)
         offset += calcsize("<HH")
-        key = body[offset : offset + key_len].decode("utf-8")
+        payload = body[offset : offset + key_len]
+        if len(payload) != key_len:
+            msg = "truncated metadata key"
+            raise Red2BinaryError(msg)
+        key = payload.decode("utf-8")
         offset += key_len
         values: list[str] = []
         for _ in range(value_count):
             item_len = _read("<H", body, offset)[0]
             offset += calcsize("<H")
-            values.append(body[offset : offset + item_len].decode("utf-8"))
+            payload = body[offset : offset + item_len]
+            if len(payload) != item_len:
+                msg = "truncated metadata value"
+                raise Red2BinaryError(msg)
+            values.append(payload.decode("utf-8"))
             offset += item_len
         metadata[key] = tuple(values)
     return metadata, offset

@@ -84,7 +84,7 @@ def test_io_actions_can_be_named_by_top_level_definition() -> None:
 
 
 def test_alphanumerics_fixture_prints_digits_letters_and_newline() -> None:
-    source = Path("vscode-thor/examples/uart-alphanumerics.thor").read_text()
+    source = Path("examples/uart-alphanumerics.thor").read_text()
 
     result, stdout, stderr = run_io(source)
 
@@ -99,7 +99,7 @@ def test_alphanumerics_fixture_prints_digits_letters_and_newline() -> None:
 
 
 def test_caesar_fixture_rotates_letters_until_escape() -> None:
-    source = Path("vscode-thor/examples/uart-caesar-plus4.thor").read_text()
+    source = Path("examples/uart-caesar-plus4.thor").read_text()
 
     result, stdout, stderr = run_io(source, stdin_text="ABYZabyz-09\x1bignored")
 

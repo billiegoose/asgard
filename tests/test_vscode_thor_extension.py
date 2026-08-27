@@ -29,9 +29,9 @@ def test_textmate_grammar_contains_core_patterns() -> None:
         assert token in text
 
 
-def test_examples_cover_fibonacci_and_appendix_a_forms() -> None:
-    fib = Path("vscode-thor/examples/fibonacci.thor").read_text()
-    sample = Path("vscode-thor/examples/appendix-a-sample.thor").read_text()
+def test_top_level_examples_cover_fibonacci_and_appendix_a_forms() -> None:
+    fib = Path("examples/fibonacci.thor").read_text()
+    sample = Path("examples/appendix-a-sample.thor").read_text()
     assert "fib ==" in fib
     assert "tree |= label subtrees" in sample
     assert "LETREC" in fib.upper()

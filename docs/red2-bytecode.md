@@ -7,9 +7,9 @@ is attempted.
 
 ## Status
 
-Version 1 stores a single RED2 `ProgramImage`: an entry instruction index, a
-linear instruction stream, a file-local literal table, metadata for debugging and
-decompilation, and a CRC32 checksum.
+Version 2 stores a self-contained RED2 bundle: one entry `ProgramImage`, zero or
+more named top-level definition images, a deterministic file-local literal
+table, per-program metadata for debugging/decompilation, and a CRC32 checksum.
 
 It is an interchange format for simulators and VM work. It is not yet a final
 FPGA memory-map or flash partition format.
@@ -28,9 +28,8 @@ Run a `.red2` image with the Python RED2 VM:
 uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 ```
 
-The current compiler command serializes the final expression in the input source.
-Top-level definitions are not bundled into the bytecode container yet; that is a
-planned extension for the Rust/WASM VM milestone.
+The compiler command serializes the final expression and bundles top-level THOR
+definitions from the same source file/expression into the bytecode container.
 
 ## Container Layout
 
@@ -40,16 +39,28 @@ All integer fields are little-endian.
 magic       4 bytes   ASCII "RED2"
 version     u16       1
 flags       u16       reserved, currently 0
-entry       u32       entry instruction index
-word_count  u32       number of instruction records
+entry_index u32       program-table index of the entry image
+prog_count  u32       number of program records
 lit_count   u32       number of literal table records
-meta_count  u32       number of metadata records
-meta_size   u32       encoded metadata byte length
+meta_count  u32       reserved global metadata count, currently 0
+meta_size   u32       reserved global metadata byte length, currently 0
 reserved    8 bytes   zeroed
-words       word_count instruction records
+programs    prog_count program records
 literals    lit_count literal records
-metadata    meta_count metadata records
 checksum    u32       CRC32 of all preceding bytes
+```
+
+## Program Records
+
+Each program record begins with:
+
+```text
+name        u32       string literal table index, or 0xffffffff for anonymous entry
+entry       u32       entry instruction index within this program
+word_count  u32       number of instruction records in this program
+meta_count  u32       number of metadata records for this program
+words       word_count instruction records
+metadata    meta_count metadata records
 ```
 
 ## Instruction Records
@@ -127,6 +138,23 @@ wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quan
 
 Wasmtime requires `--dir /tmp` or another preopened directory to grant the WASI
 module access to `.red2` files.
+
+Run the UART Caesar cipher with the native Rust VM:
+
+```sh
+uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
+printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
+```
+
+Run the same bytecode under Wasmtime:
+
+```sh
+cargo build -p red2-wasm --target wasm32-wasi
+printf 'abcXYZ!\033' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/caesar.red2 --io
+```
+
+In IO mode, stdout is the simulated UART byte stream (`efgBCD!` for the example
+above). Final IO diagnostics such as `io result: NIL` are written to stderr.
 
 Next VM milestones:
 

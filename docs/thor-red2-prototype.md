@@ -97,5 +97,5 @@ uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
 Example diagnostic check that reports the first Fibonacci prefix mismatch:
 
 ```sh
-uv run thor-spec --model parity --quantum 75 --file vscode-thor/examples/fibonacci.thor
+uv run thor-spec --model parity --quantum 75 --file examples/fibonacci.thor
 ```

@@ -13,8 +13,8 @@ from thor_spec.lockstep import ParityResult, compare_prefixes
 from thor_spec.normalization import normalize_program
 from thor_spec.parser import ParseError, parse_program
 from thor_spec.pretty import to_source
-from thor_spec.red2.binary import decode_program_image, encode_program_image
-from thor_spec.red2.compiler import compile_expr
+from thor_spec.red2.binary import decode_bundle, encode_bundle
+from thor_spec.red2.compiler import compile_definitions, compile_expr
 from thor_spec.red2.machine import Red2Machine
 
 
@@ -105,8 +105,10 @@ def _compile_red2_command(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
-        image = compile_expr(_final_expression(source))
-        args.output.write_bytes(encode_program_image(image))
+        definitions, final = _split_program(source)
+        args.output.write_bytes(
+            encode_bundle(compile_expr(final), compile_definitions(definitions))
+        )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"thor-spec: {error}", file=sys.stderr)
         return 2
@@ -128,8 +130,12 @@ def _run_red2_command(argv: list[str]) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        image = decode_program_image(args.bytecode.read_bytes())
-        machine = Red2Machine(image, quantum=args.quantum)
+        bundle = decode_bundle(args.bytecode.read_bytes())
+        machine = Red2Machine(
+            bundle.entry,
+            quantum=args.quantum,
+            definitions=bundle.definitions,
+        )
         machine.run()
         output = to_source(machine.result_expr())
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
@@ -141,16 +147,25 @@ def _run_red2_command(argv: list[str]) -> int:
 
 
 def _final_expression(source: str) -> Expr:
+    _definitions, final = _split_program(source)
+    return final
+
+
+def _split_program(source: str) -> tuple[dict[str, Expr], Expr]:
     program = normalize_program(parse_program(source))
+    definitions: dict[str, Expr] = {}
     final: Expr | None = None
     for form in program.forms:
-        if isinstance(form, Definition | StructDef):
+        if isinstance(form, Definition):
+            definitions[form.name] = form.expr
+            continue
+        if isinstance(form, StructDef):
             continue
         final = form
     if final is None:
         msg = "compile-red2 requires a final expression"
         raise ValueError(msg)
-    return final
+    return definitions, final
 
 
 def _run_io(source: str, *, model_value: object, quantum: int) -> int:

@@ -7,7 +7,7 @@ The extension contributes the `thor` language id and a TextMate grammar with the
 ## Local development
 
 Open this folder in VS Code, then press F5 to launch an Extension Development
-Host. Open one of the files in `examples/` to inspect highlighting.
+Host. Open one of the top-level files in `../examples/` to inspect highlighting.
 
 No Node/npm dependencies are required for the repository's default pytest checks.
 
