@@ -34,3 +34,19 @@ def test_generated_struct_helpers_use_declared_case_only() -> None:
     assert run_source(canonical, model="red2", quantum=80) == "{tree 1 NIL}"
     assert run_source(alternate, model="thor", quantum=80) == "(MAKE-TREE 1 NIL)"
     assert run_source(alternate, model="red2", quantum=80) == "(MAKE-TREE 1 NIL)"
+
+
+def test_case_distinct_struct_tags_get_case_distinct_helpers() -> None:
+    source = """
+    tree |= label
+    TREE |= LABEL
+    Tree |= Label
+    (make-tree 1)
+    (make-TREE 2)
+    (make-Tree 3)
+    """
+
+    expected = "{tree 1}\n{TREE 2}\n{Tree 3}"
+
+    assert run_source(source, model="thor", quantum=80) == expected
+    assert run_source(source, model="red2", quantum=80) == expected
