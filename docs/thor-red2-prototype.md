@@ -75,14 +75,14 @@ Both commands should print:
 `thor-spec --model parity` compares THOR and RED2 at contraction-prefix
 snapshots. For `--quantum N`, it runs both models for every quantum from `0`
 through `N`, alpha-normalizes bound-variable rendering differences such as RED2
-`(VAR 0)` output, and reports the first prefix where the user-facing expressions
-differ.
+`(VAR 0)` output, and compares the user-facing expressions at every prefix.
 
 This is stronger than completion-only parity, but it is not a claim that THOR's
 recursive reducer and RED2's internal machine phases schedule every intermediate
-recursive application identically. Some programs can diverge at an intermediate
-prefix and reconverge at a later quantum; in that case parity mode is a
-diagnostic that points at the earliest scheduling/equivalence gap.
+recursive application identically. Some programs can diverge at intermediate
+prefixes and reconverge at later quanta; in that case parity mode continues to
+`N` and reports the first mismatch, all mismatch ranges, the first
+reconvergence point if any, and whether the final quantum matched.
 
 Example matching-prefix check:
 

@@ -27,7 +27,7 @@ def test_cli_parity_model_reports_matching_prefixes(
     )
 
 
-def test_cli_parity_model_reports_first_mismatch(
+def test_cli_parity_model_reports_mismatch_and_reconvergence(
     capsys: CaptureFixture[str],
 ) -> None:
     source = """
@@ -46,6 +46,9 @@ def test_cli_parity_model_reports_first_mismatch(
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "parity mismatch at quantum 3" in captured.err
+    assert "mismatch ranges: 3-4" in captured.err
+    assert "parity reconverged at quantum 5" in captured.err
+    assert "parity final quantum 75 matched" in captured.err
     assert "thor:" in captured.err
     assert "red2:" in captured.err
 

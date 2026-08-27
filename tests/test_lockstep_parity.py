@@ -37,5 +37,10 @@ def test_compare_prefixes_reports_partial_fibonacci_shape_mismatch() -> None:
     result = compare_prefixes(FIBONACCI_SOURCE, max_quantum=75)
 
     assert result.first_mismatch is result.snapshots[3]
+    assert result.mismatch_ranges[0] == (3, 4)
+    assert (65, 65) in result.mismatch_ranges
+    assert result.first_reconvergence is result.snapshots[5]
+    assert result.final_snapshot is result.snapshots[75]
+    assert result.final_snapshot.matches
     assert result.snapshots[75].thor == "(+ 3 (+ 2 (+ 1 2)))"
     assert result.snapshots[75].red2 == "(+ 3 (+ 2 (+ 1 2)))"

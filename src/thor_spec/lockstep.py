@@ -42,6 +42,45 @@ class ParityResult:
             None,
         )
 
+    @property
+    def final_snapshot(self) -> ParitySnapshot | None:
+        if not self.snapshots:
+            return None
+        return self.snapshots[-1]
+
+    @property
+    def mismatch_ranges(self) -> tuple[tuple[int, int], ...]:
+        ranges: list[tuple[int, int]] = []
+        start: int | None = None
+        previous: int | None = None
+        for snapshot in self.snapshots:
+            if not snapshot.matches:
+                if start is None:
+                    start = snapshot.quantum
+                previous = snapshot.quantum
+                continue
+            if start is not None and previous is not None:
+                ranges.append((start, previous))
+                start = None
+                previous = None
+        if start is not None and previous is not None:
+            ranges.append((start, previous))
+        return tuple(ranges)
+
+    @property
+    def first_reconvergence(self) -> ParitySnapshot | None:
+        mismatch = self.first_mismatch
+        if mismatch is None:
+            return None
+        return next(
+            (
+                snapshot
+                for snapshot in self.snapshots
+                if snapshot.quantum > mismatch.quantum and snapshot.matches
+            ),
+            None,
+        )
+
 
 def compare_prefixes(source: str, *, max_quantum: int) -> ParityResult:
     if max_quantum < 0:

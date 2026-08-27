@@ -79,18 +79,44 @@ def _run_parity(source: str, *, quantum: int) -> int:
     mismatch = result.first_mismatch
     if mismatch is not None:
         print(f"parity mismatch at quantum {mismatch.quantum}", file=sys.stderr)
+        print(
+            f"mismatch ranges: {_format_ranges(result.mismatch_ranges)}",
+            file=sys.stderr,
+        )
+        reconvergence = result.first_reconvergence
+        if reconvergence is None:
+            print("parity did not reconverge", file=sys.stderr)
+        else:
+            print(
+                f"parity reconverged at quantum {reconvergence.quantum}",
+                file=sys.stderr,
+            )
+        final = result.final_snapshot
+        if final is not None:
+            status = "matched" if final.matches else "mismatched"
+            print(
+                f"parity final quantum {final.quantum} {status}",
+                file=sys.stderr,
+            )
         print(f"thor: {mismatch.thor}", file=sys.stderr)
         print(f"red2: {mismatch.red2}", file=sys.stderr)
         return 1
-    final = result.snapshots[-1].thor if result.snapshots else ""
+    final_output = result.snapshots[-1].thor if result.snapshots else ""
     print(
         "parity ok: "
         f"{len(result.snapshots)} prefix snapshot(s) matched through quantum {quantum}",
         file=sys.stderr,
     )
-    if final:
-        print(final)
+    if final_output:
+        print(final_output)
     return 0
+
+
+def _format_ranges(ranges: tuple[tuple[int, int], ...]) -> str:
+    return ", ".join(
+        str(start) if start == end else f"{start}-{end}"
+        for start, end in ranges
+    )
 
 
 def _model_name(value: object) -> ModelName:
