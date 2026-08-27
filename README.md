@@ -54,11 +54,12 @@ Compare THOR and RED2 at each contraction-prefix quantum from `0` through `N`:
 uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
 ```
 
-`--model parity` exits 0 when every prefix matches. If prefixes diverge, it
-continues through the requested quantum, exits 1, and reports the first mismatch,
-all mismatch ranges, the first reconvergence point if any, and whether the final
-quantum matched. `--trace` writes deterministic metadata to stderr; stdout
-remains result-only so it can be compared directly in scripts.
+`--model parity` continues through the requested quantum even if prefixes
+diverge. It reports each mismatch range with the THOR/RED2 expressions at that
+range's first quantum and the range's reconvergence point, if any. It exits 0
+when the final quantum matches and exits 1 when the final quantum still differs.
+`--trace` writes deterministic metadata to stderr; stdout remains result-only so
+it can be compared directly in scripts.
 
 ## Useful Commands
 

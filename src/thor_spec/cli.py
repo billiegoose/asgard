@@ -7,7 +7,7 @@ from typing import TextIO
 
 from thor_spec import __version__
 from thor_spec.golden import DEFAULT_QUANTUM, ModelName, run_source
-from thor_spec.lockstep import compare_prefixes
+from thor_spec.lockstep import ParityResult, compare_prefixes
 from thor_spec.parser import ParseError
 
 
@@ -76,32 +76,20 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run_parity(source: str, *, quantum: int) -> int:
     result = compare_prefixes(source, max_quantum=quantum)
-    mismatch = result.first_mismatch
-    if mismatch is not None:
-        print(f"parity mismatch at quantum {mismatch.quantum}", file=sys.stderr)
-        print(
-            f"mismatch ranges: {_format_ranges(result.mismatch_ranges)}",
-            file=sys.stderr,
-        )
-        reconvergence = result.first_reconvergence
-        if reconvergence is None:
-            print("parity did not reconverge", file=sys.stderr)
-        else:
-            print(
-                f"parity reconverged at quantum {reconvergence.quantum}",
-                file=sys.stderr,
-            )
-        final = result.final_snapshot
+    final = result.final_snapshot
+    if result.first_mismatch is not None:
+        _write_mismatch_report(result)
         if final is not None:
             status = "matched" if final.matches else "mismatched"
             print(
                 f"parity final quantum {final.quantum} {status}",
                 file=sys.stderr,
             )
-        print(f"thor: {mismatch.thor}", file=sys.stderr)
-        print(f"red2: {mismatch.red2}", file=sys.stderr)
-        return 1
-    final_output = result.snapshots[-1].thor if result.snapshots else ""
+        if final is not None and final.matches and final.thor:
+            print(final.thor)
+        return 0 if final is not None and final.matches else 1
+
+    final_output = final.thor if final is not None else ""
     print(
         "parity ok: "
         f"{len(result.snapshots)} prefix snapshot(s) matched through quantum {quantum}",
@@ -112,12 +100,25 @@ def _run_parity(source: str, *, quantum: int) -> int:
     return 0
 
 
-def _format_ranges(ranges: tuple[tuple[int, int], ...]) -> str:
-    return ", ".join(
-        str(start) if start == end else f"{start}-{end}"
-        for start, end in ranges
-    )
-
+def _write_mismatch_report(result: ParityResult) -> None:
+    snapshots = {snapshot.quantum: snapshot for snapshot in result.snapshots}
+    for start, end in result.mismatch_ranges:
+        mismatch = snapshots[start]
+        print(f"parity mismatch at quantum {start}", file=sys.stderr)
+        print(f"thor: {mismatch.thor}", file=sys.stderr)
+        print(f"red2: {mismatch.red2}", file=sys.stderr)
+        reconverged = snapshots.get(end + 1)
+        if reconverged is not None and reconverged.matches:
+            print(
+                f"parity reconverged at quantum {reconverged.quantum}",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"parity did not reconverge by quantum {result.max_quantum}",
+                file=sys.stderr,
+            )
+        print(file=sys.stderr)
 
 def _model_name(value: object) -> ModelName:
     if value == "thor" or value == "red2":

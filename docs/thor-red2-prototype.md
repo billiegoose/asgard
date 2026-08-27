@@ -81,8 +81,10 @@ This is stronger than completion-only parity, but it is not a claim that THOR's
 recursive reducer and RED2's internal machine phases schedule every intermediate
 recursive application identically. Some programs can diverge at intermediate
 prefixes and reconverge at later quanta; in that case parity mode continues to
-`N` and reports the first mismatch, all mismatch ranges, the first
-reconvergence point if any, and whether the final quantum matched.
+`N` and reports each mismatch range separately, including the THOR/RED2
+expressions at that range's first quantum and the reconvergence point for that
+range. The command exits 0 when the final quantum matches and exits 1 when the
+final quantum still differs.
 
 Example matching-prefix check:
 
