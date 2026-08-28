@@ -96,6 +96,19 @@ def test_mise_wasm_runs_hangman_quietly() -> None:
     assert result.stderr == ""
 
 
+def test_mise_parity_reports_diagnostics() -> None:
+    result = run_mise_task(
+        "parity",
+        "examples/fibonacci.thor",
+        "--quantum",
+        "75",
+    )
+
+    assert result.returncode == 0
+    assert result.stdout != ""
+    assert "parity" in result.stderr
+
+
 def test_mise_hdl_prints_placeholder() -> None:
     result = run_mise_task("hdl", "examples/hangman.thor")
 

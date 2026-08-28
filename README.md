@@ -52,15 +52,18 @@ uv run thor-spec --model thor --quantum 20 --expr "(+ 2 3)"
 uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
 mise run thor examples/hangman.thor --quantum 5000
 mise run red2 examples/hangman.thor --quantum 5000
+mise run parity examples/fibonacci.thor --quantum 75
 printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
 printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 mise run hdl examples/hangman.thor
 mise run verify
 ```
 
-Successful model tasks write simulated UART/device output to stdout and are
-quiet on stderr by default. Add `--verbose` to `mise run thor`, `red2`, `rust`,
-or `wasm` when diagnostic output such as final IO results is needed.
+Successful executable model tasks write simulated UART/device output to stdout
+and are quiet on stderr by default. Add `--verbose` to `mise run thor`, `red2`,
+`rust`, or `wasm` when diagnostic output such as final IO results is needed.
+`mise run parity` is diagnostic by nature and always reports parity details on
+stderr.
 
 Run a source file containing definitions, structure declarations, and expression
 forms with the Python CLI when inspecting implementation details:
@@ -73,6 +76,7 @@ uv run thor-spec --model red2 --trace --expr "((LAMBDA (X) X) 42)"
 Compare THOR and RED2 at each contraction-prefix quantum from `0` through `N`:
 
 ```sh
+mise run parity examples/fibonacci.thor --quantum 75
 uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
 ```
 
@@ -100,6 +104,7 @@ Use the task surface for normal runs:
 ```sh
 mise run thor examples/hangman.thor --quantum 5000
 mise run red2 examples/hangman.thor --quantum 5000
+mise run parity examples/fibonacci.thor --quantum 75
 printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
 printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 mise run hdl examples/hangman.thor

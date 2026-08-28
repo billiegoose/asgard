@@ -59,6 +59,17 @@ wasmtime --dir "$(dirname "$tmp")" target/wasm32-wasi/debug/red2-wasm.wasm "$tmp
 rm -f "$tmp"
 '''
 
+[tasks.parity]
+description = "Compare THOR and RED2 contraction-prefix behavior"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="2000"
+'''
+run = '''
+uv run thor-spec --model parity --file "${usage_file?}" --quantum "${usage_quantum?}"
+'''
+
 [tasks.hdl]
 description = "Placeholder for future HDL execution"
 quiet = true
