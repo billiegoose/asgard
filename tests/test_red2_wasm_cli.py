@@ -33,7 +33,7 @@ def run_rust_vm(
     path: Path,
     quantum: int = 20,
     *,
-    io_mode: bool = False,
+    verbose: bool = False,
     stdin: str = "",
     timeout: float = 20.0,
 ) -> subprocess.CompletedProcess[str]:
@@ -48,8 +48,8 @@ def run_rust_vm(
         "--quantum",
         str(quantum),
     ]
-    if io_mode:
-        command.append("--io")
+    if verbose:
+        command.append("--verbose")
     return subprocess.run(
         command,
         input=stdin,
@@ -67,7 +67,7 @@ def test_rust_red2_vm_runs_primitive_bytecode_with_stdout_reserved(
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert "red2 result: 5" in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_runs_simple_lambda_bytecode_with_stdout_reserved(
@@ -77,7 +77,7 @@ def test_rust_red2_vm_runs_simple_lambda_bytecode_with_stdout_reserved(
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert "red2 result: 42" in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_resolves_bundled_top_level_definition(
@@ -89,7 +89,7 @@ def test_rust_red2_vm_resolves_bundled_top_level_definition(
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert "red2 result: 42" in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_runs_if_and_range_predicate(tmp_path: Path) -> None:
@@ -104,7 +104,7 @@ def test_rust_red2_vm_runs_if_and_range_predicate(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert "red2 result: 69" in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_runs_recursive_countdown(tmp_path: Path) -> None:
@@ -119,7 +119,7 @@ def test_rust_red2_vm_runs_recursive_countdown(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert "red2 result: 99" in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
@@ -133,14 +133,14 @@ def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
     result = run_rust_vm(
         bytecode,
         quantum=5000,
-        io_mode=True,
         stdin="abcXYZ!\x1b",
     )
 
     assert result.returncode == 0
     assert result.stdout == "efgBCD!"
-    assert "io result: NIL" in result.stderr
+    assert "io result: NIL" not in result.stderr
     assert "red2 result:" not in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_io_runs_hangman_with_newlines_ignored(
@@ -151,7 +151,6 @@ def test_rust_red2_vm_io_runs_hangman_with_newlines_ignored(
     result = run_rust_vm(
         bytecode,
         quantum=5000,
-        io_mode=True,
         stdin="A\nS\nG\nR\nD\n",
     )
 
@@ -163,8 +162,9 @@ def test_rust_red2_vm_io_runs_hangman_with_newlines_ignored(
     assert "MISS\n" not in result.stdout
     assert "LOSE\n" not in result.stdout
     assert "WIN\n" in result.stdout
-    assert "io result: NIL" in result.stderr
+    assert "io result: NIL" not in result.stderr
     assert "red2 result:" not in result.stderr
+    assert result.stderr == ""
 
 
 def test_rust_red2_vm_io_runs_hangman_tracks_wrong_guesses(
@@ -175,7 +175,6 @@ def test_rust_red2_vm_io_runs_hangman_tracks_wrong_guesses(
     result = run_rust_vm(
         bytecode,
         quantum=5000,
-        io_mode=True,
         stdin="x\ny\nz\nA\nS\nG\nR\nD\n",
     )
 
@@ -184,6 +183,26 @@ def test_rust_red2_vm_io_runs_hangman_tracks_wrong_guesses(
     assert "GUESSED: XYZASGRD" not in result.stdout
     assert "LOSE\n" not in result.stdout
     assert "WIN\n" in result.stdout
-    assert "io result: NIL" in result.stderr
+    assert "io result: NIL" not in result.stderr
     assert "red2 result:" not in result.stderr
+    assert result.stderr == ""
 
+
+def test_rust_red2_vm_verbose_reports_io_result(tmp_path: Path) -> None:
+    result = run_rust_vm(
+        write_bytecode(tmp_path, "(UART-TX 65)"),
+        quantum=100,
+        verbose=True,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == "A"
+    assert result.stderr == "io result: NIL\n"
+
+
+def test_rust_red2_vm_verbose_reports_non_io_result(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(+ 2 3)"), verbose=True)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert result.stderr == "red2 result: 5\n"

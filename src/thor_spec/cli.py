@@ -58,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] in {"thor", "red2"}:
+        return _run_model_command(_model_name(argv[0]), argv[1:])
     if argv and argv[0] == "compile-red2":
         return _compile_red2_command(argv[1:])
     if argv and argv[0] == "run-red2":
@@ -146,6 +148,42 @@ def _run_red2_command(argv: list[str]) -> int:
     return 0
 
 
+def _run_model_command(model_value: ModelName, argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog=f"thor-spec {model_value}",
+        description=f"Run THOR source with the {model_value} model as a UART action.",
+    )
+    parser.add_argument("--expr", help="THOR expression or program source")
+    parser.add_argument("file", nargs="?", type=Path, help="path to THOR source")
+    parser.add_argument(
+        "--quantum",
+        type=int,
+        default=DEFAULT_QUANTUM,
+        help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="write diagnostics to stderr",
+    )
+    args = parser.parse_args(argv)
+    if args.expr is None and args.file is None:
+        parser.error("one of --expr or file is required")
+    if args.expr is not None and args.file is not None:
+        parser.error("--expr and file are mutually exclusive")
+    try:
+        source = args.expr if args.expr is not None else args.file.read_text()
+        return _run_io(
+            source,
+            model_value=model_value,
+            quantum=args.quantum,
+            verbose=args.verbose,
+        )
+    except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
+        print(f"thor-spec: {error}", file=sys.stderr)
+        return 2
+
+
 def _final_expression(source: str) -> Expr:
     _definitions, final = _split_program(source)
     return final
@@ -168,7 +206,13 @@ def _split_program(source: str) -> tuple[dict[str, Expr], Expr]:
     return definitions, final
 
 
-def _run_io(source: str, *, model_value: object, quantum: int) -> int:
+def _run_io(
+    source: str,
+    *,
+    model_value: object,
+    quantum: int,
+    verbose: bool = True,
+) -> int:
     if model_value == "parity":
         print(
             "thor-spec: --io supports only --model thor or --model red2",
@@ -184,7 +228,8 @@ def _run_io(source: str, *, model_value: object, quantum: int) -> int:
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
-    print(f"io result: {result}", file=sys.stderr)
+    if verbose:
+        print(f"io result: {result}", file=sys.stderr)
     return 0
 
 

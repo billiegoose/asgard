@@ -81,6 +81,45 @@ def test_cli_parity_model_exits_one_when_final_snapshot_mismatches(
     assert "parity final quantum 3 mismatched" in captured.err
 
 
+def test_cli_thor_subcommand_runs_io_quiet_by_default(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["thor", "--expr", "(UART-TX 65)"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "A"
+    assert captured.err == ""
+
+
+def test_cli_red2_subcommand_runs_io_quiet_by_default(
+    capsys: CaptureFixture[str],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sys.stdin", StringIO("B"))
+
+    assert main(
+        [
+            "red2",
+            "--expr",
+            "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))",
+        ]
+    ) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "B"
+    assert captured.err == ""
+
+
+def test_cli_model_subcommand_verbose_reports_io_result(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["thor", "--verbose", "--expr", "(UART-TX 65)"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "A"
+    assert captured.err == "io result: NIL\n"
+
+
 def test_cli_io_mode_uses_stdout_for_uart_and_stderr_for_result(
     capsys: CaptureFixture[str],
 ) -> None:
