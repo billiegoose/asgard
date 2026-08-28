@@ -4,7 +4,15 @@ from io import StringIO
 from pathlib import Path
 
 from thor_spec.golden import ModelName
-from thor_spec.io_runtime import run_io_source
+from thor_spec.io_runtime import LatestFileClockSource, run_io_source
+
+
+class FixedClock:
+    def __init__(self, value: int) -> None:
+        self.value = value
+
+    def now_ms(self) -> int:
+        return self.value
 
 
 def run_io(
@@ -26,6 +34,47 @@ def run_io(
         stderr=stderr,
     )
     return result, stdout.getvalue(), stderr.getvalue()
+
+
+def test_clock_io_action_returns_integer_for_thor_model() -> None:
+    result = run_io_source(
+        "(CLOCK)",
+        model="thor",
+        quantum=100,
+        stdin=StringIO(""),
+        stdout=StringIO(),
+        stderr=StringIO(),
+        clock=FixedClock(1_700_000_000_123),
+    )
+
+    assert result == "1700000000123"
+
+
+def test_clock_io_action_returns_integer_for_red2_model() -> None:
+    result = run_io_source(
+        "(CLOCK)",
+        model="red2",
+        quantum=100,
+        stdin=StringIO(""),
+        stdout=StringIO(),
+        stderr=StringIO(),
+        clock=FixedClock(1_700_000_000_456),
+    )
+
+    assert result == "1700000000456"
+
+
+def test_latest_file_clock_source_returns_latest_valid_value(tmp_path: Path) -> None:
+    clock_file = tmp_path / "clock.txt"
+    clock_file.write_text("1700000000000\nnot-a-clock\n1700000000123\n")
+    clock = LatestFileClockSource(clock_file, initial_ms=123)
+
+    assert clock.now_ms() == 1_700_000_000_123
+
+    clock_file.write_text(
+        "1700000000000\nnot-a-clock\n1700000000123\n1700000000456\n"
+    )
+    assert clock.now_ms() == 1_700_000_000_456
 
 
 def test_uart_tx_writes_byte_to_stdout_and_returns_nil() -> None:

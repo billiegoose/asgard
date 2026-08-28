@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
-from typing import TextIO, assert_never
+from pathlib import Path
+from typing import Protocol, TextIO, assert_never
 
 from thor_spec.ast import (
     App,
@@ -36,6 +38,33 @@ class IoRuntimeError(RuntimeError):
     """Raised when an expression is not a valid simulator IO action."""
 
 
+class ClockSource(Protocol):
+    def now_ms(self) -> int: ...
+
+
+class SystemClockSource:
+    def now_ms(self) -> int:
+        return int(time.time() * 1000)
+
+
+class LatestFileClockSource:
+    def __init__(self, path: Path, *, initial_ms: int | None = None) -> None:
+        self._path = path
+        self._latest = int(time.time() * 1000) if initial_ms is None else initial_ms
+
+    def now_ms(self) -> int:
+        try:
+            text = self._path.read_text()
+        except OSError:
+            return self._latest
+        for line in text.splitlines():
+            try:
+                self._latest = int(line.strip())
+            except ValueError:
+                continue
+        return self._latest
+
+
 def run_io_source(
     source: str,
     *,
@@ -44,6 +73,7 @@ def run_io_source(
     stdin: TextIO,
     stdout: TextIO,
     stderr: TextIO,
+    clock: ClockSource | None = None,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
@@ -60,6 +90,7 @@ def run_io_source(
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
+        clock=clock or SystemClockSource(),
     )
     return to_source(runtime.run(action))
 
@@ -94,6 +125,7 @@ class _IoRuntime:
         stdin: TextIO,
         stdout: TextIO,
         stderr: TextIO,
+        clock: ClockSource,
     ) -> None:
         self._model = model
         self._quantum = quantum
@@ -101,6 +133,7 @@ class _IoRuntime:
         self._stdin = stdin
         self._stdout = stdout
         self._stderr = stderr
+        self._clock = clock
         self._ticks = 0
 
     def run(self, action: Expr) -> Expr:
@@ -156,6 +189,8 @@ class _IoRuntime:
             tick = self._ticks
             self._ticks += 1
             return Integer(tick)
+        if name == "CLOCK" and not args:
+            return Integer(self._clock.now_ms())
         msg = f"unknown IO action: {to_source(action)}"
         raise IoRuntimeError(msg)
 
