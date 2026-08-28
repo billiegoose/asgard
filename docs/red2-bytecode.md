@@ -116,9 +116,9 @@ values      repeated value_count times:
 ## Rust/WASM VM
 
 The `models/rust-red2/` crate is the first non-Python executor for `.red2`
-bytecode. It
-currently supports a definition-free subset: literals, simple application,
-strict integer arithmetic/comparison primitives, and simple lambda/beta cases.
+bytecode. It supports literals, bundled top-level definitions, simple
+application, strict integer arithmetic/comparison primitives, structures needed
+for PAIR/list values, lambda/beta cases, and simulator UART/CLOCK IO actions.
 
 For day-to-day source-file runs, use the canonical `mise run` task surface. The
 Rust and Wasm tasks compile a temporary `.red2` bundle and then execute it with
@@ -129,6 +129,8 @@ mise run rust examples/uart-caesar-plus4.thor
 mise run wasm examples/uart-caesar-plus4.thor
 printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
 printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
+mise run rust examples/breakout.thor --clock /tmp/asgard-clock --quantum 12000
+mise run wasm examples/breakout.thor --clock /tmp/asgard-clock --quantum 12000
 ```
 
 Successful model tasks reserve stdout for simulated UART/device output and are
@@ -142,6 +144,7 @@ an executor against a precompiled bytecode bundle:
 uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
 uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
+cargo run -p red2-wasm -- /tmp/breakout.red2 --quantum 12000 --clock /tmp/asgard-clock
 ```
 
 WASI/Wasmtime direct execution also operates on an existing `.red2` bundle:
@@ -150,6 +153,7 @@ WASI/Wasmtime direct execution also operates on an existing `.red2` bundle:
 rustup target add wasm32-wasi
 cargo build -p red2-wasm --target wasm32-wasi
 wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
+wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/breakout.red2 --quantum 12000 --clock /tmp/asgard-clock
 ```
 
 Wasmtime requires `--dir /tmp` or another preopened directory to grant the WASI
@@ -157,8 +161,6 @@ module access to `.red2` files.
 
 Next VM milestones:
 
-1. Bundle top-level definition images into the `.red2` container.
-2. Expand Rust VM coverage for structures, `IF`, `Y`, and `LETREC`.
-3. Add simulator UART/LED IO to the Rust/WASM VM while keeping stdout reserved
-   for UART bytes.
-4. Define a flash-oriented image layout for FPGA boards.
+1. Expand Rust VM coverage for `Y`, `LETREC`, and non-PAIR structure behavior.
+2. Add remaining simulator device IO such as LED diagnostics where useful.
+3. Define a flash-oriented image layout for FPGA boards.

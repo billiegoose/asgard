@@ -1,0 +1,4 @@
+{"version": 2, "width": 80, "height": 24, "timestamp": 1700000000, "idle_time_limit": 2.0, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "Asgard Breakout WASM"}
+[0.0, "o", "$ clock=/tmp/asgard-breakout-clock.txt; printf '1700000000200\\n' > \"$clock\"\r\n"]
+[0.1, "o", "$ printf ' q' | mise run wasm examples/breakout.thor --clock \"$clock\" --quantum 12000\r\n"]
+[0.2, "o", "\u001b[?25l\u001b[2J\u001b[HBREAKOUT 20x12\nARROWS MOVE; Q QUITS\nSCORE: 0  LIVES: 3\n####################\n#                  #\n# ===============  #\n# ===============  #\n#                  #\n#                  #\n#                  #\n#                  #\n#                  #\n#                  #\n#                  #\n####################\n\u001b[12;11Ho\u001b[14;1H#       _____      #\n\u001b[12;11H \u001b[11;12Ho\u001b[3;8H0 \u001b[16;1H\u001b[?25hQUIT\n"]

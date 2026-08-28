@@ -12,6 +12,12 @@ Replay the committed local cast:
 asciinema play examples/media/breakout.cast
 ```
 
+Watch the committed WASM Breakout recording:
+
+```sh
+asciinema play examples/media/breakout-wasm.cast
+```
+
 Regenerate and upload this recording:
 
 ```sh

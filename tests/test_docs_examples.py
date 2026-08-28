@@ -89,6 +89,27 @@ def test_docs_describe_clock_and_breakout() -> None:
     assert "latest-value clock" in primitives
 
 
+def test_docs_describe_rust_wasm_clock_and_breakout() -> None:
+    readme = Path("README.md").read_text()
+    primitives = Path("docs/thor-primitives.md").read_text()
+    bytecode = Path("docs/red2-bytecode.md").read_text()
+    examples = Path("examples/README.md").read_text()
+
+    assert "mise run rust examples/breakout.thor --clock" in readme
+    assert "mise run wasm examples/breakout.thor --clock" in readme
+    assert "Rust/Wasm runners support `--clock <path>`" in primitives
+    assert "--clock /tmp/asgard-clock" in bytecode
+    assert "examples/media/breakout-wasm.cast" in examples
+
+
+def test_wasm_breakout_cast_is_committed_asciicast_v2() -> None:
+    cast = Path("examples/media/breakout-wasm.cast")
+    first_line = cast.read_text().splitlines()[0]
+
+    assert '"version": 2' in first_line
+    assert '"Asgard Breakout WASM"' in first_line
+
+
 def test_readme_embeds_latest_breakout_recording() -> None:
     readme = Path("README.md").read_text()
     embed = (

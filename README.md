@@ -103,11 +103,13 @@ Run terminal Breakout with a controlled latest-value clock source:
 ```sh
 mise run thor examples/breakout.thor --clock /tmp/asgard-clock
 mise run red2 examples/breakout.thor --clock /tmp/asgard-clock
+mise run rust examples/breakout.thor --clock /tmp/asgard-clock
+mise run wasm examples/breakout.thor --clock /tmp/asgard-clock
 ```
 
 The `--clock` file is newline-delimited millisecond timestamps; the runtime uses
-the latest valid value and ignores malformed lines. Rust/Wasm CLOCK support is
-deferred.
+the latest valid value and ignores malformed lines. Without `--clock`, runners
+that support `CLOCK` use the host system clock.
 
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
 it can be compared directly in scripts outside task-managed UART examples.

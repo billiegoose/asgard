@@ -209,8 +209,8 @@ Example:
 - `TICKS` — return a deterministic simulator tick counter.
 - `CLOCK` — return the current Unix timestamp in milliseconds as an integer. It
   is an IO action and must be sequenced with `IO-BIND` or `IO-THEN`. Python
-  THOR/RED2 runners support `--clock <path>` as a latest-value clock source for
-  deterministic tests; malformed clock lines are ignored.
+  THOR/RED2 and Rust/Wasm runners support `--clock <path>` as a latest-value
+  clock source for deterministic tests; malformed clock lines are ignored.
 
 The surface API hides explicit world-token threading. Internally these actions
 should be understood as the simulator-facing equivalent of world-transforming
@@ -229,9 +229,10 @@ Example fixtures:
 - `examples/breakout.thor` runs a 20x12 ANSI terminal Breakout example with
   score, lives, arrow-key paddle movement, and clock-paced ball motion.
 
-Run them with `mise run thor` or `mise run red2`. Use `--clock <path>` with
-Breakout to provide newline-delimited millisecond timestamps from a controlled
-latest-value clock source.
+Run them with `mise run thor`, `mise run red2`, `mise run rust`, or
+`mise run wasm` where supported. Use `--clock <path>` with Breakout to provide
+newline-delimited millisecond timestamps from a controlled latest-value clock
+source; omit `--clock` to use the host system clock.
 
 ### Error and Undefined-Value Semantics
 
