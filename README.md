@@ -74,21 +74,16 @@ printf A | uv run thor-spec --io --model thor \
 
 uv run thor-spec --io --model thor --file examples/uart-alphanumerics.thor
 uv run thor-spec --io --model thor --file examples/uart-caesar-plus4.thor
-uv run thor-spec --io --model thor --file examples/hangman.thor
+printf 'A\nS\nG\nR\nD\n' | uv run thor-spec --io --model red2 --file examples/hangman.thor --quantum 2000
 ```
 
-Run interactive UART examples on the Rust RED2 VM, keeping stdout reserved for
+Run interactive UART Caesar on the Rust RED2 VM, keeping stdout reserved for
 UART bytes:
 
 ```sh
 uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
 printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
 # stdout: efgBCD!
-# stderr: io result: NIL
-
-uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-printf 'ASGRD' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 1000
-# stdout includes: WIN
 # stderr: io result: NIL
 ```
 
@@ -107,8 +102,7 @@ cargo build -p red2-wasm --target wasm32-wasi
 wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
 uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
 printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
-uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-printf 'ASGRD' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 1000
+printf 'A\nS\nG\nR\nD\n' | uv run thor-spec --io --model red2 --file examples/hangman.thor --quantum 2000
 uv run pytest
 uv run ruff check .
 uv run mypy src tests

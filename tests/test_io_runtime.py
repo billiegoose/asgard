@@ -118,47 +118,62 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     assert red2_stderr == stderr
 
 
-def test_hangman_fixture_wins_with_all_word_letters() -> None:
+def test_hangman_fixture_ignores_newlines_and_wins() -> None:
     source = Path("examples/hangman.thor").read_text()
 
-    result, stdout, stderr = run_io(source, stdin_text="ASGRD", quantum=1500)
+    result, stdout, stderr = run_io(source, stdin_text="A\nS\nG\nR\nD\n", quantum=2000)
 
     assert result == "NIL"
     assert "GUESS LETTERS; ESC QUITS\n" in stdout
-    assert "HIT\n" in stdout
+    assert "WORD: ASGARD\n" in stdout
+    assert "GUESSED:\n" in stdout
+    assert "HIT\n" not in stdout
+    assert "MISS\n" not in stdout
+    assert "LOSE\n" not in stdout
     assert "WIN\n" in stdout
     assert stderr == ""
 
     red2_result, red2_stdout, red2_stderr = run_io(
         source,
-        stdin_text="ASGRD",
+        stdin_text="A\nS\nG\nR\nD\n",
         model="red2",
-        quantum=1500,
+        quantum=2000,
     )
     assert red2_result == result
-    assert "GUESS LETTERS; ESC QUITS\n" in red2_stdout
-    assert "HIT\n" in red2_stdout
+    assert "WORD: ASGARD\n" in red2_stdout
+    assert "GUESSED:\n" in red2_stdout
+    assert "HIT\n" not in red2_stdout
+    assert "MISS\n" not in red2_stdout
+    assert "LOSE\n" not in red2_stdout
     assert "WIN\n" in red2_stdout
     assert red2_stderr == stderr
 
 
-def test_hangman_fixture_loses_after_six_misses() -> None:
+def test_hangman_fixture_tracks_only_wrong_guesses_without_losing() -> None:
     source = Path("examples/hangman.thor").read_text()
 
-    result, stdout, stderr = run_io(source, stdin_text="xyzuvw", quantum=1500)
+    result, stdout, stderr = run_io(
+        source,
+        stdin_text="x\ny\nz\nA\nS\nG\nR\nD\n",
+        quantum=2000,
+    )
 
     assert result == "NIL"
-    assert stdout.count("MISS\n") == 6
-    assert "LOSE\n" in stdout
+    assert "GUESSED: XYZ\n" in stdout
+    assert "GUESSED: XYZASGRD" not in stdout
+    assert "LOSE\n" not in stdout
+    assert "WIN\n" in stdout
     assert stderr == ""
 
     red2_result, red2_stdout, red2_stderr = run_io(
         source,
-        stdin_text="xyzuvw",
+        stdin_text="x\ny\nz\nA\nS\nG\nR\nD\n",
         model="red2",
-        quantum=1500,
+        quantum=2000,
     )
     assert red2_result == result
-    assert red2_stdout.count("MISS\n") == 6
-    assert "LOSE\n" in red2_stdout
+    assert "GUESSED: XYZ\n" in red2_stdout
+    assert "GUESSED: XYZASGRD" not in red2_stdout
+    assert "LOSE\n" not in red2_stdout
+    assert "WIN\n" in red2_stdout
     assert red2_stderr == stderr

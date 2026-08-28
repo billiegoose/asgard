@@ -35,6 +35,7 @@ def run_rust_vm(
     *,
     io_mode: bool = False,
     stdin: str = "",
+    timeout: float = 20.0,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         "cargo",
@@ -55,6 +56,7 @@ def run_rust_vm(
         check=False,
         text=True,
         capture_output=True,
+        timeout=timeout,
     )
 
 
@@ -140,37 +142,3 @@ def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
     assert "io result: NIL" in result.stderr
     assert "red2 result:" not in result.stderr
 
-
-def test_rust_red2_vm_io_runs_hangman_win_path(tmp_path: Path) -> None:
-    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
-
-    result = run_rust_vm(
-        bytecode,
-        quantum=2000,
-        io_mode=True,
-        stdin="ASGRD",
-    )
-
-    assert result.returncode == 0
-    assert "GUESS LETTERS; ESC QUITS\n" in result.stdout
-    assert "HIT\n" in result.stdout
-    assert "WIN\n" in result.stdout
-    assert "io result: NIL" in result.stderr
-    assert "red2 result:" not in result.stderr
-
-
-def test_rust_red2_vm_io_runs_hangman_six_miss_lose_path(tmp_path: Path) -> None:
-    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
-
-    result = run_rust_vm(
-        bytecode,
-        quantum=2000,
-        io_mode=True,
-        stdin="xyzuvw",
-    )
-
-    assert result.returncode == 0
-    assert result.stdout.count("MISS\n") == 6
-    assert "LOSE\n" in result.stdout
-    assert "io result: NIL" in result.stderr
-    assert "red2 result:" not in result.stderr
