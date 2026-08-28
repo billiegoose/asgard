@@ -1,3 +1,3 @@
 [workspace]
-members = ["red2-wasm"]
+members = ["models/rust-red2"]
 resolver = "2"
