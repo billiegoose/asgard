@@ -36,6 +36,7 @@ def run_rust_vm(
     verbose: bool = False,
     stdin: str = "",
     timeout: float = 20.0,
+    clock: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         "cargo",
@@ -48,6 +49,8 @@ def run_rust_vm(
         "--quantum",
         str(quantum),
     ]
+    if clock is not None:
+        command.extend(["--clock", str(clock)])
     if verbose:
         command.append("--verbose")
     return subprocess.run(
@@ -185,6 +188,64 @@ def test_rust_red2_vm_io_runs_hangman_tracks_wrong_guesses(
     assert "WIN\n" in result.stdout
     assert "io result: NIL" not in result.stderr
     assert "red2 result:" not in result.stderr
+    assert result.stderr == ""
+
+
+def test_rust_red2_vm_io_clock_uses_latest_file_value(tmp_path: Path) -> None:
+    bytecode = write_bytecode(
+        tmp_path,
+        """
+        (IO-BIND (CLOCK)
+          (LAMBDA (now)
+            (UART-TX (MOD now 256))))
+        """,
+    )
+    clock = tmp_path / "clock.txt"
+    clock.write_text("bad\n1700000000065\n")
+
+    result = run_rust_vm(bytecode, quantum=100, clock=clock)
+
+    assert result.returncode == 0
+    assert result.stdout == "A"
+    assert result.stderr == ""
+
+
+def test_rust_red2_vm_io_clock_defaults_to_system_time(tmp_path: Path) -> None:
+    bytecode = write_bytecode(
+        tmp_path,
+        """
+        (IO-BIND (CLOCK)
+          (LAMBDA (now)
+            (if (> now 1000000000000)
+                (UART-TX 89)
+                (UART-TX 78))))
+        """,
+    )
+
+    result = run_rust_vm(bytecode, quantum=100)
+
+    assert result.returncode == 0
+    assert result.stdout == "Y"
+    assert result.stderr == ""
+
+
+def test_rust_red2_vm_io_runs_breakout_with_controlled_clock(tmp_path: Path) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/breakout.thor").read_text())
+    clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000200\n")
+
+    result = run_rust_vm(
+        bytecode,
+        quantum=12000,
+        stdin=" q",
+        clock=clock,
+        timeout=30.0,
+    )
+
+    assert result.returncode == 0
+    assert "BREAKOUT 20x12\n" in result.stdout
+    assert "QUIT\n" in result.stdout
+    assert "\x1b[" in result.stdout
     assert result.stderr == ""
 
 

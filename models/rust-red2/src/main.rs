@@ -13,11 +13,12 @@ enum RunOutcome {
 fn main() {
     let mut args = env::args().skip(1);
     let Some(path) = args.next() else {
-        eprintln!("usage: red2-wasm <program.red2> [--quantum N] [--verbose]");
+        eprintln!("usage: red2-wasm <program.red2> [--quantum N] [--clock PATH] [--verbose]");
         std::process::exit(2);
     };
     let mut quantum = 100u32;
     let mut verbose = false;
+    let mut clock_path: Option<String> = None;
     while let Some(arg) = args.next() {
         if arg == "--verbose" {
             verbose = true;
@@ -33,6 +34,15 @@ fn main() {
                     std::process::exit(2);
                 }
             };
+        } else if arg == "--clock" {
+            let Some(value) = args.next() else {
+                eprintln!("red2-wasm: --clock requires a value");
+                std::process::exit(2);
+            };
+            clock_path = Some(value);
+        } else {
+            eprintln!("red2-wasm: unknown argument: {arg}");
+            std::process::exit(2);
         }
     }
     let bytes = match fs::read(&path) {
@@ -47,7 +57,15 @@ fn main() {
         if is_io_action(&preflight) {
             let mut stdin = io::stdin().lock();
             let mut stdout = io::stdout().lock();
-            vm::run_io_bundle(&bundle, quantum, &mut stdin, &mut stdout).map(RunOutcome::Io)
+            if let Some(path) = clock_path {
+                let mut system_clock = vm::SystemClockSource;
+                let initial_ms = vm::ClockSource::now_ms(&mut system_clock);
+                let mut clock = vm::LatestFileClockSource::new(path.into(), initial_ms);
+                vm::run_io_bundle_with_clock(&bundle, quantum, &mut stdin, &mut stdout, &mut clock)
+                    .map(RunOutcome::Io)
+            } else {
+                vm::run_io_bundle(&bundle, quantum, &mut stdin, &mut stdout).map(RunOutcome::Io)
+            }
         } else {
             Ok(RunOutcome::Red2(preflight))
         }
@@ -84,5 +102,6 @@ fn is_io_action_name(name: &str) -> bool {
     matches!(
         name,
         "IF" | "IO-BIND" | "IO-RETURN" | "IO-THEN" | "UART-RX" | "UART-TX"
+            | "UART-TX-BYTES" | "CLOCK"
     )
 }

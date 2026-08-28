@@ -164,6 +164,7 @@ impl Parser<'_> {
         match inst.opcode {
             Opcode::App => self.parse_app(pc),
             Opcode::Lambda => self.parse_lambda(pc),
+            Opcode::Struct => self.parse_struct(pc),
             Opcode::Var => match &inst.data {
                 Data::Int(index) => Ok(Expr::Var(*index as usize, None)),
                 Data::String(name) => Ok(Expr::Var(0, Some(name.clone()))),
@@ -207,6 +208,46 @@ impl Parser<'_> {
             cursor += 1;
         }
         Ok(Expr::Lambda(params, Box::new(self.parse(cursor)?)))
+    }
+
+    fn parse_struct(&mut self, pc: usize) -> Result<Expr, Red2Error> {
+        let inst = self
+            .program
+            .instructions
+            .get(pc)
+            .ok_or_else(|| Red2Error(format!("instruction index out of range: {pc}")))?;
+        let Data::String(tag) = &inst.data else {
+            return Err(Red2Error("STRUCT requires string data".to_string()));
+        };
+        let mut field_pcs = Vec::new();
+        let mut cursor = pc + 1;
+        while let Some(inst) = self.program.instructions.get(cursor) {
+            if inst.opcode != Opcode::App {
+                break;
+            }
+            let Data::Int(field_pc) = inst.data else {
+                return Err(Red2Error("STRUCT field APP requires integer data".to_string()));
+            };
+            field_pcs.push(field_pc as usize);
+            cursor += 1;
+        }
+        match self.program.instructions.get(cursor).map(|inst| inst.opcode) {
+            Some(Opcode::Var) => {}
+            _ => return Err(Red2Error("STRUCT requires trailing VAR body".to_string())),
+        }
+        let mut fields = Vec::with_capacity(field_pcs.len());
+        for field_pc in field_pcs.into_iter().rev() {
+            fields.push(self.parse(field_pc)?);
+        }
+        if tag == "PAIR" && fields.len() == 2 {
+            return Ok(Expr::Pair(
+                Box::new(fields.remove(0)),
+                Box::new(fields.remove(0)),
+            ));
+        }
+        let mut items = vec![Expr::Symbol(tag.clone())];
+        items.extend(fields);
+        Ok(Expr::App(items))
     }
 }
 
@@ -527,6 +568,11 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     return Ok(Expr::Int(i64::from(byte[0])));
                 }
                 ("CLOCK", []) => return Ok(Expr::Int(self.clock.now_ms())),
+                ("UART-TX-BYTES", [value]) => {
+                    let value = self.reducer.reduce(value.clone(), env)?;
+                    self.write_byte_list(&value)?;
+                    return Ok(Expr::Symbol("NIL".to_string()));
+                }
                 ("UART-TX", [value]) => {
                     let value = self.reducer.reduce(value.clone(), env)?;
                     let Expr::Int(byte) = value else {
@@ -565,6 +611,38 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
             "unknown IO action: {}",
             Expr::App(items).to_source()
         )))
+    }
+
+    fn write_byte_list(&mut self, value: &Expr) -> Result<(), Red2Error> {
+        let mut cursor = value;
+        loop {
+            match cursor {
+                Expr::Pair(head, tail) => {
+                    let Expr::Int(byte) = **head else {
+                        return Err(Red2Error(format!(
+                            "UART-TX-BYTES expects integer bytes, got {}",
+                            head.to_source()
+                        )));
+                    };
+                    self.output
+                        .write_all(&[(byte.rem_euclid(256)) as u8])
+                        .map_err(|e| Red2Error(format!("UART-TX-BYTES failed: {e}")))?;
+                    cursor = tail;
+                }
+                Expr::Symbol(name) if name == "NIL" => {
+                    self.output
+                        .flush()
+                        .map_err(|e| Red2Error(format!("UART-TX-BYTES flush failed: {e}")))?;
+                    return Ok(());
+                }
+                other => {
+                    return Err(Red2Error(format!(
+                        "UART-TX-BYTES expects a byte list, got {}",
+                        other.to_source()
+                    )));
+                }
+            }
+        }
     }
 
     fn apply_unary_action(
