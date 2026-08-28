@@ -116,6 +116,45 @@ def test_mise_rust_accepts_clock_flag(tmp_path: Path) -> None:
     assert result.stderr == ""
 
 
+def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(
+    tmp_path: Path,
+) -> None:
+    clock = tmp_path / "breakout-clock.txt"
+    driver = tmp_path / "drive_breakout.py"
+    steps = [
+        (1_700_000_000_000 + (tick * 100), " ", 0.0)
+        for tick in range(1, 6)
+    ] + [(1_700_000_000_700, "q", 0.0)]
+    driver.write_text(
+        "from pathlib import Path\n"
+        "import sys\n"
+        f"clock = Path({str(clock)!r})\n"
+        f"steps = {steps!r}\n"
+        "for timestamp, keys, delay in steps:\n"
+        "    clock.write_text(f'{timestamp}\\n')\n"
+        "    sys.stdout.write(keys)\n"
+        "    sys.stdout.flush()\n"
+    )
+
+    command = (
+        f"python3 {driver} | "
+        f"mise run wasm examples/breakout.thor --clock {clock} --quantum 50000"
+    )
+    result = subprocess.run(
+        ["bash", "-c", command],
+        check=False,
+        text=True,
+        capture_output=True,
+        timeout=90.0,
+    )
+
+    assert result.returncode == 0
+    assert "BREAKOUT 20x12\n" in result.stdout
+    assert result.stdout.count("o") >= 6
+    assert "QUIT\n" in result.stdout
+    assert result.stderr == ""
+
+
 def test_mise_wasm_runs_breakout_with_controlled_clock(tmp_path: Path) -> None:
     clock = tmp_path / "breakout-clock.txt"
     clock.write_text("1700000000200\n")

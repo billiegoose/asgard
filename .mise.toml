@@ -84,10 +84,11 @@ run = 'echo "todo"'
 description = "Generate and upload one deterministic example recording"
 usage = '''
 arg "<video>" help="video fixture to record" {
-  choices "breakout"
+  choices "breakout" "breakout-wasm"
 }
+flag "--no-upload" help="regenerate the local cast without uploading or updating the URL"
 '''
-run = 'uv run python tools/videos/generate.py "${usage_video?}"'
+run = 'uv run python tools/videos/generate.py "${usage_video?}" ${usage_no_upload:+--no-upload}'
 
 [tasks.test]
 description = "Run Python tests"

@@ -489,44 +489,58 @@ struct IoRunner<'a, R: Read, W: Write, C: ClockSource> {
 
 impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
     fn run_action(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
-        match expr {
-            Expr::Var(index, _) => match env.get(index) {
-                Some(Expr::Closure(expr, captured_env)) => {
-                    self.run_action((**expr).clone(), captured_env)
-                }
-                Some(value) => self.run_action(value.clone(), env),
-                None => Err(Red2Error(format!("unbound IO variable: {index}"))),
-            },
-            Expr::Closure(expr, captured_env) => self.run_action(*expr, &captured_env),
-            Expr::Symbol(name) => {
-                if name == "UART-RX" {
-                    let mut byte = [0u8; 1];
-                    let read = self
-                        .input
-                        .read(&mut byte)
-                        .map_err(|e| Red2Error(format!("UART-RX failed: {e}")))?;
-                    if read == 0 {
-                        return Ok(Expr::Symbol("NIL".to_string()));
+        self.run_action_loop(expr, env.to_vec())
+    }
+
+    fn run_action_loop(&mut self, mut expr: Expr, mut env: Vec<Expr>) -> Result<Expr, Red2Error> {
+        loop {
+            match expr {
+                Expr::Var(index, _) => match env.get(index) {
+                    Some(Expr::Closure(closure_expr, captured_env)) => {
+                        expr = (**closure_expr).clone();
+                        env = captured_env.clone();
                     }
-                    return Ok(Expr::Int(i64::from(byte[0])));
+                    Some(value) => {
+                        expr = value.clone();
+                    }
+                    None => return Err(Red2Error(format!("unbound IO variable: {index}"))),
+                },
+                Expr::Closure(next_expr, captured_env) => {
+                    expr = *next_expr;
+                    env = captured_env;
                 }
-                if name == "CLOCK" {
-                    return Ok(Expr::Int(self.clock.now_ms()));
+                Expr::Symbol(name) => {
+                    if name == "UART-RX" {
+                        return self.read_uart_rx();
+                    }
+                    if name == "CLOCK" {
+                        return Ok(Expr::Int(self.clock.now_ms()));
+                    }
+                    if let Some(next_expr) = self.reducer.definition_expr(&name)? {
+                        expr = next_expr;
+                        env.clear();
+                    } else {
+                        return Err(Red2Error(format!("not an IO action: {name}")));
+                    }
                 }
-                if let Some(expr) = self.reducer.definition_expr(&name)? {
-                    return self.run_action(expr, &[]);
+                Expr::App(items) => match self.step_app(items, &env)? {
+                    IoStep::Return(value) => return Ok(value),
+                    IoStep::TailCall(next_expr, next_env) => {
+                        expr = next_expr;
+                        env = next_env;
+                    }
+                },
+                other => {
+                    return Err(Red2Error(format!(
+                        "not an IO action: {}",
+                        other.to_source()
+                    )));
                 }
-                Err(Red2Error(format!("not an IO action: {name}")))
             }
-            Expr::App(items) => self.run_app(items, env),
-            other => Err(Red2Error(format!(
-                "not an IO action: {}",
-                other.to_source()
-            ))),
         }
     }
 
-    fn run_app(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<Expr, Red2Error> {
+    fn step_app(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<IoStep, Red2Error> {
         if items.is_empty() {
             return Err(Red2Error("not an IO action: ()".to_string()));
         }
@@ -537,41 +551,33 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                 ("IF", [condition, consequent, alternative]) => {
                     let condition = self.reducer.reduce(condition.clone(), env)?;
                     if is_true(&condition) {
-                        return self.run_action(consequent.clone(), env);
+                        return Ok(IoStep::TailCall(consequent.clone(), env.to_vec()));
                     }
                     if is_false(&condition) {
-                        return self.run_action(alternative.clone(), env);
+                        return Ok(IoStep::TailCall(alternative.clone(), env.to_vec()));
                     }
                     return Err(Red2Error(format!(
                         "IO IF condition did not reduce to TRUE or FALSE: {}",
                         condition.to_source()
                     )));
                 }
-                ("IO-RETURN", [value]) => return self.reducer.reduce(value.clone(), env),
+                ("IO-RETURN", [value]) => {
+                    return self.reducer.reduce(value.clone(), env).map(IoStep::Return);
+                }
                 ("IO-BIND", [action, continuation]) => {
-                    let value = self.run_action(action.clone(), env)?;
-                    return self.apply_unary_action(continuation.clone(), value, env);
+                    let value = self.run_action_loop(action.clone(), env.to_vec())?;
+                    return self.apply_unary_action_step(continuation.clone(), value, env);
                 }
                 ("IO-THEN", [first, second]) => {
-                    self.run_action(first.clone(), env)?;
-                    return self.run_action(second.clone(), env);
+                    self.run_action_loop(first.clone(), env.to_vec())?;
+                    return Ok(IoStep::TailCall(second.clone(), env.to_vec()));
                 }
-                ("UART-RX", []) => {
-                    let mut byte = [0u8; 1];
-                    let read = self
-                        .input
-                        .read(&mut byte)
-                        .map_err(|e| Red2Error(format!("UART-RX failed: {e}")))?;
-                    if read == 0 {
-                        return Ok(Expr::Symbol("NIL".to_string()));
-                    }
-                    return Ok(Expr::Int(i64::from(byte[0])));
-                }
-                ("CLOCK", []) => return Ok(Expr::Int(self.clock.now_ms())),
+                ("UART-RX", []) => return self.read_uart_rx().map(IoStep::Return),
+                ("CLOCK", []) => return Ok(IoStep::Return(Expr::Int(self.clock.now_ms()))),
                 ("UART-TX-BYTES", [value]) => {
                     let value = self.reducer.reduce(value.clone(), env)?;
                     self.write_byte_list(&value)?;
-                    return Ok(Expr::Symbol("NIL".to_string()));
+                    return Ok(IoStep::Return(Expr::Symbol("NIL".to_string())));
                 }
                 ("UART-TX", [value]) => {
                     let value = self.reducer.reduce(value.clone(), env)?;
@@ -587,7 +593,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     self.output
                         .flush()
                         .map_err(|e| Red2Error(format!("UART-TX flush failed: {e}")))?;
-                    return Ok(Expr::Symbol("NIL".to_string()));
+                    return Ok(IoStep::Return(Expr::Symbol("NIL".to_string())));
                 }
                 _ => {}
             }
@@ -605,12 +611,24 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                 next_env.push(self.reducer.reduce(arg.clone(), env)?);
             }
             next_env.extend_from_slice(env);
-            return self.run_action(*body, &next_env);
+            return Ok(IoStep::TailCall(*body, next_env));
         }
         Err(Red2Error(format!(
             "unknown IO action: {}",
             Expr::App(items).to_source()
         )))
+    }
+
+    fn read_uart_rx(&mut self) -> Result<Expr, Red2Error> {
+        let mut byte = [0u8; 1];
+        let read = self
+            .input
+            .read(&mut byte)
+            .map_err(|e| Red2Error(format!("UART-RX failed: {e}")))?;
+        if read == 0 {
+            return Ok(Expr::Symbol("NIL".to_string()));
+        }
+        Ok(Expr::Int(i64::from(byte[0])))
     }
 
     fn write_byte_list(&mut self, value: &Expr) -> Result<(), Red2Error> {
@@ -645,12 +663,12 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         }
     }
 
-    fn apply_unary_action(
+    fn apply_unary_action_step(
         &mut self,
         continuation: Expr,
         value: Expr,
         env: &[Expr],
-    ) -> Result<Expr, Red2Error> {
+    ) -> Result<IoStep, Red2Error> {
         let continuation = self.reducer.reduce(continuation, env)?;
         let Expr::Lambda(params, body) = continuation else {
             return Err(Red2Error(format!(
@@ -666,8 +684,13 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         }
         let mut next_env = vec![value];
         next_env.extend_from_slice(env);
-        self.run_action(*body, &next_env)
+        Ok(IoStep::TailCall(*body, next_env))
     }
+}
+
+enum IoStep {
+    Return(Expr),
+    TailCall(Expr, Vec<Expr>),
 }
 
 fn bool_expr(value: bool) -> Expr {
