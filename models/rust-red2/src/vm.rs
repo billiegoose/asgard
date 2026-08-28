@@ -1,11 +1,13 @@
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::bytecode::{Data, Instruction, Opcode, Program, ProgramBundle, Red2Error};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Int(i32),
+    Int(i64),
     Float(f64),
     Char(String),
     Symbol(String),
@@ -44,6 +46,46 @@ impl Expr {
     }
 }
 
+pub trait ClockSource {
+    fn now_ms(&mut self) -> i64;
+}
+
+pub struct SystemClockSource;
+
+impl ClockSource for SystemClockSource {
+    fn now_ms(&mut self) -> i64 {
+        match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_millis().min(i64::MAX as u128) as i64,
+            Err(_) => 0,
+        }
+    }
+}
+
+pub struct LatestFileClockSource {
+    path: PathBuf,
+    latest: i64,
+}
+
+impl LatestFileClockSource {
+    pub fn new(path: PathBuf, initial_ms: i64) -> Self {
+        Self { path, latest: initial_ms }
+    }
+}
+
+impl ClockSource for LatestFileClockSource {
+    fn now_ms(&mut self) -> i64 {
+        let Ok(text) = std::fs::read_to_string(&self.path) else {
+            return self.latest;
+        };
+        for line in text.lines() {
+            if let Ok(value) = line.trim().parse::<i64>() {
+                self.latest = value;
+            }
+        }
+        self.latest
+    }
+}
+
 pub fn run(program: &Program, quantum: u32) -> Result<Expr, Red2Error> {
     let mut parser = Parser { program };
     let expr = parser.parse(program.entry as usize)?;
@@ -77,6 +119,17 @@ pub fn run_io_bundle<R: Read, W: Write>(
     input: &mut R,
     output: &mut W,
 ) -> Result<Expr, Red2Error> {
+    let mut clock = SystemClockSource;
+    run_io_bundle_with_clock(bundle, quantum, input, output, &mut clock)
+}
+
+pub fn run_io_bundle_with_clock<R: Read, W: Write, C: ClockSource>(
+    bundle: &ProgramBundle,
+    quantum: u32,
+    input: &mut R,
+    output: &mut W,
+    clock: &mut C,
+) -> Result<Expr, Red2Error> {
     let program = bundle
         .entry()
         .ok_or_else(|| Red2Error("missing entry program".to_string()))?;
@@ -92,6 +145,7 @@ pub fn run_io_bundle<R: Read, W: Write>(
         reducer,
         input,
         output,
+        clock,
     }
     .run_action(expr, &[])
 }
@@ -159,7 +213,7 @@ impl Parser<'_> {
 fn instruction_expr(inst: &Instruction) -> Result<Expr, Red2Error> {
     match inst.opcode {
         Opcode::Int => match inst.data {
-            Data::Int(value) => Ok(Expr::Int(value)),
+            Data::Int(value) => Ok(Expr::Int(i64::from(value))),
             _ => Err(Red2Error("INT requires integer data".to_string())),
         },
         Opcode::Float => match inst.data {
@@ -385,13 +439,14 @@ impl Reducer<'_> {
     }
 }
 
-struct IoRunner<'a, R: Read, W: Write> {
+struct IoRunner<'a, R: Read, W: Write, C: ClockSource> {
     reducer: Reducer<'a>,
     input: &'a mut R,
     output: &'a mut W,
+    clock: &'a mut C,
 }
 
-impl<R: Read, W: Write> IoRunner<'_, R, W> {
+impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
     fn run_action(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
         match expr {
             Expr::Var(index, _) => match env.get(index) {
@@ -412,7 +467,10 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
                     if read == 0 {
                         return Ok(Expr::Symbol("NIL".to_string()));
                     }
-                    return Ok(Expr::Int(i32::from(byte[0])));
+                    return Ok(Expr::Int(i64::from(byte[0])));
+                }
+                if name == "CLOCK" {
+                    return Ok(Expr::Int(self.clock.now_ms()));
                 }
                 if let Some(expr) = self.reducer.definition_expr(&name)? {
                     return self.run_action(expr, &[]);
@@ -466,8 +524,9 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
                     if read == 0 {
                         return Ok(Expr::Symbol("NIL".to_string()));
                     }
-                    return Ok(Expr::Int(i32::from(byte[0])));
+                    return Ok(Expr::Int(i64::from(byte[0])));
                 }
+                ("CLOCK", []) => return Ok(Expr::Int(self.clock.now_ms())),
                 ("UART-TX", [value]) => {
                     let value = self.reducer.reduce(value.clone(), env)?;
                     let Expr::Int(byte) = value else {
@@ -548,7 +607,7 @@ fn is_false(expr: &Expr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bytecode::{Data, Instruction, Opcode, Program};
+    use crate::bytecode::{Data, Instruction, Opcode, Program, ProgramBundle};
     use std::collections::BTreeMap;
 
     fn program(instructions: Vec<Instruction>) -> Program {
@@ -632,5 +691,55 @@ mod tests {
             },
         ]);
         assert_eq!(run(&program, 10).unwrap().to_source(), "42");
+    }
+
+    #[test]
+    fn latest_file_clock_uses_latest_valid_line_and_keeps_previous_on_bad_input() {
+        let path = std::env::temp_dir().join(format!(
+            "asgard-clock-{}-latest.txt",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        std::fs::write(&path, "1700000000123\nnot-a-clock\n1700000000456\n").unwrap();
+        let mut clock = LatestFileClockSource::new(path.clone(), 123);
+
+        assert_eq!(clock.now_ms(), 1_700_000_000_456);
+
+        std::fs::write(&path, "bad\n").unwrap();
+        assert_eq!(clock.now_ms(), 1_700_000_000_456);
+        let _ = std::fs::remove_file(path);
+    }
+
+    struct FixedClock(i64);
+
+    impl ClockSource for FixedClock {
+        fn now_ms(&mut self) -> i64 {
+            self.0
+        }
+    }
+
+    #[test]
+    fn io_clock_action_returns_clock_milliseconds() {
+        let program = program(vec![Instruction {
+            opcode: Opcode::Sym,
+            head: true,
+            data: Data::String("CLOCK".to_string()),
+        }]);
+        let bundle = ProgramBundle {
+            entry_index: 0,
+            programs: vec![program],
+            definitions: BTreeMap::new(),
+        };
+        let mut input = std::io::empty();
+        let mut output = Vec::new();
+        let mut clock = FixedClock(1_700_000_000_789);
+
+        assert_eq!(
+            run_io_bundle_with_clock(&bundle, 10, &mut input, &mut output, &mut clock)
+                .unwrap()
+                .to_source(),
+            "1700000000789"
+        );
+        assert!(output.is_empty());
     }
 }
