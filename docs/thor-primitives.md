@@ -203,8 +203,14 @@ Example:
 - `UART-RX` — read one byte/character from stdin and return its integer code, or
   `NIL` at EOF.
 - `UART-TX` — write one integer byte to stdout and return `NIL`.
+- `UART-TX-BYTES` — write a list of integer bytes to stdout and return `NIL`.
+  Terminal examples use this for fixed text and board rows.
 - `LEDS` — write an LED-bank diagnostic line to stderr and return `NIL`.
 - `TICKS` — return a deterministic simulator tick counter.
+- `CLOCK` — return the current Unix timestamp in milliseconds as an integer. It
+  is an IO action and must be sequenced with `IO-BIND` or `IO-THEN`. Python
+  THOR/RED2 runners support `--clock <path>` as a latest-value clock source for
+  deterministic tests; malformed clock lines are ignored.
 
 The surface API hides explicit world-token threading. Internally these actions
 should be understood as the simulator-facing equivalent of world-transforming
@@ -220,8 +226,12 @@ Example fixtures:
 - `examples/hangman.thor` runs a small fixed-word Hangman game over UART. It
   prints instructions, redraws the word and wrong guessed letters after each
   real guess, ignores CR/LF, and prints `WIN` when `ASGARD` has been guessed.
+- `examples/breakout.thor` runs a 20x12 ANSI terminal Breakout example with
+  score, lives, arrow-key paddle movement, and clock-paced ball motion.
 
-Run them with `thor-spec --io --model thor` or `thor-spec --io --model red2`.
+Run them with `mise run thor` or `mise run red2`. Use `--clock <path>` with
+Breakout to provide newline-delimited millisecond timestamps from a controlled
+latest-value clock source.
 
 ### Error and Undefined-Value Semantics
 

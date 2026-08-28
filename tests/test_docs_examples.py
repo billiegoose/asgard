@@ -76,3 +76,14 @@ def test_breakout_example_documents_terminal_game_sections() -> None:
     assert "CLOCK" in breakout
     assert "ESC [2J" in breakout
     assert "20x12" in breakout
+
+
+def test_docs_describe_clock_and_breakout() -> None:
+    readme = Path("README.md").read_text()
+    primitives = Path("docs/thor-primitives.md").read_text()
+
+    assert "mise run thor examples/breakout.thor --clock" in readme
+    assert "mise run red2 examples/breakout.thor --clock" in readme
+    assert "CLOCK" in primitives
+    assert "Unix timestamp" in primitives
+    assert "latest-value clock" in primitives

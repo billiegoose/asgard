@@ -94,6 +94,17 @@ printf 'abcXYZ!\033' | mise run rust examples/uart-caesar-plus4.thor
 printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 ```
 
+Run terminal Breakout with a controlled latest-value clock source:
+
+```sh
+mise run thor examples/breakout.thor --clock /tmp/asgard-clock
+mise run red2 examples/breakout.thor --clock /tmp/asgard-clock
+```
+
+The `--clock` file is newline-delimited millisecond timestamps; the runtime uses
+the latest valid value and ignores malformed lines. Rust/Wasm CLOCK support is
+deferred.
+
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
 it can be compared directly in scripts outside task-managed UART examples.
 
