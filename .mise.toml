@@ -3,3 +3,84 @@ python = "3.14.7"
 
 [env]
 _.python.venv = { path = ".venv", create = true }
+
+[tasks.thor]
+description = "Run a THOR source file with the Python THOR model"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="2000"
+flag "--verbose" help="write diagnostics to stderr"
+'''
+run = '''
+uv run thor-spec thor "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+'''
+
+[tasks.red2]
+description = "Run a THOR source file with the Python RED2 model"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="2000"
+flag "--verbose" help="write diagnostics to stderr"
+'''
+run = '''
+uv run thor-spec red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+'''
+
+[tasks.rust]
+description = "Compile a THOR source file and run it with the native Rust RED2 VM"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="5000"
+flag "--verbose" help="write diagnostics to stderr"
+'''
+run = '''
+tmp="$(mktemp -t asgard-rust.XXXXXX).red2"
+uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
+cargo run -p red2-wasm --quiet -- "$tmp" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+rm -f "$tmp"
+'''
+
+[tasks.wasm]
+description = "Compile a THOR source file and run it with the Wasmtime RED2 VM"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="5000"
+flag "--verbose" help="write diagnostics to stderr"
+'''
+run = '''
+tmp="$(mktemp -t asgard-wasm.XXXXXX).red2"
+uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
+cargo build -p red2-wasm --target wasm32-wasi --quiet
+wasmtime --dir "$(dirname "$tmp")" target/wasm32-wasi/debug/red2-wasm.wasm "$tmp" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+rm -f "$tmp"
+'''
+
+[tasks.hdl]
+description = "Placeholder for future HDL execution"
+quiet = true
+usage = 'arg "<file>" help="THOR source file"'
+run = 'echo "todo"'
+
+[tasks.test]
+description = "Run Python tests"
+run = "uv run pytest"
+
+[tasks.lint]
+description = "Run Ruff"
+run = "uv run ruff check ."
+
+[tasks.typecheck]
+description = "Run mypy"
+run = "uv run mypy src tests"
+
+[tasks.rust-test]
+description = "Run Rust tests"
+run = "cargo test -p red2-wasm"
+
+[tasks.verify]
+description = "Run all project verification gates"
+depends = ["test", "lint", "typecheck", "rust-test"]
