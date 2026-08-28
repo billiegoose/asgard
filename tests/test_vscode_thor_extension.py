@@ -8,7 +8,7 @@ def load_json(path: str) -> dict[str, Any]:
 
 
 def test_vscode_manifest_declares_thor_language_and_grammar() -> None:
-    package = load_json("vscode-thor/package.json")
+    package = load_json("tools/vscode-thor/package.json")
     contributes = package["contributes"]
     assert package["name"] == "thor-syntax"
     assert contributes["languages"][0]["id"] == "thor"
@@ -17,7 +17,7 @@ def test_vscode_manifest_declares_thor_language_and_grammar() -> None:
 
 
 def test_textmate_grammar_contains_core_patterns() -> None:
-    grammar = load_json("vscode-thor/syntaxes/thor.tmLanguage.json")
+    grammar = load_json("tools/vscode-thor/syntaxes/thor.tmLanguage.json")
     text = json.dumps(grammar)
     for token in [
         "comment.line.semicolon.thor",
@@ -38,8 +38,8 @@ def test_top_level_examples_cover_fibonacci_and_appendix_a_forms() -> None:
 
 
 def test_extension_docs_include_local_installation_and_release_notes() -> None:
-    readme = Path("vscode-thor/README.md").read_text()
-    changelog = Path("vscode-thor/CHANGELOG.md").read_text()
+    readme = Path("tools/vscode-thor/README.md").read_text()
+    changelog = Path("tools/vscode-thor/CHANGELOG.md").read_text()
     assert "code --install-extension" in readme
     assert ".thor" in readme
     assert "TextMate" in readme
