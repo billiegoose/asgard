@@ -118,17 +118,32 @@ values      repeated value_count times:
 The `red2-wasm/` crate is the first non-Python executor for `.red2` bytecode. It
 currently supports a definition-free subset: literals, simple application,
 strict integer arithmetic/comparison primitives, and simple lambda/beta cases.
-It writes VM result diagnostics to stderr and reserves stdout for future
-UART/device IO.
 
-Native run:
+For day-to-day source-file runs, use the canonical `mise run` task surface. The
+Rust and Wasm tasks compile a temporary `.red2` bundle and then execute it with
+the native or Wasmtime RED2 VM:
+
+```sh
+mise run rust examples/uart-caesar-plus4.thor
+mise run wasm examples/uart-caesar-plus4.thor
+printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
+```
+
+Successful model tasks reserve stdout for simulated UART/device output and are
+quiet on stderr by default. Add `--verbose` to `mise run rust` or
+`mise run wasm` when diagnostics such as `io result: NIL` are needed.
+
+Lower-level commands are useful when inspecting the `.red2` format or debugging
+an executor against a precompiled bytecode bundle:
 
 ```sh
 uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
+uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 ```
 
-WASI/Wasmtime run:
+WASI/Wasmtime direct execution also operates on an existing `.red2` bundle:
 
 ```sh
 rustup target add wasm32-wasi
@@ -138,32 +153,6 @@ wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quan
 
 Wasmtime requires `--dir /tmp` or another preopened directory to grant the WASI
 module access to `.red2` files.
-
-Run the UART Caesar cipher with the native Rust VM:
-
-```sh
-uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
-printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
-```
-
-Run the same bytecode under Wasmtime:
-
-```sh
-cargo build -p red2-wasm --target wasm32-wasi
-printf 'abcXYZ!\033' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/caesar.red2 --io
-```
-
-Run the Hangman example:
-
-```sh
-uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
-printf 'A\nS\nG\nR\nD\n' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/hangman.red2 --io --quantum 5000
-```
-
-In IO mode, stdout is the simulated UART byte stream (`efgBCD!` for the Caesar
-example above, or rendered game text for Hangman). Final IO diagnostics such as
-`io result: NIL` are written to stderr.
 
 Next VM milestones:
 

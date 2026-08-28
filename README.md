@@ -44,8 +44,26 @@ uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
 # 5
 ```
 
+Use `mise run` as the canonical command surface for source-file examples and
+project checks:
+
+```sh
+uv run thor-spec --model thor --quantum 20 --expr "(+ 2 3)"
+uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
+mise run thor examples/hangman.thor --quantum 5000
+mise run red2 examples/hangman.thor --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
+mise run hdl examples/hangman.thor
+mise run verify
+```
+
+Successful model tasks write simulated UART/device output to stdout and are
+quiet on stderr by default. Add `--verbose` to `mise run thor`, `red2`, `rust`,
+or `wasm` when diagnostic output such as final IO results is needed.
+
 Run a source file containing definitions, structure declarations, and expression
-forms:
+forms with the Python CLI when inspecting implementation details:
 
 ```sh
 uv run thor-spec --file tests/golden/thor_examples.thor
@@ -63,41 +81,33 @@ diverge. It reports each mismatch range with the THOR/RED2 expressions at that
 range's first quantum and the range's reconvergence point, if any. It exits 0
 when the final quantum matches and exits 1 when the final quantum still differs.
 
-Run the final expression as a simulated IO action, with UART bytes on stdout and
-diagnostics on stderr:
+Run canonical UART examples through the task surface:
 
 ```sh
-printf A | uv run thor-spec --io --model thor \
-  --expr "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"
-# stdout: A
-# stderr: io result: NIL
-
-uv run thor-spec --io --model thor --file examples/uart-alphanumerics.thor
-uv run thor-spec --io --model thor --file examples/uart-caesar-plus4.thor
-printf 'A\nS\nG\nR\nD\n' | uv run thor-spec --io --model red2 --file examples/hangman.thor --quantum 2000
-```
-
-Run interactive UART Caesar on the Rust RED2 VM, keeping stdout reserved for
-UART bytes:
-
-```sh
-uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
-printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
-# stdout: efgBCD!
-# stderr: io result: NIL
-
-uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
-# stdout includes: WORD: ASGARD
-# stdout includes: WIN
-# stderr: io result: NIL
+mise run thor examples/uart-alphanumerics.thor
+mise run red2 examples/uart-caesar-plus4.thor
+printf 'abcXYZ!\033' | mise run rust examples/uart-caesar-plus4.thor
+printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 ```
 
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
-it can be compared directly in scripts outside IO mode, and remains UART-only in
-IO mode.
+it can be compared directly in scripts outside task-managed UART examples.
 
 ## Useful Commands
+
+Use the task surface for normal runs:
+
+```sh
+mise run thor examples/hangman.thor --quantum 5000
+mise run red2 examples/hangman.thor --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
+mise run hdl examples/hangman.thor
+mise run verify
+```
+
+Lower-level bytecode commands remain useful when inspecting the `.red2` format
+or debugging an executor directly:
 
 ```sh
 uv run thor-spec --help
@@ -106,13 +116,6 @@ uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
 cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 cargo build -p red2-wasm --target wasm32-wasi
 wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
-uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
-printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
-uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
-uv run pytest
-uv run ruff check .
-uv run mypy src tests
 ```
 
 ## Prototype Scope
