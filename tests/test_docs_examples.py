@@ -87,3 +87,12 @@ def test_docs_describe_clock_and_breakout() -> None:
     assert "CLOCK" in primitives
     assert "Unix timestamp" in primitives
     assert "latest-value clock" in primitives
+
+
+def test_examples_readme_embeds_breakout_recording() -> None:
+    readme = Path("examples/README.md").read_text()
+
+    assert "mise run generate-video breakout" in readme
+    assert "examples/media/breakout.cast" in readme
+    assert "https://asciinema.org/a/" in readme
+    assert "https://asciinema.org/a/" in readme and ".svg" in readme

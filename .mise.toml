@@ -78,6 +78,15 @@ quiet = true
 usage = 'arg "<file>" help="THOR source file"'
 run = 'echo "todo"'
 
+[tasks.generate-video]
+description = "Generate and upload one deterministic example recording"
+usage = '''
+arg "<video>" help="video fixture to record" {
+  choices "breakout"
+}
+'''
+run = 'uv run python tools/videos/generate.py "${usage_video?}"'
+
 [tasks.test]
 description = "Run Python tests"
 run = "uv run pytest"
