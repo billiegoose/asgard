@@ -8,7 +8,7 @@ from typing import TextIO
 from thor_spec import __version__
 from thor_spec.ast import Definition, Expr, StructDef
 from thor_spec.golden import DEFAULT_QUANTUM, ModelName, run_source
-from thor_spec.io_runtime import run_io_source
+from thor_spec.io_runtime import ClockSource, LatestFileClockSource, run_io_source
 from thor_spec.lockstep import ParityResult, compare_prefixes
 from thor_spec.normalization import normalize_program
 from thor_spec.parser import ParseError, parse_program
@@ -166,6 +166,14 @@ def _run_model_command(model_value: ModelName, argv: list[str]) -> int:
         action="store_true",
         help="write diagnostics to stderr",
     )
+    parser.add_argument(
+        "--clock",
+        type=Path,
+        help=(
+            "path to a latest-value clock source with newline-delimited "
+            "millisecond timestamps"
+        ),
+    )
     args = parser.parse_args(argv)
     if args.expr is None and args.file is None:
         parser.error("one of --expr or file is required")
@@ -173,11 +181,13 @@ def _run_model_command(model_value: ModelName, argv: list[str]) -> int:
         parser.error("--expr and file are mutually exclusive")
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
+        clock = LatestFileClockSource(args.clock) if args.clock is not None else None
         return _run_io(
             source,
             model_value=model_value,
             quantum=args.quantum,
             verbose=args.verbose,
+            clock=clock,
         )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"thor-spec: {error}", file=sys.stderr)
@@ -212,6 +222,7 @@ def _run_io(
     model_value: object,
     quantum: int,
     verbose: bool = True,
+    clock: ClockSource | None = None,
 ) -> int:
     if model_value == "parity":
         print(
@@ -227,6 +238,7 @@ def _run_io(
         stdin=sys.stdin,
         stdout=sys.stdout,
         stderr=sys.stderr,
+        clock=clock,
     )
     if verbose:
         print(f"io result: {result}", file=sys.stderr)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 
 def run_mise_task(
@@ -107,6 +108,23 @@ def test_mise_parity_reports_diagnostics() -> None:
     assert result.returncode == 0
     assert result.stdout != ""
     assert "parity" in result.stderr
+
+
+def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:
+    source = tmp_path / "clock.thor"
+    source.write_text("(IO-BIND (CLOCK) (LAMBDA (now) (UART-TX 65)))\n")
+    clock = tmp_path / "clock.txt"
+    clock.write_text("1700000000123\n")
+
+    thor = run_mise_task("thor", str(source), "--clock", str(clock))
+    red2 = run_mise_task("red2", str(source), "--clock", str(clock))
+
+    assert thor.returncode == 0
+    assert thor.stdout == "A"
+    assert thor.stderr == ""
+    assert red2.returncode == 0
+    assert red2.stdout == "A"
+    assert red2.stderr == ""
 
 
 def test_mise_hdl_prints_placeholder() -> None:

@@ -226,3 +226,54 @@ def test_hangman_fixture_tracks_only_wrong_guesses_without_losing() -> None:
     assert "LOSE\n" not in red2_stdout
     assert "WIN\n" in red2_stdout
     assert red2_stderr == stderr
+
+
+def run_breakout_for_test(
+    stdin_text: str,
+    clock_value: int = 1_700_000_000_000,
+) -> tuple[str, str]:
+    stdout = StringIO()
+    stderr = StringIO()
+    result = run_io_source(
+        Path("examples/breakout.thor").read_text(),
+        model="thor",
+        quantum=8000,
+        stdin=StringIO(stdin_text),
+        stdout=stdout,
+        stderr=stderr,
+        clock=FixedClock(clock_value),
+    )
+    assert result == "NIL"
+    return stdout.getvalue(), stderr.getvalue()
+
+
+def test_breakout_initial_frame_uses_ansi_and_fixed_board() -> None:
+    stdout, stderr = run_breakout_for_test("q")
+
+    assert stdout.startswith("\x1b[2J\x1b[H")
+    assert "BREAKOUT 20x12" in stdout
+    assert "SCORE: 0" in stdout
+    assert "LIVES: 3" in stdout
+    assert "####################" in stdout
+    assert "QUIT" in stdout
+    assert stderr == ""
+
+
+def test_breakout_arrow_keys_move_paddle() -> None:
+    left_stdout, _ = run_breakout_for_test("\x1b[Dq")
+    right_stdout, _ = run_breakout_for_test("\x1b[Cq")
+
+    assert "PADDLE: 7" in left_stdout
+    assert "PADDLE: 9" in right_stdout
+
+
+def test_breakout_clock_tick_moves_ball() -> None:
+    stdout, _ = run_breakout_for_test(" q", clock_value=1_700_000_000_200)
+
+    assert "BALL: 11,7" in stdout
+
+
+def test_breakout_can_report_score_after_brick_hit() -> None:
+    stdout, _ = run_breakout_for_test("        q", clock_value=1_700_000_001_000)
+
+    assert "SCORE: 1" in stdout

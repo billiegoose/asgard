@@ -120,6 +120,34 @@ def test_cli_model_subcommand_verbose_reports_io_result(
     assert captured.err == "io result: NIL\n"
 
 
+def test_cli_thor_subcommand_uses_clock_file(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    clock = tmp_path / "clock.txt"
+    clock.write_text("1700000000123\n")
+
+    assert main(["thor", "--clock", str(clock), "--expr", "(CLOCK)"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_cli_red2_subcommand_uses_clock_file(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    clock = tmp_path / "clock.txt"
+    clock.write_text("1700000000456\n")
+
+    assert main(["red2", "--clock", str(clock), "--expr", "(CLOCK)"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
 def test_cli_io_mode_uses_stdout_for_uart_and_stderr_for_result(
     capsys: CaptureFixture[str],
 ) -> None:

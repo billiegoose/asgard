@@ -60,3 +60,19 @@ def test_hangman_example_documents_utility_sections() -> None:
         "; --- game loop ---",
     ]:
         assert section in hangman
+
+
+def test_breakout_example_documents_terminal_game_sections() -> None:
+    breakout = Path("examples/breakout.thor").read_text()
+
+    for section in [
+        "; --- constants ---",
+        "; --- terminal rendering ---",
+        "; --- input decoding ---",
+        "; --- game physics ---",
+        "; --- game loop ---",
+    ]:
+        assert section in breakout
+    assert "CLOCK" in breakout
+    assert "ESC [2J" in breakout
+    assert "20x12" in breakout
