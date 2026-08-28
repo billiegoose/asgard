@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from pypeline_red2.red2_stepper import DIRECTION_FORWARD, red2_step_word
-
 from thor_spec.red2.instructions import Instruction, Opcode, encode_instruction
 
 VECTOR_QUANTUM = 3

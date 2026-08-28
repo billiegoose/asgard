@@ -86,7 +86,7 @@ run = "uv run ruff check ."
 
 [tasks.typecheck]
 description = "Run mypy"
-run = "uv run mypy src tests"
+run = "uv run mypy models/python tests"
 
 [tasks.rust-test]
 description = "Run Rust tests"

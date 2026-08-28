@@ -23,7 +23,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/thor_spec", "pypeline_red2"]
+packages = ["models/python/thor_spec", "models/python/pypeline_red2"]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
@@ -31,7 +31,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 88
-src = ["src", "tests"]
+src = ["models/python", "tests"]
 target-version = "py314"
 
 [tool.ruff.lint]
@@ -49,4 +49,4 @@ select = [
 [tool.mypy]
 python_version = "3.14"
 strict = true
-files = ["src", "tests"]
+files = ["models/python", "tests"]
