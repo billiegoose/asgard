@@ -96,7 +96,7 @@ printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 
 Watch the Breakout recording:
 
-<a href="https://asciinema.org/a/oaQSOF9foLO34D6v" target="_blank"><img src="https://asciinema.org/a/oaQSOF9foLO34D6v.svg" alt="Asgard Breakout asciicast" /></a>
+[![Asgard Breakout asciicast](https://asciinema.org/a/oaQSOF9foLO34D6v.svg)](https://asciinema.org/a/oaQSOF9foLO34D6v)
 
 Run terminal Breakout with a controlled latest-value clock source:
 

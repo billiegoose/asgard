@@ -91,15 +91,23 @@ def test_docs_describe_clock_and_breakout() -> None:
 
 def test_readme_embeds_latest_breakout_recording() -> None:
     readme = Path("README.md").read_text()
+    embed = (
+        "[![Asgard Breakout asciicast]"
+        "(https://asciinema.org/a/oaQSOF9foLO34D6v.svg)]"
+        "(https://asciinema.org/a/oaQSOF9foLO34D6v)"
+    )
 
-    assert "https://asciinema.org/a/oaQSOF9foLO34D6v" in readme
-    assert "https://asciinema.org/a/oaQSOF9foLO34D6v.svg" in readme
+    assert embed in readme
 
 
 def test_examples_readme_embeds_breakout_recording() -> None:
     readme = Path("examples/README.md").read_text()
+    embed = (
+        "[![Asgard Breakout asciicast]"
+        "(https://asciinema.org/a/oaQSOF9foLO34D6v.svg)]"
+        "(https://asciinema.org/a/oaQSOF9foLO34D6v)"
+    )
 
     assert "mise run generate-video breakout" in readme
     assert "examples/media/breakout.cast" in readme
-    assert "https://asciinema.org/a/" in readme
-    assert "https://asciinema.org/a/" in readme and ".svg" in readme
+    assert embed in readme
