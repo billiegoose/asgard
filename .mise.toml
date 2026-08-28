@@ -36,12 +36,13 @@ quiet = true
 usage = '''
 arg "<file>" help="THOR source file"
 flag "--quantum <n>" help="maximum contraction quantum" default="5000"
+flag "--clock <path>" help="latest-value clock source for CLOCK"
 flag "--verbose" help="write diagnostics to stderr"
 '''
 run = '''
 tmp="$(mktemp -t asgard-rust.XXXXXX).red2"
 uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
-cargo run -p red2-wasm --quiet -- "$tmp" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+cargo run -p red2-wasm --quiet -- "$tmp" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
 rm -f "$tmp"
 '''
 
@@ -51,13 +52,14 @@ quiet = true
 usage = '''
 arg "<file>" help="THOR source file"
 flag "--quantum <n>" help="maximum contraction quantum" default="5000"
+flag "--clock <path>" help="latest-value clock source for CLOCK"
 flag "--verbose" help="write diagnostics to stderr"
 '''
 run = '''
 tmp="$(mktemp -t asgard-wasm.XXXXXX).red2"
 uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
 cargo build -p red2-wasm --target wasm32-wasi --quiet
-wasmtime --dir "$(dirname "$tmp")" target/wasm32-wasi/debug/red2-wasm.wasm "$tmp" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+wasmtime --dir "$(dirname "$tmp")" --dir "$(dirname "${usage_clock:-$tmp}")" target/wasm32-wasi/debug/red2-wasm.wasm "$tmp" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
 rm -f "$tmp"
 '''
 

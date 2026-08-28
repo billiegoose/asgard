@@ -97,6 +97,47 @@ def test_mise_wasm_runs_hangman_quietly() -> None:
     assert result.stderr == ""
 
 
+def test_mise_rust_accepts_clock_flag(tmp_path: Path) -> None:
+    source = tmp_path / "clock.thor"
+    source.write_text(
+        """
+        (IO-BIND (CLOCK)
+          (LAMBDA (now)
+            (UART-TX (MOD now 256))))
+        """
+    )
+    clock = tmp_path / "clock.txt"
+    clock.write_text("1700000000065\n")
+
+    result = run_mise_task("rust", str(source), "--clock", str(clock))
+
+    assert result.returncode == 0
+    assert result.stdout == "A"
+    assert result.stderr == ""
+
+
+def test_mise_wasm_runs_breakout_with_controlled_clock(tmp_path: Path) -> None:
+    clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000200\n")
+
+    result = run_mise_task(
+        "wasm",
+        "examples/breakout.thor",
+        "--quantum",
+        "12000",
+        "--clock",
+        str(clock),
+        stdin=" q",
+        timeout=90.0,
+    )
+
+    assert result.returncode == 0
+    assert "BREAKOUT 20x12\n" in result.stdout
+    assert "QUIT\n" in result.stdout
+    assert "\x1b[" in result.stdout
+    assert result.stderr == ""
+
+
 def test_mise_parity_reports_diagnostics() -> None:
     result = run_mise_task(
         "parity",
