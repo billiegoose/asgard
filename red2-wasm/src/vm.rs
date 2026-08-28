@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::io::{Read, Write};
 
 use crate::bytecode::{Data, Instruction, Opcode, Program, ProgramBundle, Red2Error};
@@ -11,6 +12,7 @@ pub enum Expr {
     Var(usize, Option<String>),
     Lambda(Vec<String>, Box<Expr>),
     App(Vec<Expr>),
+    Pair(Box<Expr>, Box<Expr>),
     Closure(Box<Expr>, Vec<Expr>),
 }
 
@@ -21,6 +23,9 @@ impl Expr {
             Expr::Float(value) => value.to_string(),
             Expr::Char(value) => format!("#\\{value}"),
             Expr::Symbol(value) => value.clone(),
+            Expr::Pair(car, cdr) => {
+                format!("(CONS {} {})", car.to_source(), cdr.to_source())
+            }
             Expr::Var(_, Some(name)) => name.clone(),
             Expr::Var(index, None) => format!("(VAR {index})"),
             Expr::Lambda(params, body) => {
@@ -44,6 +49,7 @@ pub fn run(program: &Program, quantum: u32) -> Result<Expr, Red2Error> {
     let expr = parser.parse(program.entry as usize)?;
     let mut reducer = Reducer {
         bundle: None,
+        parsed_definitions: BTreeMap::new(),
         remaining: quantum,
         steps: 0,
     };
@@ -58,6 +64,7 @@ pub fn run_bundle(bundle: &ProgramBundle, quantum: u32) -> Result<Expr, Red2Erro
     let expr = parser.parse(program.entry as usize)?;
     let mut reducer = Reducer {
         bundle: Some(bundle),
+        parsed_definitions: BTreeMap::new(),
         remaining: quantum,
         steps: 0,
     };
@@ -77,6 +84,7 @@ pub fn run_io_bundle<R: Read, W: Write>(
     let expr = parser.parse(program.entry as usize)?;
     let reducer = Reducer {
         bundle: Some(bundle),
+        parsed_definitions: BTreeMap::new(),
         remaining: quantum,
         steps: 0,
     };
@@ -175,6 +183,7 @@ fn instruction_expr(inst: &Instruction) -> Result<Expr, Red2Error> {
 
 struct Reducer<'a> {
     bundle: Option<&'a ProgramBundle>,
+    parsed_definitions: BTreeMap<String, Expr>,
     remaining: u32,
     steps: u32,
 }
@@ -198,17 +207,31 @@ impl Reducer<'_> {
     }
 
     fn resolve_symbol(&mut self, name: String) -> Result<Expr, Red2Error> {
-        if let Some(bundle) = self.bundle {
-            if let Some(program) = bundle.definition(&name) {
-                if self.remaining == 0 {
-                    return Ok(Expr::Symbol(name));
-                }
-                self.contract();
-                let mut parser = Parser { program };
-                return self.reduce(parser.parse(program.entry as usize)?, &[]);
+        if self.definition_expr(&name)?.is_some() {
+            if self.remaining == 0 {
+                return Ok(Expr::Symbol(name));
             }
+            self.contract();
+            let expr = self
+                .definition_expr(&name)?
+                .expect("definition checked above");
+            return self.reduce(expr, &[]);
         }
         Ok(Expr::Symbol(name))
+    }
+
+    fn definition_expr(&mut self, name: &str) -> Result<Option<Expr>, Red2Error> {
+        if let Some(expr) = self.parsed_definitions.get(name) {
+            return Ok(Some(expr.clone()));
+        }
+        let Some(program) = self.bundle.and_then(|bundle| bundle.definition(name)) else {
+            return Ok(None);
+        };
+        let mut parser = Parser { program };
+        let expr = parser.parse(program.entry as usize)?;
+        self.parsed_definitions
+            .insert(name.to_string(), expr.clone());
+        Ok(Some(expr))
     }
 
     fn reduce_app(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<Expr, Red2Error> {
@@ -314,6 +337,13 @@ impl Reducer<'_> {
             let value = self.reduce(args[0].clone(), env)?;
             let result = match (name, &value) {
                 ("1-", Expr::Int(a)) => Some(Expr::Int(a - 1)),
+                ("CAR", Expr::Pair(car, _)) => Some((**car).clone()),
+                ("CDR", Expr::Pair(_, cdr)) => Some((**cdr).clone()),
+                ("NULL?", Expr::Symbol(value)) if value == "NIL" => {
+                    Some(Expr::Symbol("TRUE".to_string()))
+                }
+                ("NULL?", Expr::Pair(_, _)) => Some(Expr::Symbol("FALSE".to_string())),
+                ("NULL?", _) => Some(Expr::Symbol("FALSE".to_string())),
                 _ => None,
             };
             if result.is_some() {
@@ -337,6 +367,10 @@ impl Reducer<'_> {
             ("<=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a <= b)),
             (">=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a >= b)),
             ("=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a == b)),
+            ("EQUAL?", left, right) => Some(bool_expr(left == right)),
+            ("CONS", left, right) => {
+                Some(Expr::Pair(Box::new(left.clone()), Box::new(right.clone())))
+            }
             _ => None,
         };
         if result.is_some() {
@@ -380,13 +414,8 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
                     }
                     return Ok(Expr::Int(i32::from(byte[0])));
                 }
-                if let Some(program) = self
-                    .reducer
-                    .bundle
-                    .and_then(|bundle| bundle.definition(&name))
-                {
-                    let mut parser = Parser { program };
-                    return self.run_action(parser.parse(program.entry as usize)?, &[]);
+                if let Some(expr) = self.reducer.definition_expr(&name)? {
+                    return self.run_action(expr, &[]);
                 }
                 Err(Red2Error(format!("not an IO action: {name}")))
             }
@@ -468,7 +497,7 @@ impl<R: Read, W: Write> IoRunner<'_, R, W> {
             }
             let mut next_env = Vec::with_capacity(args.len() + env.len());
             for arg in args {
-                next_env.push(Expr::Closure(Box::new(arg.clone()), env.to_vec()));
+                next_env.push(self.reducer.reduce(arg.clone(), env)?);
             }
             next_env.extend_from_slice(env);
             return self.run_action(*body, &next_env);

@@ -142,3 +142,48 @@ def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
     assert "io result: NIL" in result.stderr
     assert "red2 result:" not in result.stderr
 
+
+def test_rust_red2_vm_io_runs_hangman_with_newlines_ignored(
+    tmp_path: Path,
+) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
+
+    result = run_rust_vm(
+        bytecode,
+        quantum=5000,
+        io_mode=True,
+        stdin="A\nS\nG\nR\nD\n",
+    )
+
+    assert result.returncode == 0
+    assert "GUESS LETTERS; ESC QUITS\n" in result.stdout
+    assert "WORD: ASGARD\n" in result.stdout
+    assert "GUESSED:\n" in result.stdout
+    assert "HIT\n" not in result.stdout
+    assert "MISS\n" not in result.stdout
+    assert "LOSE\n" not in result.stdout
+    assert "WIN\n" in result.stdout
+    assert "io result: NIL" in result.stderr
+    assert "red2 result:" not in result.stderr
+
+
+def test_rust_red2_vm_io_runs_hangman_tracks_wrong_guesses(
+    tmp_path: Path,
+) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/hangman.thor").read_text())
+
+    result = run_rust_vm(
+        bytecode,
+        quantum=5000,
+        io_mode=True,
+        stdin="x\ny\nz\nA\nS\nG\nR\nD\n",
+    )
+
+    assert result.returncode == 0
+    assert "GUESSED: XYZ\n" in result.stdout
+    assert "GUESSED: XYZASGRD" not in result.stdout
+    assert "LOSE\n" not in result.stdout
+    assert "WIN\n" in result.stdout
+    assert "io result: NIL" in result.stderr
+    assert "red2 result:" not in result.stderr
+

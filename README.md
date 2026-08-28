@@ -85,6 +85,12 @@ uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /t
 printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
 # stdout: efgBCD!
 # stderr: io result: NIL
+
+uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
+printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
+# stdout includes: WORD: ASGARD
+# stdout includes: WIN
+# stderr: io result: NIL
 ```
 
 `--trace` writes deterministic metadata to stderr; stdout remains result-only so
@@ -102,7 +108,8 @@ cargo build -p red2-wasm --target wasm32-wasi
 wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
 uv run thor-spec compile-red2 --file examples/uart-caesar-plus4.thor --output /tmp/caesar.red2
 printf 'abcXYZ!\033' | cargo run -p red2-wasm --quiet -- /tmp/caesar.red2 --io
-printf 'A\nS\nG\nR\nD\n' | uv run thor-spec --io --model red2 --file examples/hangman.thor --quantum 2000
+uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
+printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
 uv run pytest
 uv run ruff check .
 uv run mypy src tests

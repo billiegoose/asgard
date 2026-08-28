@@ -153,11 +153,12 @@ cargo build -p red2-wasm --target wasm32-wasi
 printf 'abcXYZ!\033' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/caesar.red2 --io
 ```
 
-Hangman currently targets the Python THOR/RED2 IO runtimes while Rust work is
-paused:
+Run the Hangman example:
 
 ```sh
-printf 'A\nS\nG\nR\nD\n' | uv run thor-spec --io --model red2 --file examples/hangman.thor --quantum 2000
+uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
+printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
+printf 'A\nS\nG\nR\nD\n' | wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/hangman.red2 --io --quantum 5000
 ```
 
 In IO mode, stdout is the simulated UART byte stream (`efgBCD!` for the Caesar
