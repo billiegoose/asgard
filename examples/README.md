@@ -14,7 +14,7 @@ asciinema play examples/media/breakout.cast
 
 Watch the WASM Breakout recording:
 
-[![Asgard Breakout WASM asciicast](https://asciinema.org/a/pFgus8VbiRYXVg5A.svg)](https://asciinema.org/a/pFgus8VbiRYXVg5A)
+[![Asgard Breakout WASM asciicast](https://asciinema.org/a/nlVGBnVlbc0cqkjR.svg)](https://asciinema.org/a/nlVGBnVlbc0cqkjR)
 
 Replay the committed local WASM cast:
 

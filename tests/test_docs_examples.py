@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -104,10 +105,10 @@ def test_docs_describe_rust_wasm_clock_and_breakout() -> None:
 
 def test_wasm_breakout_cast_is_committed_asciicast_v2() -> None:
     cast = Path("examples/media/breakout-wasm.cast")
-    first_line = cast.read_text().splitlines()[0]
+    header = json.loads(cast.read_text().splitlines()[0])
 
-    assert '"version": 2' in first_line
-    assert '"Asgard Breakout WASM"' in first_line
+    assert header["version"] == 2
+    assert header["title"] == "Asgard Breakout WASM"
 
 
 def test_readme_embeds_latest_breakout_recording() -> None:
