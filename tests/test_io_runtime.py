@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import StringIO
 from pathlib import Path
 
-from thor_spec.ast import Definition
+from thor_spec.ast import Definition, Expr
 from thor_spec.golden import ModelName
 from thor_spec.io_runtime import LatestFileClockSource, run_io_source
 from thor_spec.normalization import normalize_program
@@ -348,10 +348,10 @@ def test_breakout_paddle_dx_uses_left_center_right_segments() -> None:
     }
 
     def reduce_source(expr: str) -> str:
+        parsed_expr = parse_program(expr).forms[0]
+        assert isinstance(parsed_expr, Expr)
         return to_source(
-            reduce_expr(
-                parse_program(expr).forms[0], quantum=200, definitions=definitions
-            ).expr
+            reduce_expr(parsed_expr, quantum=200, definitions=definitions).expr
         )
 
     assert reduce_source("(paddle-dx 8 8)") == "-1"
