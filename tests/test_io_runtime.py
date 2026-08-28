@@ -93,6 +93,14 @@ def test_uart_rx_reads_byte_from_stdin() -> None:
     assert stderr == ""
 
 
+def test_uart_tx_bytes_writes_list_of_bytes_to_stdout() -> None:
+    result, stdout, stderr = run_io("(UART-TX-BYTES [65 66 67])")
+
+    assert result == "NIL"
+    assert stdout == "ABC"
+    assert stderr == ""
+
+
 def test_io_bind_lifts_uart_rx_value_into_next_action() -> None:
     result, stdout, stderr = run_io(
         "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))",
@@ -274,6 +282,6 @@ def test_breakout_clock_tick_moves_ball() -> None:
 
 
 def test_breakout_can_report_score_after_brick_hit() -> None:
-    stdout, _ = run_breakout_for_test("        q", clock_value=1_700_000_001_000)
+    stdout, _ = run_breakout_for_test(" q", clock_value=1_700_000_000_200)
 
     assert "SCORE: 1" in stdout

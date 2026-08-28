@@ -176,6 +176,12 @@ class _IoRuntime:
             self._stdout.write(chr(byte % 256))
             self._stdout.flush()
             return Symbol("NIL")
+        if name == "UART-TX-BYTES" and len(args) == 1:
+            self._stdout.write(
+                "".join(chr(byte % 256) for byte in self._byte_list_arg(name, args[0]))
+            )
+            self._stdout.flush()
+            return Symbol("NIL")
         if name == "UART-RX" and not args:
             char = self._stdin.read(1)
             if char == "":
@@ -219,6 +225,21 @@ class _IoRuntime:
         if isinstance(value, Integer):
             return value.value
         msg = f"{primitive} expects an integer byte, got {to_source(value)}"
+        raise IoRuntimeError(msg)
+
+    def _byte_list_arg(self, primitive: str, expr: Expr) -> list[int]:
+        value = self._pure(expr)
+        bytes_: list[int] = []
+        while isinstance(value, StructLit) and value.tag == "PAIR":
+            head, tail = value.fields
+            if not isinstance(head, Integer):
+                msg = f"{primitive} expects integer bytes, got {to_source(head)}"
+                raise IoRuntimeError(msg)
+            bytes_.append(head.value)
+            value = tail
+        if isinstance(value, Symbol) and value.name == "NIL":
+            return bytes_
+        msg = f"{primitive} expects a byte list, got {to_source(value)}"
         raise IoRuntimeError(msg)
 
 
