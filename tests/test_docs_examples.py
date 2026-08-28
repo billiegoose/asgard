@@ -89,6 +89,13 @@ def test_docs_describe_clock_and_breakout() -> None:
     assert "latest-value clock" in primitives
 
 
+def test_readme_embeds_latest_breakout_recording() -> None:
+    readme = Path("README.md").read_text()
+
+    assert "https://asciinema.org/a/oaQSOF9foLO34D6v" in readme
+    assert "https://asciinema.org/a/oaQSOF9foLO34D6v.svg" in readme
+
+
 def test_examples_readme_embeds_breakout_recording() -> None:
     readme = Path("examples/README.md").read_text()
 

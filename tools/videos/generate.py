@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -14,15 +15,35 @@ MEDIA_DIR = ROOT / "examples" / "media"
 BREAKOUT_CAST = MEDIA_DIR / "breakout.cast"
 BREAKOUT_TITLE = "Asgard Breakout deterministic playthrough"
 
-BREAKOUT_STEPS: tuple[tuple[int, str, float], ...] = (
-    (1_700_000_000_200, "\x1b[C", 0.35),
-    (1_700_000_000_300, "\x1b[D", 0.35),
-    (1_700_000_000_400, " ", 0.35),
-    (1_700_000_000_500, "\x1b[C", 0.35),
-    (1_700_000_000_600, " ", 0.35),
-    (1_700_000_000_700, "\x1b[D", 0.35),
-    (1_700_000_000_800, "q", 0.1),
-)
+
+def _breakout_steps() -> tuple[tuple[int, str, float], ...]:
+    keys_by_tick = {
+        10: "\x1b[C",
+        11: "\x1b[C",
+        12: "\x1b[C",
+        23: "\x1b[D",
+        24: "\x1b[D",
+        25: "\x1b[D",
+        26: "\x1b[D",
+        38: "\x1b[C",
+        39: "\x1b[C",
+        51: "\x1b[D",
+        52: "\x1b[D",
+        53: "\x1b[D",
+        66: "\x1b[C",
+        67: "\x1b[C",
+        68: "\x1b[C",
+    }
+    steps: list[tuple[int, str, float]] = []
+    for tick in range(1, 71):
+        keys = keys_by_tick.get(tick, " ")
+        steps.append((1_700_000_000_000 + (tick * TICK_MS), keys, 0.1))
+    steps.append((1_700_000_007_200, "q", 0.1))
+    return tuple(steps)
+
+
+TICK_MS = 100
+BREAKOUT_STEPS = _breakout_steps()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,13 +74,13 @@ def generate_breakout(*, upload: bool) -> str | None:
         driver.write_text(_driver_source(clock))
         command = (
             f"{sys.executable} {driver} | "
-            "mise run thor examples/breakout.thor "
+            "mise run red2 examples/breakout.thor "
             f"--clock {clock} --quantum 12000"
         )
         env = os.environ | {
             "TERM": "xterm-256color",
-            "COLUMNS": "80",
-            "LINES": "24",
+            "COLUMNS": "20",
+            "LINES": "16",
         }
         subprocess.run(
             [
@@ -77,6 +98,7 @@ def generate_breakout(*, upload: bool) -> str | None:
             env=env,
             check=True,
         )
+        _normalize_cast_duration(BREAKOUT_CAST, duration=5.2)
     if not upload:
         return None
     upload_result = subprocess.run(
@@ -108,6 +130,22 @@ def _driver_source(clock: Path) -> str:
             "",
         ]
     )
+
+
+def _normalize_cast_duration(cast: Path, *, duration: float) -> None:
+    lines = cast.read_text().splitlines()
+    if len(lines) <= 1:
+        return
+    header = lines[0]
+    events = [json.loads(line) for line in lines[1:]]
+    last_time = events[-1][0]
+    if last_time <= 0:
+        return
+    normalized = [header]
+    for event in events:
+        event[0] = round((event[0] / last_time) * duration, 6)
+        normalized.append(json.dumps(event, separators=(",", ":")))
+    cast.write_text("\n".join(normalized) + "\n")
 
 
 def _extract_asciinema_url(output: str) -> str:

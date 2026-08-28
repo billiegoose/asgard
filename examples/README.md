@@ -4,7 +4,7 @@
 
 ### Breakout
 
-[![Asgard Breakout asciicast](https://asciinema.org/a/Wm5TXqAiUVVQzNEp.svg)](https://asciinema.org/a/Wm5TXqAiUVVQzNEp)
+<a href="https://asciinema.org/a/oaQSOF9foLO34D6v" target="_blank"><img src="https://asciinema.org/a/oaQSOF9foLO34D6v.svg" alt="Asgard Breakout asciicast" /></a>
 
 Replay the committed local cast:
 

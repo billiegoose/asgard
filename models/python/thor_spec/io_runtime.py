@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -77,10 +78,11 @@ def run_io_source(
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
-    IO mode reserves stdout for UART bytes. The returned string is the final
-    action value rendered as THOR source so the CLI can print diagnostics to
-    stderr without consuming the simulated UART stream.
+    IO mode reserves stdout for simulated UART bytes. The returned string is the
+    final IO action value rendered as THOR source so the CLI can print
+    diagnostics to stderr without consuming the simulated UART stream.
     """
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), 20_000))
     program = normalize_program(parse_program(source))
     definitions, action = _prepare_io_program(program)
     runtime = _IoRuntime(
