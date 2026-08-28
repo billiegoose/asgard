@@ -115,7 +115,8 @@ values      repeated value_count times:
 
 ## Rust/WASM VM
 
-The `red2-wasm/` crate is the first non-Python executor for `.red2` bytecode. It
+The `models/rust-red2/` crate is the first non-Python executor for `.red2`
+bytecode. It
 currently supports a definition-free subset: literals, simple application,
 strict integer arithmetic/comparison primitives, and simple lambda/beta cases.
 

@@ -30,5 +30,5 @@ uv run pytest tests/test_pipelinec_vectors.py tests/test_pypeline_red2_static.py
 
 To experiment with Pypeline/PipelineC locally, clone
 <https://github.com/JulianKemmerer/PipelineC>, copy or symlink
-`pypeline_red2/red2_stepper.py` into an examples workspace in that checkout, and
+`models/python/pypeline_red2/red2_stepper.py` into an examples workspace in that checkout, and
 then run the Pypeline/PipelineC commands from the checkout's current docs.

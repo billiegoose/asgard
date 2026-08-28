@@ -125,13 +125,16 @@ wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quan
 
 ## Prototype Scope
 
-- `src/thor_spec/parser.py`, `pretty.py`, and `semantics.py` implement the THOR
-  source syntax and Chapter 3-style abstract interpreter used as the executable
-  reference.
-- `src/thor_spec/red2/` contains the RED2 instruction contract, compiler, Python
-  machine, and result decompiler used for parity checks.
-- `src/thor_spec/golden.py` provides `run_source(...)`, the shared CLI/golden
-  corpus harness for comparing THOR and RED2 behavior.
-- `pypeline_red2/` contains a fixed-width RED2 stepper artifact for
-  hardware-oriented exploration; the default test suite does not require FPGA
-  vendor tools.
+- `models/python/thor_spec/parser.py`, `pretty.py`, and `semantics.py`
+  implement the THOR source syntax and Chapter 3-style abstract interpreter
+  used as the executable reference.
+- `models/python/thor_spec/red2/` contains the RED2 instruction contract,
+  compiler, Python machine, and result decompiler used for parity checks.
+- `models/python/thor_spec/golden.py` provides `run_source(...)`, the shared
+  CLI/golden corpus harness for comparing THOR and RED2 behavior.
+- `models/python/pypeline_red2/` contains a fixed-width RED2 stepper artifact
+  for hardware-oriented exploration; the default test suite does not require
+  FPGA vendor tools.
+- `models/rust-red2/` contains the native/WASI Rust RED2 bytecode executor.
+- `tools/vscode-thor/` contains the local VS Code-compatible THOR syntax
+  extension.

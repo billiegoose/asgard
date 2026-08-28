@@ -1,9 +1,9 @@
 ; Hangman over the simulated UART. The fixed word is ASGARD.
 ;
 ; Run with:
-;   uv run thor-spec --io --model thor --file examples/hangman.thor
-;   uv run thor-spec compile-red2 --file examples/hangman.thor --output /tmp/hangman.red2
-;   printf 'A\nS\nG\nR\nD\n' | cargo run -p red2-wasm --quiet -- /tmp/hangman.red2 --io --quantum 5000
+;   mise run thor examples/hangman.thor --quantum 5000
+;   mise run red2 examples/hangman.thor --quantum 5000
+;   printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
 
 ; --- constants ---
 A == 65
