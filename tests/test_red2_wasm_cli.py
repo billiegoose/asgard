@@ -249,6 +249,60 @@ def test_rust_red2_vm_io_runs_breakout_with_controlled_clock(tmp_path: Path) -> 
     assert result.stderr == ""
 
 
+def test_rust_red2_vm_runs_deep_io_then_chain_without_host_stack_growth(
+    tmp_path: Path,
+) -> None:
+    action = "(IO-RETURN NIL)"
+    for _ in range(300):
+        action = f"(IO-THEN (UART-TX 65) {action})"
+
+    result = run_rust_vm(write_bytecode(tmp_path, action), quantum=5000, timeout=30.0)
+
+    assert result.returncode == 0
+    assert result.stdout == "A" * 300
+    assert result.stderr == ""
+
+
+def test_rust_red2_vm_errors_on_stuck_numeric_primitive(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(+ 1 frog)"), quantum=100)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "primitive + argument 2 is stuck: frog" in result.stderr
+
+
+def test_rust_red2_vm_errors_on_stuck_unary_primitive(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(MINUS frog)"), quantum=100)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "primitive MINUS argument 1 is stuck: frog" in result.stderr
+
+
+def test_rust_red2_vm_errors_on_stuck_io_primitive(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(UART-TX frog)"), quantum=100)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "UART-TX argument is stuck: frog" in result.stderr
+
+
+def test_rust_red2_vm_errors_on_stuck_if_condition(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(if frog 1 2)"), quantum=100)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "IF condition is stuck: frog" in result.stderr
+
+
+def test_rust_red2_vm_errors_on_stuck_and_argument(tmp_path: Path) -> None:
+    result = run_rust_vm(write_bytecode(tmp_path, "(AND frog TRUE)"), quantum=100)
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "AND argument 1 is stuck: frog" in result.stderr
+
+
 def test_rust_red2_vm_verbose_reports_io_result(tmp_path: Path) -> None:
     result = run_rust_vm(
         write_bytecode(tmp_path, "(UART-TX 65)"),

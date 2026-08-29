@@ -360,6 +360,10 @@ impl Reducer<'_> {
                     if is_false(&condition) {
                         return Ok(ReduceStep::TailCall(alternative.clone(), env.to_vec()));
                     }
+                    return Err(Red2Error(format!(
+                        "IF condition is stuck: {}",
+                        condition.to_source()
+                    )));
                 }
                 ("AND", [left, right]) => {
                     let left = self.reduce(left.clone(), env)?;
@@ -369,6 +373,10 @@ impl Reducer<'_> {
                     if is_true(&left) {
                         return Ok(ReduceStep::TailCall(right.clone(), env.to_vec()));
                     }
+                    return Err(Red2Error(format!(
+                        "AND argument 1 is stuck: {}",
+                        left.to_source()
+                    )));
                 }
                 ("OR", [left, right]) => {
                     let left = self.reduce(left.clone(), env)?;
@@ -378,6 +386,10 @@ impl Reducer<'_> {
                     if is_false(&left) {
                         return Ok(ReduceStep::TailCall(right.clone(), env.to_vec()));
                     }
+                    return Err(Red2Error(format!(
+                        "OR argument 1 is stuck: {}",
+                        left.to_source()
+                    )));
                 }
                 _ => {}
             }
@@ -450,8 +462,15 @@ impl Reducer<'_> {
             };
             if result.is_some() {
                 self.contract();
+                return Ok(result);
             }
-            return Ok(result);
+            if is_unary_primitive(name) {
+                return Err(Red2Error(format!(
+                    "primitive {name} argument 1 is stuck: {}",
+                    value.to_source()
+                )));
+            }
+            return Ok(None);
         }
         if args.len() != 2 {
             return Ok(None);
@@ -477,8 +496,20 @@ impl Reducer<'_> {
         };
         if result.is_some() {
             self.contract();
+            return Ok(result);
         }
-        Ok(result)
+        if is_binary_primitive(name) {
+            let (index, value) = if !is_supported_binary_arg(name, &left) {
+                (1, left)
+            } else {
+                (2, right)
+            };
+            return Err(Red2Error(format!(
+                "primitive {name} argument {index} is stuck: {}",
+                value.to_source()
+            )));
+        }
+        Ok(None)
     }
 
     fn contract(&mut self) {
@@ -614,7 +645,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                         return Ok(IoStep::TailCall(alternative.clone(), env.to_vec()));
                     }
                     return Err(Red2Error(format!(
-                        "IO IF condition did not reduce to TRUE or FALSE: {}",
+                        "IF condition is stuck: {}",
                         condition.to_source()
                     )));
                 }
@@ -640,7 +671,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     let value = self.reducer.reduce(value.clone(), env)?;
                     let Expr::Int(byte) = value else {
                         return Err(Red2Error(format!(
-                            "UART-TX expects integer byte, got {}",
+                            "UART-TX argument is stuck: {}",
                             value.to_source()
                         )));
                     };
@@ -780,6 +811,27 @@ fn max_var_index(expr: &Expr) -> Option<usize> {
                 .max(),
         ),
         Expr::Int(_) | Expr::Float(_) | Expr::Char(_) | Expr::Symbol(_) => None,
+    }
+}
+
+fn is_unary_primitive(name: &str) -> bool {
+    matches!(name, "1-" | "MINUS" | "NOT" | "CAR" | "CDR" | "NULL?")
+}
+
+fn is_binary_primitive(name: &str) -> bool {
+    matches!(
+        name,
+        "+" | "-" | "*" | "/" | "MOD" | "<" | ">" | "<=" | ">=" | "=" | "EQUAL?" | "CONS"
+    )
+}
+
+fn is_supported_binary_arg(name: &str, value: &Expr) -> bool {
+    match name {
+        "+" | "-" | "*" | "/" | "MOD" | "<" | ">" | "<=" | ">=" | "=" => {
+            matches!(value, Expr::Int(_))
+        }
+        "EQUAL?" | "CONS" => true,
+        _ => false,
     }
 }
 
