@@ -14,7 +14,12 @@ flag "--verbose" help="write diagnostics to stderr"
 flag "--clock <path>" help="latest-value clock source for CLOCK"
 '''
 run = '''
+#!/bin/sh
+if [ -t 0 ]; then
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+fi
 uv run thor-spec thor "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+exit $?
 '''
 
 [tasks.red2]
@@ -27,7 +32,12 @@ flag "--verbose" help="write diagnostics to stderr"
 flag "--clock <path>" help="latest-value clock source for CLOCK"
 '''
 run = '''
+#!/bin/sh
+if [ -t 0 ]; then
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+fi
 uv run thor-spec red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+exit $?
 '''
 
 [tasks.rust]
@@ -40,10 +50,15 @@ flag "--clock <path>" help="latest-value clock source for CLOCK"
 flag "--verbose" help="write diagnostics to stderr"
 '''
 run = '''
-tmp="$(mktemp -t asgard-rust.XXXXXX).red2"
-uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
-cargo run -p red2-wasm --quiet -- "$tmp" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
-rm -f "$tmp"
+#!/bin/sh
+if [ -t 0 ]; then
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+fi
+INPUT_FILE="${usage_file}"
+IMAGE_FILE="${INPUT_FILE%.thor}.red2"
+uv run thor-spec compile-red2 --file "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || exit $?
+cargo run -p red2-wasm --quiet -- "$IMAGE_FILE" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
+exit $?
 '''
 
 [tasks.wasm]
@@ -56,11 +71,16 @@ flag "--clock <path>" help="latest-value clock source for CLOCK"
 flag "--verbose" help="write diagnostics to stderr"
 '''
 run = '''
-tmp="$(mktemp -t asgard-wasm.XXXXXX).red2"
-uv run thor-spec compile-red2 --file "${usage_file?}" --output "$tmp" >/dev/null 2>/dev/null
-cargo build -p red2-wasm --target wasm32-wasi --quiet
-wasmtime --dir "$(dirname "$tmp")" --dir "$(dirname "${usage_clock:-$tmp}")" target/wasm32-wasi/debug/red2-wasm.wasm "$tmp" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
-rm -f "$tmp"
+#!/bin/sh
+if [ -t 0 ]; then
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+fi
+INPUT_FILE="${usage_file}"
+IMAGE_FILE="${INPUT_FILE%.thor}.red2"
+uv run thor-spec compile-red2 --file "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || $?
+cargo build -p red2-wasm --target wasm32-wasi --quiet || $?
+wasmtime --dir "$(dirname "$IMAGE_FILE")" --dir "$(dirname "${usage_clock:-$tmp}")" target/wasm32-wasi/debug/red2-wasm.wasm "$IMAGE_FILE" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
+exit $?
 '''
 
 [tasks.parity]
