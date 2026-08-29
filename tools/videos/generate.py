@@ -45,11 +45,7 @@ def _breakout_steps() -> tuple[tuple[int, str, float], ...]:
 
 
 def _breakout_wasm_steps() -> tuple[tuple[int, str, float], ...]:
-    steps: list[tuple[int, str, float]] = []
-    for tick in range(1, 6):
-        steps.append((1_700_000_000_000 + (tick * TICK_MS), " ", 0.15))
-    steps.append((1_700_000_000_700, "q", 0.15))
-    return tuple(steps)
+    return BREAKOUT_STEPS
 
 
 TICK_MS = 100

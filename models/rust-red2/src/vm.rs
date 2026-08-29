@@ -285,34 +285,49 @@ struct Reducer<'a> {
 
 impl Reducer<'_> {
     fn reduce(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
-        match expr {
-            Expr::Var(index, _) => match env.get(index) {
-                Some(Expr::Closure(expr, captured_env)) => {
-                    self.reduce((**expr).clone(), captured_env)
+        let mut expr = expr;
+        let mut env = env.to_vec();
+        loop {
+            match expr {
+                Expr::Var(index, _) => match env.get(index) {
+                    Some(Expr::Closure(closure_expr, captured_env)) => {
+                        expr = (**closure_expr).clone();
+                        env = captured_env.clone();
+                    }
+                    Some(value) => {
+                        expr = value.clone();
+                    }
+                    None => return Ok(Expr::Var(index, None)),
+                },
+                Expr::Closure(next_expr, captured_env) => {
+                    expr = *next_expr;
+                    env = captured_env;
                 }
-                Some(value) => self.reduce(value.clone(), env),
-                None => Ok(Expr::Var(index, None)),
-            },
-            Expr::Closure(expr, captured_env) => self.reduce(*expr, &captured_env),
-            Expr::Symbol(name) => self.resolve_symbol(name),
-            Expr::App(items) => self.reduce_app(items, env),
-            Expr::Lambda(params, body) => Ok(Expr::Lambda(params, body)),
-            value => Ok(value),
-        }
-    }
-
-    fn resolve_symbol(&mut self, name: String) -> Result<Expr, Red2Error> {
-        if self.definition_expr(&name)?.is_some() {
-            if self.remaining == 0 {
-                return Ok(Expr::Symbol(name));
+                Expr::Symbol(name) => {
+                    if self.definition_expr(&name)?.is_some() {
+                        if self.remaining == 0 {
+                            return Ok(Expr::Symbol(name));
+                        }
+                        self.contract();
+                        expr = self
+                            .definition_expr(&name)?
+                            .expect("definition checked above");
+                        env.clear();
+                    } else {
+                        return Ok(Expr::Symbol(name));
+                    }
+                }
+                Expr::App(items) => match self.reduce_app_step(items, &env)? {
+                    ReduceStep::Return(value) => return Ok(value),
+                    ReduceStep::TailCall(next_expr, next_env) => {
+                        expr = next_expr;
+                        env = next_env;
+                    }
+                },
+                Expr::Lambda(params, body) => return Ok(Expr::Lambda(params, body)),
+                value => return Ok(value),
             }
-            self.contract();
-            let expr = self
-                .definition_expr(&name)?
-                .expect("definition checked above");
-            return self.reduce(expr, &[]);
         }
-        Ok(Expr::Symbol(name))
     }
 
     fn definition_expr(&mut self, name: &str) -> Result<Option<Expr>, Red2Error> {
@@ -329,25 +344,52 @@ impl Reducer<'_> {
         Ok(Some(expr))
     }
 
-    fn reduce_app(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<Expr, Red2Error> {
+    fn reduce_app_step(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<ReduceStep, Red2Error> {
         if items.is_empty() {
-            return Ok(Expr::App(items));
+            return Ok(ReduceStep::Return(Expr::App(items)));
         }
         let operator = self.reduce(items[0].clone(), env)?;
         let args = items[1..].to_vec();
         if let Expr::Symbol(name) = &operator {
-            if let Some(value) = self.try_control(name, &args, env)? {
-                return Ok(value);
+            match (name.as_str(), args.as_slice()) {
+                ("IF", [condition, consequent, alternative]) => {
+                    let condition = self.reduce(condition.clone(), env)?;
+                    if is_true(&condition) {
+                        return Ok(ReduceStep::TailCall(consequent.clone(), env.to_vec()));
+                    }
+                    if is_false(&condition) {
+                        return Ok(ReduceStep::TailCall(alternative.clone(), env.to_vec()));
+                    }
+                }
+                ("AND", [left, right]) => {
+                    let left = self.reduce(left.clone(), env)?;
+                    if is_false(&left) {
+                        return Ok(ReduceStep::Return(Expr::Symbol("FALSE".to_string())));
+                    }
+                    if is_true(&left) {
+                        return Ok(ReduceStep::TailCall(right.clone(), env.to_vec()));
+                    }
+                }
+                ("OR", [left, right]) => {
+                    let left = self.reduce(left.clone(), env)?;
+                    if is_true(&left) {
+                        return Ok(ReduceStep::Return(Expr::Symbol("TRUE".to_string())));
+                    }
+                    if is_false(&left) {
+                        return Ok(ReduceStep::TailCall(right.clone(), env.to_vec()));
+                    }
+                }
+                _ => {}
             }
             if let Some(value) = self.try_primitive(name, &args, env)? {
-                return Ok(value);
+                return Ok(ReduceStep::Return(value));
             }
         }
         if let Expr::Lambda(params, body) = operator.clone() {
             if !params.is_empty() && !args.is_empty() && self.remaining > 0 {
                 let bind_count = params.len().min(args.len()).min(self.remaining as usize);
                 if bind_count == 0 {
-                    return Ok(Expr::App(items));
+                    return Ok(ReduceStep::Return(Expr::App(items)));
                 }
                 for _ in 0..bind_count {
                     self.contract();
@@ -356,7 +398,10 @@ impl Reducer<'_> {
                 for arg in &args[..bind_count] {
                     next_env.push(self.reduce(arg.clone(), env)?);
                 }
-                next_env.extend_from_slice(env);
+                extend_needed_outer_env(&mut next_env, &body, bind_count, env);
+                if bind_count == params.len() && bind_count == args.len() {
+                    return Ok(ReduceStep::TailCall(*body, next_env));
+                }
                 let reduced = if bind_count == params.len() {
                     self.reduce(*body, &next_env)?
                 } else {
@@ -366,57 +411,16 @@ impl Reducer<'_> {
                     )
                 };
                 if bind_count == args.len() {
-                    return Ok(reduced);
+                    return Ok(ReduceStep::Return(reduced));
                 }
                 let mut next_items = vec![reduced];
                 next_items.extend_from_slice(&args[bind_count..]);
-                return self.reduce(Expr::App(next_items), env);
+                return Ok(ReduceStep::TailCall(Expr::App(next_items), env.to_vec()));
             }
         }
         let mut rebuilt = vec![operator];
         rebuilt.extend(args);
-        Ok(Expr::App(rebuilt))
-    }
-
-    fn try_control(
-        &mut self,
-        name: &str,
-        args: &[Expr],
-        env: &[Expr],
-    ) -> Result<Option<Expr>, Red2Error> {
-        match (name, args) {
-            ("IF", [condition, consequent, alternative]) => {
-                let condition = self.reduce(condition.clone(), env)?;
-                if is_true(&condition) {
-                    return self.reduce(consequent.clone(), env).map(Some);
-                }
-                if is_false(&condition) {
-                    return self.reduce(alternative.clone(), env).map(Some);
-                }
-                Ok(None)
-            }
-            ("AND", [left, right]) => {
-                let left = self.reduce(left.clone(), env)?;
-                if is_false(&left) {
-                    return Ok(Some(Expr::Symbol("FALSE".to_string())));
-                }
-                if is_true(&left) {
-                    return self.reduce(right.clone(), env).map(Some);
-                }
-                Ok(None)
-            }
-            ("OR", [left, right]) => {
-                let left = self.reduce(left.clone(), env)?;
-                if is_true(&left) {
-                    return Ok(Some(Expr::Symbol("TRUE".to_string())));
-                }
-                if is_false(&left) {
-                    return self.reduce(right.clone(), env).map(Some);
-                }
-                Ok(None)
-            }
-            _ => Ok(None),
-        }
+        Ok(ReduceStep::Return(Expr::App(rebuilt)))
     }
 
     fn try_primitive(
@@ -432,6 +436,9 @@ impl Reducer<'_> {
             let value = self.reduce(args[0].clone(), env)?;
             let result = match (name, &value) {
                 ("1-", Expr::Int(a)) => Some(Expr::Int(a - 1)),
+                ("MINUS", Expr::Int(a)) => Some(Expr::Int(-a)),
+                ("NOT", value) if is_true(value) => Some(Expr::Symbol("FALSE".to_string())),
+                ("NOT", value) if is_false(value) => Some(Expr::Symbol("TRUE".to_string())),
                 ("CAR", Expr::Pair(car, _)) => Some((**car).clone()),
                 ("CDR", Expr::Pair(_, cdr)) => Some((**cdr).clone()),
                 ("NULL?", Expr::Symbol(value)) if value == "NIL" => {
@@ -480,6 +487,11 @@ impl Reducer<'_> {
     }
 }
 
+enum ReduceStep {
+    Return(Expr),
+    TailCall(Expr, Vec<Expr>),
+}
+
 struct IoRunner<'a, R: Read, W: Write, C: ClockSource> {
     reducer: Reducer<'a>,
     input: &'a mut R,
@@ -493,8 +505,10 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
     }
 
     fn run_action_loop(&mut self, mut expr: Expr, mut env: Vec<Expr>) -> Result<Expr, Red2Error> {
+        let mut frames = Vec::new();
         loop {
-            match expr {
+            let current = std::mem::replace(&mut expr, Expr::Symbol("__INVALID__".to_string()));
+            match current {
                 Expr::Var(index, _) => match env.get(index) {
                     Some(Expr::Closure(closure_expr, captured_env)) => {
                         expr = (**closure_expr).clone();
@@ -511,20 +525,34 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                 }
                 Expr::Symbol(name) => {
                     if name == "UART-RX" {
-                        return self.read_uart_rx();
-                    }
-                    if name == "CLOCK" {
-                        return Ok(Expr::Int(self.clock.now_ms()));
-                    }
-                    if let Some(next_expr) = self.reducer.definition_expr(&name)? {
+                        let value = self.read_uart_rx()?;
+                        if let Some(final_value) =
+                            self.continue_after_value(value, &mut expr, &mut env, &mut frames)?
+                        {
+                            return Ok(final_value);
+                        }
+                    } else if name == "CLOCK" {
+                        let value = Expr::Int(self.clock.now_ms());
+                        if let Some(final_value) =
+                            self.continue_after_value(value, &mut expr, &mut env, &mut frames)?
+                        {
+                            return Ok(final_value);
+                        }
+                    } else if let Some(next_expr) = self.reducer.definition_expr(&name)? {
                         expr = next_expr;
                         env.clear();
                     } else {
                         return Err(Red2Error(format!("not an IO action: {name}")));
                     }
                 }
-                Expr::App(items) => match self.step_app(items, &env)? {
-                    IoStep::Return(value) => return Ok(value),
+                Expr::App(items) => match self.step_app(items, &env, &mut frames)? {
+                    IoStep::Return(value) => {
+                        if let Some(final_value) =
+                            self.continue_after_value(value, &mut expr, &mut env, &mut frames)?
+                        {
+                            return Ok(final_value);
+                        }
+                    }
                     IoStep::TailCall(next_expr, next_env) => {
                         expr = next_expr;
                         env = next_env;
@@ -540,7 +568,36 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         }
     }
 
-    fn step_app(&mut self, items: Vec<Expr>, env: &[Expr]) -> Result<IoStep, Red2Error> {
+    fn continue_after_value(
+        &mut self,
+        value: Expr,
+        expr: &mut Expr,
+        env: &mut Vec<Expr>,
+        frames: &mut Vec<IoFrame>,
+    ) -> Result<Option<Expr>, Red2Error> {
+        match frames.pop() {
+            Some(IoFrame::Then(second, frame_env)) => {
+                *expr = second;
+                *env = frame_env;
+                Ok(None)
+            }
+            Some(IoFrame::Bind(continuation, frame_env)) => {
+                let (next_expr, next_env) =
+                    self.apply_unary_action(continuation, value, &frame_env)?;
+                *expr = next_expr;
+                *env = next_env;
+                Ok(None)
+            }
+            None => Ok(Some(value)),
+        }
+    }
+
+    fn step_app(
+        &mut self,
+        items: Vec<Expr>,
+        env: &[Expr],
+        frames: &mut Vec<IoFrame>,
+    ) -> Result<IoStep, Red2Error> {
         if items.is_empty() {
             return Err(Red2Error("not an IO action: ()".to_string()));
         }
@@ -565,12 +622,12 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     return self.reducer.reduce(value.clone(), env).map(IoStep::Return);
                 }
                 ("IO-BIND", [action, continuation]) => {
-                    let value = self.run_action_loop(action.clone(), env.to_vec())?;
-                    return self.apply_unary_action_step(continuation.clone(), value, env);
+                    frames.push(IoFrame::Bind(continuation.clone(), env.to_vec()));
+                    return Ok(IoStep::TailCall(action.clone(), env.to_vec()));
                 }
                 ("IO-THEN", [first, second]) => {
-                    self.run_action_loop(first.clone(), env.to_vec())?;
-                    return Ok(IoStep::TailCall(second.clone(), env.to_vec()));
+                    frames.push(IoFrame::Then(second.clone(), env.to_vec()));
+                    return Ok(IoStep::TailCall(first.clone(), env.to_vec()));
                 }
                 ("UART-RX", []) => return self.read_uart_rx().map(IoStep::Return),
                 ("CLOCK", []) => return Ok(IoStep::Return(Expr::Int(self.clock.now_ms()))),
@@ -610,7 +667,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
             for arg in args {
                 next_env.push(self.reducer.reduce(arg.clone(), env)?);
             }
-            next_env.extend_from_slice(env);
+            extend_needed_outer_env(&mut next_env, &body, params.len(), env);
             return Ok(IoStep::TailCall(*body, next_env));
         }
         Err(Red2Error(format!(
@@ -663,12 +720,12 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         }
     }
 
-    fn apply_unary_action_step(
+    fn apply_unary_action(
         &mut self,
         continuation: Expr,
         value: Expr,
         env: &[Expr],
-    ) -> Result<IoStep, Red2Error> {
+    ) -> Result<(Expr, Vec<Expr>), Red2Error> {
         let continuation = self.reducer.reduce(continuation, env)?;
         let Expr::Lambda(params, body) = continuation else {
             return Err(Red2Error(format!(
@@ -683,14 +740,47 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
             )));
         }
         let mut next_env = vec![value];
-        next_env.extend_from_slice(env);
-        Ok(IoStep::TailCall(*body, next_env))
+        extend_needed_outer_env(&mut next_env, &body, 1, env);
+        Ok((*body, next_env))
     }
+}
+
+enum IoFrame {
+    Bind(Expr, Vec<Expr>),
+    Then(Expr, Vec<Expr>),
 }
 
 enum IoStep {
     Return(Expr),
     TailCall(Expr, Vec<Expr>),
+}
+
+fn extend_needed_outer_env(next_env: &mut Vec<Expr>, body: &Expr, bound_count: usize, env: &[Expr]) {
+    let needed = required_outer_env(body, bound_count);
+    next_env.extend(env.iter().take(needed).cloned());
+}
+
+fn required_outer_env(expr: &Expr, bound_count: usize) -> usize {
+    max_var_index(expr)
+        .map(|index| index.saturating_add(1).saturating_sub(bound_count))
+        .unwrap_or(0)
+}
+
+fn max_var_index(expr: &Expr) -> Option<usize> {
+    match expr {
+        Expr::Var(index, _) => Some(*index),
+        Expr::Lambda(params, body) => max_var_index(body)
+            .and_then(|index| index.checked_sub(params.len())),
+        Expr::App(items) => items.iter().filter_map(max_var_index).max(),
+        Expr::Pair(car, cdr) => max_var_index(car).max(max_var_index(cdr)),
+        Expr::Closure(expr, captured_env) => max_var_index(expr).max(
+            captured_env
+                .iter()
+                .filter_map(max_var_index)
+                .max(),
+        ),
+        Expr::Int(_) | Expr::Float(_) | Expr::Char(_) | Expr::Symbol(_) => None,
+    }
 }
 
 fn bool_expr(value: bool) -> Expr {
@@ -760,6 +850,47 @@ mod tests {
             },
         ]);
         assert_eq!(run(&program, 10).unwrap().to_source(), "5");
+    }
+
+    #[test]
+    fn runs_unary_minus_and_not_primitives() {
+        let minus = program(vec![
+            Instruction {
+                opcode: Opcode::App,
+                head: false,
+                data: Data::Int(2),
+            },
+            Instruction {
+                opcode: Opcode::Prim1,
+                head: false,
+                data: Data::String("MINUS".to_string()),
+            },
+            Instruction {
+                opcode: Opcode::Int,
+                head: true,
+                data: Data::Int(7),
+            },
+        ]);
+        assert_eq!(run(&minus, 10).unwrap().to_source(), "-7");
+
+        let not = program(vec![
+            Instruction {
+                opcode: Opcode::App,
+                head: false,
+                data: Data::Int(2),
+            },
+            Instruction {
+                opcode: Opcode::Prim1,
+                head: false,
+                data: Data::String("NOT".to_string()),
+            },
+            Instruction {
+                opcode: Opcode::Sym,
+                head: true,
+                data: Data::String("TRUE".to_string()),
+            },
+        ]);
+        assert_eq!(run(&not, 10).unwrap().to_source(), "FALSE");
     }
 
     #[test]

@@ -78,7 +78,7 @@ def test_breakout_cast_shows_at_least_six_horizontal_bounces() -> None:
     assert reversals >= 6
 
 
-def test_wasm_breakout_cast_is_real_timed_recording_without_trap_output() -> None:
+def test_wasm_breakout_cast_is_real_long_timed_recording_without_trap_output() -> None:
     cast = Path("examples/media/breakout-wasm.cast")
     lines = cast.read_text().splitlines()
     header = json.loads(lines[0])
@@ -88,10 +88,10 @@ def test_wasm_breakout_cast_is_real_timed_recording_without_trap_output() -> Non
 
     assert header["version"] == 2
     assert header["title"] == "Asgard Breakout WASM"
-    assert len(events) >= 150
+    assert len(events) >= 1000
     assert events[-1][0] >= 5.0
     assert events[-1][0] <= 6.0
-    assert ball_draws >= 6
+    assert ball_draws >= 10
     assert "BREAKOUT 20x12" in output
     assert "\x1b[?25hQUIT" in output
     assert "wasm trap" not in output.lower()

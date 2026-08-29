@@ -123,8 +123,8 @@ def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(
     driver = tmp_path / "drive_breakout.py"
     steps = [
         (1_700_000_000_000 + (tick * 100), " ", 0.0)
-        for tick in range(1, 6)
-    ] + [(1_700_000_000_700, "q", 0.0)]
+        for tick in range(1, 71)
+    ] + [(1_700_000_007_200, "q", 0.0)]
     driver.write_text(
         "from pathlib import Path\n"
         "import sys\n"
@@ -150,7 +150,7 @@ def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(
 
     assert result.returncode == 0
     assert "BREAKOUT 20x12\n" in result.stdout
-    assert result.stdout.count("o") >= 6
+    assert result.stdout.count("o") >= 10
     assert "QUIT\n" in result.stdout
     assert result.stderr == ""
 
