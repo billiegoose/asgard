@@ -60,6 +60,15 @@ def test_cli_thor_rejects_explicit_resource_limits(
     assert "resource limits are currently supported for red2 only" in captured.err
 
 
+def test_cli_thor_rejects_explicit_resource_limits_without_source(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["--model", "thor", "--stack-size-in-bytes", "1"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
 def test_cli_parity_rejects_explicit_resource_limits(
     capsys: CaptureFixture[str],
 ) -> None:
@@ -77,6 +86,15 @@ def test_cli_parity_rejects_explicit_resource_limits(
         == 2
     )
     captured = capsys.readouterr()
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
+def test_cli_parity_rejects_explicit_resource_limits_without_source(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["--model", "parity", "--heap-size-in-bytes", "1"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
     assert "resource limits are currently supported for red2 only" in captured.err
 
 

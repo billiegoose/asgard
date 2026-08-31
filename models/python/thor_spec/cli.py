@@ -103,13 +103,12 @@ def main(argv: list[str] | None = None) -> int:
         return _run_red2_command(argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.expr is None and args.file is None:
-        parser.print_help()
-        return 0
-
     rejected = _reject_resource_limits_for_non_red2(args, args.model)
     if rejected is not None:
         return rejected
+    if args.expr is None and args.file is None:
+        parser.print_help()
+        return 0
 
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
