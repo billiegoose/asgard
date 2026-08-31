@@ -5,6 +5,8 @@ import sys
 from io import StringIO
 from pathlib import Path
 
+import pytest
+
 from thor_spec.ast import Definition, Expr
 from thor_spec.golden import ModelName
 from thor_spec.io_runtime import LatestFileClockSource, run_io_source
@@ -162,20 +164,17 @@ run_io_source(
     clock=AdvancingClock(step=1000),
 )
 """
-    try:
-        completed = subprocess.run(
+    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
+        subprocess.run(
             [sys.executable, "-c", script],
             capture_output=True,
             check=False,
             text=True,
             timeout=2.0,
         )
-        stdout = completed.stdout
-        stderr = completed.stderr
-    except subprocess.TimeoutExpired as timeout:
-        stdout = _timeout_text(timeout.stdout)
-        stderr = _timeout_text(timeout.stderr)
 
+    stdout = _timeout_text(timeout_info.value.stdout)
+    stderr = _timeout_text(timeout_info.value.stderr)
     assert "." in stdout
     assert "RecursionError" not in stderr
     assert "Traceback" not in stderr
