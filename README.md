@@ -44,6 +44,14 @@ uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
 # 5
 ```
 
+RED2 resource limits can be configured on Python RED2 execution paths:
+
+```sh
+uv run thor-spec --model red2 --stack-size-in-bytes 1048576 --heap-size-in-bytes 16777216 --expr "(+ 2 3)"
+```
+
+The THOR interpreter currently rejects explicit resource-limit flags because its values live in Python-managed memory rather than a modeled VM heap.
+
 Use `mise run` as the canonical command surface for source-file examples and
 project checks:
 
