@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import pairwise
@@ -130,6 +131,16 @@ type _Term = (
 type _Env = tuple[_EnvEntry, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class _ReductionRequest:
+    term: _Term
+    env: _Env
+    no_contract: bool = False
+
+
+type _ReductionGenerator = Generator[_ReductionRequest, _Term, _Term]
+
+
 class Red2Machine:
     """Small Python model of the Chapter 4 RED2 machine.
 
@@ -236,42 +247,87 @@ class Red2Machine:
         return _term_to_expr(self._result_term)
 
     def _reduce(self, term: _Term, env: _Env) -> _Term:
-        self._enter_stack_frame()
+        return self._drive(self._reduce_term(term, env))
+
+    def _drive(self, initial: _ReductionGenerator) -> _Term:
+        stack: list[tuple[_ReductionGenerator, int | None]] = []
+        result: _Term | None = None
+        has_result = False
         try:
-            if isinstance(term, _ClosureTerm):
-                if isinstance(term.term, _LambdaTerm):
-                    return term
-                return self._reduce(term.term, term.env)
-            if isinstance(term, _RecTerm):
-                return self._reduce_rec(term)
-            if isinstance(term, _VarTerm):
-                if 0 <= term.index < len(env):
-                    return self._reduce(env[term.index], ())
-                corrected = max(self.state.phi - term.index, 0)
-                return self._allocate_term(_VarTerm(corrected, term.name))
-            if isinstance(term, _LambdaTerm):
-                if env:
-                    return self._allocate_term(_ClosureTerm(term, env))
-                return term
-            if isinstance(term, _StructTerm):
-                return self._allocate_term(
-                    _StructTerm(
-                        term.tag,
-                        tuple(
-                            self._reduce_no_contract(field, env)
-                            for field in term.fields
-                        ),
+            self._enter_stack_frame()
+            stack.append((initial, None))
+            while stack:
+                generator, saved_quantum = stack[-1]
+                try:
+                    if has_result:
+                        assert result is not None
+                        request = generator.send(result)
+                    else:
+                        request = next(generator)
+                except StopIteration as stopped:
+                    result = stopped.value
+                    stack.pop()
+                    self._leave_stack_frame()
+                    if saved_quantum is not None:
+                        self.state.q = saved_quantum
+                    has_result = True
+                    continue
+
+                restore_quantum: int | None = None
+                if request.no_contract:
+                    restore_quantum = self.state.q
+                    self.state.q = 0
+                self._enter_stack_frame()
+                stack.append(
+                    (
+                        self._reduce_term(request.term, request.env),
+                        restore_quantum,
                     )
                 )
-            if isinstance(term, _LetRecTerm):
-                return self._reduce_letrec(term, env)
-            if isinstance(term, _InstrTerm):
-                return self._reduce_instruction(term, env)
-            if isinstance(term, _AppTerm):
-                return self._reduce_app(term, env)
-            assert_never(term)
-        finally:
-            self._leave_stack_frame()
+                has_result = False
+        except BaseException:
+            self._stack_bytes_used = 0
+            raise
+
+        assert result is not None
+        return result
+
+    def _reduce_term(self, term: _Term, env: _Env) -> _ReductionGenerator:
+        if isinstance(term, _ClosureTerm):
+            if isinstance(term.term, _LambdaTerm):
+                return term
+            return (yield _ReductionRequest(term.term, term.env))
+        if isinstance(term, _RecTerm):
+            return (yield from self._reduce_rec(term))
+        if isinstance(term, _VarTerm):
+            if 0 <= term.index < len(env):
+                return (yield _ReductionRequest(env[term.index], ()))
+            corrected = max(self.state.phi - term.index, 0)
+            return self._allocate_term(_VarTerm(corrected, term.name))
+        if isinstance(term, _LambdaTerm):
+            if env:
+                return self._allocate_term(_ClosureTerm(term, env))
+            return term
+        if isinstance(term, _StructTerm):
+            fields: list[_Term] = []
+            for field in term.fields:
+                fields.append(
+                    (
+                        yield _ReductionRequest(
+                            field,
+                            env,
+                            no_contract=True,
+                        )
+                    )
+                )
+            return self._allocate_term(_StructTerm(term.tag, tuple(fields)))
+        if isinstance(term, _LetRecTerm):
+            return (yield from self._reduce_letrec(term, env))
+        if isinstance(term, _InstrTerm):
+            return (yield from self._reduce_instruction(term, env))
+        if isinstance(term, _AppTerm):
+            return (yield from self._reduce_app(term, env))
+        assert_never(term)
 
     def _enter_stack_frame(self) -> None:
         self._stack_bytes_used += _STACK_FRAME_BYTES
@@ -302,33 +358,36 @@ class Red2Machine:
     def _new_instr(self, inst: Instruction) -> _InstrTerm:
         return self._allocate_term(_InstrTerm(inst))
 
-    def _reduce_no_contract(self, term: _Term, env: _Env) -> _Term:
-        saved = self.state.q
-        self.state.q = 0
-        try:
-            return self._reduce(term, env)
-        finally:
-            self.state.q = saved
-
     def _contract(self) -> bool:
         if self.state.q <= 0:
             return False
         self.state.q -= 1
         return True
 
-    def _reduce_instruction(self, term: _InstrTerm, env: _Env) -> _Term:
+    def _reduce_instruction(
+        self,
+        term: _InstrTerm,
+        env: _Env,
+    ) -> _ReductionGenerator:
         inst = term.inst
         if inst.opcode is Opcode.SYM and isinstance(inst.data, str):
             definition = self._definitions.get(inst.data)
             if definition is not None and self._contract():
-                return self._reduce(definition, env)
+                return (yield _ReductionRequest(definition, env))
         return term
 
-    def _reduce_app(self, term: _AppTerm, env: _Env) -> _Term:
-        operator = self._reduce(term.operator, env)
+    def _reduce_app(self, term: _AppTerm, env: _Env) -> _ReductionGenerator:
+        operator = yield _ReductionRequest(term.operator, env)
         primitive = _term_primitive_name(operator)
         if primitive is not None:
-            return self._reduce_primitive(primitive, operator, term.args, env)
+            return (
+                yield from self._reduce_primitive(
+                    primitive,
+                    operator,
+                    term.args,
+                    env,
+                )
+            )
         lambda_term, lambda_env = _as_lambda(operator, env)
         if lambda_term is not None and term.args:
             bind_count = min(len(lambda_term.params), len(term.args), self.state.q)
@@ -341,7 +400,7 @@ class Red2Machine:
                 for arg in term.args[:bind_count]
             )
             if bind_count == len(lambda_term.params):
-                reduced_body = self._reduce(
+                reduced_body = yield _ReductionRequest(
                     lambda_term.body,
                     (*argument_closures, *lambda_env),
                 )
@@ -356,30 +415,42 @@ class Red2Machine:
                     )
                     for index, name in enumerate(remaining_params)
                 )
+                reduced = yield _ReductionRequest(
+                    lambda_term.body,
+                    (*argument_closures, *placeholder_env, *lambda_env),
+                )
                 reduced_body = self._allocate_term(
-                    _LambdaTerm(
-                        remaining_params,
-                        self._reduce(
-                            lambda_term.body,
-                            (*argument_closures, *placeholder_env, *lambda_env),
-                        ),
-                    )
+                    _LambdaTerm(remaining_params, reduced)
                 )
             remaining_args = term.args[bind_count:]
             if not remaining_args:
                 return reduced_body
-            return self._reduce(
-                self._allocate_term(_AppTerm(reduced_body, remaining_args)),
-                env,
+            return (
+                yield _ReductionRequest(
+                    self._allocate_term(_AppTerm(reduced_body, remaining_args)),
+                    env,
+                )
             )
         if isinstance(operator, _StructTerm) and term.args:
-            return self._reduce_struct_application(operator, term.args, env)
-        return self._allocate_term(
-            _AppTerm(
-                operator,
-                tuple(self._reduce_no_contract(arg, env) for arg in term.args),
+            return (
+                yield from self._reduce_struct_application(
+                    operator,
+                    term.args,
+                    env,
+                )
             )
-        )
+        reduced_args: list[_Term] = []
+        for arg in term.args:
+            reduced_args.append(
+                (
+                    yield _ReductionRequest(
+                        arg,
+                        env,
+                        no_contract=True,
+                    )
+                )
+            )
+        return self._new_app(operator, tuple(reduced_args))
 
     def _reduce_primitive(
         self,
@@ -387,33 +458,57 @@ class Red2Machine:
         operator: _Term,
         args: tuple[_Term, ...],
         env: _Env,
-    ) -> _Term:
+    ) -> _ReductionGenerator:
         if name == "IF" and len(args) == 3:
-            return self._reduce_if(args, env)
+            return (yield from self._reduce_if(args, env))
         if name == "Y" and len(args) == 1:
-            return self._reduce_y(args[0], env)
+            return (yield from self._reduce_y(args[0], env))
         if name == "AND":
-            return self._reduce_logical(args, env, true_identity=True)
+            return (
+                yield from self._reduce_logical(
+                    args,
+                    env,
+                    true_identity=True,
+                )
+            )
         if name == "OR":
-            return self._reduce_logical(args, env, true_identity=False)
+            return (
+                yield from self._reduce_logical(
+                    args,
+                    env,
+                    true_identity=False,
+                )
+            )
         if name == "CONS" and len(args) == 2:
-            return self._reduce_cons(operator, args, env)
+            return (yield from self._reduce_cons(operator, args, env))
         accessor = struct_accessor(name)
         if accessor is not None and len(args) == 1:
             tag, field_index = accessor
-            return self._reduce_accessor(name, tag, field_index, operator, args[0], env)
+            return (
+                yield from self._reduce_accessor(
+                    name,
+                    tag,
+                    field_index,
+                    operator,
+                    args[0],
+                    env,
+                )
+            )
         if name == "NULL?" and len(args) == 1:
-            return self._reduce_null(operator, args[0], env)
+            return (yield from self._reduce_null(operator, args[0], env))
         if name == "TAG" and len(args) == 1:
-            arg = self._reduce(args[0], env)
+            arg = yield _ReductionRequest(args[0], env)
             if isinstance(arg, _StructTerm) and self._contract():
                 return self._new_instr(Instruction(Opcode.SYM, arg.tag, head=True))
             return self._new_app(operator, (arg,))
 
-        reduced_args = tuple(self._reduce(arg, env) for arg in args)
-        instruction_args = tuple(_term_instruction(arg) for arg in reduced_args)
+        reduced_args: list[_Term] = []
+        for arg in args:
+            reduced_args.append((yield _ReductionRequest(arg, env)))
+        reduced_args_tuple = tuple(reduced_args)
+        instruction_args = tuple(_term_instruction(arg) for arg in reduced_args_tuple)
         if any(inst is None for inst in instruction_args):
-            return self._new_app(operator, reduced_args)
+            return self._new_app(operator, reduced_args_tuple)
         self.state.argcnt = len(args)
         self.state.prim = name
         self.state.fire = True
@@ -427,11 +522,15 @@ class Red2Machine:
         self.state.prim = None
         self.state.argcnt = 0
         if result is None:
-            return self._new_app(operator, reduced_args)
+            return self._new_app(operator, reduced_args_tuple)
         return self._new_instr(result)
 
-    def _reduce_if(self, args: tuple[_Term, ...], env: _Env) -> _Term:
-        condition = self._reduce(args[0], env)
+    def _reduce_if(
+        self,
+        args: tuple[_Term, ...],
+        env: _Env,
+    ) -> _ReductionGenerator:
+        condition = yield _ReductionRequest(args[0], env)
         condition_inst = _term_instruction(condition)
         if condition_inst is not None and condition_inst == TRUE:
             if not self._contract():
@@ -439,31 +538,39 @@ class Red2Machine:
                     self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
                     (condition, args[1], args[2]),
                 )
-            return self._reduce(args[1], env)
+            return (yield _ReductionRequest(args[1], env))
         if condition_inst is not None and condition_inst == FALSE:
             if not self._contract():
                 return self._new_app(
                     self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
                     (condition, args[1], args[2]),
                 )
-            return self._reduce(args[2], env)
+            return (yield _ReductionRequest(args[2], env))
+        true_branch = yield _ReductionRequest(
+            args[1],
+            env,
+            no_contract=True,
+        )
+        false_branch = yield _ReductionRequest(
+            args[2],
+            env,
+            no_contract=True,
+        )
         return self._new_app(
             self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
-            (
-                condition,
-                self._reduce_no_contract(args[1], env),
-                self._reduce_no_contract(args[2], env),
-            ),
+            (condition, true_branch, false_branch),
         )
 
-    def _reduce_y(self, arg: _Term, env: _Env) -> _Term:
+    def _reduce_y(self, arg: _Term, env: _Env) -> _ReductionGenerator:
         y_operator = self._new_instr(Instruction(Opcode.PRIM_2, "Y"))
         if not self._contract():
             return self._new_app(y_operator, (arg,))
         recursive_call = self._new_app(y_operator, (arg,))
-        return self._reduce(
-            self._new_app(arg, (recursive_call,)),
-            env,
+        return (
+            yield _ReductionRequest(
+                self._new_app(arg, (recursive_call,)),
+                env,
+            )
         )
 
     def _reduce_logical(
@@ -472,12 +579,12 @@ class Red2Machine:
         env: _Env,
         *,
         true_identity: bool,
-    ) -> _Term:
+    ) -> _ReductionGenerator:
         if not args:
             return self._new_instr(TRUE if true_identity else FALSE)
         kept: list[_Term] = []
         for arg in args:
-            reduced = self._reduce(arg, env)
+            reduced = yield _ReductionRequest(arg, env)
             inst = _term_instruction(reduced)
             if inst is not None and self.state.q > 0:
                 if true_identity and inst == FALSE:
@@ -506,9 +613,9 @@ class Red2Machine:
         operator: _Term,
         args: tuple[_Term, ...],
         env: _Env,
-    ) -> _Term:
-        head = self._reduce(args[0], env)
-        tail = self._reduce(args[1], env)
+    ) -> _ReductionGenerator:
+        head = yield _ReductionRequest(args[0], env)
+        tail = yield _ReductionRequest(args[1], env)
         if not self._contract():
             return self._new_app(operator, (head, tail))
         return self._allocate_term(_StructTerm("PAIR", (head, tail)))
@@ -521,8 +628,8 @@ class Red2Machine:
         operator: _Term,
         arg: _Term,
         env: _Env,
-    ) -> _Term:
-        value = self._reduce(arg, env)
+    ) -> _ReductionGenerator:
+        value = yield _ReductionRequest(arg, env)
         if (
             not isinstance(value, _StructTerm)
             or value.tag != tag
@@ -531,10 +638,15 @@ class Red2Machine:
             return self._new_app(_native_unary_operator(name, operator), (value,))
         if not self._contract():
             return self._new_app(_native_unary_operator(name, operator), (value,))
-        return self._reduce(value.fields[field_index], env)
+        return (yield _ReductionRequest(value.fields[field_index], env))
 
-    def _reduce_null(self, operator: _Term, arg: _Term, env: _Env) -> _Term:
-        value = self._reduce(arg, env)
+    def _reduce_null(
+        self,
+        operator: _Term,
+        arg: _Term,
+        env: _Env,
+    ) -> _ReductionGenerator:
+        value = yield _ReductionRequest(arg, env)
         if _is_nil_term(value):
             if self._contract():
                 return self._new_instr(TRUE)
@@ -550,8 +662,8 @@ class Red2Machine:
         operator: _StructTerm,
         args: tuple[_Term, ...],
         env: _Env,
-    ) -> _Term:
-        selector = self._reduce(args[0], env)
+    ) -> _ReductionGenerator:
+        selector = yield _ReductionRequest(args[0], env)
         lambda_term, lambda_env = _as_lambda(selector, env)
         if lambda_term is None or not self._contract():
             return self._new_app(operator, (selector, *args[1:]))
@@ -560,14 +672,26 @@ class Red2Machine:
             self._allocate_term(_ClosureTerm(field, env))
             for field in operator.fields[:bind_count]
         )
-        reduced = self._reduce(lambda_term.body, (*field_closures, *lambda_env))
+        reduced = yield _ReductionRequest(
+            lambda_term.body,
+            (*field_closures, *lambda_env),
+        )
         if args[1:]:
-            return self._reduce(self._new_app(reduced, args[1:]), env)
+            return (
+                yield _ReductionRequest(
+                    self._new_app(reduced, args[1:]),
+                    env,
+                )
+            )
         return reduced
 
-    def _reduce_letrec(self, letrec: _LetRecTerm, env: _Env) -> _Term:
+    def _reduce_letrec(
+        self,
+        letrec: _LetRecTerm,
+        env: _Env,
+    ) -> _ReductionGenerator:
         if not letrec.names:
-            return self._reduce(letrec.body, env)
+            return (yield _ReductionRequest(letrec.body, env))
         recursive_entries = tuple(
             self._allocate_term(_RecTerm(index, letrec.names, letrec.expressions, ()))
             for index in range(len(letrec.expressions))
@@ -575,12 +699,17 @@ class Red2Machine:
         recursive_env = (*recursive_entries, *env)
         for rec in recursive_entries:
             object.__setattr__(rec, "env", recursive_env)
-        return self._reduce(letrec.body, recursive_env)
+        return (yield _ReductionRequest(letrec.body, recursive_env))
 
-    def _reduce_rec(self, rec: _RecTerm) -> _Term:
+    def _reduce_rec(self, rec: _RecTerm) -> _ReductionGenerator:
         if self.state.q > 0:
             self._contract()
-            return self._reduce(rec.expressions[rec.index], rec.env)
+            return (
+                yield _ReductionRequest(
+                    rec.expressions[rec.index],
+                    rec.env,
+                )
+            )
         placeholder_env: _Env = tuple(
             self._allocate_term(
                 _ClosureTerm(
@@ -590,13 +719,21 @@ class Red2Machine:
             )
             for index, name in enumerate(rec.names)
         )
+        expressions: list[_Term] = []
+        for expr in rec.expressions:
+            expressions.append(
+                (
+                    yield _ReductionRequest(
+                        expr,
+                        placeholder_env,
+                        no_contract=True,
+                    )
+                )
+            )
         return self._allocate_term(
             _LetRecTerm(
                 rec.names,
-                tuple(
-                    self._reduce_no_contract(expr, placeholder_env)
-                    for expr in rec.expressions
-                ),
+                tuple(expressions),
                 self._allocate_term(_VarTerm(rec.index, rec.names[rec.index])),
             )
         )

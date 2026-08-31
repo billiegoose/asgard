@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from thor_spec.parser import parse_expr
@@ -61,6 +63,18 @@ def test_red2_stack_limit_raises_deterministic_error() -> None:
 
     with pytest.raises(Red2StackOverflowError, match="RED2 stack overflow"):
         m.run()
+
+
+def test_deep_default_red2_recursion_raises_machine_stack_overflow() -> None:
+    source = "((Y (LAMBDA (loop) (LAMBDA (n) (loop n)))) 1)"
+    m = Red2Machine(compile_expr(parse_expr(source)), quantum=100_000)
+    previous_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(80)
+    try:
+        with pytest.raises(Red2StackOverflowError, match="RED2 stack overflow"):
+            m.run()
+    finally:
+        sys.setrecursionlimit(previous_limit)
 
 
 def test_red2_heap_limit_raises_deterministic_error() -> None:
