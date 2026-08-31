@@ -1,7 +1,16 @@
+import pytest
+
 from thor_spec.parser import parse_expr
+from thor_spec.pretty import to_source
 from thor_spec.red2.compiler import compile_expr
 from thor_spec.red2.instructions import Opcode
-from thor_spec.red2.machine import Direction, Red2Machine
+from thor_spec.red2.machine import (
+    Direction,
+    Red2HeapExhaustedError,
+    Red2Machine,
+    Red2ResourceLimits,
+    Red2StackOverflowError,
+)
 
 
 def machine(source: str, quantum: int = 10) -> Red2Machine:
@@ -38,3 +47,46 @@ def test_exhausted_quantum_keeps_application_spine() -> None:
         Opcode.LAMBDA,
         Opcode.INT,
     ]
+
+
+def test_red2_stack_limit_raises_deterministic_error() -> None:
+    m = Red2Machine(
+        compile_expr(parse_expr("((LAMBDA (X) X) 42)")),
+        quantum=10,
+        resource_limits=Red2ResourceLimits(
+            stack_size_in_bytes=1,
+            heap_size_in_bytes=1_000_000,
+        ),
+    )
+
+    with pytest.raises(Red2StackOverflowError, match="RED2 stack overflow"):
+        m.run()
+
+
+def test_red2_heap_limit_raises_deterministic_error() -> None:
+    source = "[1 2 3 4 5 6 7 8 9 10]"
+    m = Red2Machine(
+        compile_expr(parse_expr(source)),
+        quantum=100,
+        resource_limits=Red2ResourceLimits(
+            stack_size_in_bytes=1_000_000,
+            heap_size_in_bytes=1,
+        ),
+    )
+
+    with pytest.raises(Red2HeapExhaustedError, match="RED2 heap exhausted"):
+        m.run()
+
+
+def test_red2_configured_resource_limits_allow_success() -> None:
+    m = Red2Machine(
+        compile_expr(parse_expr("((LAMBDA (X) X) 42)")),
+        quantum=10,
+        resource_limits=Red2ResourceLimits(
+            stack_size_in_bytes=1_000_000,
+            heap_size_in_bytes=1_000_000,
+        ),
+    )
+    m.run()
+
+    assert to_source(m.result_expr()) == "42"
