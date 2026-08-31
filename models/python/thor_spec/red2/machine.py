@@ -21,6 +21,29 @@ from thor_spec.red2.primitives import (
     struct_accessor,
 )
 
+DEFAULT_STACK_SIZE_IN_BYTES = 1024 * 1024
+DEFAULT_HEAP_SIZE_IN_BYTES = 16 * 1024 * 1024
+_STACK_FRAME_BYTES = 64
+_HEAP_TERM_BYTES = 64
+
+
+class Red2ResourceError(RuntimeError):
+    """Raised when RED2 deterministic VM resources are exhausted."""
+
+
+class Red2StackOverflowError(Red2ResourceError):
+    """Raised when RED2 explicit evaluation stack exceeds its byte limit."""
+
+
+class Red2HeapExhaustedError(Red2ResourceError):
+    """Raised when RED2 deterministic heap accounting exceeds its byte limit."""
+
+
+@dataclass(frozen=True, slots=True)
+class Red2ResourceLimits:
+    stack_size_in_bytes: int = DEFAULT_STACK_SIZE_IN_BYTES
+    heap_size_in_bytes: int = DEFAULT_HEAP_SIZE_IN_BYTES
+
 
 class Direction(Enum):
     F = auto()
@@ -121,13 +144,29 @@ class Red2Machine:
         image: ProgramImage,
         quantum: int,
         definitions: DefinitionImage | None = None,
+        resource_limits: Red2ResourceLimits | None = None,
     ) -> None:
+        self._resource_limits = resource_limits or Red2ResourceLimits()
+        if self._resource_limits.stack_size_in_bytes < 0:
+            msg = "stack_size_in_bytes must be non-negative"
+            raise ValueError(msg)
+        if self._resource_limits.heap_size_in_bytes < 0:
+            msg = "heap_size_in_bytes must be non-negative"
+            raise ValueError(msg)
+        self._stack_bytes_used = 0
+        self._heap_bytes_used = 0
+        self._initial_heap_charged = False
         self._problem_memory = list(image.instructions)
         self._stop_pc = self._find_stop(image)
         self._source = _ProgramParser(self._problem_memory, image.metadata).parse(
             image.entry,
         )
         self._definitions = _parse_definitions(definitions)
+        self._initial_heap_term_count = (
+            len(self._problem_memory)
+            + _term_count(self._source)
+            + sum(_term_count(term) for term in self._definitions.values())
+        )
         self._result: tuple[Instruction, ...] = ()
         self._result_term: _Term | None = None
         self._executed = False
@@ -149,9 +188,13 @@ class Red2Machine:
             return self.state
 
         if not self._executed:
+            if not self._initial_heap_charged:
+                self._allocate_heap_terms(self._initial_heap_term_count)
+                self._initial_heap_charged = True
             reduced = self._reduce(self._source, ())
             self._result_term = reduced
             self._result = tuple(_ResultEmitter().emit(reduced))
+            self._allocate_heap_terms(len(self._result))
             self._executed = True
             self.state.direction = Direction.B
             self.state.pc = self._stop_pc
@@ -193,33 +236,71 @@ class Red2Machine:
         return _term_to_expr(self._result_term)
 
     def _reduce(self, term: _Term, env: _Env) -> _Term:
-        if isinstance(term, _ClosureTerm):
-            if isinstance(term.term, _LambdaTerm):
+        self._enter_stack_frame()
+        try:
+            if isinstance(term, _ClosureTerm):
+                if isinstance(term.term, _LambdaTerm):
+                    return term
+                return self._reduce(term.term, term.env)
+            if isinstance(term, _RecTerm):
+                return self._reduce_rec(term)
+            if isinstance(term, _VarTerm):
+                if 0 <= term.index < len(env):
+                    return self._reduce(env[term.index], ())
+                corrected = max(self.state.phi - term.index, 0)
+                return self._allocate_term(_VarTerm(corrected, term.name))
+            if isinstance(term, _LambdaTerm):
+                if env:
+                    return self._allocate_term(_ClosureTerm(term, env))
                 return term
-            return self._reduce(term.term, term.env)
-        if isinstance(term, _RecTerm):
-            return self._reduce_rec(term)
-        if isinstance(term, _VarTerm):
-            if 0 <= term.index < len(env):
-                return self._reduce(env[term.index], ())
-            corrected = max(self.state.phi - term.index, 0)
-            return _VarTerm(corrected, term.name)
-        if isinstance(term, _LambdaTerm):
-            if env:
-                return _ClosureTerm(term, env)
-            return term
-        if isinstance(term, _StructTerm):
-            return _StructTerm(
-                term.tag,
-                tuple(self._reduce_no_contract(field, env) for field in term.fields),
+            if isinstance(term, _StructTerm):
+                return self._allocate_term(
+                    _StructTerm(
+                        term.tag,
+                        tuple(
+                            self._reduce_no_contract(field, env)
+                            for field in term.fields
+                        ),
+                    )
+                )
+            if isinstance(term, _LetRecTerm):
+                return self._reduce_letrec(term, env)
+            if isinstance(term, _InstrTerm):
+                return self._reduce_instruction(term, env)
+            if isinstance(term, _AppTerm):
+                return self._reduce_app(term, env)
+            assert_never(term)
+        finally:
+            self._leave_stack_frame()
+
+    def _enter_stack_frame(self) -> None:
+        self._stack_bytes_used += _STACK_FRAME_BYTES
+        if self._stack_bytes_used > self._resource_limits.stack_size_in_bytes:
+            raise Red2StackOverflowError(
+                f"RED2 stack overflow: used {self._stack_bytes_used} byte(s), "
+                f"limit {self._resource_limits.stack_size_in_bytes} byte(s)"
             )
-        if isinstance(term, _LetRecTerm):
-            return self._reduce_letrec(term, env)
-        if isinstance(term, _InstrTerm):
-            return self._reduce_instruction(term, env)
-        if isinstance(term, _AppTerm):
-            return self._reduce_app(term, env)
-        assert_never(term)
+
+    def _leave_stack_frame(self) -> None:
+        self._stack_bytes_used -= _STACK_FRAME_BYTES
+
+    def _allocate_heap_terms(self, count: int) -> None:
+        self._heap_bytes_used += count * _HEAP_TERM_BYTES
+        if self._heap_bytes_used > self._resource_limits.heap_size_in_bytes:
+            raise Red2HeapExhaustedError(
+                f"RED2 heap exhausted: used {self._heap_bytes_used} byte(s), "
+                f"limit {self._resource_limits.heap_size_in_bytes} byte(s)"
+            )
+
+    def _allocate_term[TermT](self, term: TermT) -> TermT:
+        self._allocate_heap_terms(1)
+        return term
+
+    def _new_app(self, operator: _Term, args: tuple[_Term, ...]) -> _AppTerm:
+        return self._allocate_term(_AppTerm(operator, args))
+
+    def _new_instr(self, inst: Instruction) -> _InstrTerm:
+        return self._allocate_term(_InstrTerm(inst))
 
     def _reduce_no_contract(self, term: _Term, env: _Env) -> _Term:
         saved = self.state.q
@@ -252,11 +333,12 @@ class Red2Machine:
         if lambda_term is not None and term.args:
             bind_count = min(len(lambda_term.params), len(term.args), self.state.q)
             if bind_count == 0:
-                return _AppTerm(operator, term.args)
+                return self._allocate_term(_AppTerm(operator, term.args))
             for _ in range(bind_count):
                 self._contract()
             argument_closures = tuple(
-                _ClosureTerm(arg, env) for arg in term.args[:bind_count]
+                self._allocate_term(_ClosureTerm(arg, env))
+                for arg in term.args[:bind_count]
             )
             if bind_count == len(lambda_term.params):
                 reduced_body = self._reduce(
@@ -266,25 +348,37 @@ class Red2Machine:
             else:
                 remaining_params = lambda_term.params[bind_count:]
                 placeholder_env = tuple(
-                    _ClosureTerm(_VarTerm(index, name), ())
+                    self._allocate_term(
+                        _ClosureTerm(
+                            self._allocate_term(_VarTerm(index, name)),
+                            (),
+                        )
+                    )
                     for index, name in enumerate(remaining_params)
                 )
-                reduced_body = _LambdaTerm(
-                    remaining_params,
-                    self._reduce(
-                        lambda_term.body,
-                        (*argument_closures, *placeholder_env, *lambda_env),
-                    ),
+                reduced_body = self._allocate_term(
+                    _LambdaTerm(
+                        remaining_params,
+                        self._reduce(
+                            lambda_term.body,
+                            (*argument_closures, *placeholder_env, *lambda_env),
+                        ),
+                    )
                 )
             remaining_args = term.args[bind_count:]
             if not remaining_args:
                 return reduced_body
-            return self._reduce(_AppTerm(reduced_body, remaining_args), env)
+            return self._reduce(
+                self._allocate_term(_AppTerm(reduced_body, remaining_args)),
+                env,
+            )
         if isinstance(operator, _StructTerm) and term.args:
             return self._reduce_struct_application(operator, term.args, env)
-        return _AppTerm(
-            operator,
-            tuple(self._reduce_no_contract(arg, env) for arg in term.args),
+        return self._allocate_term(
+            _AppTerm(
+                operator,
+                tuple(self._reduce_no_contract(arg, env) for arg in term.args),
+            )
         )
 
     def _reduce_primitive(
@@ -313,13 +407,13 @@ class Red2Machine:
         if name == "TAG" and len(args) == 1:
             arg = self._reduce(args[0], env)
             if isinstance(arg, _StructTerm) and self._contract():
-                return _InstrTerm(Instruction(Opcode.SYM, arg.tag, head=True))
-            return _AppTerm(operator, (arg,))
+                return self._new_instr(Instruction(Opcode.SYM, arg.tag, head=True))
+            return self._new_app(operator, (arg,))
 
         reduced_args = tuple(self._reduce(arg, env) for arg in args)
         instruction_args = tuple(_term_instruction(arg) for arg in reduced_args)
         if any(inst is None for inst in instruction_args):
-            return _AppTerm(operator, reduced_args)
+            return self._new_app(operator, reduced_args)
         self.state.argcnt = len(args)
         self.state.prim = name
         self.state.fire = True
@@ -333,28 +427,28 @@ class Red2Machine:
         self.state.prim = None
         self.state.argcnt = 0
         if result is None:
-            return _AppTerm(operator, reduced_args)
-        return _InstrTerm(result)
+            return self._new_app(operator, reduced_args)
+        return self._new_instr(result)
 
     def _reduce_if(self, args: tuple[_Term, ...], env: _Env) -> _Term:
         condition = self._reduce(args[0], env)
         condition_inst = _term_instruction(condition)
         if condition_inst is not None and condition_inst == TRUE:
             if not self._contract():
-                return _AppTerm(
-                    _InstrTerm(Instruction(Opcode.PRIM_2, "IF")),
+                return self._new_app(
+                    self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
                     (condition, args[1], args[2]),
                 )
             return self._reduce(args[1], env)
         if condition_inst is not None and condition_inst == FALSE:
             if not self._contract():
-                return _AppTerm(
-                    _InstrTerm(Instruction(Opcode.PRIM_2, "IF")),
+                return self._new_app(
+                    self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
                     (condition, args[1], args[2]),
                 )
             return self._reduce(args[2], env)
-        return _AppTerm(
-            _InstrTerm(Instruction(Opcode.PRIM_2, "IF")),
+        return self._new_app(
+            self._new_instr(Instruction(Opcode.PRIM_2, "IF")),
             (
                 condition,
                 self._reduce_no_contract(args[1], env),
@@ -363,12 +457,12 @@ class Red2Machine:
         )
 
     def _reduce_y(self, arg: _Term, env: _Env) -> _Term:
+        y_operator = self._new_instr(Instruction(Opcode.PRIM_2, "Y"))
         if not self._contract():
-            return _AppTerm(_InstrTerm(Instruction(Opcode.PRIM_2, "Y")), (arg,))
+            return self._new_app(y_operator, (arg,))
+        recursive_call = self._new_app(y_operator, (arg,))
         return self._reduce(
-            _AppTerm(
-                arg, (_AppTerm(_InstrTerm(Instruction(Opcode.PRIM_2, "Y")), (arg,)),)
-            ),
+            self._new_app(arg, (recursive_call,)),
             env,
         )
 
@@ -380,7 +474,7 @@ class Red2Machine:
         true_identity: bool,
     ) -> _Term:
         if not args:
-            return _InstrTerm(TRUE if true_identity else FALSE)
+            return self._new_instr(TRUE if true_identity else FALSE)
         kept: list[_Term] = []
         for arg in args:
             reduced = self._reduce(arg, env)
@@ -388,10 +482,10 @@ class Red2Machine:
             if inst is not None and self.state.q > 0:
                 if true_identity and inst == FALSE:
                     self._contract()
-                    return _InstrTerm(FALSE)
+                    return self._new_instr(FALSE)
                 if not true_identity and inst == TRUE:
                     self._contract()
-                    return _InstrTerm(TRUE)
+                    return self._new_instr(TRUE)
                 if (true_identity and inst == TRUE) or (
                     not true_identity and inst == FALSE
                 ):
@@ -399,9 +493,11 @@ class Red2Machine:
                     continue
             kept.append(reduced)
         if not kept:
-            return _InstrTerm(TRUE if true_identity else FALSE)
-        return _AppTerm(
-            _InstrTerm(Instruction(Opcode.PRIM_2, "AND" if true_identity else "OR")),
+            return self._new_instr(TRUE if true_identity else FALSE)
+        return self._new_app(
+            self._new_instr(
+                Instruction(Opcode.PRIM_2, "AND" if true_identity else "OR")
+            ),
             tuple(kept),
         )
 
@@ -414,8 +510,8 @@ class Red2Machine:
         head = self._reduce(args[0], env)
         tail = self._reduce(args[1], env)
         if not self._contract():
-            return _AppTerm(operator, (head, tail))
-        return _StructTerm("PAIR", (head, tail))
+            return self._new_app(operator, (head, tail))
+        return self._allocate_term(_StructTerm("PAIR", (head, tail)))
 
     def _reduce_accessor(
         self,
@@ -432,22 +528,22 @@ class Red2Machine:
             or value.tag != tag
             or field_index >= len(value.fields)
         ):
-            return _AppTerm(_native_unary_operator(name, operator), (value,))
+            return self._new_app(_native_unary_operator(name, operator), (value,))
         if not self._contract():
-            return _AppTerm(_native_unary_operator(name, operator), (value,))
+            return self._new_app(_native_unary_operator(name, operator), (value,))
         return self._reduce(value.fields[field_index], env)
 
     def _reduce_null(self, operator: _Term, arg: _Term, env: _Env) -> _Term:
         value = self._reduce(arg, env)
         if _is_nil_term(value):
             if self._contract():
-                return _InstrTerm(TRUE)
-            return _AppTerm(operator, (value,))
+                return self._new_instr(TRUE)
+            return self._new_app(operator, (value,))
         if _is_irreducible_term(value):
-            return _AppTerm(operator, (value,))
+            return self._new_app(operator, (value,))
         if self._contract():
-            return _InstrTerm(FALSE)
-        return _AppTerm(operator, (value,))
+            return self._new_instr(FALSE)
+        return self._new_app(operator, (value,))
 
     def _reduce_struct_application(
         self,
@@ -458,21 +554,22 @@ class Red2Machine:
         selector = self._reduce(args[0], env)
         lambda_term, lambda_env = _as_lambda(selector, env)
         if lambda_term is None or not self._contract():
-            return _AppTerm(operator, (selector, *args[1:]))
+            return self._new_app(operator, (selector, *args[1:]))
         bind_count = min(len(lambda_term.params), len(operator.fields))
         field_closures = tuple(
-            _ClosureTerm(field, env) for field in operator.fields[:bind_count]
+            self._allocate_term(_ClosureTerm(field, env))
+            for field in operator.fields[:bind_count]
         )
         reduced = self._reduce(lambda_term.body, (*field_closures, *lambda_env))
         if args[1:]:
-            return self._reduce(_AppTerm(reduced, args[1:]), env)
+            return self._reduce(self._new_app(reduced, args[1:]), env)
         return reduced
 
     def _reduce_letrec(self, letrec: _LetRecTerm, env: _Env) -> _Term:
         if not letrec.names:
             return self._reduce(letrec.body, env)
         recursive_entries = tuple(
-            _RecTerm(index, letrec.names, letrec.expressions, ())
+            self._allocate_term(_RecTerm(index, letrec.names, letrec.expressions, ()))
             for index in range(len(letrec.expressions))
         )
         recursive_env = (*recursive_entries, *env)
@@ -485,16 +582,23 @@ class Red2Machine:
             self._contract()
             return self._reduce(rec.expressions[rec.index], rec.env)
         placeholder_env: _Env = tuple(
-            _ClosureTerm(_VarTerm(index, name), ())
+            self._allocate_term(
+                _ClosureTerm(
+                    self._allocate_term(_VarTerm(index, name)),
+                    (),
+                )
+            )
             for index, name in enumerate(rec.names)
         )
-        return _LetRecTerm(
-            rec.names,
-            tuple(
-                self._reduce_no_contract(expr, placeholder_env)
-                for expr in rec.expressions
-            ),
-            _VarTerm(rec.index, rec.names[rec.index]),
+        return self._allocate_term(
+            _LetRecTerm(
+                rec.names,
+                tuple(
+                    self._reduce_no_contract(expr, placeholder_env)
+                    for expr in rec.expressions
+                ),
+                self._allocate_term(_VarTerm(rec.index, rec.names[rec.index])),
+            )
         )
 
     def _sync_memory(self) -> None:
@@ -807,6 +911,31 @@ def _parse_definitions(definitions: DefinitionImage | None) -> dict[str, _Term]:
         ).parse(image.entry)
         for name, image in definitions.programs.items()
     }
+
+
+def _term_count(term: _Term) -> int:
+    """Count modeled heap cells in a decoded RED2 term graph."""
+    if isinstance(term, _VarTerm | _InstrTerm):
+        return 1
+    if isinstance(term, _LambdaTerm):
+        return 1 + _term_count(term.body)
+    if isinstance(term, _AppTerm):
+        return (
+            1 + _term_count(term.operator) + sum(_term_count(arg) for arg in term.args)
+        )
+    if isinstance(term, _ClosureTerm):
+        return 1 + _term_count(term.term)
+    if isinstance(term, _StructTerm):
+        return 1 + sum(_term_count(field) for field in term.fields)
+    if isinstance(term, _LetRecTerm):
+        return (
+            1
+            + sum(_term_count(expr) for expr in term.expressions)
+            + _term_count(term.body)
+        )
+    if isinstance(term, _RecTerm):
+        return 1 + sum(_term_count(expr) for expr in term.expressions)
+    assert_never(term)
 
 
 def _first_drop_index(values: tuple[int, ...]) -> int | None:
