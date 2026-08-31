@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import sys
 import time
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
 
@@ -82,7 +82,6 @@ def run_io_source(
     final IO action value rendered as THOR source so the CLI can print
     diagnostics to stderr without consuming the simulated UART stream.
     """
-    sys.setrecursionlimit(max(sys.getrecursionlimit(), 20_000))
     program = normalize_program(parse_program(source))
     definitions, action = _prepare_io_program(program)
     runtime = _IoRuntime(
@@ -117,6 +116,24 @@ def _prepare_io_program(program: Program) -> tuple[dict[str, Expr], Expr]:
     return definitions, action
 
 
+@dataclass(frozen=True, slots=True)
+class _BindCont:
+    lambda_expr: Expr
+
+
+@dataclass(frozen=True, slots=True)
+class _ThenCont:
+    next_action: Expr
+
+
+@dataclass(frozen=True, slots=True)
+class _NextAction:
+    action: Expr
+
+
+type _Continuation = _BindCont | _ThenCont
+
+
 class _IoRuntime:
     def __init__(
         self,
@@ -139,40 +156,89 @@ class _IoRuntime:
         self._ticks = 0
 
     def run(self, action: Expr) -> Expr:
+        current = action
+        continuations: list[_Continuation] = []
+        while True:
+            step = self._run_current_action(current, continuations)
+            if isinstance(step, _NextAction):
+                current = step.action
+                continue
+            next_action = self._continue_after_result(step, continuations)
+            if next_action is None:
+                return step
+            current = next_action
+
+    def _run_current_action(
+        self,
+        action: Expr,
+        continuations: list[_Continuation],
+    ) -> Expr | _NextAction:
         action = self._resolve_action(action)
-        if isinstance(action, App):
-            return self._run_app(action)
+        if not isinstance(action, App):
+            msg = f"not an IO action: {to_source(action)}"
+            raise IoRuntimeError(msg)
+        if not action.items:
+            msg = f"not an IO action: {to_source(action)}"
+            raise IoRuntimeError(msg)
+
+        operator = action.items[0]
+        args = action.items[1:]
+        if isinstance(operator, Symbol):
+            next_action = self._next_symbol_action(operator.name, args, continuations)
+            if next_action is not None:
+                return next_action
+            return self._primitive_action_result(operator.name, args, action)
+
+        reduced_operator = self._pure(operator)
+        if isinstance(reduced_operator, Lambda):
+            return _NextAction(_apply_lambda(reduced_operator, args))
         msg = f"not an IO action: {to_source(action)}"
         raise IoRuntimeError(msg)
 
-    def _run_app(self, action: App) -> Expr:
-        if not action.items or not isinstance(action.items[0], Symbol):
-            msg = f"not an IO action: {to_source(action)}"
-            raise IoRuntimeError(msg)
-        name = action.items[0].name
-        args = action.items[1:]
+    def _next_symbol_action(
+        self,
+        name: str,
+        args: tuple[Expr, ...],
+        continuations: list[_Continuation],
+    ) -> _NextAction | None:
         if name == "IF" and len(args) == 3:
             condition = self._pure(args[0])
             if isinstance(condition, Symbol) and condition.name == "TRUE":
-                return self.run(args[1])
+                return _NextAction(args[1])
             if isinstance(condition, Symbol) and condition.name == "FALSE":
-                return self.run(args[2])
+                return _NextAction(args[2])
             msg = (
                 "IO IF condition did not reduce to TRUE or FALSE: "
                 f"{to_source(condition)}"
             )
             raise IoRuntimeError(msg)
+
         definition = self._definitions.get(name)
         if isinstance(definition, Lambda):
-            return self.run(_apply_lambda(definition, args))
+            return _NextAction(_apply_lambda(definition, args))
+        if definition is not None:
+            reduced_definition = self._pure(definition)
+            if isinstance(reduced_definition, Lambda):
+                return _NextAction(_apply_lambda(reduced_definition, args))
+            if not args:
+                return _NextAction(reduced_definition)
+
+        if name == "IO-BIND" and len(args) == 2:
+            continuations.append(_BindCont(args[1]))
+            return _NextAction(args[0])
+        if name == "IO-THEN" and len(args) == 2:
+            continuations.append(_ThenCont(args[1]))
+            return _NextAction(args[0])
+        return None
+
+    def _primitive_action_result(
+        self,
+        name: str,
+        args: tuple[Expr, ...],
+        action: App,
+    ) -> Expr:
         if name == "IO-RETURN" and len(args) == 1:
             return self._pure(args[0])
-        if name == "IO-BIND" and len(args) == 2:
-            value = self.run(args[0])
-            return self.run(_apply_unary_lambda(args[1], value))
-        if name == "IO-THEN" and len(args) == 2:
-            self.run(args[0])
-            return self.run(args[1])
         if name == "UART-TX" and len(args) == 1:
             byte = self._integer_arg(name, args[0])
             self._stdout.write(chr(byte % 256))
@@ -201,6 +267,20 @@ class _IoRuntime:
             return Integer(self._clock.now_ms())
         msg = f"unknown IO action: {to_source(action)}"
         raise IoRuntimeError(msg)
+
+    def _continue_after_result(
+        self,
+        result: Expr,
+        continuations: list[_Continuation],
+    ) -> Expr | None:
+        if not continuations:
+            return None
+        continuation = continuations.pop()
+        if isinstance(continuation, _BindCont):
+            return _apply_unary_lambda(continuation.lambda_expr, result)
+        if isinstance(continuation, _ThenCont):
+            return continuation.next_action
+        assert_never(continuation)
 
     def _resolve_action(self, action: Expr) -> Expr:
         if isinstance(action, Symbol):
@@ -264,6 +344,8 @@ def _apply_lambda(expr: Lambda, args: tuple[Expr, ...]) -> Expr:
 
 def _substitute(expr: Expr, name: str, value: Expr) -> Expr:
     if isinstance(expr, Symbol):
+        return value if expr.name == name else expr
+    if isinstance(expr, Var):
         return value if expr.name == name else expr
     if isinstance(expr, Lambda):
         if name in expr.params:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 from io import StringIO
 from pathlib import Path
@@ -29,6 +30,14 @@ class AdvancingClock:
     def now_ms(self) -> int:
         self.value += self.step
         return self.value
+
+
+def _timeout_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
 
 
 def run_io(
@@ -81,13 +90,23 @@ def test_clock_io_action_returns_integer_for_red2_model() -> None:
 
 
 def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
+    source = """
+    loop ==
+      (Y
+        (LAMBDA (self)
+          (LAMBDA ()
+            (IO-BIND (TICKS)
+              (LAMBDA (n)
+                (if (= n 250)
+                    (IO-RETURN 0)
+                    (IO-THEN (UART-TX 46) (self))))))))
+
+    (loop)
+    """
     previous_limit = sys.getrecursionlimit()
     sys.setrecursionlimit(80)
     try:
-        action = "(IO-RETURN 0)"
-        for _ in range(250):
-            action = f"(IO-THEN (UART-TX 46) {action})"
-        result, stdout, stderr = run_io(action, quantum=1000)
+        result, stdout, stderr = run_io(source, quantum=1000)
     finally:
         sys.setrecursionlimit(previous_limit)
 
@@ -97,27 +116,69 @@ def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
 
 
 def test_clock_dots_example_emits_dots_without_python_stack_growth() -> None:
-    source = Path("examples/clock-dots.thor").read_text()
-    stdout = StringIO()
-    stderr = StringIO()
-    previous_limit = sys.getrecursionlimit()
-    sys.setrecursionlimit(80)
-    try:
-        result = run_io_source(
-            source,
-            model="thor",
-            quantum=500,
-            stdin=StringIO(""),
-            stdout=stdout,
-            stderr=stderr,
-            clock=AdvancingClock(step=1000),
-        )
-    finally:
-        sys.setrecursionlimit(previous_limit)
+    script = """
+import sys
+import time
+from pathlib import Path
 
-    assert result == "NIL"
-    assert stdout.getvalue().startswith(".")
-    assert stderr.getvalue() == ""
+from thor_spec.io_runtime import run_io_source
+
+
+class AdvancingClock:
+    def __init__(self, *, start: int = 0, step: int = 1000) -> None:
+        self.value = start - step
+        self.step = step
+
+    def now_ms(self) -> int:
+        self.value += self.step
+        return self.value
+
+
+class BoundedStdout:
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.count = 0
+
+    def write(self, text: str) -> int:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        self.count += text.count(".")
+        if self.count >= self.limit:
+            time.sleep(60)
+        return len(text)
+
+    def flush(self) -> None:
+        sys.stdout.flush()
+
+
+sys.setrecursionlimit(80)
+run_io_source(
+    Path("examples/clock-dots.thor").read_text(),
+    model="thor",
+    quantum=500,
+    stdin=sys.stdin,
+    stdout=BoundedStdout(20),
+    stderr=sys.stderr,
+    clock=AdvancingClock(step=1000),
+)
+"""
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=2.0,
+        )
+        stdout = completed.stdout
+        stderr = completed.stderr
+    except subprocess.TimeoutExpired as timeout:
+        stdout = _timeout_text(timeout.stdout)
+        stderr = _timeout_text(timeout.stderr)
+
+    assert "." in stdout
+    assert "RecursionError" not in stderr
+    assert "Traceback" not in stderr
 
 
 def test_latest_file_clock_source_returns_latest_valid_value(tmp_path: Path) -> None:
