@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import pairwise
@@ -166,17 +166,18 @@ class Red2Machine:
             raise ValueError(msg)
         self._stack_bytes_used = 0
         self._heap_bytes_used = 0
-        self._initial_heap_charged = False
-        self._problem_memory = list(image.instructions)
+        self._problem_memory = image.instructions
+        self._allocate_heap_terms(len(self._problem_memory))
         self._stop_pc = self._find_stop(image)
-        self._source = _ProgramParser(self._problem_memory, image.metadata).parse(
-            image.entry,
-        )
-        self._definitions = _parse_definitions(definitions)
-        self._initial_heap_term_count = (
-            len(self._problem_memory)
-            + _term_count(self._source)
-            + sum(_term_count(term) for term in self._definitions.values())
+        self._source = _ProgramParser(
+            self._problem_memory,
+            image.metadata,
+            self._reserve_heap_term,
+        ).parse(image.entry)
+        self._definitions = _parse_definitions(
+            definitions,
+            reserve_instructions=self._allocate_heap_terms,
+            reserve_term=self._reserve_heap_term,
         )
         self._result: tuple[Instruction, ...] = ()
         self._result_term: _Term | None = None
@@ -199,13 +200,9 @@ class Red2Machine:
             return self.state
 
         if not self._executed:
-            if not self._initial_heap_charged:
-                self._allocate_heap_terms(self._initial_heap_term_count)
-                self._initial_heap_charged = True
             reduced = self._reduce(self._source, ())
             self._result_term = reduced
-            self._result = tuple(_ResultEmitter().emit(reduced))
-            self._allocate_heap_terms(len(self._result))
+            self._result = tuple(_ResultEmitter(self._reserve_heap_term).emit(reduced))
             self._executed = True
             self.state.direction = Direction.B
             self.state.pc = self._stop_pc
@@ -244,7 +241,7 @@ class Red2Machine:
         if self._result_term is None:
             self.run()
         assert self._result_term is not None
-        return _term_to_expr(self._result_term)
+        return _term_to_expr(self._result_term, self._reserve_heap_term)
 
     def _reduce(self, term: _Term, env: _Env) -> _Term:
         return self._drive(self._reduce_term(term, env))
@@ -303,10 +300,10 @@ class Red2Machine:
             if 0 <= term.index < len(env):
                 return (yield _ReductionRequest(env[term.index], ()))
             corrected = max(self.state.phi - term.index, 0)
-            return self._allocate_term(_VarTerm(corrected, term.name))
+            return self._new_var(corrected, term.name)
         if isinstance(term, _LambdaTerm):
             if env:
-                return self._allocate_term(_ClosureTerm(term, env))
+                return self._new_closure(term, env)
             return term
         if isinstance(term, _StructTerm):
             fields: list[_Term] = []
@@ -320,7 +317,7 @@ class Red2Machine:
                         )
                     )
                 )
-            return self._allocate_term(_StructTerm(term.tag, tuple(fields)))
+            return self._allocate_term(lambda: _StructTerm(term.tag, tuple(fields)))
         if isinstance(term, _LetRecTerm):
             return (yield from self._reduce_letrec(term, env))
         if isinstance(term, _InstrTerm):
@@ -348,15 +345,33 @@ class Red2Machine:
                 f"limit {self._resource_limits.heap_size_in_bytes} byte(s)"
             )
 
-    def _allocate_term[TermT](self, term: TermT) -> TermT:
+    def _reserve_heap_term(self) -> None:
         self._allocate_heap_terms(1)
-        return term
+
+    def _allocate_term[TermT](self, factory: Callable[[], TermT]) -> TermT:
+        self._reserve_heap_term()
+        return factory()
 
     def _new_app(self, operator: _Term, args: tuple[_Term, ...]) -> _AppTerm:
-        return self._allocate_term(_AppTerm(operator, args))
+        return self._allocate_term(lambda: _AppTerm(operator, args))
+
+    def _new_closure(self, term: _Term, env: _Env) -> _ClosureTerm:
+        return self._allocate_term(lambda: _ClosureTerm(term, env))
 
     def _new_instr(self, inst: Instruction) -> _InstrTerm:
-        return self._allocate_term(_InstrTerm(inst))
+        return self._allocate_term(lambda: _InstrTerm(inst))
+
+    def _new_rec(
+        self,
+        index: int,
+        names: tuple[str, ...],
+        expressions: tuple[_Term, ...],
+        env: _Env,
+    ) -> _RecTerm:
+        return self._allocate_term(lambda: _RecTerm(index, names, expressions, env))
+
+    def _new_var(self, index: int, name: str | None = None) -> _VarTerm:
+        return self._allocate_term(lambda: _VarTerm(index, name))
 
     def _contract(self) -> bool:
         if self.state.q <= 0:
@@ -392,12 +407,11 @@ class Red2Machine:
         if lambda_term is not None and term.args:
             bind_count = min(len(lambda_term.params), len(term.args), self.state.q)
             if bind_count == 0:
-                return self._allocate_term(_AppTerm(operator, term.args))
+                return self._allocate_term(lambda: _AppTerm(operator, term.args))
             for _ in range(bind_count):
                 self._contract()
             argument_closures = tuple(
-                self._allocate_term(_ClosureTerm(arg, env))
-                for arg in term.args[:bind_count]
+                self._new_closure(arg, env) for arg in term.args[:bind_count]
             )
             if bind_count == len(lambda_term.params):
                 reduced_body = yield _ReductionRequest(
@@ -407,12 +421,7 @@ class Red2Machine:
             else:
                 remaining_params = lambda_term.params[bind_count:]
                 placeholder_env = tuple(
-                    self._allocate_term(
-                        _ClosureTerm(
-                            self._allocate_term(_VarTerm(index, name)),
-                            (),
-                        )
-                    )
+                    self._new_closure(self._new_var(index, name), ())
                     for index, name in enumerate(remaining_params)
                 )
                 reduced = yield _ReductionRequest(
@@ -420,14 +429,14 @@ class Red2Machine:
                     (*argument_closures, *placeholder_env, *lambda_env),
                 )
                 reduced_body = self._allocate_term(
-                    _LambdaTerm(remaining_params, reduced)
+                    lambda: _LambdaTerm(remaining_params, reduced)
                 )
             remaining_args = term.args[bind_count:]
             if not remaining_args:
                 return reduced_body
             return (
                 yield _ReductionRequest(
-                    self._allocate_term(_AppTerm(reduced_body, remaining_args)),
+                    self._allocate_term(lambda: _AppTerm(reduced_body, remaining_args)),
                     env,
                 )
             )
@@ -618,7 +627,7 @@ class Red2Machine:
         tail = yield _ReductionRequest(args[1], env)
         if not self._contract():
             return self._new_app(operator, (head, tail))
-        return self._allocate_term(_StructTerm("PAIR", (head, tail)))
+        return self._allocate_term(lambda: _StructTerm("PAIR", (head, tail)))
 
     def _reduce_accessor(
         self,
@@ -630,14 +639,19 @@ class Red2Machine:
         env: _Env,
     ) -> _ReductionGenerator:
         value = yield _ReductionRequest(arg, env)
+        native_operator = (
+            operator
+            if isinstance(operator, _InstrTerm)
+            else self._new_instr(Instruction(Opcode.PRIM_1, name))
+        )
         if (
             not isinstance(value, _StructTerm)
             or value.tag != tag
             or field_index >= len(value.fields)
         ):
-            return self._new_app(_native_unary_operator(name, operator), (value,))
+            return self._new_app(native_operator, (value,))
         if not self._contract():
-            return self._new_app(_native_unary_operator(name, operator), (value,))
+            return self._new_app(native_operator, (value,))
         return (yield _ReductionRequest(value.fields[field_index], env))
 
     def _reduce_null(
@@ -669,8 +683,7 @@ class Red2Machine:
             return self._new_app(operator, (selector, *args[1:]))
         bind_count = min(len(lambda_term.params), len(operator.fields))
         field_closures = tuple(
-            self._allocate_term(_ClosureTerm(field, env))
-            for field in operator.fields[:bind_count]
+            self._new_closure(field, env) for field in operator.fields[:bind_count]
         )
         reduced = yield _ReductionRequest(
             lambda_term.body,
@@ -693,7 +706,7 @@ class Red2Machine:
         if not letrec.names:
             return (yield _ReductionRequest(letrec.body, env))
         recursive_entries = tuple(
-            self._allocate_term(_RecTerm(index, letrec.names, letrec.expressions, ()))
+            self._new_rec(index, letrec.names, letrec.expressions, ())
             for index in range(len(letrec.expressions))
         )
         recursive_env = (*recursive_entries, *env)
@@ -711,12 +724,7 @@ class Red2Machine:
                 )
             )
         placeholder_env: _Env = tuple(
-            self._allocate_term(
-                _ClosureTerm(
-                    self._allocate_term(_VarTerm(index, name)),
-                    (),
-                )
-            )
+            self._new_closure(self._new_var(index, name), ())
             for index, name in enumerate(rec.names)
         )
         expressions: list[_Term] = []
@@ -731,10 +739,10 @@ class Red2Machine:
                 )
             )
         return self._allocate_term(
-            _LetRecTerm(
+            lambda: _LetRecTerm(
                 rec.names,
                 tuple(expressions),
-                self._allocate_term(_VarTerm(rec.index, rec.names[rec.index])),
+                self._new_var(rec.index, rec.names[rec.index]),
             )
         )
 
@@ -749,36 +757,88 @@ class Red2Machine:
         return max(len(image.instructions) - 1, 0)
 
 
+type _ParseResult = tuple[_Term, int, bool]
+
+
+@dataclass(frozen=True, slots=True)
+class _ParseTermRequest:
+    pc: int
+
+
+@dataclass(frozen=True, slots=True)
+class _ParseAppPartsRequest:
+    app_insts: tuple[Instruction, ...]
+    operator_pc: int
+
+
+type _ParseRequest = _ParseTermRequest | _ParseAppPartsRequest
+type _ParseGenerator = Generator[_ParseRequest, _ParseResult, _ParseResult]
+
+
 class _ProgramParser:
     def __init__(
         self,
-        memory: list[Instruction],
+        memory: Sequence[Instruction],
         metadata: object | None = None,
+        reserve_term: Callable[[], None] | None = None,
     ) -> None:
         self._memory = memory
         self._metadata = metadata if isinstance(metadata, dict) else {}
+        self._reserve_term = reserve_term or (lambda: None)
 
     def parse(self, pc: int) -> _Term:
-        term, _next_pc, _head = self._parse_with_span(pc)
+        term, _next_pc, _head = self._drive(self._parse_with_span(pc))
         return term
 
-    def _parse_with_span(self, pc: int) -> tuple[_Term, int, bool]:
+    def _drive(self, initial: _ParseGenerator) -> _ParseResult:
+        stack = [initial]
+        result: _ParseResult | None = None
+        has_result = False
+        while stack:
+            generator = stack[-1]
+            try:
+                if has_result:
+                    assert result is not None
+                    request = generator.send(result)
+                else:
+                    request = next(generator)
+            except StopIteration as stopped:
+                result = stopped.value
+                stack.pop()
+                has_result = True
+                continue
+            if isinstance(request, _ParseTermRequest):
+                child = self._parse_with_span(request.pc)
+            else:
+                child = self._parse_app_from_parts(
+                    request.app_insts,
+                    request.operator_pc,
+                )
+            stack.append(child)
+            has_result = False
+        assert result is not None
+        return result
+
+    def _make[TermT](self, factory: Callable[[], TermT]) -> TermT:
+        self._reserve_term()
+        return factory()
+
+    def _parse_with_span(self, pc: int) -> _ParseGenerator:
         inst = self._memory[pc]
         if inst.opcode is Opcode.APP:
-            return self._parse_app(pc)
+            return (yield from self._parse_app(pc))
         if inst.opcode is Opcode.LAMBDA:
-            return self._parse_lambda(pc)
-        if inst.opcode is Opcode.VAR:
-            return _VarTerm(_int_data(inst)), pc + 1, inst.head
-        if inst.opcode is Opcode.UBV:
-            return _VarTerm(_int_data(inst)), pc + 1, inst.head
+            return (yield from self._parse_lambda(pc))
+        if inst.opcode in {Opcode.VAR, Opcode.UBV}:
+            term = self._make(lambda: _VarTerm(_int_data(inst)))
+            return term, pc + 1, inst.head
         if inst.opcode is Opcode.STRUCT:
-            return self._parse_struct(pc)
+            return (yield from self._parse_struct(pc))
         if inst.opcode is Opcode.RBLOCK:
-            return self._parse_letrec(pc)
-        return _InstrTerm(inst), pc + 1, inst.head
+            return (yield from self._parse_letrec(pc))
+        return self._make(lambda: _InstrTerm(inst)), pc + 1, inst.head
 
-    def _parse_app(self, pc: int) -> tuple[_Term, int, bool]:
+    def _parse_app(self, pc: int) -> _ParseGenerator:
         app_insts: list[Instruction] = []
         operator_pc = pc
         while (
@@ -787,23 +847,22 @@ class _ProgramParser:
         ):
             app_insts.append(self._memory[operator_pc])
             operator_pc += 1
-        return self._parse_app_from_parts(tuple(app_insts), operator_pc)
+        return (yield _ParseAppPartsRequest(tuple(app_insts), operator_pc))
 
     def _parse_app_from_parts(
         self,
         app_insts: tuple[Instruction, ...],
         operator_pc: int,
-    ) -> tuple[_Term, int, bool]:
+    ) -> _ParseGenerator:
         drop_index = _first_drop_index(tuple(_int_data(inst) for inst in app_insts))
         if drop_index is not None:
-            inner, inner_next, inner_head = self._parse_app_from_parts(
+            inner, inner_next, inner_head = yield _ParseAppPartsRequest(
                 app_insts[drop_index:],
                 operator_pc,
             )
-            outer_args_with_spans = tuple(
-                self._parse_with_span(_int_data(inst))
-                for inst in app_insts[:drop_index]
-            )
+            outer_args_with_spans: list[_ParseResult] = []
+            for inst in app_insts[:drop_index]:
+                outer_args_with_spans.append((yield _ParseTermRequest(_int_data(inst))))
             outer_args = tuple(term for term, _next_pc, _head in outer_args_with_spans)
             next_pc = max(
                 (
@@ -812,24 +871,25 @@ class _ProgramParser:
                 ),
                 default=inner_next,
             )
-            return _AppTerm(inner, outer_args), next_pc, inner_head
+            term = self._make(lambda: _AppTerm(inner, outer_args))
+            return term, next_pc, inner_head
 
-        operator, operator_next, operator_head = self._parse_with_span(operator_pc)
-        args_with_spans = tuple(
-            self._parse_with_span(_int_data(inst)) for inst in app_insts
-        )
+        operator, operator_next, operator_head = yield _ParseTermRequest(operator_pc)
+        args_with_spans: list[_ParseResult] = []
+        for inst in app_insts:
+            args_with_spans.append((yield _ParseTermRequest(_int_data(inst))))
         args = tuple(term for term, _next_pc, _head in args_with_spans)
         next_pc = max(
             (operator_next, *(next_pc for _term, next_pc, _head in args_with_spans)),
             default=operator_next,
         )
-        return _AppTerm(operator, args), next_pc, operator_head
+        term = self._make(lambda: _AppTerm(operator, args))
+        return term, next_pc, operator_head
 
-    def _parse_lambda(self, pc: int) -> tuple[_Term, int, bool]:
+    def _parse_lambda(self, pc: int) -> _ParseGenerator:
         params: list[str] = []
         body_pc = pc
-        arity_metadata = self._metadata.get(f"lambda:{pc}:arity")
-        arity = _lambda_arity(arity_metadata)
+        arity = _lambda_arity(self._metadata.get(f"lambda:{pc}:arity"))
         while (
             body_pc < len(self._memory)
             and self._memory[body_pc].opcode is Opcode.LAMBDA
@@ -838,10 +898,11 @@ class _ProgramParser:
             data = self._memory[body_pc].data
             params.append(data if isinstance(data, str) else str(data))
             body_pc += 1
-        body, next_pc, body_head = self._parse_flat_body(body_pc)
-        return _LambdaTerm(tuple(params), body), next_pc, body_head
+        body, next_pc, body_head = yield from self._parse_flat_body(body_pc)
+        term = self._make(lambda: _LambdaTerm(tuple(params), body))
+        return term, next_pc, body_head
 
-    def _parse_flat_body(self, pc: int) -> tuple[_Term, int, bool]:
+    def _parse_flat_body(self, pc: int) -> _ParseGenerator:
         items: list[_Term] = []
         cursor = pc
         root_head = False
@@ -849,24 +910,26 @@ class _ProgramParser:
             cursor < len(self._memory)
             and self._memory[cursor].opcode is not Opcode.STOP
         ):
-            term, cursor, root_head = self._parse_with_span(cursor)
+            term, cursor, root_head = yield _ParseTermRequest(cursor)
             items.append(term)
             if root_head:
                 break
         if not items:
-            return _InstrTerm(Instruction(Opcode.STOP, 0)), cursor, root_head
+            term = self._make(lambda: _InstrTerm(Instruction(Opcode.STOP, 0)))
+            return term, cursor, root_head
         if len(items) == 1:
             return items[0], cursor, root_head
-        return _AppTerm(items[0], tuple(items[1:])), cursor, root_head
+        term = self._make(lambda: _AppTerm(items[0], tuple(items[1:])))
+        return term, cursor, root_head
 
-    def _parse_struct(self, pc: int) -> tuple[_Term, int, bool]:
+    def _parse_struct(self, pc: int) -> _ParseGenerator:
         inst = self._memory[pc]
         tag = inst.data if isinstance(inst.data, str) else str(inst.data)
-        field_terms_with_spans: list[tuple[_Term, int, bool]] = []
+        field_terms_with_spans: list[_ParseResult] = []
         cursor = pc + 1
         while cursor < len(self._memory) and self._memory[cursor].opcode is Opcode.APP:
             field_terms_with_spans.append(
-                self._parse_with_span(_int_data(self._memory[cursor]))
+                (yield _ParseTermRequest(_int_data(self._memory[cursor])))
             )
             cursor += 1
         root_head = False
@@ -877,10 +940,13 @@ class _ProgramParser:
             (cursor, *(next_pc for _term, next_pc, _head in field_terms_with_spans)),
             default=cursor,
         )
-        field_terms = tuple(term for term, _next_pc, _head in field_terms_with_spans)
-        return _StructTerm(tag, tuple(reversed(field_terms))), next_pc, root_head
+        fields = tuple(
+            term for term, _next_pc, _head in reversed(field_terms_with_spans)
+        )
+        term = self._make(lambda: _StructTerm(tag, fields))
+        return term, next_pc, root_head
 
-    def _parse_letrec(self, pc: int) -> tuple[_Term, int, bool]:
+    def _parse_letrec(self, pc: int) -> _ParseGenerator:
         blocks: list[Instruction] = []
         cursor = pc
         while (
@@ -890,14 +956,14 @@ class _ProgramParser:
             cursor += 1
         if cursor >= len(self._memory) or self._memory[cursor].opcode is not Opcode.RUP:
             inst = self._memory[pc]
-            return _InstrTerm(inst), pc + 1, inst.head
+            return self._make(lambda: _InstrTerm(inst)), pc + 1, inst.head
         names = self._metadata.get(f"letrec:{pc}:names")
         if not isinstance(names, tuple) or len(names) != len(blocks):
             names = tuple(_fallback_name(index) for index in range(len(blocks)))
-        expressions_with_spans = tuple(
-            self._parse_with_span(_int_data(block)) for block in blocks
-        )
-        body, body_next, body_head = self._parse_with_span(cursor + 1)
+        expressions_with_spans: list[_ParseResult] = []
+        for block in blocks:
+            expressions_with_spans.append((yield _ParseTermRequest(_int_data(block))))
+        body, body_next, body_head = yield _ParseTermRequest(cursor + 1)
         next_pc = max(
             (
                 body_next,
@@ -906,123 +972,206 @@ class _ProgramParser:
             default=body_next,
         )
         expressions = tuple(term for term, _next_pc, _head in expressions_with_spans)
-        return _LetRecTerm(names, expressions, body), next_pc, body_head
+        term = self._make(lambda: _LetRecTerm(names, expressions, body))
+        return term, next_pc, body_head
+
+
+@dataclass(frozen=True, slots=True)
+class _InstructionSpec:
+    opcode: Opcode
+    data: int | str | float | None
+    head: bool
+
+
+type _EmitWork = tuple[_Term, bool, bool] | _InstructionSpec
 
 
 class _ResultEmitter:
+    def __init__(self, reserve_instruction: Callable[[], None]) -> None:
+        self._reserve_instruction = reserve_instruction
+
     def emit(self, term: _Term) -> list[Instruction]:
         out: list[Instruction] = []
-        self._emit(term, out, head=True, omit_lambda_body=False)
+        work: list[_EmitWork] = [(term, True, False)]
+        while work:
+            item = work.pop()
+            if isinstance(item, _InstructionSpec):
+                self._reserve_instruction()
+                out.append(Instruction(item.opcode, item.data, item.head))
+                continue
+            current, head, omit_lambda_body = item
+            if isinstance(current, _ClosureTerm):
+                work.append((current.term, head, omit_lambda_body))
+                continue
+            if isinstance(current, _RecTerm):
+                work.append(
+                    _InstructionSpec(
+                        Opcode.VAR,
+                        current.names[current.index],
+                        head,
+                    )
+                )
+                pairs = tuple(zip(current.names, current.expressions, strict=True))
+                for name, child_term in reversed(pairs):
+                    work.append((child_term, False, False))
+                    work.append(_InstructionSpec(Opcode.RBLOCK, name, False))
+                work.append(_InstructionSpec(Opcode.RUP, len(current.names), False))
+                continue
+            if isinstance(current, _VarTerm):
+                work.append(
+                    _InstructionSpec(
+                        Opcode.VAR,
+                        current.name if current.name is not None else current.index,
+                        head,
+                    )
+                )
+                continue
+            if isinstance(current, _InstrTerm):
+                work.append(
+                    _InstructionSpec(current.inst.opcode, current.inst.data, head)
+                )
+                continue
+            if isinstance(current, _StructTerm):
+                last_index = len(current.fields) - 1
+                for index in range(last_index, -1, -1):
+                    work.append(
+                        (
+                            current.fields[index],
+                            head if index == last_index else False,
+                            False,
+                        )
+                    )
+                work.append(_InstructionSpec(Opcode.STRUCT, current.tag, False))
+                continue
+            if isinstance(current, _LetRecTerm):
+                work.append((current.body, head, False))
+                pairs = tuple(zip(current.names, current.expressions, strict=True))
+                for name, child_term in reversed(pairs):
+                    work.append((child_term, False, False))
+                    work.append(_InstructionSpec(Opcode.RBLOCK, name, False))
+                work.append(_InstructionSpec(Opcode.RUP, len(current.names), False))
+                continue
+            if isinstance(current, _LambdaTerm):
+                if not omit_lambda_body:
+                    work.append((current.body, head, False))
+                for param in reversed(current.params):
+                    work.append(_InstructionSpec(Opcode.LAMBDA, param, False))
+                continue
+            if isinstance(current, _AppTerm):
+                last_index = len(current.args) - 1
+                for index in range(last_index, -1, -1):
+                    work.append(
+                        (
+                            current.args[index],
+                            head if index == last_index else False,
+                            False,
+                        )
+                    )
+                work.append((current.operator, False, True))
+                for _arg in current.args:
+                    work.append(_InstructionSpec(Opcode.APP, len(current.args), False))
+                continue
+            assert_never(current)
         return out
 
-    def _emit(
-        self,
-        term: _Term,
-        out: list[Instruction],
-        *,
-        head: bool,
-        omit_lambda_body: bool,
-    ) -> None:
-        if isinstance(term, _ClosureTerm):
-            self._emit(term.term, out, head=head, omit_lambda_body=omit_lambda_body)
-            return
-        if isinstance(term, _RecTerm):
-            self._emit(
-                _LetRecTerm(term.names, term.expressions, _VarTerm(term.index)),
-                out,
-                head=head,
-                omit_lambda_body=omit_lambda_body,
-            )
-            return
-        if isinstance(term, _VarTerm):
-            out.append(
-                Instruction(
-                    Opcode.VAR,
-                    term.name if term.name is not None else term.index,
-                    head=head,
-                )
-            )
-            return
-        if isinstance(term, _InstrTerm):
-            out.append(Instruction(term.inst.opcode, term.inst.data, head=head))
-            return
-        if isinstance(term, _StructTerm):
-            out.append(Instruction(Opcode.STRUCT, term.tag, head=False))
-            for index, field in enumerate(term.fields):
-                self._emit(
-                    field,
-                    out,
-                    head=head if index == len(term.fields) - 1 else False,
-                    omit_lambda_body=False,
-                )
-            return
-        if isinstance(term, _LetRecTerm):
-            out.append(Instruction(Opcode.RUP, len(term.names), head=False))
-            for name, expr in zip(term.names, term.expressions, strict=True):
-                out.append(Instruction(Opcode.RBLOCK, name, head=False))
-                self._emit(expr, out, head=False, omit_lambda_body=False)
-            self._emit(term.body, out, head=head, omit_lambda_body=False)
-            return
-        if isinstance(term, _LambdaTerm):
-            for param in term.params:
-                out.append(Instruction(Opcode.LAMBDA, param, head=False))
-            if not omit_lambda_body:
-                self._emit(term.body, out, head=head, omit_lambda_body=False)
-            return
-        if isinstance(term, _AppTerm):
-            for _arg in term.args:
-                out.append(Instruction(Opcode.APP, len(term.args), head=False))
-            self._emit(term.operator, out, head=False, omit_lambda_body=True)
-            last_index = len(term.args) - 1
-            for index, arg in enumerate(term.args):
-                self._emit(
-                    arg,
-                    out,
-                    head=head if index == last_index else False,
-                    omit_lambda_body=False,
-                )
-            return
-        assert_never(term)
 
+def _term_to_expr(
+    term: _Term,
+    reserve_expr: Callable[[], None] | None = None,
+) -> Expr:
+    reserve = reserve_expr or (lambda: None)
+    work: list[tuple[_Term, bool]] = [(term, False)]
+    results: list[Expr] = []
+    while work:
+        current, visited = work.pop()
+        if isinstance(current, _ClosureTerm):
+            work.append((current.term, False))
+            continue
+        if not visited:
+            if isinstance(current, _VarTerm):
+                reserve()
+                results.append(Var(current.index, current.name))
+                continue
+            if isinstance(current, _InstrTerm):
+                reserve()
+                results.append(
+                    instruction_to_expr(current.inst)
+                    or Symbol(current.inst.opcode.name)
+                )
+                continue
+            work.append((current, True))
+            if isinstance(current, _RecTerm):
+                for child_term in reversed(current.expressions):
+                    work.append((child_term, False))
+            elif isinstance(current, _LambdaTerm):
+                work.append((current.body, False))
+            elif isinstance(current, _AppTerm):
+                for arg in reversed(current.args):
+                    work.append((arg, False))
+                work.append((current.operator, False))
+            elif isinstance(current, _StructTerm):
+                for field in reversed(current.fields):
+                    work.append((field, False))
+            elif isinstance(current, _LetRecTerm):
+                work.append((current.body, False))
+                for child_term in reversed(current.expressions):
+                    work.append((child_term, False))
+            else:
+                assert_never(current)
+            continue
 
-def _term_to_expr(term: _Term) -> Expr:
-    if isinstance(term, _ClosureTerm):
-        return _term_to_expr(term.term)
-    if isinstance(term, _RecTerm):
-        return LetRec(
-            tuple(
-                Binding(name, _term_to_expr(expr))
-                for name, expr in zip(term.names, term.expressions, strict=True)
-            ),
-            Var(term.index, term.names[term.index]),
-        )
-    if isinstance(term, _VarTerm):
-        return Var(term.index, term.name)
-    if isinstance(term, _LambdaTerm):
-        return Lambda(term.params, _term_to_expr(term.body))
-    if isinstance(term, _AppTerm):
-        return App(
-            (
-                _term_to_expr(term.operator),
-                *tuple(_term_to_expr(arg) for arg in term.args),
-            )
-        )
-    if isinstance(term, _StructTerm):
-        return StructLit(term.tag, tuple(_term_to_expr(field) for field in term.fields))
-    if isinstance(term, _LetRecTerm):
-        return LetRec(
-            tuple(
-                Binding(name, _term_to_expr(expr))
-                for name, expr in zip(term.names, term.expressions, strict=True)
-            ),
-            _term_to_expr(term.body),
-        )
-    if isinstance(term, _InstrTerm):
-        expr = instruction_to_expr(term.inst)
-        if expr is not None:
-            return expr
-        return Symbol(term.inst.opcode.name)
-    assert_never(term)
+        reserve()
+        if isinstance(current, _VarTerm | _InstrTerm):
+            msg = "terminal RED2 term reached materialization continuation"
+            raise AssertionError(msg)
+        if isinstance(current, _RecTerm):
+            count = len(current.expressions)
+            rec_expressions = tuple(results[-count:]) if count else ()
+            if count:
+                del results[-count:]
+            reserve()
+            rec_body = Var(current.index, current.names[current.index])
+            bindings_list: list[Binding] = []
+            for name, expression_value in zip(
+                current.names,
+                rec_expressions,
+                strict=True,
+            ):
+                reserve()
+                bindings_list.append(Binding(name, expression_value))
+            results.append(LetRec(tuple(bindings_list), rec_body))
+        elif isinstance(current, _LambdaTerm):
+            results.append(Lambda(current.params, results.pop()))
+        elif isinstance(current, _AppTerm):
+            count = len(current.args) + 1
+            items = tuple(results[-count:])
+            del results[-count:]
+            results.append(App(items))
+        elif isinstance(current, _StructTerm):
+            count = len(current.fields)
+            fields = tuple(results[-count:]) if count else ()
+            if count:
+                del results[-count:]
+            results.append(StructLit(current.tag, fields))
+        elif isinstance(current, _LetRecTerm):
+            count = len(current.expressions)
+            letrec_values = results[-(count + 1) :]
+            del results[-(count + 1) :]
+            letrec_expressions = letrec_values[:count]
+            letrec_body = letrec_values[count]
+            bindings_list = []
+            for name, expression_value in zip(
+                current.names,
+                letrec_expressions,
+                strict=True,
+            ):
+                reserve()
+                bindings_list.append(Binding(name, expression_value))
+            results.append(LetRec(tuple(bindings_list), letrec_body))
+        else:
+            assert_never(current)
+    assert len(results) == 1
+    return results[0]
 
 
 def _lambda_arity(metadata: object) -> int | None:
@@ -1038,41 +1187,49 @@ def _lambda_arity(metadata: object) -> int | None:
     return None
 
 
-def _parse_definitions(definitions: DefinitionImage | None) -> dict[str, _Term]:
+def _parse_definitions(
+    definitions: DefinitionImage | None,
+    *,
+    reserve_instructions: Callable[[int], None],
+    reserve_term: Callable[[], None],
+) -> dict[str, _Term]:
     if definitions is None:
         return {}
-    return {
-        name: _ProgramParser(
-            list(image.instructions),
+    parsed: dict[str, _Term] = {}
+    for name, image in definitions.programs.items():
+        reserve_instructions(len(image.instructions))
+        parsed[name] = _ProgramParser(
+            image.instructions,
             image.metadata,
+            reserve_term,
         ).parse(image.entry)
-        for name, image in definitions.programs.items()
-    }
+    return parsed
 
 
 def _term_count(term: _Term) -> int:
-    """Count modeled heap cells in a decoded RED2 term graph."""
-    if isinstance(term, _VarTerm | _InstrTerm):
-        return 1
-    if isinstance(term, _LambdaTerm):
-        return 1 + _term_count(term.body)
-    if isinstance(term, _AppTerm):
-        return (
-            1 + _term_count(term.operator) + sum(_term_count(arg) for arg in term.args)
-        )
-    if isinstance(term, _ClosureTerm):
-        return 1 + _term_count(term.term)
-    if isinstance(term, _StructTerm):
-        return 1 + sum(_term_count(field) for field in term.fields)
-    if isinstance(term, _LetRecTerm):
-        return (
-            1
-            + sum(_term_count(expr) for expr in term.expressions)
-            + _term_count(term.body)
-        )
-    if isinstance(term, _RecTerm):
-        return 1 + sum(_term_count(expr) for expr in term.expressions)
-    assert_never(term)
+    """Count modeled heap cells in a decoded RED2 term graph iteratively."""
+    count = 0
+    work = [term]
+    while work:
+        current = work.pop()
+        count += 1
+        if isinstance(current, _ClosureTerm):
+            work.append(current.term)
+        elif isinstance(current, _LambdaTerm):
+            work.append(current.body)
+        elif isinstance(current, _AppTerm):
+            work.extend(reversed(current.args))
+            work.append(current.operator)
+        elif isinstance(current, _StructTerm):
+            work.extend(reversed(current.fields))
+        elif isinstance(current, _LetRecTerm):
+            work.append(current.body)
+            work.extend(reversed(current.expressions))
+        elif isinstance(current, _RecTerm):
+            work.extend(reversed(current.expressions))
+        elif not isinstance(current, _VarTerm | _InstrTerm):
+            assert_never(current)
+    return count
 
 
 def _first_drop_index(values: tuple[int, ...]) -> int | None:
@@ -1102,12 +1259,6 @@ def _term_instruction(term: _Term) -> Instruction | None:
     if isinstance(term, _StructTerm):
         return Instruction(Opcode.STRUCT, term.tag, head=True)
     return None
-
-
-def _native_unary_operator(name: str, operator: _Term) -> _Term:
-    if isinstance(operator, _InstrTerm):
-        return operator
-    return _InstrTerm(Instruction(Opcode.PRIM_1, name))
 
 
 def _is_nil_term(term: _Term) -> bool:

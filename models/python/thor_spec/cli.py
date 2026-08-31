@@ -231,13 +231,13 @@ def _run_model_command(model_value: ModelName, argv: list[str]) -> int:
     )
     _add_resource_limit_args(parser)
     args = parser.parse_args(argv)
+    rejected = _reject_resource_limits_for_non_red2(args, model_value)
+    if rejected is not None:
+        return rejected
     if args.expr is None and args.file is None:
         parser.error("one of --expr or file is required")
     if args.expr is not None and args.file is not None:
         parser.error("--expr and file are mutually exclusive")
-    rejected = _reject_resource_limits_for_non_red2(args, model_value)
-    if rejected is not None:
-        return rejected
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
         clock = LatestFileClockSource(args.clock) if args.clock is not None else None

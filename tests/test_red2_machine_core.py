@@ -2,6 +2,7 @@ import sys
 
 import pytest
 
+from thor_spec.ast import Integer, StructLit, Symbol
 from thor_spec.parser import parse_expr
 from thor_spec.pretty import to_source
 from thor_spec.red2.compiler import compile_expr
@@ -77,19 +78,72 @@ def test_deep_default_red2_recursion_raises_machine_stack_overflow() -> None:
         sys.setrecursionlimit(previous_limit)
 
 
-def test_red2_heap_limit_raises_deterministic_error() -> None:
+def test_red2_heap_limit_raises_before_copying_or_parsing_image() -> None:
     source = "[1 2 3 4 5 6 7 8 9 10]"
+    image = compile_expr(parse_expr(source))
+
+    with pytest.raises(Red2HeapExhaustedError, match="RED2 heap exhausted"):
+        Red2Machine(
+            image,
+            quantum=100,
+            resource_limits=Red2ResourceLimits(
+                stack_size_in_bytes=1_000_000,
+                heap_size_in_bytes=1,
+            ),
+        )
+
+
+def test_red2_result_emission_respects_heap_limit_incrementally() -> None:
     m = Red2Machine(
-        compile_expr(parse_expr(source)),
-        quantum=100,
+        compile_expr(parse_expr("42")),
+        quantum=10,
         resource_limits=Red2ResourceLimits(
             stack_size_in_bytes=1_000_000,
-            heap_size_in_bytes=1,
+            heap_size_in_bytes=192,
         ),
     )
 
     with pytest.raises(Red2HeapExhaustedError, match="RED2 heap exhausted"):
         m.run()
+
+
+def test_red2_result_expression_respects_heap_limit_incrementally() -> None:
+    m = Red2Machine(
+        compile_expr(parse_expr("42")),
+        quantum=10,
+        resource_limits=Red2ResourceLimits(
+            stack_size_in_bytes=1_000_000,
+            heap_size_in_bytes=256,
+        ),
+    )
+    m.run()
+
+    with pytest.raises(Red2HeapExhaustedError, match="RED2 heap exhausted"):
+        m.result_expr()
+
+
+def test_deep_finite_result_materialization_does_not_use_python_stack() -> None:
+    depth = 250
+    source = "NIL"
+    for _ in range(depth):
+        source = f"(CONS 1 {source})"
+    image = compile_expr(parse_expr(source))
+
+    previous_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(80)
+    try:
+        m = Red2Machine(image, quantum=depth + 10)
+        m.run()
+        value = m.result_expr()
+    finally:
+        sys.setrecursionlimit(previous_limit)
+
+    for _ in range(depth):
+        assert isinstance(value, StructLit)
+        assert value.tag == "PAIR"
+        assert value.fields[0] == Integer(1)
+        value = value.fields[1]
+    assert value == Symbol("NIL")
 
 
 def test_red2_configured_resource_limits_allow_success() -> None:

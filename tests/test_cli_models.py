@@ -233,6 +233,16 @@ def test_cli_red2_subcommand_accepts_resource_limits(
     assert captured.err == ""
 
 
+def test_cli_thor_subcommand_rejects_explicit_resource_limits_without_source(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert main(["thor", "--stack-size-in-bytes", "1"]) == 2
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
 def test_cli_thor_subcommand_rejects_explicit_resource_limits(
     capsys: CaptureFixture[str],
 ) -> None:
