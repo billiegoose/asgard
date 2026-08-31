@@ -29,12 +29,10 @@ class ReductionResult:
     steps: int
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class Closure:
     expr: Expr
     store: RedexStore
-    memoize: bool = False
-    reduced: Expr | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,7 +95,6 @@ class _Reducer:
         self.definitions = definitions
         self._remaining = max(quantum, 0)
         self._no_contract_depth = 0
-        self._y_lambdas: dict[int, Lambda] = {}
         self.steps = 0
 
     @property
@@ -154,10 +151,6 @@ class _Reducer:
         assert result is not None
         return result
 
-    def mark_y_result(self, expr: Expr) -> None:
-        if isinstance(expr, Lambda):
-            self._y_lambdas[id(expr)] = expr
-
     def contract(self) -> None:
         if self._remaining <= 0:
             msg = "cannot contract after quantum expiry"
@@ -172,12 +165,7 @@ class _Reducer:
         phi: int,
     ) -> _ReductionGenerator:
         if isinstance(value, Closure):
-            if value.reduced is not None:
-                return value.reduced
-            reduced = yield ReductionRequest(value.expr, value.store, phi)
-            if value.memoize and self._no_contract_depth == 0:
-                value.reduced = reduced
-            return reduced
+            return (yield ReductionRequest(value.expr, value.store, phi))
         if isinstance(value, UBV):
             return Var(phi - value.index, value.name)
         if isinstance(value, Var):
@@ -267,10 +255,8 @@ class _Reducer:
         bind_count = min(len(operator.params), len(arguments), self.remaining)
         for _ in range(bind_count):
             self.contract()
-        memoize = id(operator) in self._y_lambdas
         closures = tuple(
-            Closure(argument, store, memoize=memoize)
-            for argument in arguments[:bind_count]
+            Closure(argument, store) for argument in arguments[:bind_count]
         )
         remaining_params = operator.params[bind_count:]
         if not remaining_params:

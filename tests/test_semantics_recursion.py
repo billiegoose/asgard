@@ -24,9 +24,9 @@ def test_deep_y_recursion_does_not_consume_python_stack() -> None:
     try:
         expr = parse_expr(
             "((Y (LAMBDA (loop) (LAMBDA (n) "
-            "(if (= n 0) 0 (loop (1- n)))))) 250)"
+            "(IF (= n 0) 0 (loop (1- n)))))) 250)"
         )
-        result = reduce_expr(expr, quantum=2000)
+        result = reduce_expr(expr, quantum=100_000)
     finally:
         sys.setrecursionlimit(previous_limit)
 

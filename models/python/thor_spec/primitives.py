@@ -37,8 +37,6 @@ class ReducerProtocol(Protocol):
 
     def contract(self) -> None: ...
 
-    def mark_y_result(self, expr: Expr) -> None: ...
-
 
 @dataclass(frozen=True, slots=True)
 class EvalState:
@@ -116,7 +114,7 @@ def try_reduce_primitive(app: App, state: EvalState) -> PrimitiveReducer | None:
     """Return a continuation-friendly primitive reducer when ``app`` is known."""
     if not app.items or not isinstance(app.items[0], Symbol):
         return None
-    name = app.items[0].name.upper()
+    name = app.items[0].name
     args = app.items[1:]
     if name == "IF":
         return _reduce_if(args, state)
@@ -171,9 +169,7 @@ def _reduce_y(args: tuple[Expr, ...], state: EvalState) -> PrimitiveReducer:
     arg = args[0]
     state.reducer.contract()
     recursive_app = App((arg, App((Symbol("Y"), arg))))
-    result = yield ReductionRequest(recursive_app, state.store, state.phi)
-    state.reducer.mark_y_result(result)
-    return result
+    return (yield ReductionRequest(recursive_app, state.store, state.phi))
 
 
 def _reduce_logical(
