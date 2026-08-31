@@ -30,7 +30,7 @@ from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
 from thor_spec.primitives import install_struct_definition
 from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine
+from thor_spec.red2.machine import Red2Machine, Red2ResourceLimits
 from thor_spec.red2.primitives import register_struct_accessors
 from thor_spec.semantics import reduce_expr
 
@@ -75,6 +75,7 @@ def run_io_source(
     stdout: TextIO,
     stderr: TextIO,
     clock: ClockSource | None = None,
+    resource_limits: Red2ResourceLimits | None = None,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
@@ -92,6 +93,7 @@ def run_io_source(
         stdout=stdout,
         stderr=stderr,
         clock=clock or SystemClockSource(),
+        resource_limits=resource_limits,
     )
     return to_source(runtime.run(action))
 
@@ -145,6 +147,7 @@ class _IoRuntime:
         stdout: TextIO,
         stderr: TextIO,
         clock: ClockSource,
+        resource_limits: Red2ResourceLimits | None,
     ) -> None:
         self._model = model
         self._quantum = quantum
@@ -153,6 +156,7 @@ class _IoRuntime:
         self._stdout = stdout
         self._stderr = stderr
         self._clock = clock
+        self._resource_limits = resource_limits
         self._ticks = 0
 
     def run(self, action: Expr) -> Expr:
@@ -298,6 +302,7 @@ class _IoRuntime:
             compile_expr(expr),
             quantum=self._quantum,
             definitions=compile_definitions(self._definitions),
+            resource_limits=self._resource_limits,
         )
         machine.run()
         return machine.result_expr()
@@ -362,9 +367,7 @@ def _substitute(expr: Expr, name: str, value: Expr) -> Expr:
             for binding in expr.bindings
         )
         body = (
-            expr.body
-            if name in binding_names
-            else _substitute(expr.body, name, value)
+            expr.body if name in binding_names else _substitute(expr.body, name, value)
         )
         return LetRec(bindings, body)
     if isinstance(expr, StructLit):

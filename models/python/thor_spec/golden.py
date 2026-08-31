@@ -9,7 +9,7 @@ from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
 from thor_spec.primitives import install_struct_definition
 from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine
+from thor_spec.red2.machine import Red2Machine, Red2ResourceLimits
 from thor_spec.red2.primitives import register_struct_accessors
 from thor_spec.semantics import reduce_expr
 
@@ -22,6 +22,7 @@ def run_source(
     *,
     model: ModelName,
     quantum: int,
+    resource_limits: Red2ResourceLimits | None = None,
 ) -> str:
     """Run THOR source through one prototype model and return result text.
 
@@ -30,11 +31,22 @@ def run_source(
     expression results are rendered one per output line.
     """
     program = normalize_program(parse_program(source))
-    results = _run_program(program, model=model, quantum=quantum)
+    results = _run_program(
+        program,
+        model=model,
+        quantum=quantum,
+        resource_limits=resource_limits,
+    )
     return "\n".join(results)
 
 
-def _run_program(program: Program, *, model: ModelName, quantum: int) -> list[str]:
+def _run_program(
+    program: Program,
+    *,
+    model: ModelName,
+    quantum: int,
+    resource_limits: Red2ResourceLimits | None,
+) -> list[str]:
     definitions = _initial_definitions()
     results: list[str] = []
     for form in program.forms:
@@ -52,6 +64,7 @@ def _run_program(program: Program, *, model: ModelName, quantum: int) -> list[st
                 model=model,
                 quantum=quantum,
                 definitions=definitions,
+                resource_limits=resource_limits,
             )
         )
     return results
@@ -63,6 +76,7 @@ def _run_expr(
     model: ModelName,
     quantum: int,
     definitions: Mapping[str, Expr],
+    resource_limits: Red2ResourceLimits | None,
 ) -> str:
     if model == "thor":
         reduced = reduce_expr(expr, quantum=quantum, definitions=definitions)
@@ -72,6 +86,7 @@ def _run_expr(
             compile_expr(expr),
             quantum=quantum,
             definitions=compile_definitions(definitions),
+            resource_limits=resource_limits,
         )
         machine.run()
         return to_source(machine.result_expr())

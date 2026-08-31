@@ -18,6 +18,88 @@ def test_cli_runs_red2_model_expr(capsys: CaptureFixture[str]) -> None:
     assert capsys.readouterr().out.strip() == "5"
 
 
+def test_cli_red2_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
+    assert (
+        main(
+            [
+                "--model",
+                "red2",
+                "--quantum",
+                "20",
+                "--stack-size-in-bytes",
+                "1000000",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(+ 2 3)",
+            ]
+        )
+        == 0
+    )
+    captured = capsys.readouterr()
+    assert captured.out.strip() == "5"
+
+
+def test_cli_thor_rejects_explicit_resource_limits(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "--model",
+                "thor",
+                "--stack-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(+ 2 3)",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
+def test_cli_parity_rejects_explicit_resource_limits(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "--model",
+                "parity",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(+ 2 3)",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
+def test_cli_red2_reports_stack_overflow(capsys: CaptureFixture[str]) -> None:
+    assert (
+        main(
+            [
+                "--model",
+                "red2",
+                "--stack-size-in-bytes",
+                "1",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "((LAMBDA (X) X) 42)",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "RED2 stack overflow" in captured.err
+
+
 def test_cli_parity_model_reports_matching_prefixes(
     capsys: CaptureFixture[str],
 ) -> None:
@@ -110,6 +192,49 @@ def test_cli_red2_subcommand_runs_io_quiet_by_default(
     assert captured.err == ""
 
 
+def test_cli_red2_subcommand_accepts_resource_limits(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "red2",
+                "--stack-size-in-bytes",
+                "1000000",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(UART-TX (+ 60 5))",
+            ]
+        )
+        == 0
+    )
+
+    captured = capsys.readouterr()
+    assert captured.out == "A"
+    assert captured.err == ""
+
+
+def test_cli_thor_subcommand_rejects_explicit_resource_limits(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "thor",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(UART-TX 65)",
+            ]
+        )
+        == 2
+    )
+
+    captured = capsys.readouterr()
+    assert "resource limits are currently supported for red2 only" in captured.err
+
+
 def test_cli_model_subcommand_verbose_reports_io_result(
     capsys: CaptureFixture[str],
 ) -> None:
@@ -177,6 +302,30 @@ def test_cli_io_mode_reads_uart_from_stdin(
     assert captured.err == "io result: NIL\n"
 
 
+def test_cli_io_mode_red2_reports_resource_limit_from_pure_expression(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "--io",
+                "--model",
+                "red2",
+                "--stack-size-in-bytes",
+                "1",
+                "--heap-size-in-bytes",
+                "1000000",
+                "--expr",
+                "(UART-TX ((LAMBDA (X) X) 65))",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "RED2 stack overflow" in captured.err
+
+
 def test_cli_io_mode_rejects_parity_model(capsys: CaptureFixture[str]) -> None:
     assert main(["--io", "--model", "parity", "--expr", "(UART-TX 65)"]) == 2
     captured = capsys.readouterr()
@@ -196,6 +345,24 @@ def test_cli_compile_and_run_red2_bytecode(
     assert output.read_bytes().startswith(b"RED2")
 
     assert main(["run-red2", "--bytecode", str(output), "--quantum", "20"]) == 0
+    assert capsys.readouterr().out == "5\n"
+
+    assert (
+        main(
+            [
+                "run-red2",
+                "--bytecode",
+                str(output),
+                "--quantum",
+                "20",
+                "--stack-size-in-bytes",
+                "1000000",
+                "--heap-size-in-bytes",
+                "1000000",
+            ]
+        )
+        == 0
+    )
     assert capsys.readouterr().out == "5\n"
 
 

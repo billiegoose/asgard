@@ -15,7 +15,43 @@ from thor_spec.parser import ParseError, parse_program
 from thor_spec.pretty import to_source
 from thor_spec.red2.binary import decode_bundle, encode_bundle
 from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine
+from thor_spec.red2.machine import (
+    DEFAULT_HEAP_SIZE_IN_BYTES,
+    DEFAULT_STACK_SIZE_IN_BYTES,
+    Red2Machine,
+    Red2ResourceLimits,
+)
+
+
+def _add_resource_limit_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--stack-size-in-bytes", type=int, default=None)
+    parser.add_argument("--heap-size-in-bytes", type=int, default=None)
+
+
+def _resource_limits_from_args(args: argparse.Namespace) -> Red2ResourceLimits:
+    return Red2ResourceLimits(
+        stack_size_in_bytes=args.stack_size_in_bytes
+        if args.stack_size_in_bytes is not None
+        else DEFAULT_STACK_SIZE_IN_BYTES,
+        heap_size_in_bytes=args.heap_size_in_bytes
+        if args.heap_size_in_bytes is not None
+        else DEFAULT_HEAP_SIZE_IN_BYTES,
+    )
+
+
+def _reject_resource_limits_for_non_red2(
+    args: argparse.Namespace,
+    model: object,
+) -> int | None:
+    if model != "red2" and (
+        args.stack_size_in_bytes is not None or args.heap_size_in_bytes is not None
+    ):
+        print(
+            "thor-spec: resource limits are currently supported for red2 only",
+            file=sys.stderr,
+        )
+        return 2
+    return None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -53,6 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="run the final expression as a simulated IO action",
     )
+    _add_resource_limit_args(parser)
     return parser
 
 
@@ -70,14 +107,31 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    rejected = _reject_resource_limits_for_non_red2(args, args.model)
+    if rejected is not None:
+        return rejected
+
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
+        resource_limits = (
+            _resource_limits_from_args(args) if args.model == "red2" else None
+        )
         if args.io:
-            return _run_io(source, model_value=args.model, quantum=args.quantum)
+            return _run_io(
+                source,
+                model_value=args.model,
+                quantum=args.quantum,
+                resource_limits=resource_limits,
+            )
         if args.model == "parity":
             return _run_parity(source, quantum=args.quantum)
         model = _model_name(args.model)
-        output = run_source(source, model=model, quantum=args.quantum)
+        output = run_source(
+            source,
+            model=model,
+            quantum=args.quantum,
+            resource_limits=resource_limits,
+        )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"thor-spec: {error}", file=sys.stderr)
         return 2
@@ -130,6 +184,7 @@ def _run_red2_command(argv: list[str]) -> int:
         default=DEFAULT_QUANTUM,
         help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
     )
+    _add_resource_limit_args(parser)
     args = parser.parse_args(argv)
     try:
         bundle = decode_bundle(args.bytecode.read_bytes())
@@ -137,6 +192,7 @@ def _run_red2_command(argv: list[str]) -> int:
             bundle.entry,
             quantum=args.quantum,
             definitions=bundle.definitions,
+            resource_limits=_resource_limits_from_args(args),
         )
         machine.run()
         output = to_source(machine.result_expr())
@@ -174,20 +230,28 @@ def _run_model_command(model_value: ModelName, argv: list[str]) -> int:
             "millisecond timestamps"
         ),
     )
+    _add_resource_limit_args(parser)
     args = parser.parse_args(argv)
     if args.expr is None and args.file is None:
         parser.error("one of --expr or file is required")
     if args.expr is not None and args.file is not None:
         parser.error("--expr and file are mutually exclusive")
+    rejected = _reject_resource_limits_for_non_red2(args, model_value)
+    if rejected is not None:
+        return rejected
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
         clock = LatestFileClockSource(args.clock) if args.clock is not None else None
+        resource_limits = (
+            _resource_limits_from_args(args) if model_value == "red2" else None
+        )
         return _run_io(
             source,
             model_value=model_value,
             quantum=args.quantum,
             verbose=args.verbose,
             clock=clock,
+            resource_limits=resource_limits,
         )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"thor-spec: {error}", file=sys.stderr)
@@ -223,6 +287,7 @@ def _run_io(
     quantum: int,
     verbose: bool = True,
     clock: ClockSource | None = None,
+    resource_limits: Red2ResourceLimits | None = None,
 ) -> int:
     if model_value == "parity":
         print(
@@ -239,6 +304,7 @@ def _run_io(
         stdout=sys.stdout,
         stderr=sys.stderr,
         clock=clock,
+        resource_limits=resource_limits,
     )
     if verbose:
         print(f"io result: {result}", file=sys.stderr)
@@ -290,6 +356,7 @@ def _write_mismatch_report(result: ParityResult) -> None:
                 file=sys.stderr,
             )
         print(file=sys.stderr)
+
 
 def _model_name(value: object) -> ModelName:
     if value == "thor" or value == "red2":
