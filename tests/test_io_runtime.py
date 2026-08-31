@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from io import StringIO
 from pathlib import Path
 
@@ -17,6 +18,16 @@ class FixedClock:
         self.value = value
 
     def now_ms(self) -> int:
+        return self.value
+
+
+class AdvancingClock:
+    def __init__(self, *, start: int = 0, step: int = 1000) -> None:
+        self.value = start - step
+        self.step = step
+
+    def now_ms(self) -> int:
+        self.value += self.step
         return self.value
 
 
@@ -67,6 +78,46 @@ def test_clock_io_action_returns_integer_for_red2_model() -> None:
     )
 
     assert result == "1700000000456"
+
+
+def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
+    previous_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(80)
+    try:
+        action = "(IO-RETURN 0)"
+        for _ in range(250):
+            action = f"(IO-THEN (UART-TX 46) {action})"
+        result, stdout, stderr = run_io(action, quantum=1000)
+    finally:
+        sys.setrecursionlimit(previous_limit)
+
+    assert result == "0"
+    assert stdout == "." * 250
+    assert stderr == ""
+
+
+def test_clock_dots_example_emits_dots_without_python_stack_growth() -> None:
+    source = Path("examples/clock-dots.thor").read_text()
+    stdout = StringIO()
+    stderr = StringIO()
+    previous_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(80)
+    try:
+        result = run_io_source(
+            source,
+            model="thor",
+            quantum=500,
+            stdin=StringIO(""),
+            stdout=stdout,
+            stderr=stderr,
+            clock=AdvancingClock(step=1000),
+        )
+    finally:
+        sys.setrecursionlimit(previous_limit)
+
+    assert result == "NIL"
+    assert stdout.getvalue().startswith(".")
+    assert stderr.getvalue() == ""
 
 
 def test_latest_file_clock_source_returns_latest_valid_value(tmp_path: Path) -> None:
