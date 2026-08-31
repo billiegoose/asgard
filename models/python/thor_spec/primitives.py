@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Generator, MutableMapping, Sequence
 from dataclasses import dataclass
 from math import ceil, floor
 from operator import add, mod, mul, sub, truediv
@@ -37,12 +37,27 @@ class ReducerProtocol(Protocol):
 
     def contract(self) -> None: ...
 
+    def mark_y_result(self, expr: Expr) -> None: ...
+
 
 @dataclass(frozen=True, slots=True)
 class EvalState:
     reducer: ReducerProtocol
     store: tuple[object, ...]
     phi: int
+
+
+@dataclass(frozen=True, slots=True)
+class ReductionRequest:
+    """One nested reduction requested from the iterative evaluator driver."""
+
+    value: object
+    store: tuple[object, ...]
+    phi: int
+    no_contract: bool = False
+
+
+type PrimitiveReducer = Generator[ReductionRequest, Expr, Expr | None]
 
 
 def install_struct_accessors(
@@ -97,10 +112,11 @@ def _struct_accessor_names(tag: str, accessor: str) -> tuple[str, ...]:
     return (f"{tag}-{accessor}",)
 
 
-def try_reduce_primitive(app: App, state: EvalState) -> Expr | None:
+def try_reduce_primitive(app: App, state: EvalState) -> PrimitiveReducer | None:
+    """Return a continuation-friendly primitive reducer when ``app`` is known."""
     if not app.items or not isinstance(app.items[0], Symbol):
         return None
-    name = app.items[0].name
+    name = app.items[0].name.upper()
     args = app.items[1:]
     if name == "IF":
         return _reduce_if(args, state)
@@ -119,38 +135,45 @@ def try_reduce_primitive(app: App, state: EvalState) -> Expr | None:
     return None
 
 
-def _reduce_if(args: tuple[Expr, ...], state: EvalState) -> Expr | None:
+def _reduce_if(args: tuple[Expr, ...], state: EvalState) -> PrimitiveReducer:
     if len(args) != 3:
         return None
-    condition = state.reducer.reduce(args[0], state.store, state.phi)
+    condition = yield ReductionRequest(args[0], state.store, state.phi)
     true_branch, false_branch = args[1], args[2]
     if _is_true(condition):
         if state.reducer.remaining == 0:
             return App((Symbol("IF"), condition, true_branch, false_branch))
         state.reducer.contract()
-        return state.reducer.reduce(true_branch, state.store, state.phi)
+        return (yield ReductionRequest(true_branch, state.store, state.phi))
     if _is_false(condition):
         if state.reducer.remaining == 0:
             return App((Symbol("IF"), condition, true_branch, false_branch))
         state.reducer.contract()
-        return state.reducer.reduce(false_branch, state.store, state.phi)
-    return App(
-        (
-            Symbol("IF"),
-            condition,
-            state.reducer.reduce_no_contract(true_branch, state.store, state.phi),
-            state.reducer.reduce_no_contract(false_branch, state.store, state.phi),
-        )
+        return (yield ReductionRequest(false_branch, state.store, state.phi))
+    reduced_true = yield ReductionRequest(
+        true_branch,
+        state.store,
+        state.phi,
+        no_contract=True,
     )
+    reduced_false = yield ReductionRequest(
+        false_branch,
+        state.store,
+        state.phi,
+        no_contract=True,
+    )
+    return App((Symbol("IF"), condition, reduced_true, reduced_false))
 
 
-def _reduce_y(args: tuple[Expr, ...], state: EvalState) -> Expr | None:
+def _reduce_y(args: tuple[Expr, ...], state: EvalState) -> PrimitiveReducer:
     if len(args) != 1 or state.reducer.remaining == 0:
         return None
     arg = args[0]
     state.reducer.contract()
     recursive_app = App((arg, App((Symbol("Y"), arg))))
-    return state.reducer.reduce(recursive_app, state.store, state.phi)
+    result = yield ReductionRequest(recursive_app, state.store, state.phi)
+    state.reducer.mark_y_result(result)
+    return result
 
 
 def _reduce_logical(
@@ -158,13 +181,13 @@ def _reduce_logical(
     state: EvalState,
     *,
     true_identity: bool,
-) -> Expr | None:
+) -> PrimitiveReducer:
     if not args:
         return TRUE if true_identity else FALSE
     operator = "AND" if true_identity else "OR"
     reduced_args: list[Expr] = []
     for arg in args:
-        reduced = state.reducer.reduce(arg, state.store, state.phi)
+        reduced = yield ReductionRequest(arg, state.store, state.phi)
         if state.reducer.remaining > 0:
             if true_identity and _is_false(reduced):
                 state.reducer.contract()
@@ -183,17 +206,27 @@ def _reduce_logical(
     return App((Symbol(operator), *reduced_args))
 
 
-def _reduce_unary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr | None:
+def _reduce_unary(
+    name: str,
+    args: tuple[Expr, ...],
+    state: EvalState,
+) -> PrimitiveReducer:
     if len(args) != 1:
         return None
-    arg = state.reducer.reduce(args[0], state.store, state.phi)
+    arg = yield ReductionRequest(args[0], state.store, state.phi)
     if state.reducer.remaining == 0:
         return App((Symbol(name), arg))
     if name in {"CAR", "CDR"}:
         if isinstance(arg, StructLit) and arg.tag == "PAIR" and len(arg.fields) == 2:
             state.reducer.contract()
             field_index = 0 if name == "CAR" else 1
-            return state.reducer.reduce(arg.fields[field_index], state.store, state.phi)
+            return (
+                yield ReductionRequest(
+                    arg.fields[field_index],
+                    state.store,
+                    state.phi,
+                )
+            )
         return App((Symbol(name), arg))
     result: Expr | None = None
     if name == "1-" and isinstance(arg, Integer):
@@ -234,11 +267,15 @@ def _reduce_unary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr |
     return result
 
 
-def _reduce_binary(name: str, args: tuple[Expr, ...], state: EvalState) -> Expr | None:
+def _reduce_binary(
+    name: str,
+    args: tuple[Expr, ...],
+    state: EvalState,
+) -> PrimitiveReducer:
     if len(args) != 2:
         return None
-    left = state.reducer.reduce(args[0], state.store, state.phi)
-    right = state.reducer.reduce(args[1], state.store, state.phi)
+    left = yield ReductionRequest(args[0], state.store, state.phi)
+    right = yield ReductionRequest(args[1], state.store, state.phi)
     if state.reducer.remaining == 0:
         return App((Symbol(name), left, right))
     result = _apply_binary(name, left, right)
@@ -252,10 +289,10 @@ def _reduce_type_predicate(
     name: str,
     args: tuple[Expr, ...],
     state: EvalState,
-) -> Expr | None:
+) -> PrimitiveReducer:
     if len(args) != 1:
         return None
-    arg = state.reducer.reduce(args[0], state.store, state.phi)
+    arg = yield ReductionRequest(args[0], state.store, state.phi)
     if state.reducer.remaining == 0:
         return App((Symbol(name), arg))
     if _predicate_matches(name, arg):
