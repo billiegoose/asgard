@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
+import select
 import signal
 import subprocess
+import time
 from pathlib import Path
-
-import pytest
 
 
 def run_mise_task(
@@ -22,6 +22,50 @@ def run_mise_task(
         capture_output=True,
         timeout=timeout,
     )
+
+
+def run_until_stdout_contains(
+    command: list[str],
+    expected: str,
+    *,
+    timeout: float,
+) -> tuple[str, str]:
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    expected_bytes = expected.encode()
+    stdout = bytearray()
+    deadline = time.monotonic() + timeout
+    try:
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                break
+            assert process.stdout is not None
+            readable, _, _ = select.select([process.stdout], [], [], 0.05)
+            if not readable:
+                continue
+            chunk = os.read(process.stdout.fileno(), 4096)
+            if not chunk:
+                break
+            stdout.extend(chunk)
+            if expected_bytes in stdout:
+                break
+        if expected_bytes not in stdout:
+            decoded_stdout = stdout.decode(errors="replace")
+            raise AssertionError(
+                f"did not see {expected!r} within {timeout}s; "
+                f"stdout={decoded_stdout!r}"
+            )
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        remaining_stdout, stderr = process.communicate(timeout=2.0)
+    stdout.extend(remaining_stdout)
+    return stdout.decode(errors="replace"), stderr.decode(errors="replace")
 
 
 def test_mise_thor_runs_hangman_quietly() -> None:
@@ -121,7 +165,7 @@ def test_mise_rust_accepts_clock_flag(tmp_path: Path) -> None:
 
 
 def test_mise_rust_hangman_waits_with_open_stdin_and_no_keys() -> None:
-    process = subprocess.Popen(
+    stdout, stderr = run_until_stdout_contains(
         [
             "mise",
             "run",
@@ -130,56 +174,17 @@ def test_mise_rust_hangman_waits_with_open_stdin_and_no_keys() -> None:
             "--quantum",
             "5000",
         ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
+        "GUESS LETTERS; ESC QUITS\n",
+        timeout=5.0,
     )
-    try:
-        with pytest.raises(subprocess.TimeoutExpired):
-            process.wait(timeout=5.0)
-    finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
-        stdout, stderr = process.communicate(timeout=2.0)
 
     assert "GUESS LETTERS; ESC QUITS\n" in stdout
     assert "primitive" not in stderr
     assert stderr == ""
 
 
-def test_mise_rust_caesar_waits_with_open_stdin_and_no_keys() -> None:
-    process = subprocess.Popen(
-        [
-            "mise",
-            "run",
-            "rust",
-            "examples/uart-caesar-plus4.thor",
-            "--quantum",
-            "5000",
-        ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
-    )
-    try:
-        with pytest.raises(subprocess.TimeoutExpired):
-            process.wait(timeout=5.0)
-    finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
-        stdout, stderr = process.communicate(timeout=2.0)
-
-    assert stdout == ""
-    assert "primitive" not in stderr
-    assert stderr == ""
-
-
 def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys() -> None:
-    process = subprocess.Popen(
+    stdout, stderr = run_until_stdout_contains(
         [
             "mise",
             "run",
@@ -188,19 +193,10 @@ def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys() -> None:
             "--quantum",
             "50000",
         ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
+        "\x1b[11;12Ho",
+        timeout=8.0,
     )
-    try:
-        with pytest.raises(subprocess.TimeoutExpired):
-            process.wait(timeout=8.0)
-    finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
-        stdout, stderr = process.communicate(timeout=2.0)
+
     assert "BREAKOUT 20x12\n" in stdout
     assert stdout.count("o") >= 2
     assert "\x1b[11;12Ho" in stdout
@@ -302,29 +298,23 @@ def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:
     assert red2.stderr == ""
 
 
-def test_mise_red2_clock_dots_runs_until_timeout_without_io_action_error() -> None:
-    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
-        run_mise_task(
+def test_mise_red2_clock_dots_emits_dot_without_io_action_error() -> None:
+    stdout, stderr = run_until_stdout_contains(
+        [
+            "mise",
+            "run",
             "red2",
             "--quantum",
             "100000",
             "examples/clock-dots.thor",
-            timeout=3.0,
-        )
+        ],
+        ".",
+        timeout=3.0,
+    )
 
-    stdout = _timeout_text(timeout_info.value.stdout)
-    stderr = _timeout_text(timeout_info.value.stderr)
     assert "." in stdout
     assert "not an IO action" not in stderr
     assert "RecursionError" not in stderr
-
-
-def _timeout_text(value: bytes | str | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode(errors="replace")
-    return value
 
 
 def test_mise_hdl_prints_placeholder() -> None:

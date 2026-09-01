@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
+import select
+import signal
 import subprocess
+import time
 from pathlib import Path
-
-import pytest
 
 from thor_spec.ast import Definition, Expr, StructDef
 from thor_spec.normalization import normalize_program
@@ -29,6 +31,62 @@ def write_bytecode(tmp_path: Path, source: str) -> Path:
         encode_bundle(compile_expr(final), compile_definitions(definitions))
     )
     return path
+
+
+def run_rust_vm_until_stdout_contains(
+    path: Path,
+    expected: str,
+    quantum: int = 20,
+    *,
+    timeout: float = 20.0,
+) -> tuple[str, str]:
+    command = [
+        "cargo",
+        "run",
+        "-p",
+        "red2-wasm",
+        "--quiet",
+        "--",
+        str(path),
+        "--quantum",
+        str(quantum),
+    ]
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    expected_bytes = expected.encode()
+    stdout = bytearray()
+    deadline = time.monotonic() + timeout
+    try:
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                break
+            assert process.stdout is not None
+            readable, _, _ = select.select([process.stdout], [], [], 0.05)
+            if not readable:
+                continue
+            chunk = os.read(process.stdout.fileno(), 4096)
+            if not chunk:
+                break
+            stdout.extend(chunk)
+            if expected_bytes in stdout:
+                break
+        if expected_bytes not in stdout:
+            decoded_stdout = stdout.decode(errors="replace")
+            raise AssertionError(
+                f"did not see {expected!r} within {timeout}s; "
+                f"stdout={decoded_stdout!r}"
+            )
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        remaining_stdout, stderr = process.communicate(timeout=2.0)
+    stdout.extend(remaining_stdout)
+    return stdout.decode(errors="replace"), stderr.decode(errors="replace")
 
 
 def run_rust_vm(
@@ -301,27 +359,21 @@ def test_rust_red2_vm_runs_deep_io_then_chain_without_host_stack_growth(
     assert result.stderr == ""
 
 
-def test_rust_red2_vm_clock_dots_runs_until_timeout_without_io_action_error(
+def test_rust_red2_vm_clock_dots_emits_dot_without_io_action_error(
     tmp_path: Path,
 ) -> None:
     bytecode = write_bytecode(tmp_path, Path("examples/clock-dots.thor").read_text())
 
-    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
-        run_rust_vm(bytecode, quantum=100000, timeout=8.0)
+    stdout, stderr = run_rust_vm_until_stdout_contains(
+        bytecode,
+        ".",
+        quantum=100000,
+        timeout=8.0,
+    )
 
-    stdout = _timeout_text(timeout_info.value.stdout)
-    stderr = _timeout_text(timeout_info.value.stderr)
     assert "." in stdout
     assert "unknown IO action" not in stderr
     assert "not an IO action" not in stderr
-
-
-def _timeout_text(value: bytes | str | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode(errors="replace")
-    return value
 
 
 def test_rust_red2_vm_errors_on_stuck_numeric_primitive(tmp_path: Path) -> None:

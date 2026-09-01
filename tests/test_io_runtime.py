@@ -142,66 +142,41 @@ def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
 
 
 def test_clock_dots_example_emits_dots_without_python_stack_growth() -> None:
-    script = """
-import sys
-import time
-from pathlib import Path
+    class StopAfterDotsError(Exception):
+        pass
 
-from thor_spec.io_runtime import run_io_source
+    class BoundedStdout(StringIO):
+        def __init__(self, limit: int) -> None:
+            super().__init__()
+            self.limit = limit
 
+        def write(self, text: str) -> int:
+            written = super().write(text)
+            if self.getvalue().count(".") >= self.limit:
+                raise StopAfterDotsError
+            return written
 
-class AdvancingClock:
-    def __init__(self, *, start: int = 0, step: int = 1000) -> None:
-        self.value = start - step
-        self.step = step
+    previous_limit = sys.getrecursionlimit()
+    stdout = BoundedStdout(20)
+    stderr = StringIO()
+    try:
+        sys.setrecursionlimit(80)
+        with pytest.raises(StopAfterDotsError):
+            run_io_source(
+                Path("examples/clock-dots.thor").read_text(),
+                model="thor",
+                quantum=500,
+                stdin=StringIO(""),
+                stdout=stdout,
+                stderr=stderr,
+                clock=AdvancingClock(step=1000),
+            )
+    finally:
+        sys.setrecursionlimit(previous_limit)
 
-    def now_ms(self) -> int:
-        self.value += self.step
-        return self.value
-
-
-class BoundedStdout:
-    def __init__(self, limit: int) -> None:
-        self.limit = limit
-        self.count = 0
-
-    def write(self, text: str) -> int:
-        sys.stdout.write(text)
-        sys.stdout.flush()
-        self.count += text.count(".")
-        if self.count >= self.limit:
-            time.sleep(60)
-        return len(text)
-
-    def flush(self) -> None:
-        sys.stdout.flush()
-
-
-sys.setrecursionlimit(80)
-run_io_source(
-    Path("examples/clock-dots.thor").read_text(),
-    model="thor",
-    quantum=500,
-    stdin=sys.stdin,
-    stdout=BoundedStdout(20),
-    stderr=sys.stderr,
-    clock=AdvancingClock(step=1000),
-)
-"""
-    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
-        subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True,
-            check=False,
-            text=True,
-            timeout=2.0,
-        )
-
-    stdout = _timeout_text(timeout_info.value.stdout)
-    stderr = _timeout_text(timeout_info.value.stderr)
-    assert "." in stdout
-    assert "RecursionError" not in stderr
-    assert "Traceback" not in stderr
+    assert stdout.getvalue().count(".") >= 20
+    assert "RecursionError" not in stderr.getvalue()
+    assert "Traceback" not in stderr.getvalue()
 
 
 def test_latest_file_clock_source_returns_latest_valid_value(tmp_path: Path) -> None:
