@@ -74,13 +74,13 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
         if isinstance(node, Lambda):
             for parameter in node.params:
                 words.append(Word(MuredOpcode.LAMBDA, parameter))
-            compile_graph(node.body, node.params + scope)
+            compile_graph(node.body, tuple(reversed(node.params)) + scope)
             return
         if isinstance(node, App):
             if len(node.items) < 2:
                 raise TypeError("malformed pure λ-calculus application")
             app_start = len(words)
-            arguments = node.items[1:]
+            arguments = tuple(reversed(node.items[1:]))
             words.extend(Word(MuredOpcode.APP) for _ in arguments)
             compile_graph(node.items[0], scope)
             for offset, argument in enumerate(arguments):
@@ -392,7 +392,7 @@ class MuredMachine:
                 cursor += 1
             operator, next_address = self._decompile(cursor, scope, app_path)
             arguments: list[Expr] = []
-            for argument_address in argument_addresses:
+            for argument_address in reversed(argument_addresses):
                 argument, next_address = self._decompile(
                     argument_address, scope, app_path
                 )
@@ -400,16 +400,26 @@ class MuredMachine:
             return App((operator, *arguments)), next_address
 
         if word.opcode is MuredOpcode.LAMBDA:
-            if not isinstance(word.data, str):
-                raise MuredMachineError(
-                    "result LAMBDA requires a parameter name"
-                )
+            parameters: list[str] = []
+            cursor = address
+            lambda_path = path
+            while True:
+                lambda_word = self._word(cursor)
+                if lambda_word.opcode is not MuredOpcode.LAMBDA:
+                    break
+                if not isinstance(lambda_word.data, str):
+                    raise MuredMachineError(
+                        "result LAMBDA requires a parameter name"
+                    )
+                parameters.append(lambda_word.data)
+                lambda_path = lambda_path | {cursor}
+                cursor += 1
             body, next_address = self._decompile(
-                address + 1,
-                (word.data, *scope),
-                path | {address},
+                cursor,
+                (*reversed(parameters), *scope),
+                lambda_path,
             )
-            return Lambda((word.data,), body), next_address
+            return Lambda(tuple(parameters), body), next_address
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:

@@ -4,8 +4,23 @@ import pytest
 
 from red2_engine.mured import Direction, MuredMachine, MuredOpcode
 from thor_engine.semantics import reduce_expr
+from thor_lang.ast import App, Expr, Lambda
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
+
+
+def group_consecutive_lambdas(expr: Expr) -> Expr:
+    if isinstance(expr, App):
+        return App(tuple(group_consecutive_lambdas(item) for item in expr.items))
+    if not isinstance(expr, Lambda):
+        return expr
+
+    params = list(expr.params)
+    body = group_consecutive_lambdas(expr.body)
+    while isinstance(body, Lambda):
+        params.extend(body.params)
+        body = body.body
+    return Lambda(tuple(params), body)
 
 
 def snapshot(machine: MuredMachine) -> tuple[object, ...]:
@@ -54,6 +69,20 @@ def test_closed_identity_matches_manual_chapter4_cycle_trace() -> None:
         ("(LAMBDA (x) x)", 10),
         ("((LAMBDA (x) x) (LAMBDA (y) y))", 10),
         ("(LAMBDA (x) (LAMBDA (y) x))", 10),
+        ("(LAMBDA (x y) x)", 10),
+        ("(LAMBDA (x y) y)", 10),
+        (
+            "((LAMBDA (x y) x) (LAMBDA (a) a) (LAMBDA (b) b))",
+            10,
+        ),
+        (
+            "((LAMBDA (x y) y) (LAMBDA (a) a) (LAMBDA (b) b))",
+            10,
+        ),
+        (
+            "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))",
+            10,
+        ),
         ("((LAMBDA (x) (LAMBDA (y) x)) (LAMBDA (z) z))", 20),
         ("((LAMBDA (x) (LAMBDA (y) x)) (LAMBDA (z) z))", 1),
         ("((LAMBDA (x) x) (LAMBDA (y) y))", 0),
@@ -70,7 +99,9 @@ def test_mured_result_matches_chapter3_for_small_pure_lambda_corpus(
         memory_words=128,
     )
     machine.run()
-    thor = reduce_expr(expr, quantum=quantum).expr
+    thor = group_consecutive_lambdas(
+        reduce_expr(expr, quantum=quantum).expr
+    )
 
     assert to_source(machine.result_expr()) == to_source(thor)
 
