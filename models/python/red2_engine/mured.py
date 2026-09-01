@@ -400,26 +400,16 @@ class MuredMachine:
             return App((operator, *arguments)), next_address
 
         if word.opcode is MuredOpcode.LAMBDA:
-            parameters: list[str] = []
-            cursor = address
-            lambda_path = path
-            while True:
-                if cursor in lambda_path:
-                    raise MuredMachineError("cyclic μRED result graph")
-                lambda_word = self._word(cursor)
-                if lambda_word.opcode is not MuredOpcode.LAMBDA:
-                    break
-                if not isinstance(lambda_word.data, str):
-                    raise MuredMachineError(
-                        "result LAMBDA requires a parameter name"
-                    )
-                parameters.append(lambda_word.data)
-                lambda_path = lambda_path | {cursor}
-                cursor += 1
+            if not isinstance(word.data, str):
+                raise MuredMachineError(
+                    "result LAMBDA requires a parameter name"
+                )
             body, next_address = self._decompile(
-                cursor, tuple(parameters) + scope, lambda_path
+                address + 1,
+                (word.data, *scope),
+                path | {address},
             )
-            return Lambda(tuple(parameters), body), next_address
+            return Lambda((word.data,), body), next_address
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:

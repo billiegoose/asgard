@@ -2,16 +2,26 @@
 
 ## Scope
 
-This project is a faithful research prototype of Hilton's THOR interpreter and
-RED2 machine, built to make the dissertation rules executable and comparable. It
-prioritizes readable source, deterministic examples, and thesis traceability over
-production compiler coverage or hardware completeness.
+This project is a faithful research prototype of Hilton's THOR interpreter. It
+also includes distinct compatibility and machine-fidelity paths for investigating
+the RED2 machine and making the dissertation rules executable and comparable.
+The project prioritizes readable source, deterministic examples, and thesis
+traceability over production compiler coverage or hardware completeness.
 
-The Python THOR interpreter is the executable semantic reference. The Python
-RED2 machine compiles the same THOR expressions into a linear instruction graph
-and is checked against the THOR result. The `models/python/pypeline_red2/`
-artifact is a PypelineC-oriented fixed-width RED2 stepper subset for hardware
-exploration.
+The Python THOR interpreter is the executable semantic reference.
+`red2_engine.machine.Red2Machine` is the existing evaluator-backed compatibility
+model: it compiles the same THOR expressions into a linear instruction graph and
+is checked against the THOR result, but it does not execute the Chapter 4 register
+transfers directly. The Rust evaluator provides the same kind of compatibility
+and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
+is explicit: semantic parity is not machine fidelity.
+
+`red2_engine.mured` is the faithful pure-λ μRED core. It executes the Chapter 4
+graph-memory instructions and register transfers directly, but is not yet full
+RED2 and is not wired to the CLI. See
+[`mured-thesis-notes.md`](mured-thesis-notes.md) for the three narrow source
+reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
+a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
 The current user-visible primitive surface is documented in
 [`thor-primitives.md`](thor-primitives.md).
 
@@ -25,9 +35,12 @@ The current user-visible primitive surface is documented in
   contraction, passive data, definitions, primitives, structures, `Y`, and
   `LETREC` reconstruction.
 - `models/python/thor_compile/red2.py`, `models/python/red2_engine/instructions.py`,
-  `machine.py`, and `primitives.py` map the same AST to the Chapter 4
-  RED2 execution model: instruction memory, head flags, stacks, lookup, strict
-  primitives, structures, and recursive blocks.
+  `machine.py`, and `primitives.py` implement the evaluator-backed RED2
+  compatibility path: instruction-shaped data, head flags, stacks, lookup,
+  strict primitives, structures, and recursive blocks.
+- `models/python/red2_engine/mured.py` implements the faithful pure-λ subset of
+  the Chapter 4 graph-memory machine, including its instruction transitions,
+  shared graph/environment memory, and separate control stack.
 - `tests/fixtures/appendix_a/sine_core.thor`,
   `tests/fixtures/appendix_a/sine_full.thor`,
   `tests/fixtures/appendix_a/game_core.thor`, and
@@ -62,7 +75,7 @@ Run the Chapter 3 THOR reference model:
 uv run thor --expr "(+ 2 3)" --quantum 20
 ```
 
-Run the Chapter 4 RED2 model on the same expression:
+Run the evaluator-backed RED2 compatibility model on the same expression:
 
 ```sh
 uv run red2 --expr "(+ 2 3)" --quantum 20
