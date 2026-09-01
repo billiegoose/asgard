@@ -345,6 +345,91 @@ def test_rust_red2_vm_io_runs_breakout_with_controlled_clock(tmp_path: Path) -> 
     assert result.stderr == ""
 
 
+def test_rust_red2_vm_breakout_arrow_keys_move_paddle(tmp_path: Path) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/breakout.thor").read_text())
+    clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000000\n")
+
+    left = run_rust_vm(
+        bytecode,
+        quantum=12000,
+        stdin="\x1b[Dq",
+        clock=clock,
+    )
+    right = run_rust_vm(
+        bytecode,
+        quantum=12000,
+        stdin="\x1b[Cq",
+        clock=clock,
+    )
+
+    assert left.returncode == 0
+    assert right.returncode == 0
+    assert "#      _____       #" in left.stdout
+    assert "#        _____     #" in right.stdout
+    assert left.stderr == ""
+    assert right.stderr == ""
+
+
+def test_rust_red2_vm_breakout_erases_a_brick_only_after_a_hit(
+    tmp_path: Path,
+) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/breakout.thor").read_text())
+    clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000000\n")
+    command = [
+        "cargo",
+        "run",
+        "-p",
+        "red2-wasm",
+        "--quiet",
+        "--",
+        str(bytecode),
+        "--quantum",
+        "12000",
+        "--clock",
+        str(clock),
+    ]
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    stdout = bytearray()
+    expected = b"\x1b[3;8H1 "
+    deadline = time.monotonic() + 5.0
+    tick = 1
+    try:
+        while time.monotonic() < deadline:
+            clock.write_text(f"{1_700_000_000_000 + tick * 500}\n")
+            tick += 1
+            assert process.stdout is not None
+            readable, _, _ = select.select([process.stdout], [], [], 0.02)
+            if readable:
+                chunk = os.read(process.stdout.fileno(), 4096)
+                if not chunk:
+                    break
+                stdout.extend(chunk)
+                if expected in stdout:
+                    break
+        assert expected in stdout
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        remaining_stdout, stderr = process.communicate(timeout=2.0)
+    stdout.extend(remaining_stdout)
+    text = stdout.decode(errors="replace")
+
+    assert "\x1b[7;15H " in text
+    assert "\x1b[7;16H " in text
+    assert "\x1b[7;17H " in text
+    assert "\x1b[7;14H " not in text
+    assert "\x1b[3;8H1 " in text
+    assert stderr.decode(errors="replace") == ""
+
+
 def test_rust_red2_vm_runs_deep_io_then_chain_without_host_stack_growth(
     tmp_path: Path,
 ) -> None:

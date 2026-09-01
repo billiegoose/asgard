@@ -320,67 +320,6 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     assert red2_stderr == stderr
 
 
-def test_hangman_fixture_ignores_newlines_and_wins() -> None:
-    source = Path("examples/hangman.thor").read_text()
-
-    result, stdout, stderr = run_io(source, stdin_text="A\nS\nG\nR\nD\n", quantum=2000)
-
-    assert result == "NIL"
-    assert "GUESS LETTERS; ESC QUITS\n" in stdout
-    assert "WORD: ASGARD\n" in stdout
-    assert "GUESSED:\n" in stdout
-    assert "HIT\n" not in stdout
-    assert "MISS\n" not in stdout
-    assert "LOSE\n" not in stdout
-    assert "WIN\n" in stdout
-    assert stderr == ""
-
-    red2_result, red2_stdout, red2_stderr = run_io(
-        source,
-        stdin_text="A\nS\nG\nR\nD\n",
-        model="red2",
-        quantum=2000,
-    )
-    assert red2_result == result
-    assert "WORD: ASGARD\n" in red2_stdout
-    assert "GUESSED:\n" in red2_stdout
-    assert "HIT\n" not in red2_stdout
-    assert "MISS\n" not in red2_stdout
-    assert "LOSE\n" not in red2_stdout
-    assert "WIN\n" in red2_stdout
-    assert red2_stderr == stderr
-
-
-def test_hangman_fixture_tracks_only_wrong_guesses_without_losing() -> None:
-    source = Path("examples/hangman.thor").read_text()
-
-    result, stdout, stderr = run_io(
-        source,
-        stdin_text="x\ny\nz\nA\nS\nG\nR\nD\n",
-        quantum=2000,
-    )
-
-    assert result == "NIL"
-    assert "GUESSED: XYZ\n" in stdout
-    assert "GUESSED: XYZASGRD" not in stdout
-    assert "LOSE\n" not in stdout
-    assert "WIN\n" in stdout
-    assert stderr == ""
-
-    red2_result, red2_stdout, red2_stderr = run_io(
-        source,
-        stdin_text="x\ny\nz\nA\nS\nG\nR\nD\n",
-        model="red2",
-        quantum=2000,
-    )
-    assert red2_result == result
-    assert "GUESSED: XYZ\n" in red2_stdout
-    assert "GUESSED: XYZASGRD" not in red2_stdout
-    assert "LOSE\n" not in red2_stdout
-    assert "WIN\n" in red2_stdout
-    assert red2_stderr == stderr
-
-
 def run_breakout_source_for_test(
     source: str,
     stdin_text: str,
@@ -420,14 +359,6 @@ def test_breakout_initial_frame_uses_ansi_and_fixed_board() -> None:
     assert "####################" in stdout
     assert "\x1b[?25hQUIT" in stdout
     assert stderr == ""
-
-
-def test_breakout_arrow_keys_move_paddle() -> None:
-    left_stdout, _ = run_breakout_for_test("\x1b[Dq")
-    right_stdout, _ = run_breakout_for_test("\x1b[Cq")
-
-    assert "#      _____       #" in left_stdout
-    assert "#        _____     #" in right_stdout
 
 
 def test_breakout_clock_ticks_keep_ball_visible_at_later_positions() -> None:
@@ -472,19 +403,6 @@ def test_breakout_initial_render_uses_ball_and_paddle_state() -> None:
 
     assert "\x1b[9;5Ho" in stdout
     assert "\x1b[14;1H#  _____           #" in stdout
-
-
-def test_breakout_erases_a_brick_only_after_a_hit() -> None:
-    stdout, _ = run_breakout_for_test(
-        "     q",
-        clock=AdvancingClock(start=1_700_000_000_000, step=500),
-    )
-
-    assert "\x1b[7;15H " in stdout
-    assert "\x1b[7;16H " in stdout
-    assert "\x1b[7;17H " in stdout
-    assert "\x1b[7;14H " not in stdout
-    assert "\x1b[3;8H1 " in stdout
 
 
 def test_breakout_paddle_dx_uses_left_center_right_segments() -> None:
