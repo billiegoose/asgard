@@ -9,7 +9,7 @@ from red2_engine.machine import Red2DefinitionCache, Red2Machine, Red2ResourceLi
 from red2_engine.primitives import register_struct_accessors
 from thor_compile.red2 import compile_definitions, compile_expr
 from thor_engine.golden import ModelName
-from thor_engine.semantics import reduce_expr
+from thor_engine.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import (
     App,
     Binding,
@@ -153,6 +153,11 @@ class _IoRuntime:
         self._model = model
         self._quantum = quantum
         self._definitions = definitions
+        self._thor_definition_cache = (
+            ThorDefinitionCache.from_definitions(definitions)
+            if model == "thor"
+            else None
+        )
         self._red2_definition_image = (
             compile_definitions(definitions) if model == "red2" else None
         )
@@ -312,7 +317,7 @@ class _IoRuntime:
             return reduce_expr(
                 expr,
                 quantum=self._quantum,
-                definitions=self._definitions,
+                definitions=self._thor_definition_cache,
             ).expr
         machine = Red2Machine(
             compile_expr(expr),

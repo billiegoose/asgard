@@ -1,4 +1,4 @@
-from thor_engine.semantics import reduce_expr, translate
+from thor_engine.semantics import ThorDefinitionCache, reduce_expr, translate
 from thor_lang.ast import App, Integer, Lambda, Symbol, Var
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
@@ -34,5 +34,14 @@ def test_symbol_definition_costs_one_contraction() -> None:
     result = reduce_expr(
         Symbol("ANSWER"), quantum=2, definitions={"ANSWER": Integer(42)}
     )
+    assert result.expr == Integer(42)
+    assert result.remaining == 1
+
+
+def test_reduce_expr_accepts_thor_definition_cache() -> None:
+    definitions = ThorDefinitionCache.from_definitions({"ANSWER": Integer(42)})
+
+    result = reduce_expr(Symbol("ANSWER"), quantum=2, definitions=definitions)
+
     assert result.expr == Integer(42)
     assert result.remaining == 1

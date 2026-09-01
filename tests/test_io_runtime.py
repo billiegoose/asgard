@@ -10,7 +10,7 @@ import pytest
 from red2_engine.instructions import DefinitionImage
 from thor_engine.golden import ModelName
 from thor_engine.io_runtime import LatestFileClockSource, run_io_source
-from thor_engine.semantics import reduce_expr
+from thor_engine.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import Definition, Expr
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -118,6 +118,41 @@ def test_red2_io_compiles_definition_image_once_per_run(
         (IO-THEN (emit 1) (IO-THEN (emit 2) (emit 3)))
         """,
         model="red2",
+    )
+
+    assert result == "NIL"
+    assert stdout == "ABC"
+    assert stderr == ""
+    assert calls == 1
+
+
+def test_thor_io_translates_definitions_once_per_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_from_definitions: Callable[[Mapping[str, Expr]], ThorDefinitionCache] = (
+        ThorDefinitionCache.from_definitions
+    )
+    calls = 0
+
+    def counting_from_definitions(
+        definitions: Mapping[str, Expr],
+    ) -> ThorDefinitionCache:
+        nonlocal calls
+        calls += 1
+        return original_from_definitions(definitions)
+
+    monkeypatch.setattr(
+        ThorDefinitionCache,
+        "from_definitions",
+        counting_from_definitions,
+    )
+
+    result, stdout, stderr = run_io(
+        """
+        emit == (LAMBDA (n) (UART-TX (+ n 64)))
+        (IO-THEN (emit 1) (IO-THEN (emit 2) (emit 3)))
+        """,
+        model="thor",
     )
 
     assert result == "NIL"

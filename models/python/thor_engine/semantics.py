@@ -28,6 +28,20 @@ class ReductionResult:
 
 
 @dataclass(frozen=True, slots=True)
+class ThorDefinitionCache:
+    """Translated THOR definitions reusable across reductions in one runtime."""
+
+    definitions: Mapping[str, Expr]
+
+    @classmethod
+    def from_definitions(
+        cls,
+        definitions: Mapping[str, Expr] | None,
+    ) -> ThorDefinitionCache:
+        return cls(_translate_definitions(definitions or {}))
+
+
+@dataclass(frozen=True, slots=True)
 class Closure:
     expr: Expr
     store: RedexStore
@@ -80,10 +94,11 @@ def reduce_expr(
     expr: Expr,
     *,
     quantum: int,
-    definitions: Mapping[str, Expr] | None = None,
+    definitions: Mapping[str, Expr] | ThorDefinitionCache | None = None,
 ) -> ReductionResult:
     """Reduce a THOR expression with the Chapter 3 abstract interpreter."""
-    reducer = _Reducer(_translate_definitions(definitions or {}), quantum)
+    definition_cache = _definition_cache(definitions)
+    reducer = _Reducer(definition_cache.definitions, quantum)
     reduced = reducer.reduce(translate(expr), (), 0)
     return ReductionResult(reduced, reducer.remaining, 0, reducer.steps)
 
@@ -408,6 +423,14 @@ def _block_names(block: Block) -> tuple[str, ...]:
     if block.names:
         return block.names
     return tuple(f"_{index}" for index in range(len(block.expressions)))
+
+
+def _definition_cache(
+    definitions: Mapping[str, Expr] | ThorDefinitionCache | None,
+) -> ThorDefinitionCache:
+    if isinstance(definitions, ThorDefinitionCache):
+        return definitions
+    return ThorDefinitionCache.from_definitions(definitions)
 
 
 def _translate_definitions(definitions: Mapping[str, Expr]) -> dict[str, Expr]:
