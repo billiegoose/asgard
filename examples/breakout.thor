@@ -17,7 +17,7 @@ BALL == 111
 PADDLE == 95
 SEMI == 59
 CURSOR-H == 72
-TICK-MS == 100
+TICK-MS == 500
 START-MS == 1700000000000
 CMD-NONE == 0
 CMD-LEFT == -1
@@ -318,6 +318,8 @@ loop ==
                 (handle-byte score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 byte))))))
 
 ; --- top-level action ---
-(IO-THEN emit-hide-cursor
-  (IO-THEN (render-initial 0 3 8 10 8)
-    (loop 0 3 8 10 8 1 -1 START-MS TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE)))
+(IO-BIND (CLOCK)
+  (LAMBDA (start-ms)
+    (IO-THEN emit-hide-cursor
+      (IO-THEN (render-initial 0 3 8 10 8)
+        (loop 0 3 8 10 8 1 -1 start-ms TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE)))))

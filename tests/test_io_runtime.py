@@ -409,7 +409,7 @@ def test_hangman_fixture_tracks_only_wrong_guesses_without_losing() -> None:
 def run_breakout_source_for_test(
     source: str,
     stdin_text: str,
-    clock_value: int = 1_700_000_000_000,
+    clock: FixedClock | AdvancingClock | None = None,
 ) -> tuple[str, str]:
     stdout = StringIO()
     stderr = StringIO()
@@ -420,7 +420,7 @@ def run_breakout_source_for_test(
         stdin=StringIO(stdin_text),
         stdout=stdout,
         stderr=stderr,
-        clock=FixedClock(clock_value),
+        clock=clock or FixedClock(1_700_000_000_000),
     )
     assert result == "NIL"
     return stdout.getvalue(), stderr.getvalue()
@@ -428,10 +428,10 @@ def run_breakout_source_for_test(
 
 def run_breakout_for_test(
     stdin_text: str,
-    clock_value: int = 1_700_000_000_000,
+    clock: FixedClock | AdvancingClock | None = None,
 ) -> tuple[str, str]:
     return run_breakout_source_for_test(
-        Path("examples/breakout.thor").read_text(), stdin_text, clock_value
+        Path("examples/breakout.thor").read_text(), stdin_text, clock
     )
 
 
@@ -456,7 +456,10 @@ def test_breakout_arrow_keys_move_paddle() -> None:
 
 
 def test_breakout_clock_ticks_keep_ball_visible_at_later_positions() -> None:
-    stdout, _ = run_breakout_for_test("     q", clock_value=1_700_000_000_500)
+    stdout, _ = run_breakout_for_test(
+        "  q",
+        clock=AdvancingClock(start=1_700_000_000_000, step=500),
+    )
 
     assert stdout.count("o") >= 3
     assert "\x1b[11;12Ho" in stdout
@@ -464,7 +467,7 @@ def test_breakout_clock_ticks_keep_ball_visible_at_later_positions() -> None:
 
 
 def test_breakout_bricks_do_not_all_disappear_after_first_tick() -> None:
-    stdout, _ = run_breakout_for_test(" q", clock_value=1_700_000_000_200)
+    stdout, _ = run_breakout_for_test(" q", clock=FixedClock(1_700_000_000_200))
 
     assert "===============" in stdout
     assert "SCORE: 1" not in stdout
@@ -481,10 +484,12 @@ def test_breakout_source_renders_ball_with_cursor_addressing() -> None:
 
 def test_breakout_initial_render_uses_ball_and_paddle_state() -> None:
     source = Path("examples/breakout.thor").read_text().replace(
-        "(IO-THEN emit-hide-cursor\n"
-        "  (IO-THEN (render-initial 0 3 8 10 8)\n"
-        "    (loop 0 3 8 10 8 1 -1 START-MS "
-        "TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE)))",
+        "(IO-BIND (CLOCK)\n"
+        "  (LAMBDA (start-ms)\n"
+        "    (IO-THEN emit-hide-cursor\n"
+        "      (IO-THEN (render-initial 0 3 8 10 8)\n"
+        "        (loop 0 3 8 10 8 1 -1 start-ms "
+        "TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE)))))",
         "(IO-THEN (render-initial 0 3 3 4 5) (IO-RETURN NIL))",
     )
 
@@ -495,7 +500,10 @@ def test_breakout_initial_render_uses_ball_and_paddle_state() -> None:
 
 
 def test_breakout_erases_a_brick_only_after_a_hit() -> None:
-    stdout, _ = run_breakout_for_test("     q", clock_value=1_700_000_000_500)
+    stdout, _ = run_breakout_for_test(
+        "     q",
+        clock=AdvancingClock(start=1_700_000_000_000, step=500),
+    )
 
     assert "\x1b[7;15H " in stdout
     assert "\x1b[7;16H " in stdout

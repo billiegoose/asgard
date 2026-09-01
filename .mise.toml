@@ -16,7 +16,7 @@ flag "--clock <path>" help="latest-value clock source for CLOCK"
 run = '''
 #!/bin/sh
 if [ -t 0 ]; then
-  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
 uv run thor-spec thor "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 exit $?
@@ -34,7 +34,7 @@ flag "--clock <path>" help="latest-value clock source for CLOCK"
 run = '''
 #!/bin/sh
 if [ -t 0 ]; then
-  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
 uv run thor-spec red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 exit $?
@@ -52,7 +52,7 @@ flag "--verbose" help="write diagnostics to stderr"
 run = '''
 #!/bin/sh
 if [ -t 0 ]; then
-  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
 INPUT_FILE="${usage_file}"
 IMAGE_FILE="${INPUT_FILE%.thor}.red2"
@@ -73,7 +73,7 @@ flag "--verbose" help="write diagnostics to stderr"
 run = '''
 #!/bin/sh
 if [ -t 0 ]; then
-  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
+  saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
 INPUT_FILE="${usage_file}"
 IMAGE_FILE="${INPUT_FILE%.thor}.red2"

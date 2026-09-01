@@ -178,11 +178,7 @@ def test_mise_rust_caesar_waits_with_open_stdin_and_no_keys() -> None:
     assert stderr == ""
 
 
-def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys(
-    tmp_path: Path,
-) -> None:
-    clock = tmp_path / "breakout-clock.txt"
-    clock.write_text("1700000000200\n")
+def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys() -> None:
     process = subprocess.Popen(
         [
             "mise",
@@ -191,8 +187,6 @@ def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys(
             "examples/breakout.thor",
             "--quantum",
             "50000",
-            "--clock",
-            str(clock),
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -217,20 +211,24 @@ def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(
     tmp_path: Path,
 ) -> None:
     clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000000\n")
     driver = tmp_path / "drive_breakout.py"
     steps = [
-        (1_700_000_000_000 + (tick * 100), " ", 0.0)
-        for tick in range(1, 71)
-    ] + [(1_700_000_007_200, "q", 0.0)]
+        (1_700_000_000_000 + (tick * 500), " ", 0.05)
+        for tick in range(1, 11)
+    ] + [(1_700_000_005_500, "q", 0.0)]
     driver.write_text(
         "from pathlib import Path\n"
         "import sys\n"
+        "import time\n"
         f"clock = Path({str(clock)!r})\n"
         f"steps = {steps!r}\n"
+        "time.sleep(2.0)\n"
         "for timestamp, keys, delay in steps:\n"
         "    clock.write_text(f'{timestamp}\\n')\n"
         "    sys.stdout.write(keys)\n"
         "    sys.stdout.flush()\n"
+        "    time.sleep(delay)\n"
     )
 
     command = (
