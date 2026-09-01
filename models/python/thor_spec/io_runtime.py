@@ -135,6 +135,8 @@ class _NextAction:
 
 type _Continuation = _BindCont | _ThenCont
 
+_ZERO_ARG_IO_ACTIONS = frozenset({"UART-RX", "TICKS", "CLOCK"})
+
 
 class _IoRuntime:
     def __init__(
@@ -288,7 +290,12 @@ class _IoRuntime:
 
     def _resolve_action(self, action: Expr) -> Expr:
         if isinstance(action, Symbol):
-            return self._definitions.get(action.name, action)
+            definition = self._definitions.get(action.name)
+            if definition is not None:
+                return definition
+            if action.name in _ZERO_ARG_IO_ACTIONS:
+                return App((action,))
+            return action
         return action
 
     def _pure(self, expr: Expr) -> Expr:
@@ -334,7 +341,7 @@ def _apply_unary_lambda(expr: Expr, value: Expr) -> Expr:
     if not isinstance(expr, Lambda) or len(expr.params) != 1:
         msg = f"IO-BIND expects a unary lambda, got {to_source(expr)}"
         raise IoRuntimeError(msg)
-    return _substitute(expr.body, expr.params[0], value)
+    return _substitute(expr.body, expr.params[0], value, target_index=0)
 
 
 def _apply_lambda(expr: Lambda, args: tuple[Expr, ...]) -> Expr:
@@ -342,38 +349,95 @@ def _apply_lambda(expr: Lambda, args: tuple[Expr, ...]) -> Expr:
         msg = f"expected {len(expr.params)} argument(s), got {len(args)}"
         raise IoRuntimeError(msg)
     body = expr.body
-    for name, value in zip(expr.params, args, strict=True):
-        body = _substitute(body, name, value)
+    for target_index, (name, value) in enumerate(zip(expr.params, args, strict=True)):
+        body = _substitute(body, name, value, target_index=target_index)
     return body
 
 
-def _substitute(expr: Expr, name: str, value: Expr) -> Expr:
+def _substitute(
+    expr: Expr,
+    name: str,
+    value: Expr,
+    *,
+    target_index: int,
+    depth: int = 0,
+) -> Expr:
     if isinstance(expr, Symbol):
         return value if expr.name == name else expr
     if isinstance(expr, Var):
-        return value if expr.name == name else expr
+        matches_name = expr.name == name
+        matches_index = expr.name is None and expr.index == depth + target_index
+        if matches_name or matches_index:
+            return value
+        return expr
     if isinstance(expr, Lambda):
         if name in expr.params:
             return expr
-        return Lambda(expr.params, _substitute(expr.body, name, value))
+        return Lambda(
+            expr.params,
+            _substitute(
+                expr.body,
+                name,
+                value,
+                target_index=target_index,
+                depth=depth + len(expr.params),
+            ),
+        )
     if isinstance(expr, App):
-        return App(tuple(_substitute(item, name, value) for item in expr.items))
+        return App(
+            tuple(
+                _substitute(
+                    item,
+                    name,
+                    value,
+                    target_index=target_index,
+                    depth=depth,
+                )
+                for item in expr.items
+            )
+        )
     if isinstance(expr, LetRec):
         binding_names = tuple(binding.name for binding in expr.bindings)
         bindings = tuple(
-            Binding(binding.name, _substitute(binding.expr, name, value))
+            Binding(
+                binding.name,
+                _substitute(
+                    binding.expr,
+                    name,
+                    value,
+                    target_index=target_index,
+                    depth=depth + len(binding_names),
+                ),
+            )
             if name not in binding_names
             else binding
             for binding in expr.bindings
         )
         body = (
-            expr.body if name in binding_names else _substitute(expr.body, name, value)
+            expr.body
+            if name in binding_names
+            else _substitute(
+                expr.body,
+                name,
+                value,
+                target_index=target_index,
+                depth=depth + len(binding_names),
+            )
         )
         return LetRec(bindings, body)
     if isinstance(expr, StructLit):
         return StructLit(
             expr.tag,
-            tuple(_substitute(field, name, value) for field in expr.fields),
+            tuple(
+                _substitute(
+                    field,
+                    name,
+                    value,
+                    target_index=target_index,
+                    depth=depth,
+                )
+                for field in expr.fields
+            ),
         )
     if isinstance(expr, Integer | Float | Char | Var | Block | Rec):
         return expr

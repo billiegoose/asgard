@@ -1080,42 +1080,50 @@ def _term_to_expr(
     reserve_expr: Callable[[], None] | None = None,
 ) -> Expr:
     reserve = reserve_expr or (lambda: None)
-    work: list[tuple[_Term, bool]] = [(term, False)]
+    work: list[tuple[_Term, _Env, tuple[str, ...], bool]] = [(term, (), (), False)]
     results: list[Expr] = []
     while work:
-        current, visited = work.pop()
+        current, env, bound_names, visited = work.pop()
         if isinstance(current, _ClosureTerm):
-            work.append((current.term, False))
+            work.append((current.term, current.env, bound_names, False))
             continue
         if not visited:
             if isinstance(current, _VarTerm):
+                if current.index < len(bound_names):
+                    reserve()
+                    results.append(Var(current.index, current.name))
+                    continue
+                env_index = current.index - len(bound_names)
+                if 0 <= env_index < len(env):
+                    work.append((env[env_index], (), (), False))
+                    continue
                 reserve()
                 results.append(Var(current.index, current.name))
                 continue
             if isinstance(current, _InstrTerm):
                 reserve()
-                results.append(
-                    instruction_to_expr(current.inst)
-                    or Symbol(current.inst.opcode.name)
-                )
+                expr = instruction_to_expr(current.inst)
+                results.append(expr or Symbol(current.inst.opcode.name))
                 continue
-            work.append((current, True))
+            work.append((current, env, bound_names, True))
             if isinstance(current, _RecTerm):
+                child_bound_names = current.names + bound_names
                 for child_term in reversed(current.expressions):
-                    work.append((child_term, False))
+                    work.append((child_term, current.env, child_bound_names, False))
             elif isinstance(current, _LambdaTerm):
-                work.append((current.body, False))
+                work.append((current.body, env, current.params + bound_names, False))
             elif isinstance(current, _AppTerm):
                 for arg in reversed(current.args):
-                    work.append((arg, False))
-                work.append((current.operator, False))
+                    work.append((arg, env, bound_names, False))
+                work.append((current.operator, env, bound_names, False))
             elif isinstance(current, _StructTerm):
                 for field in reversed(current.fields):
-                    work.append((field, False))
+                    work.append((field, env, bound_names, False))
             elif isinstance(current, _LetRecTerm):
-                work.append((current.body, False))
+                child_bound_names = current.names + bound_names
+                work.append((current.body, env, child_bound_names, False))
                 for child_term in reversed(current.expressions):
-                    work.append((child_term, False))
+                    work.append((child_term, env, child_bound_names, False))
             else:
                 assert_never(current)
             continue

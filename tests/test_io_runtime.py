@@ -91,6 +91,30 @@ def test_clock_io_action_returns_integer_for_red2_model() -> None:
     assert result == "1700000000456"
 
 
+def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:
+    result = run_io_source(
+        """
+        loop ==
+          (Y
+            (LAMBDA (self)
+              (LAMBDA (last)
+                (IO-BIND (CLOCK)
+                  (LAMBDA (now)
+                    (IO-RETURN now))))))
+
+        (loop 0)
+        """,
+        model="red2",
+        quantum=1000,
+        stdin=StringIO(""),
+        stdout=StringIO(),
+        stderr=StringIO(),
+        clock=FixedClock(1_700_000_000_789),
+    )
+
+    assert result == "1700000000789"
+
+
 def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
     source = """
     loop ==

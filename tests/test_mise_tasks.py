@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 def run_mise_task(
     task: str,
@@ -205,6 +207,31 @@ def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:
     assert red2.returncode == 0
     assert red2.stdout == "A"
     assert red2.stderr == ""
+
+
+def test_mise_red2_clock_dots_runs_until_timeout_without_io_action_error() -> None:
+    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
+        run_mise_task(
+            "red2",
+            "--quantum",
+            "100000",
+            "examples/clock-dots.thor",
+            timeout=3.0,
+        )
+
+    stdout = _timeout_text(timeout_info.value.stdout)
+    stderr = _timeout_text(timeout_info.value.stderr)
+    assert "." in stdout
+    assert "not an IO action" not in stderr
+    assert "RecursionError" not in stderr
+
+
+def _timeout_text(value: bytes | str | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
 
 
 def test_mise_hdl_prints_placeholder() -> None:
