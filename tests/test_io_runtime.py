@@ -9,14 +9,14 @@ from typing import cast
 
 import pytest
 
-from thor_spec.ast import Definition, Expr
-from thor_spec.golden import ModelName
-from thor_spec.io_runtime import LatestFileClockSource, run_io_source
-from thor_spec.normalization import normalize_program
-from thor_spec.parser import parse_program
-from thor_spec.pretty import to_source
-from thor_spec.red2.instructions import DefinitionImage
-from thor_spec.semantics import reduce_expr
+from red2_engine.instructions import DefinitionImage
+from thor_engine.golden import ModelName
+from thor_engine.io_runtime import LatestFileClockSource, run_io_source
+from thor_engine.semantics import reduce_expr
+from thor_lang.ast import Definition, Expr
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import parse_program
+from thor_lang.pretty import to_source
 
 
 class FixedClock:
@@ -97,7 +97,7 @@ def test_clock_io_action_returns_integer_for_red2_model() -> None:
 def test_red2_io_compiles_definition_image_once_per_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import thor_spec.io_runtime as io_runtime
+    import thor_engine.io_runtime as io_runtime
 
     original_compile_definitions = cast(
         Callable[[Mapping[str, Expr]], DefinitionImage],
@@ -250,10 +250,8 @@ def test_cli_uart_rx_returns_nil_when_open_stdin_has_no_ready_byte() -> None:
         [
             "uv",
             "run",
-            "thor-spec",
-            "--io",
-            "--model",
             "thor",
+            "--verbose",
             "--expr",
             "(UART-RX)",
         ],

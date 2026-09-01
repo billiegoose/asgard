@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from thor_spec.ast import (
+from thor_lang.ast import (
     App,
     Binding,
     Char,

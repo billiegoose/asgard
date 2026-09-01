@@ -4,7 +4,8 @@ from collections.abc import Sequence
 from math import ceil, floor
 from operator import add, mod, mul, sub, truediv
 
-from thor_spec.ast import (
+from red2_engine.instructions import Instruction, Opcode
+from thor_lang.ast import (
     App,
     Char,
     Expr,
@@ -16,7 +17,6 @@ from thor_spec.ast import (
     Symbol,
     Var,
 )
-from thor_spec.red2.instructions import Instruction, Opcode
 
 TRUE = Instruction(Opcode.PRIM_0, "TRUE", head=True)
 FALSE = Instruction(Opcode.PRIM_0, "FALSE", head=True)
@@ -304,7 +304,7 @@ class _InstructionReader:
                 name = block.data if isinstance(block.data, str) else str(block.data)
                 bindings.append((name, self.parse_expr()))
             body = self.parse_expr()
-            from thor_spec.ast import Binding
+            from thor_lang.ast import Binding
 
             return LetRec(tuple(Binding(name, expr) for name, expr in bindings), body)
         return Symbol(inst.opcode.name)

@@ -5,25 +5,25 @@ from pathlib import Path
 
 from pytest import CaptureFixture, MonkeyPatch
 
-from thor_spec.cli import main
+from red2_engine.cli import main as red2_main
+from thor_compile.cli import main as compile_main
+from thor_engine.cli import main as thor_main
 
 
-def test_cli_runs_thor_model_expr(capsys: CaptureFixture[str]) -> None:
-    assert main(["--model", "thor", "--quantum", "20", "--expr", "(+ 2 3)"]) == 0
-    assert capsys.readouterr().out.strip() == "5"
+def test_thor_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
+    assert thor_main(["--quantum", "20", "--expr", "(+ 2 3)"]) == 0
+    assert capsys.readouterr().out == "5\n"
 
 
-def test_cli_runs_red2_model_expr(capsys: CaptureFixture[str]) -> None:
-    assert main(["--model", "red2", "--quantum", "20", "--expr", "(+ 2 3)"]) == 0
-    assert capsys.readouterr().out.strip() == "5"
+def test_red2_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
+    assert red2_main(["--quantum", "20", "--expr", "(+ 2 3)"]) == 0
+    assert capsys.readouterr().out == "5\n"
 
 
-def test_cli_red2_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
+def test_red2_cli_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
     assert (
-        main(
+        red2_main(
             [
-                "--model",
-                "red2",
                 "--quantum",
                 "20",
                 "--stack-size-in-bytes",
@@ -37,73 +37,23 @@ def test_cli_red2_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
         == 0
     )
     captured = capsys.readouterr()
-    assert captured.out.strip() == "5"
+    assert captured.out == "5\n"
+    assert captured.err == ""
 
 
-def test_cli_thor_rejects_explicit_resource_limits(
+def test_thor_cli_rejects_explicit_resource_limits(
     capsys: CaptureFixture[str],
 ) -> None:
-    assert (
-        main(
-            [
-                "--model",
-                "thor",
-                "--stack-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(+ 2 3)",
-            ]
-        )
-        == 2
-    )
-    captured = capsys.readouterr()
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_cli_thor_rejects_explicit_resource_limits_without_source(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["--model", "thor", "--stack-size-in-bytes", "1"]) == 2
+    assert thor_main(["--stack-size-in-bytes", "1", "--expr", "(+ 2 3)"]) == 2
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "resource limits are currently supported for red2 only" in captured.err
 
 
-def test_cli_parity_rejects_explicit_resource_limits(
-    capsys: CaptureFixture[str],
-) -> None:
+def test_red2_cli_reports_stack_overflow(capsys: CaptureFixture[str]) -> None:
     assert (
-        main(
+        red2_main(
             [
-                "--model",
-                "parity",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(+ 2 3)",
-            ]
-        )
-        == 2
-    )
-    captured = capsys.readouterr()
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_cli_parity_rejects_explicit_resource_limits_without_source(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["--model", "parity", "--heap-size-in-bytes", "1"]) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_cli_red2_reports_stack_overflow(capsys: CaptureFixture[str]) -> None:
-    assert (
-        main(
-            [
-                "--model",
-                "red2",
                 "--stack-size-in-bytes",
                 "1",
                 "--heap-size-in-bytes",
@@ -115,108 +65,35 @@ def test_cli_red2_reports_stack_overflow(capsys: CaptureFixture[str]) -> None:
         == 2
     )
     captured = capsys.readouterr()
+    assert captured.out == ""
     assert "RED2 stack overflow" in captured.err
 
 
-def test_cli_parity_model_reports_matching_prefixes(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["--model", "parity", "--quantum", "3", "--expr", "(+ 2 3)"]) == 0
-    captured = capsys.readouterr()
-    assert captured.out == "5\n"
-    assert (
-        "parity ok: 4 prefix snapshot(s) matched through quantum 3"
-        in captured.err
-    )
-
-
-def test_cli_parity_model_reports_each_mismatch_range_and_final_match_exit_zero(
-    capsys: CaptureFixture[str],
-) -> None:
-    source = """
-    fib == (lambda (n)
-      (letrec ((fib-iter
-                (lambda (i current next)
-                  (if (= i 0)
-                      current
-                      (fib-iter (1- i) next (+ current next))))))
-        (fib-iter n 0 1)))
-    fib-six == (fib 6)
-    fib-six
-    """
-
-    assert main(["--model", "parity", "--quantum", "75", "--expr", source]) == 0
-    captured = capsys.readouterr()
-    assert captured.out == "(+ 3 (+ 2 (+ 1 2)))\n"
-    assert "parity mismatch at quantum 3\n" in captured.err
-    assert "parity reconverged at quantum 5\n" in captured.err
-    assert "parity mismatch at quantum 8\n" in captured.err
-    assert "parity reconverged at quantum 9\n" in captured.err
-    assert "mismatch ranges:" not in captured.err
-    assert "parity final quantum 75 matched" in captured.err
-    assert captured.err.count("thor:") == 14
-    assert captured.err.count("red2:") == 14
-
-
-def test_cli_parity_model_exits_one_when_final_snapshot_mismatches(
-    capsys: CaptureFixture[str],
-) -> None:
-    source = """
-    fib == (lambda (n)
-      (letrec ((fib-iter
-                (lambda (i current next)
-                  (if (= i 0)
-                      current
-                      (fib-iter (1- i) next (+ current next))))))
-        (fib-iter n 0 1)))
-    fib-six == (fib 6)
-    fib-six
-    """
-
-    assert main(["--model", "parity", "--quantum", "3", "--expr", source]) == 1
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "parity mismatch at quantum 3" in captured.err
-    assert "parity did not reconverge by quantum 3" in captured.err
-    assert "parity final quantum 3 mismatched" in captured.err
-
-
-def test_cli_thor_subcommand_runs_io_quiet_by_default(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["thor", "--expr", "(UART-TX 65)"]) == 0
+def test_thor_cli_runs_io_quiet_by_default(capsys: CaptureFixture[str]) -> None:
+    assert thor_main(["--expr", "(UART-TX 65)"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == "A"
     assert captured.err == ""
 
 
-def test_cli_red2_subcommand_runs_io_quiet_by_default(
+def test_red2_cli_runs_io_quiet_by_default(
     capsys: CaptureFixture[str],
     monkeypatch: MonkeyPatch,
 ) -> None:
     monkeypatch.setattr("sys.stdin", StringIO("B"))
 
-    assert main(
-        [
-            "red2",
-            "--expr",
-            "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))",
-        ]
-    ) == 0
+    assert red2_main(["--expr", "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == "B"
     assert captured.err == ""
 
 
-def test_cli_red2_subcommand_accepts_resource_limits(
-    capsys: CaptureFixture[str],
-) -> None:
+def test_red2_cli_io_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
     assert (
-        main(
+        red2_main(
             [
-                "red2",
                 "--stack-size-in-bytes",
                 "1000000",
                 "--heap-size-in-bytes",
@@ -233,168 +110,85 @@ def test_cli_red2_subcommand_accepts_resource_limits(
     assert captured.err == ""
 
 
-def test_cli_thor_subcommand_rejects_explicit_resource_limits_without_source(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["thor", "--stack-size-in-bytes", "1"]) == 2
-
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_cli_thor_subcommand_rejects_explicit_resource_limits(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert (
-        main(
-            [
-                "thor",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(UART-TX 65)",
-            ]
-        )
-        == 2
-    )
-
-    captured = capsys.readouterr()
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_cli_model_subcommand_verbose_reports_io_result(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["thor", "--verbose", "--expr", "(UART-TX 65)"]) == 0
+def test_cli_verbose_reports_io_result(capsys: CaptureFixture[str]) -> None:
+    assert thor_main(["--verbose", "--expr", "(UART-TX 65)"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == "A"
     assert captured.err == "io result: NIL\n"
 
 
-def test_cli_thor_subcommand_uses_clock_file(
+def test_thor_cli_uses_clock_file(
     capsys: CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
     clock = tmp_path / "clock.txt"
     clock.write_text("1700000000123\n")
 
-    assert main(["thor", "--clock", str(clock), "--expr", "(CLOCK)"]) == 0
+    assert thor_main(["--clock", str(clock), "--expr", "(CLOCK)"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
 
 
-def test_cli_red2_subcommand_uses_clock_file(
+def test_red2_cli_uses_clock_file(
     capsys: CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
     clock = tmp_path / "clock.txt"
     clock.write_text("1700000000456\n")
 
-    assert main(["red2", "--clock", str(clock), "--expr", "(CLOCK)"]) == 0
+    assert red2_main(["--clock", str(clock), "--expr", "(CLOCK)"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
 
 
-def test_cli_io_mode_uses_stdout_for_uart_and_stderr_for_result(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["--io", "--model", "thor", "--expr", "(UART-TX 65)"]) == 0
-    captured = capsys.readouterr()
-    assert captured.out == "A"
-    assert captured.err == "io result: NIL\n"
-
-
-def test_cli_io_mode_reads_uart_from_stdin(
-    capsys: CaptureFixture[str],
-    monkeypatch: MonkeyPatch,
-) -> None:
-    monkeypatch.setattr("sys.stdin", StringIO("B"))
-
-    assert main(
-        [
-            "--io",
-            "--model",
-            "red2",
-            "--expr",
-            "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))",
-        ]
-    ) == 0
-    captured = capsys.readouterr()
-    assert captured.out == "B"
-    assert captured.err == "io result: NIL\n"
-
-
-def test_cli_io_mode_red2_reports_resource_limit_from_pure_expression(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert (
-        main(
-            [
-                "--io",
-                "--model",
-                "red2",
-                "--stack-size-in-bytes",
-                "1",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(UART-TX ((LAMBDA (X) X) 65))",
-            ]
-        )
-        == 2
-    )
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "RED2 stack overflow" in captured.err
-
-
-def test_cli_io_mode_rejects_parity_model(capsys: CaptureFixture[str]) -> None:
-    assert main(["--io", "--model", "parity", "--expr", "(UART-TX 65)"]) == 2
-    captured = capsys.readouterr()
-    assert "--io supports only --model thor or --model red2" in captured.err
-
-
-def test_cli_compile_and_run_red2_bytecode(
+def test_thor_cli_runs_file_as_io_action(
     capsys: CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
-    output = tmp_path / "add.red2"
+    source = tmp_path / "hello.thor"
+    source.write_text("(UART-TX 65)\n")
 
-    assert main(["compile-red2", "--expr", "(+ 2 3)", "--output", str(output)]) == 0
+    assert thor_main([str(source)]) == 0
+
     captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "wrote RED2 bytecode" in captured.err
-    assert output.read_bytes().startswith(b"RED2")
-
-    assert main(["run-red2", "--bytecode", str(output), "--quantum", "20"]) == 0
-    assert capsys.readouterr().out == "5\n"
-
-    assert (
-        main(
-            [
-                "run-red2",
-                "--bytecode",
-                str(output),
-                "--quantum",
-                "20",
-                "--stack-size-in-bytes",
-                "1000000",
-                "--heap-size-in-bytes",
-                "1000000",
-            ]
-        )
-        == 0
-    )
-    assert capsys.readouterr().out == "5\n"
+    assert captured.out == "A"
+    assert captured.err == ""
 
 
-def test_cli_compile_red2_file_bundles_top_level_definitions(
+def test_thor_cli_runs_pure_file(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "add.thor"
+    source.write_text("(+ 2 3)\n")
+
+    assert thor_main([str(source), "--quantum", "20"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "5\n"
+    assert captured.err == ""
+
+
+def test_red2_cli_runs_pure_file(
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "add.thor"
+    source.write_text("(+ 2 3)\n")
+
+    assert red2_main([str(source), "--quantum", "20"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "5\n"
+    assert captured.err == ""
+
+
+def test_compile_cli_file_bundles_top_level_definitions(
     capsys: CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
@@ -402,33 +196,20 @@ def test_cli_compile_red2_file_bundles_top_level_definitions(
     source.write_text("inc == (lambda (x) (+ x 1))\n(inc 41)\n")
     output = tmp_path / "inc.red2"
 
-    assert main(["compile-red2", "--file", str(source), "--output", str(output)]) == 0
+    assert compile_main([str(source), "--output", str(output)]) == 0
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "wrote RED2 bytecode" in captured.err
     assert output.read_bytes()[4:6] == b"\x02\x00"
 
-    assert main(["run-red2", "--bytecode", str(output), "--quantum", "20"]) == 0
-    assert capsys.readouterr().out == "42\n"
 
-
-def test_cli_compile_red2_rejects_program_without_expression(
+def test_compile_cli_rejects_program_without_expression(
     capsys: CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
     output = tmp_path / "bad.red2"
 
-    assert (
-        main(["compile-red2", "--expr", "answer == 42", "--output", str(output)])
-        == 2
-    )
+    assert compile_main(["--expr", "answer == 42", "--output", str(output)]) == 2
     captured = capsys.readouterr()
-    assert "compile-red2 requires a final expression" in captured.err
-
-
-def test_cli_parity_model_rejects_negative_quantum(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert main(["--model", "parity", "--quantum", "-1", "--expr", "(+ 2 3)"]) == 2
-    captured = capsys.readouterr()
-    assert "max_quantum must be non-negative" in captured.err
+    assert captured.out == ""
+    assert "compile requires a final expression" in captured.err

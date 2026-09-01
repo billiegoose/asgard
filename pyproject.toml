@@ -13,7 +13,9 @@ authors = [{ name = "Billie" }]
 dependencies = []
 
 [project.scripts]
-thor-spec = "thor_spec.cli:main"
+thor = "thor_engine.cli:main"
+red2 = "red2_engine.cli:main"
+compile = "thor_compile.cli:main"
 
 [dependency-groups]
 dev = [
@@ -24,7 +26,13 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["models/python/thor_spec", "models/python/pypeline_red2"]
+packages = [
+  "models/python/thor_lang",
+  "models/python/thor_engine",
+  "models/python/red2_engine",
+  "models/python/thor_compile",
+  "models/python/pypeline_red2",
+]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]

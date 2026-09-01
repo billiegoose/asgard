@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from thor_spec.ast import (
+from thor_engine.golden import run_source
+from thor_lang.ast import (
     App,
     Binding,
     Block,
@@ -17,9 +18,8 @@ from thor_spec.ast import (
     Symbol,
     Var,
 )
-from thor_spec.golden import run_source
-from thor_spec.parser import ParseError, parse_expr
-from thor_spec.pretty import to_source
+from thor_lang.parser import ParseError, parse_expr
+from thor_lang.pretty import to_source
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +101,24 @@ def _snapshot(source: str, *, quantum: int) -> ParitySnapshot:
         red2=red2,
         matches=_canonical_output(thor) == _canonical_output(red2),
     )
+
+
+def format_mismatch_report(result: ParityResult) -> str:
+    """Return the detailed parity mismatch report used by CLI/task wrappers."""
+    snapshots = {snapshot.quantum: snapshot for snapshot in result.snapshots}
+    lines: list[str] = []
+    for start, end in result.mismatch_ranges:
+        mismatch = snapshots[start]
+        lines.append(f"parity mismatch at quantum {start}")
+        lines.append(f"thor: {mismatch.thor}")
+        lines.append(f"red2: {mismatch.red2}")
+        reconverged = snapshots.get(end + 1)
+        if reconverged is not None and reconverged.matches:
+            lines.append(f"parity reconverged at quantum {reconverged.quantum}")
+        else:
+            lines.append(f"parity did not reconverge by quantum {result.max_quantum}")
+        lines.append("")
+    return "\n".join(lines)
 
 
 def _canonical_output(output: str) -> str:

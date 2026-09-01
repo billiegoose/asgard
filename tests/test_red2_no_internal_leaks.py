@@ -1,4 +1,4 @@
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def test_red2_partial_lambda_application_does_not_print_pnp() -> None:

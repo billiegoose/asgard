@@ -1,4 +1,4 @@
-from thor_spec.lockstep import compare_prefixes
+from thor_engine.lockstep import compare_prefixes, format_mismatch_report
 
 
 def test_compare_prefixes_reports_all_matching_snapshots() -> None:
@@ -44,3 +44,15 @@ def test_compare_prefixes_reports_partial_fibonacci_shape_mismatch() -> None:
     assert result.final_snapshot.matches
     assert result.snapshots[75].thor == "(+ 3 (+ 2 (+ 1 2)))"
     assert result.snapshots[75].red2 == "(+ 3 (+ 2 (+ 1 2)))"
+
+
+def test_format_mismatch_report_includes_ranges_and_reconvergence() -> None:
+    result = compare_prefixes(FIBONACCI_SOURCE, max_quantum=75)
+
+    report = format_mismatch_report(result)
+
+    assert "parity mismatch at quantum 3" in report
+    assert "thor: (LETREC" in report
+    assert "red2: " in report
+    assert "parity reconverged at quantum 5" in report
+    assert "parity mismatch at quantum 65" in report

@@ -19,13 +19,13 @@ FPGA memory-map or flash partition format.
 Compile THOR source to `.red2`:
 
 ```sh
-uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
+uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
 ```
 
-Run a `.red2` image with the Python RED2 VM:
+Run a `.red2` image with the Rust RED2 VM:
 
 ```sh
-uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
+cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 ```
 
 The compiler command serializes the final expression and bundles top-level THOR
@@ -141,8 +141,7 @@ Lower-level commands are useful when inspecting the `.red2` format or debugging
 an executor against a precompiled bytecode bundle:
 
 ```sh
-uv run thor-spec compile-red2 --expr "(+ 2 3)" --output /tmp/add.red2
-uv run thor-spec run-red2 --bytecode /tmp/add.red2 --quantum 20
+uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
 cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 cargo run -p red2-wasm -- /tmp/breakout.red2 --quantum 12000 --clock /tmp/asgard-clock
 ```

@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from thor_spec.ast import Definition, Expr, StructDef
-from thor_spec.normalization import normalize_program
-from thor_spec.parser import parse_expr, parse_program
-from thor_spec.pretty import to_source
-from thor_spec.red2.binary import (
+from red2_engine.binary import (
     MAGIC,
     Red2BinaryError,
     decode_bundle,
@@ -12,8 +8,12 @@ from thor_spec.red2.binary import (
     encode_bundle,
     encode_program_image,
 )
-from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine
+from red2_engine.machine import Red2Machine
+from thor_compile.red2 import compile_definitions, compile_expr
+from thor_lang.ast import Definition, Expr, StructDef
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import parse_expr, parse_program
+from thor_lang.pretty import to_source
 
 
 def test_red2_binary_starts_with_magic_and_version_2() -> None:

@@ -3,15 +3,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Literal
 
-from thor_spec.ast import Definition, Expr, Program, StructDef, Symbol
-from thor_spec.normalization import normalize_program
-from thor_spec.parser import parse_program
-from thor_spec.pretty import to_source
-from thor_spec.primitives import install_struct_definition
-from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine, Red2ResourceLimits
-from thor_spec.red2.primitives import register_struct_accessors
-from thor_spec.semantics import reduce_expr
+from red2_engine.machine import Red2Machine, Red2ResourceLimits
+from red2_engine.primitives import register_struct_accessors
+from thor_compile.red2 import compile_definitions, compile_expr
+from thor_engine.semantics import reduce_expr
+from thor_lang.ast import Definition, Expr, Program, StructDef, Symbol
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import parse_program
+from thor_lang.pretty import to_source
+from thor_lang.primitives import install_struct_definition
 
 ModelName = Literal["thor", "red2"]
 DEFAULT_QUANTUM = 100

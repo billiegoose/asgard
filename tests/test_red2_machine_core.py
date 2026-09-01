@@ -2,18 +2,18 @@ import sys
 
 import pytest
 
-from thor_spec.ast import Integer, StructLit, Symbol
-from thor_spec.parser import parse_expr
-from thor_spec.pretty import to_source
-from thor_spec.red2.compiler import compile_expr
-from thor_spec.red2.instructions import Opcode
-from thor_spec.red2.machine import (
+from red2_engine.instructions import Opcode
+from red2_engine.machine import (
     Direction,
     Red2HeapExhaustedError,
     Red2Machine,
     Red2ResourceLimits,
     Red2StackOverflowError,
 )
+from thor_compile.red2 import compile_expr
+from thor_lang.ast import Integer, StructLit, Symbol
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
 
 
 def machine(source: str, quantum: int = 10) -> Red2Machine:

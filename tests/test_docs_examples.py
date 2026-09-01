@@ -12,10 +12,18 @@ def test_traceability_doc_names_models_and_thesis_chapters() -> None:
     assert "faithful research prototype" in text
 
 
-def test_readme_mentions_both_models() -> None:
+def test_readme_mentions_direct_python_commands() -> None:
     text = Path("README.md").read_text()
-    assert "--model thor" in text
-    assert "--model red2" in text
+    assert "uv run thor --expr" in text
+    assert "uv run red2 --expr" in text
+    assert "uv run compile --expr" in text
+    assert "uv run thor-spec" not in text
+
+
+def test_red2_bytecode_doc_mentions_direct_compile_command() -> None:
+    text = Path("docs/red2-bytecode.md").read_text()
+    assert "uv run compile --expr" in text
+    assert "uv run thor-spec" not in text
 
 
 def test_readme_links_primitive_reference() -> None:

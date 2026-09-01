@@ -1,4 +1,4 @@
-from thor_spec.ast import (
+from thor_lang.ast import (
     App,
     Binding,
     Integer,
@@ -7,8 +7,8 @@ from thor_spec.ast import (
     StructLit,
     Symbol,
 )
-from thor_spec.parser import parse_expr, parse_program
-from thor_spec.pretty import to_source
+from thor_lang.parser import parse_expr, parse_program
+from thor_lang.pretty import to_source
 
 
 def test_lambda_application_round_trips() -> None:

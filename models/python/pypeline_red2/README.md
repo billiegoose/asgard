@@ -8,7 +8,7 @@ a time and returns packed status metadata instead of mutating RED2 graph memory.
 
 ## Mapping to the Python Model
 
-The instruction word layout matches `thor_spec.red2.instructions`:
+The instruction word layout matches `red2_engine.instructions`:
 
 - bit 31: head flag
 - bits 24..30: opcode number

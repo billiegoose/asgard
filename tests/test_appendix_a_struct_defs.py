@@ -1,4 +1,4 @@
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def test_tree_struct_definition_installs_appendix_a_helpers() -> None:

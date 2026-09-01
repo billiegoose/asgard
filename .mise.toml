@@ -18,7 +18,7 @@ run = '''
 if [ -t 0 ]; then
   saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
-uv run thor-spec thor "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+uv run thor "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 exit $?
 '''
 
@@ -36,7 +36,7 @@ run = '''
 if [ -t 0 ]; then
   saved_tty=$(stty -g); restore_tty() { stty "$saved_tty"; printf '\033[?25h'; }; trap restore_tty EXIT HUP INT TERM; stty -icanon -echo min 1 time 0
 fi
-uv run thor-spec red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+uv run red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 exit $?
 '''
 
@@ -56,7 +56,7 @@ if [ -t 0 ]; then
 fi
 INPUT_FILE="${usage_file}"
 IMAGE_FILE="${INPUT_FILE%.thor}.red2"
-uv run thor-spec compile-red2 --file "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || exit $?
+uv run compile "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || exit $?
 cargo run -p red2-wasm --quiet -- "$IMAGE_FILE" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
 exit $?
 '''
@@ -77,8 +77,8 @@ if [ -t 0 ]; then
 fi
 INPUT_FILE="${usage_file}"
 IMAGE_FILE="${INPUT_FILE%.thor}.red2"
-uv run thor-spec compile-red2 --file "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || $?
-cargo build -p red2-wasm --target wasm32-wasi --quiet || $?
+uv run compile "$INPUT_FILE" --output "$IMAGE_FILE" >/dev/null 2>/dev/null || exit $?
+cargo build -p red2-wasm --target wasm32-wasi --quiet || exit $?
 wasmtime --dir "$(dirname "$IMAGE_FILE")" --dir "$(dirname "${usage_clock:-$tmp}")" target/wasm32-wasi/debug/red2-wasm.wasm "$IMAGE_FILE" --quantum "${usage_quantum?}" ${usage_clock:+--clock "$usage_clock"} ${usage_verbose:+--verbose}
 exit $?
 '''
@@ -91,7 +91,32 @@ arg "<file>" help="THOR source file"
 flag "--quantum <n>" help="maximum contraction quantum" default="2000"
 '''
 run = '''
-uv run thor-spec --model parity --file "${usage_file?}" --quantum "${usage_quantum?}"
+uv run python - "${usage_file?}" "${usage_quantum?}" <<'PY'
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from thor_engine.lockstep import compare_prefixes, format_mismatch_report
+
+source = Path(sys.argv[1]).read_text()
+quantum = int(sys.argv[2])
+result = compare_prefixes(source, max_quantum=quantum)
+final = result.final_snapshot
+if result.first_mismatch is None:
+    print(
+        "parity ok: "
+        f"{len(result.snapshots)} prefix snapshot(s) matched through quantum {quantum}",
+        file=sys.stderr,
+    )
+    if final is not None and final.thor:
+        print(final.thor)
+    raise SystemExit(0)
+print(format_mismatch_report(result), file=sys.stderr, end="")
+if final is not None and final.thor:
+    print(final.thor)
+raise SystemExit(0 if final is not None and final.matches else 1)
+PY
 '''
 
 [tasks.hdl]

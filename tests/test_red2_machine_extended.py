@@ -1,9 +1,9 @@
-from thor_spec.parser import parse_expr
-from thor_spec.pretty import to_source
-from thor_spec.red2.compiler import compile_expr
-from thor_spec.red2.machine import Red2Machine
-from thor_spec.red2.primitives import instructions_to_expr
-from thor_spec.semantics import reduce_expr
+from red2_engine.machine import Red2Machine
+from red2_engine.primitives import instructions_to_expr
+from thor_compile.red2 import compile_expr
+from thor_engine.semantics import reduce_expr
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
 
 
 def run_red2(source: str, quantum: int = 30) -> str:

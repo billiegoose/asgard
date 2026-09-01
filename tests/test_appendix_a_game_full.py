@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def fixture_source_without_benchmark() -> str:

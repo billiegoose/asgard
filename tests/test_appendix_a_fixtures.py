@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def assert_fixture_parity(path: str, expected: str, quantum: int) -> None:

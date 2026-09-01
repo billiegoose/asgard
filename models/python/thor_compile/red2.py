@@ -3,7 +3,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import replace
 
-from thor_spec.ast import (
+from red2_engine.instructions import (
+    DefinitionImage,
+    Instruction,
+    Opcode,
+    ProgramImage,
+)
+from thor_lang.ast import (
     App,
     Char,
     Expr,
@@ -14,12 +20,6 @@ from thor_spec.ast import (
     StructLit,
     Symbol,
     Var,
-)
-from thor_spec.red2.instructions import (
-    DefinitionImage,
-    Instruction,
-    Opcode,
-    ProgramImage,
 )
 
 Scope = tuple[str, ...]

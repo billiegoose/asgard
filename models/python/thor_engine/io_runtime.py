@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
 
-from thor_spec.ast import (
+from red2_engine.machine import Red2DefinitionCache, Red2Machine, Red2ResourceLimits
+from red2_engine.primitives import register_struct_accessors
+from thor_compile.red2 import compile_definitions, compile_expr
+from thor_engine.golden import ModelName
+from thor_engine.semantics import reduce_expr
+from thor_lang.ast import (
     App,
     Binding,
     Block,
@@ -25,15 +30,10 @@ from thor_spec.ast import (
     Symbol,
     Var,
 )
-from thor_spec.golden import ModelName
-from thor_spec.normalization import normalize_program
-from thor_spec.parser import parse_program
-from thor_spec.pretty import to_source
-from thor_spec.primitives import install_struct_definition
-from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2DefinitionCache, Red2Machine, Red2ResourceLimits
-from thor_spec.red2.primitives import register_struct_accessors
-from thor_spec.semantics import reduce_expr
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import parse_program
+from thor_lang.pretty import to_source
+from thor_lang.primitives import install_struct_definition
 
 
 class IoRuntimeError(RuntimeError):

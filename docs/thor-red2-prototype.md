@@ -17,15 +17,15 @@ The current user-visible primitive surface is documented in
 
 ## Thesis Traceability
 
-- `models/python/thor_spec/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 THOR
+- `models/python/thor_lang/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 THOR
   syntax, source forms, and the Figure 3.1 translation from named binders to
   De Bruijn-style variables.
-- `models/python/thor_spec/semantics.py` and `models/python/thor_spec/primitives.py` implement the
+- `models/python/thor_engine/semantics.py` and `models/python/thor_lang/primitives.py` implement the
   Chapter 3 abstract interpreter behavior for Rules 1-29, including beta
   contraction, passive data, definitions, primitives, structures, `Y`, and
   `LETREC` reconstruction.
-- `models/python/thor_spec/red2/compiler.py`, `red2/instructions.py`,
-  `red2/machine.py`, and `red2/primitives.py` map the same AST to the Chapter 4
+- `models/python/thor_compile/red2.py`, `models/python/red2_engine/instructions.py`,
+  `machine.py`, and `primitives.py` map the same AST to the Chapter 4
   RED2 execution model: instruction memory, head flags, stacks, lookup, strict
   primitives, structures, and recursive blocks.
 - `tests/fixtures/appendix_a/sine_core.thor`,
@@ -35,7 +35,7 @@ The current user-visible primitive surface is documented in
   and GAME benchmark fixtures with THOR/RED2 parity smoke tests.
 - `tools/vscode-thor/` contains a local VS Code-compatible TextMate syntax extension
   for `.thor` files, with examples derived from THOR fixtures.
-- `models/python/thor_spec/red2/pipelinec_vectors.py` and
+- `models/python/red2_engine/pipelinec_vectors.py` and
   `models/python/pypeline_red2/red2_stepper.py` trace the Chapter 4 instruction
   encoding into a small PypelineC stepper subset with golden vectors. See
   `models/python/pypeline_red2/README.md` for the optional external
@@ -59,13 +59,13 @@ The current user-visible primitive surface is documented in
 Run the Chapter 3 THOR reference model:
 
 ```sh
-uv run thor-spec --model thor --quantum 20 --expr "(+ 2 3)"
+uv run thor --expr "(+ 2 3)" --quantum 20
 ```
 
 Run the Chapter 4 RED2 model on the same expression:
 
 ```sh
-uv run thor-spec --model red2 --quantum 20 --expr "(+ 2 3)"
+uv run red2 --expr "(+ 2 3)" --quantum 20
 ```
 
 Both commands should print:
@@ -76,8 +76,8 @@ Both commands should print:
 
 ## Lockstep Parity Mode
 
-`thor-spec --model parity` compares THOR and RED2 at contraction-prefix
-snapshots. For `--quantum N`, it runs both models for every quantum from `0`
+`mise run parity` compares THOR and RED2 at contraction-prefix
+snapshots for source files. For `--quantum N`, it runs both models for every quantum from `0`
 through `N`, alpha-normalizes bound-variable rendering differences such as RED2
 `(VAR 0)` output, and compares the user-facing expressions at every prefix.
 
@@ -93,11 +93,11 @@ final quantum still differs.
 Example matching-prefix check:
 
 ```sh
-uv run thor-spec --model parity --quantum 10 --expr "((LAMBDA (X) X) 42)"
+mise run parity examples/fibonacci.thor --quantum 10
 ```
 
 Example diagnostic check that reports the first Fibonacci prefix mismatch:
 
 ```sh
-uv run thor-spec --model parity --quantum 75 --file examples/fibonacci.thor
+mise run parity examples/fibonacci.thor --quantum 75
 ```

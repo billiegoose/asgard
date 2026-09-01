@@ -1,7 +1,7 @@
 ; Print ASCII digits and letters over the simulated UART, then stop.
 ;
 ; Run with:
-;   uv run thor-spec --io --model thor --file examples/uart-alphanumerics.thor
+;   uv run thor examples/uart-alphanumerics.thor
 
 emit-range == (lambda (from to next)
   (if (<= from to)

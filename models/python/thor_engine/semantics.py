@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 
-from thor_spec.ast import (
+from thor_lang.ast import (
     App,
     Binding,
     Block,
@@ -18,7 +18,7 @@ from thor_spec.ast import (
     Symbol,
     Var,
 )
-from thor_spec.primitives import EvalState, ReductionRequest, try_reduce_primitive
+from thor_lang.primitives import EvalState, ReductionRequest, try_reduce_primitive
 
 
 @dataclass(frozen=True, slots=True)

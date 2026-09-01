@@ -175,13 +175,13 @@ They are not all present today.
 
 ## Simulator IO Actions
 
-`thor-spec --io` runs the final top-level expression as a host-simulated IO
-action. Pure `thor`/`red2` execution is unchanged unless `--io` is explicitly
-passed.
+`uv run thor` and `uv run red2` run source-file programs as host-simulated IO
+actions. With `--expr`, they run IO actions through the simulator and pure
+expressions through the normal THOR/RED2 reducers.
 
-IO mode reserves stdout for simulated UART output. The CLI prints the final IO
-action result and device diagnostics to stderr so stdout can be piped as a byte
-stream.
+IO execution reserves stdout for simulated UART output. Add `--verbose` to print
+the final IO action result and device diagnostics to stderr so stdout can be
+piped as a byte stream.
 
 ### IO Combinators
 

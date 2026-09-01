@@ -268,7 +268,7 @@ def test_mise_wasm_runs_breakout_with_controlled_clock(tmp_path: Path) -> None:
     assert result.stderr == ""
 
 
-def test_mise_parity_reports_diagnostics() -> None:
+def test_mise_parity_reports_detailed_diagnostics() -> None:
     result = run_mise_task(
         "parity",
         "examples/fibonacci.thor",
@@ -278,7 +278,20 @@ def test_mise_parity_reports_diagnostics() -> None:
 
     assert result.returncode == 0
     assert result.stdout != ""
-    assert "parity" in result.stderr
+    assert "parity mismatch at quantum 3" in result.stderr
+    assert "thor: " in result.stderr
+    assert "red2: " in result.stderr
+    assert "parity reconverged at quantum 5" in result.stderr
+
+
+def test_wasm_task_exits_on_compile_and_build_failures() -> None:
+    mise = Path(".mise.toml").read_text()
+
+    assert (
+        'uv run compile "$INPUT_FILE" --output "$IMAGE_FILE" '
+        ">/dev/null 2>/dev/null || exit $?"
+    ) in mise
+    assert "cargo build -p red2-wasm --target wasm32-wasi --quiet || exit $?" in mise
 
 
 def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:

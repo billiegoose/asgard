@@ -1,8 +1,8 @@
 import sys
 
-from thor_spec.parser import parse_expr
-from thor_spec.pretty import to_source
-from thor_spec.semantics import reduce_expr
+from thor_engine.semantics import reduce_expr
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
 
 
 def test_y_operator_retains_identity_under_small_quantum() -> None:

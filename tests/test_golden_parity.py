@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from thor_spec.golden import run_source
-from thor_spec.lockstep import compare_prefixes
+from thor_engine.golden import run_source
+from thor_engine.lockstep import compare_prefixes
 
 
 def test_golden_examples_match_between_thor_and_red2() -> None:

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from struct import calcsize, pack, unpack_from
 from zlib import crc32
 
-from thor_spec.red2.instructions import (
+from red2_engine.instructions import (
     DefinitionImage,
     Instruction,
     InstructionData,

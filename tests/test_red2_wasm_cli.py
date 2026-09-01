@@ -7,11 +7,11 @@ import subprocess
 import time
 from pathlib import Path
 
-from thor_spec.ast import Definition, Expr, StructDef
-from thor_spec.normalization import normalize_program
-from thor_spec.parser import parse_program
-from thor_spec.red2.binary import encode_bundle
-from thor_spec.red2.compiler import compile_definitions, compile_expr
+from red2_engine.binary import encode_bundle
+from thor_compile.red2 import compile_definitions, compile_expr
+from thor_lang.ast import Definition, Expr, StructDef
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import parse_program
 
 
 def write_bytecode(tmp_path: Path, source: str) -> Path:

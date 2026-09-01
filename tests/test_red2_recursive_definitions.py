@@ -1,4 +1,4 @@
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def test_recursive_top_level_factorial_definition_matches_thor() -> None:

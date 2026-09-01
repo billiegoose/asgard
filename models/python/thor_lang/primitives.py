@@ -6,7 +6,7 @@ from math import ceil, floor
 from operator import add, mod, mul, sub, truediv
 from typing import Protocol
 
-from thor_spec.ast import (
+from thor_lang.ast import (
     App,
     Char,
     Expr,

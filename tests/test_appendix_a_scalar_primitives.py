@@ -1,4 +1,4 @@
-from thor_spec.golden import run_source
+from thor_engine.golden import run_source
 
 
 def both(source: str, quantum: int = 50) -> tuple[str, str]:

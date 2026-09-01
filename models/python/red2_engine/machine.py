@@ -6,14 +6,13 @@ from enum import Enum, auto
 from itertools import pairwise
 from typing import assert_never
 
-from thor_spec.ast import App, Binding, Expr, Lambda, LetRec, StructLit, Symbol, Var
-from thor_spec.red2.instructions import (
+from red2_engine.instructions import (
     DefinitionImage,
     Instruction,
     Opcode,
     ProgramImage,
 )
-from thor_spec.red2.primitives import (
+from red2_engine.primitives import (
     FALSE,
     TRUE,
     fire_primitive,
@@ -21,6 +20,7 @@ from thor_spec.red2.primitives import (
     primitive_name,
     struct_accessor,
 )
+from thor_lang.ast import App, Binding, Expr, Lambda, LetRec, StructLit, Symbol, Var
 
 DEFAULT_STACK_SIZE_IN_BYTES = 1024 * 1024
 DEFAULT_HEAP_SIZE_IN_BYTES = 16 * 1024 * 1024

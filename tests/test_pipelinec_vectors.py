@@ -1,5 +1,5 @@
-from thor_spec.red2.instructions import Instruction, Opcode, encode_instruction
-from thor_spec.red2.pipelinec_vectors import emit_stepper_vectors
+from red2_engine.instructions import Instruction, Opcode, encode_instruction
+from red2_engine.pipelinec_vectors import emit_stepper_vectors
 
 
 def test_stepper_vectors_include_passive_int_and_stop() -> None:
