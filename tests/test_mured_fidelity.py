@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from red2_engine.mured import Direction, MuredMachine, MuredOpcode
+from red2_engine.mured import Direction, MuredMachine, MuredOpcode, Word
 from thor_engine.semantics import reduce_expr
 from thor_lang.ast import App, Expr, Lambda
 from thor_lang.parser import parse_expr
@@ -40,6 +40,49 @@ def snapshot(machine: MuredMachine) -> tuple[object, ...]:
     )
 
 
+def dense_words(
+    memory: list[Word | None], start: int, stop: int
+) -> tuple[tuple[int, Word], ...]:
+    items: list[tuple[int, Word]] = []
+    for address in range(start, stop):
+        word = memory[address]
+        if word is not None:
+            items.append((address, word))
+    return tuple(items)
+
+
+def control_contents(
+    control_stack: list[int | None], c: int
+) -> tuple[int, ...]:
+    if c < 0:
+        return ()
+    items: list[int] = []
+    for value in control_stack[: c + 1]:
+        if value is not None:
+            items.append(value)
+    return tuple(items)
+
+
+def detailed_snapshot(machine: MuredMachine) -> tuple[object, ...]:
+    state = machine.state
+    word = state.memory[state.pc]
+    assert word is not None
+    return (
+        state.cycles,
+        word.opcode,
+        state.direction,
+        state.pc,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+        dense_words(state.memory, 0, state.env),
+        dense_words(state.memory, state.env, len(state.memory)),
+        control_contents(state.control_stack, state.c),
+    )
+
+
 def test_closed_identity_matches_manual_chapter4_cycle_trace() -> None:
     machine = MuredMachine.from_expr(
         parse_expr("(LAMBDA (x) x)"),
@@ -61,6 +104,379 @@ def test_closed_identity_matches_manual_chapter4_cycle_trace() -> None:
     ]
     assert machine.state.pc == 3
     assert to_source(machine.result_expr()) == "(LAMBDA (x) x)"
+
+
+def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
+    lambda_f = Word(MuredOpcode.LAMBDA, "f")
+    lambda_x = Word(MuredOpcode.LAMBDA, "x")
+    app4 = Word(MuredOpcode.APP, 4)
+    var1 = Word(MuredOpcode.VAR, 1)
+    var0 = Word(MuredOpcode.VAR, 0)
+    stop = Word(MuredOpcode.STOP)
+    ubv1 = Word(MuredOpcode.UBV, 1)
+    ubv2 = Word(MuredOpcode.UBV, 2)
+    join8 = Word(MuredOpcode.JOIN, 8)
+    app11 = Word(MuredOpcode.APP, 11)
+
+    graph_0 = (
+        (0, lambda_f),
+        (1, lambda_x),
+        (2, app4),
+        (3, var1),
+        (4, var0),
+        (5, stop),
+    )
+    graph_1 = (*graph_0, (6, lambda_f))
+    graph_2 = (*graph_1, (7, lambda_x))
+    graph_3 = (*graph_2, (8, app4))
+    graph_4 = (*graph_3, (9, var1))
+    graph_5 = (*graph_4, (10, join8))
+    graph_7 = (*graph_5, (11, var0))
+    graph_8 = (*graph_7[:8], (8, app11), *graph_7[9:])
+    env_1 = ((15, ubv1),)
+    env_2 = ((14, ubv2), (15, ubv1))
+    control_1 = (14,)
+
+    machine = MuredMachine.from_expr(
+        parse_expr("(LAMBDA (f x) (f x))"),
+        quantum=10,
+        memory_words=16,
+        control_words=4,
+    )
+    trace: list[tuple[object, ...]] = []
+    while not machine.state.halted:
+        trace.append(detailed_snapshot(machine))
+        machine.step()
+
+    assert trace == [
+        (
+            0,
+            MuredOpcode.LAMBDA,
+            Direction.F,
+            0,
+            5,
+            16,
+            -1,
+            10,
+            0,
+            graph_0,
+            (),
+            (),
+        ),
+        (
+            1,
+            MuredOpcode.LAMBDA,
+            Direction.F,
+            1,
+            6,
+            15,
+            -1,
+            10,
+            1,
+            graph_1,
+            env_1,
+            (),
+        ),
+        (
+            2,
+            MuredOpcode.APP,
+            Direction.F,
+            2,
+            7,
+            14,
+            -1,
+            10,
+            2,
+            graph_2,
+            env_2,
+            (),
+        ),
+        (
+            3,
+            MuredOpcode.VAR,
+            Direction.F,
+            3,
+            8,
+            14,
+            0,
+            10,
+            2,
+            graph_3,
+            env_2,
+            control_1,
+        ),
+        (
+            4,
+            MuredOpcode.UBV,
+            Direction.F,
+            15,
+            8,
+            14,
+            0,
+            10,
+            2,
+            graph_3,
+            env_2,
+            control_1,
+        ),
+        (
+            5,
+            MuredOpcode.APP,
+            Direction.B,
+            8,
+            9,
+            14,
+            0,
+            10,
+            2,
+            graph_4,
+            env_2,
+            control_1,
+        ),
+        (
+            6,
+            MuredOpcode.VAR,
+            Direction.F,
+            4,
+            10,
+            14,
+            -1,
+            10,
+            2,
+            graph_5,
+            env_2,
+            (),
+        ),
+        (
+            7,
+            MuredOpcode.UBV,
+            Direction.F,
+            14,
+            10,
+            14,
+            -1,
+            10,
+            2,
+            graph_5,
+            env_2,
+            (),
+        ),
+        (
+            8,
+            MuredOpcode.JOIN,
+            Direction.B,
+            10,
+            11,
+            14,
+            -1,
+            10,
+            2,
+            graph_7,
+            env_2,
+            (),
+        ),
+        (
+            9,
+            MuredOpcode.LAMBDA,
+            Direction.B,
+            7,
+            11,
+            14,
+            -1,
+            10,
+            2,
+            graph_8,
+            env_2,
+            (),
+        ),
+        (
+            10,
+            MuredOpcode.LAMBDA,
+            Direction.B,
+            6,
+            11,
+            14,
+            -1,
+            10,
+            1,
+            graph_8,
+            env_2,
+            (),
+        ),
+        (
+            11,
+            MuredOpcode.STOP,
+            Direction.B,
+            5,
+            11,
+            14,
+            -1,
+            10,
+            0,
+            graph_8,
+            env_2,
+            (),
+        ),
+    ]
+    assert machine.state.pc == 6
+    assert to_source(machine.result_expr()) == "(LAMBDA (f x) (f x))"
+
+
+def test_manual_chapter4_beta_closure_quantum_trace() -> None:
+    app3 = Word(MuredOpcode.APP, 3)
+    lambda_x = Word(MuredOpcode.LAMBDA, "x")
+    lambda_y = Word(MuredOpcode.LAMBDA, "y")
+    var0 = Word(MuredOpcode.VAR, 0)
+    stop = Word(MuredOpcode.STOP)
+    closure16 = Word(MuredOpcode.CLOSURE, 16)
+    pnp16 = Word(MuredOpcode.PNP, 16)
+    ubv1 = Word(MuredOpcode.UBV, 1)
+    none3 = Word(None, 3)
+
+    graph_0 = (
+        (0, app3),
+        (1, lambda_x),
+        (2, var0),
+        (3, lambda_y),
+        (4, var0),
+        (5, stop),
+    )
+    graph_1 = (*graph_0, (6, app3))
+    graph_5 = (*graph_0, (6, lambda_y))
+    graph_7 = (*graph_5, (7, var0))
+    env_2 = ((14, closure16), (15, none3))
+    env_4 = ((13, pnp16), (14, closure16), (15, none3))
+    env_5 = ((12, ubv1), (13, pnp16), (14, closure16), (15, none3))
+    control_1 = (16,)
+
+    machine = MuredMachine.from_expr(
+        parse_expr("((LAMBDA (x) x) (LAMBDA (y) y))"),
+        quantum=10,
+        memory_words=16,
+        control_words=4,
+    )
+    trace: list[tuple[object, ...]] = []
+    while not machine.state.halted:
+        trace.append(detailed_snapshot(machine))
+        machine.step()
+
+    assert trace == [
+        (0, MuredOpcode.APP, Direction.F, 0, 5, 16, -1, 10, 0, graph_0, (), ()),
+        (
+            1,
+            MuredOpcode.LAMBDA,
+            Direction.F,
+            1,
+            6,
+            16,
+            0,
+            10,
+            0,
+            graph_1,
+            (),
+            control_1,
+        ),
+        (
+            2,
+            MuredOpcode.VAR,
+            Direction.F,
+            2,
+            5,
+            14,
+            -1,
+            9,
+            0,
+            graph_1,
+            env_2,
+            (),
+        ),
+        (
+            3,
+            MuredOpcode.CLOSURE,
+            Direction.F,
+            14,
+            5,
+            14,
+            -1,
+            9,
+            0,
+            graph_1,
+            env_2,
+            (),
+        ),
+        (
+            4,
+            MuredOpcode.LAMBDA,
+            Direction.F,
+            3,
+            5,
+            13,
+            -1,
+            9,
+            0,
+            graph_1,
+            env_4,
+            (),
+        ),
+        (
+            5,
+            MuredOpcode.VAR,
+            Direction.F,
+            4,
+            6,
+            12,
+            -1,
+            9,
+            1,
+            graph_5,
+            env_5,
+            (),
+        ),
+        (
+            6,
+            MuredOpcode.UBV,
+            Direction.F,
+            12,
+            6,
+            12,
+            -1,
+            9,
+            1,
+            graph_5,
+            env_5,
+            (),
+        ),
+        (
+            7,
+            MuredOpcode.LAMBDA,
+            Direction.B,
+            6,
+            7,
+            12,
+            -1,
+            9,
+            1,
+            graph_7,
+            env_5,
+            (),
+        ),
+        (
+            8,
+            MuredOpcode.STOP,
+            Direction.B,
+            5,
+            7,
+            12,
+            -1,
+            9,
+            0,
+            graph_7,
+            env_5,
+            (),
+        ),
+    ]
+    assert machine.state.pc == 6
+    assert to_source(machine.result_expr()) == "(LAMBDA (y) y)"
 
 
 @pytest.mark.parametrize(
