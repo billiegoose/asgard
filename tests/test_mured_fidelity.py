@@ -130,33 +130,25 @@ def test_top_level_integer_executes_int_then_stop_and_copies_head_flag() -> None
 def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
     lambda_f = Word(MuredOpcode.LAMBDA, "f")
     lambda_x = Word(MuredOpcode.LAMBDA, "x")
-    app4 = Word(MuredOpcode.APP, 4)
+    app_var0 = Word(MuredOpcode.APP_VAR, 0, False)
     var1 = Word(MuredOpcode.VAR, 1, True)
-    var0 = Word(MuredOpcode.VAR, 0, True)
     stop = Word(MuredOpcode.STOP)
     ubv1 = Word(MuredOpcode.UBV, 1)
     ubv2 = Word(MuredOpcode.UBV, 2)
-    join8 = Word(MuredOpcode.JOIN, 8)
-    app11 = Word(MuredOpcode.APP, 11)
 
     graph_0 = (
         (0, lambda_f),
         (1, lambda_x),
-        (2, app4),
+        (2, app_var0),
         (3, var1),
-        (4, var0),
-        (5, stop),
+        (4, stop),
     )
-    graph_1 = (*graph_0, (6, lambda_f))
-    graph_2 = (*graph_1, (7, lambda_x))
-    graph_3 = (*graph_2, (8, app4))
-    graph_4 = (*graph_3, (9, var1))
-    graph_5 = (*graph_4, (10, join8))
-    graph_7 = (*graph_5, (11, var0))
-    graph_8 = (*graph_7[:8], (8, app11), *graph_7[9:])
+    graph_1 = (*graph_0, (5, lambda_f))
+    graph_2 = (*graph_1, (6, lambda_x))
+    graph_3 = (*graph_2, (7, app_var0))
+    graph_4 = (*graph_3, (8, var1))
     env_1 = ((15, ubv1),)
     env_2 = ((14, ubv2), (15, ubv1))
-    control_1 = (14,)
 
     machine = MuredMachine.from_expr(
         parse_expr("(LAMBDA (f x) (f x))"),
@@ -175,7 +167,7 @@ def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
             MuredOpcode.LAMBDA,
             Direction.F,
             0,
-            5,
+            4,
             16,
             -1,
             10,
@@ -189,7 +181,7 @@ def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
             MuredOpcode.LAMBDA,
             Direction.F,
             1,
-            6,
+            5,
             15,
             -1,
             10,
@@ -200,10 +192,10 @@ def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
         ),
         (
             2,
-            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
             Direction.F,
             2,
-            7,
+            6,
             14,
             -1,
             10,
@@ -217,129 +209,87 @@ def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
             MuredOpcode.VAR,
             Direction.F,
             3,
-            8,
+            7,
             14,
-            0,
+            -1,
             10,
             2,
             graph_3,
             env_2,
-            control_1,
+            (),
         ),
         (
             4,
             MuredOpcode.UBV,
             Direction.F,
             15,
-            8,
+            7,
             14,
-            0,
+            -1,
             10,
             2,
             graph_3,
             env_2,
-            control_1,
+            (),
         ),
         (
             5,
-            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
             Direction.B,
+            7,
             8,
-            9,
             14,
-            0,
+            -1,
             10,
             2,
             graph_4,
             env_2,
-            control_1,
+            (),
         ),
         (
             6,
-            MuredOpcode.VAR,
-            Direction.F,
-            4,
-            10,
+            MuredOpcode.LAMBDA,
+            Direction.B,
+            6,
+            8,
             14,
             -1,
             10,
             2,
-            graph_5,
+            graph_4,
             env_2,
             (),
         ),
         (
             7,
-            MuredOpcode.UBV,
-            Direction.F,
-            14,
-            10,
+            MuredOpcode.LAMBDA,
+            Direction.B,
+            5,
+            8,
             14,
             -1,
             10,
-            2,
-            graph_5,
+            1,
+            graph_4,
             env_2,
             (),
         ),
         (
             8,
-            MuredOpcode.JOIN,
-            Direction.B,
-            10,
-            11,
-            14,
-            -1,
-            10,
-            2,
-            graph_7,
-            env_2,
-            (),
-        ),
-        (
-            9,
-            MuredOpcode.LAMBDA,
-            Direction.B,
-            7,
-            11,
-            14,
-            -1,
-            10,
-            2,
-            graph_8,
-            env_2,
-            (),
-        ),
-        (
-            10,
-            MuredOpcode.LAMBDA,
-            Direction.B,
-            6,
-            11,
-            14,
-            -1,
-            10,
-            1,
-            graph_8,
-            env_2,
-            (),
-        ),
-        (
-            11,
             MuredOpcode.STOP,
             Direction.B,
-            5,
-            11,
+            4,
+            8,
             14,
             -1,
             10,
             0,
-            graph_8,
+            graph_4,
             env_2,
             (),
         ),
     ]
-    assert machine.state.pc == 6
+    assert machine.state.pc == 5
     assert to_source(machine.result_expr()) == "(LAMBDA (f x) (f x))"
 
 

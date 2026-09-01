@@ -37,6 +37,15 @@ def test_compile_grouped_lambda_uses_nearest_de_bruijn_binder(
     )
 
 
+def test_compile_lambda_inlines_single_variable_application_argument() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (f x) (f x))")) == (
+        Word(MuredOpcode.LAMBDA, "f", False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.APP_VAR, 0, False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
 def test_compile_flat_application_emits_outermost_argument_first() -> None:
     source = "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))"
 
@@ -118,6 +127,21 @@ def test_decompile_application_spine_restores_source_argument_order() -> None:
     assert to_source(machine.result_expr()) == (
         "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))"
     )
+
+
+def test_decompile_application_spine_restores_inline_variable_arguments() -> None:
+    machine = MuredMachine.load(
+        (
+            Word(MuredOpcode.LAMBDA, "f", False),
+            Word(MuredOpcode.LAMBDA, "x", False),
+            Word(MuredOpcode.APP_VAR, 0, False),
+            Word(MuredOpcode.VAR, 1, True),
+        ),
+        quantum=0,
+    )
+    machine.state.halted = True
+
+    assert to_source(machine.result_expr()) == "(LAMBDA (f x) (f x))"
 
 
 def test_compile_lambda_rejects_non_lambda_calculus_values() -> None:

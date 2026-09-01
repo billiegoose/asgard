@@ -7,6 +7,7 @@ from thor_lang.ast import App, Expr, Integer, Lambda, Symbol, Var
 
 class MuredOpcode(StrEnum):
     APP = auto()
+    APP_VAR = auto()
     CLOSURE = auto()
     JOIN = auto()
     LAMBDA = auto()
@@ -64,6 +65,13 @@ class CycleLimitExceeded(MuredMachineError):  # noqa: N818
 def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     words: list[Word] = []
 
+    def compile_inline_argument(node: Expr, scope: tuple[str, ...]) -> int | None:
+        if isinstance(node, Var):
+            return node.index
+        if isinstance(node, Symbol) and node.name in scope:
+            return scope.index(node.name)
+        return None
+
     def compile_graph(node: Expr, scope: tuple[str, ...], *, head: bool) -> None:
         if isinstance(node, Var):
             words.append(Word(MuredOpcode.VAR, node.index, head))
@@ -90,9 +98,19 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
                 raise TypeError("malformed pure λ-calculus application")
             app_start = len(words)
             arguments = tuple(reversed(node.items[1:]))
-            words.extend(Word(MuredOpcode.APP) for _ in arguments)
+            inline_indices = tuple(
+                compile_inline_argument(argument, scope) for argument in arguments
+            )
+            words.extend(
+                Word(MuredOpcode.APP_VAR, index, False)
+                if index is not None
+                else Word(MuredOpcode.APP)
+                for index in inline_indices
+            )
             compile_graph(node.items[0], scope, head=True)
             for offset, argument in enumerate(arguments):
+                if inline_indices[offset] is not None:
+                    continue
                 argument_address = len(words)
                 words[app_start + offset] = Word(
                     MuredOpcode.APP, argument_address, False
@@ -147,6 +165,7 @@ class MuredMachine:
             raise ValueError("problem graph must not be empty")
         allowed = {
             MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
             MuredOpcode.INT,
             MuredOpcode.LAMBDA,
             MuredOpcode.VAR,
@@ -198,6 +217,8 @@ class MuredMachine:
         match word.opcode:
             case MuredOpcode.APP:
                 self._app(word)
+            case MuredOpcode.APP_VAR:
+                self._app_var(word)
             case MuredOpcode.CLOSURE:
                 self._closure(word)
             case MuredOpcode.JOIN:
@@ -315,9 +336,18 @@ class MuredMachine:
         parent = self._word(word.data)
         if parent.opcode is not MuredOpcode.APP:
             raise IllegalTransition("JOIN parent must be APP")
-        self.state.memory[word.data] = Word(
-            MuredOpcode.APP, self.state.s_a, False
-        )
+        tail = self._word(self.state.s_a)
+        if tail.opcode is MuredOpcode.VAR:
+            if not isinstance(tail.data, int):
+                raise InvalidAddress("result VAR requires a De Bruijn index")
+            self.state.memory[word.data] = Word(
+                MuredOpcode.APP_VAR, tail.data, False
+            )
+            self.state.fsp -= 2
+        else:
+            self.state.memory[word.data] = Word(
+                MuredOpcode.APP, self.state.s_a, False
+            )
         self.state.pc = word.data - 1
 
     def _lambda(self, word: Word) -> None:
@@ -329,10 +359,23 @@ class MuredMachine:
             state.pc -= 1
             return
         result_head = self._word(state.fsp)
-        if state.q == 0 or result_head.opcode is not MuredOpcode.APP:
+        if state.q == 0 or result_head.opcode not in {
+            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
+        }:
             self._push_graph(word)
             state.phi += 1
             self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
+            state.pc += 1
+            return
+        if result_head.opcode is MuredOpcode.APP_VAR:
+            if not isinstance(result_head.data, int):
+                raise InvalidAddress("result APP_VAR requires a variable index")
+            self._allocate_environment(
+                Word(MuredOpcode.UBV, state.phi - result_head.data, False)
+            )
+            state.q -= 1
+            state.fsp -= 1
             state.pc += 1
             return
         if not isinstance(result_head.data, int):
@@ -362,6 +405,34 @@ class MuredMachine:
             self.state.direction = Direction.B
         else:
             self.state.pc += 1
+
+    def _app_var(self, word: Word) -> None:
+        state = self.state
+        if state.direction is Direction.B:
+            state.pc -= 1
+            return
+        if not isinstance(word.data, int) or word.data < 0:
+            raise InvalidAddress("APP_VAR requires a non-negative variable index")
+        redex_address = self.lookup(word.data)
+        state.pc += 1
+        redex = self._word(redex_address)
+        if redex.opcode is MuredOpcode.UBV:
+            if not isinstance(redex.data, int):
+                raise InvalidAddress("UBV requires a binder depth")
+            self._push_graph(
+                Word(MuredOpcode.APP_VAR, state.phi - redex.data, False)
+            )
+            return
+        if redex.opcode is MuredOpcode.CLOSURE:
+            if not isinstance(redex.data, int):
+                raise MalformedClosure("CLOSURE requires an environment address")
+            code = self._word(redex_address + 1)
+            if code.opcode is not None or not isinstance(code.data, int):
+                raise MalformedClosure("CLOSURE requires a following code pointer")
+            self._push_control(redex.data)
+            self._push_graph(Word(MuredOpcode.APP, code.data, False))
+            return
+        raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
@@ -408,26 +479,37 @@ class MuredMachine:
             raise MuredMachineError("cyclic μRED result graph")
         word = self._word(address)
 
-        if word.opcode is MuredOpcode.APP:
-            argument_addresses: list[int] = []
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+            argument_entries: list[tuple[MuredOpcode, int]] = []
             cursor = address
             app_path = path
             while True:
                 if cursor in app_path:
                     raise MuredMachineError("cyclic μRED result graph")
                 app_word = self._word(cursor)
-                if app_word.opcode is not MuredOpcode.APP:
+                if app_word.opcode not in {
+                    MuredOpcode.APP,
+                    MuredOpcode.APP_VAR,
+                }:
                     break
-                if not isinstance(app_word.data, int):
+                if not isinstance(app_word.data, int) or app_word.data < 0:
                     raise InvalidAddress("result APP requires an argument address")
-                argument_addresses.append(app_word.data)
+                argument_entries.append((app_word.opcode, app_word.data))
                 app_path = app_path | {cursor}
                 cursor += 1
             operator, next_address = self._decompile(cursor, scope, app_path)
             arguments: list[Expr] = []
-            for argument_address in reversed(argument_addresses):
+            for opcode, argument_data in reversed(argument_entries):
+                if opcode is MuredOpcode.APP_VAR:
+                    name = (
+                        scope[argument_data]
+                        if argument_data < len(scope)
+                        else None
+                    )
+                    arguments.append(Var(argument_data, name))
+                    continue
                 argument, next_address = self._decompile(
-                    argument_address, scope, app_path
+                    argument_data, scope, app_path
                 )
                 arguments.append(argument)
             return App((operator, *arguments)), next_address
