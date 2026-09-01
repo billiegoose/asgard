@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Sequence
 from math import ceil, floor
 from operator import add, mod, mul, sub, truediv

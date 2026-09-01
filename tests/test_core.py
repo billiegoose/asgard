@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from thor_engine.core import FuelExhaustedError, Machine, MachineStatus, StepResult

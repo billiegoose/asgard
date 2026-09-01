@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Generator, MutableMapping, Sequence
 from dataclasses import dataclass
 from math import ceil, floor

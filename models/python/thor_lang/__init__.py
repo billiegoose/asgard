@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from thor_lang.ast import (
     App,
     Binding,

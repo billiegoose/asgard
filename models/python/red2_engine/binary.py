@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from struct import calcsize, pack, unpack_from
 from zlib import crc32

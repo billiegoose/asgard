@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from red2_engine.binary import (
     MAGIC,
     Red2BinaryError,
