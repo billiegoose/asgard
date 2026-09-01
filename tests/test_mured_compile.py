@@ -52,6 +52,52 @@ def test_compile_flat_application_emits_outermost_argument_first() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("source", "compiled", "expected_source"),
+    [
+        (
+            "42",
+            (Word(MuredOpcode.INT, 42, True),),
+            "42",
+        ),
+        (
+            "(LAMBDA (x) 42)",
+            (
+                Word(MuredOpcode.LAMBDA, "x", False),
+                Word(MuredOpcode.INT, 42, True),
+            ),
+            "(LAMBDA (x) 42)",
+        ),
+        (
+            "((LAMBDA (x) x) 42)",
+            (
+                Word(MuredOpcode.APP, 3, False),
+                Word(MuredOpcode.LAMBDA, "x", False),
+                Word(MuredOpcode.VAR, 0, True),
+                Word(MuredOpcode.INT, 42, True),
+            ),
+            "42",
+        ),
+    ],
+)
+def test_compile_lambda_emits_integer_literals_and_results(
+    source: str,
+    compiled: tuple[Word, ...],
+    expected_source: str,
+) -> None:
+    assert compile_lambda(parse_expr(source)) == compiled
+
+    machine = MuredMachine.from_expr(
+        parse_expr(source),
+        quantum=10,
+        memory_words=64,
+    )
+    machine.run()
+
+    assert machine.state.halted is True
+    assert to_source(machine.result_expr()) == expected_source
+
+
 def test_decompile_application_spine_restores_source_argument_order() -> None:
     machine = MuredMachine.load(
         (
@@ -75,8 +121,17 @@ def test_decompile_application_spine_restores_source_argument_order() -> None:
 
 
 def test_compile_lambda_rejects_non_lambda_calculus_values() -> None:
-    with pytest.raises(TypeError, match="pure λ-calculus expression required"):
-        compile_lambda(parse_expr("42"))
+    with pytest.raises(TypeError, match="free source symbols require explicit Var"):
+        compile_lambda(parse_expr("foo"))
+
+
+def test_mured_machine_loads_integer_words_and_decompiles_them() -> None:
+    machine = MuredMachine.load((Word(MuredOpcode.INT, 42, True),), quantum=10)
+    machine.run()
+
+    assert machine.state.halted is True
+    assert machine.state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert to_source(machine.result_expr()) == "42"
 
 
 def test_identity_application_runs_and_decompiles_after_halt() -> None:

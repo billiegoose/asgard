@@ -106,6 +106,27 @@ def test_closed_identity_matches_manual_chapter4_cycle_trace() -> None:
     assert to_source(machine.result_expr()) == "(LAMBDA (x) x)"
 
 
+def test_top_level_integer_executes_int_then_stop_and_copies_head_flag() -> None:
+    machine = MuredMachine.from_expr(
+        parse_expr("42"),
+        quantum=10,
+        memory_words=16,
+        control_words=4,
+    )
+    trace: list[tuple[object, ...]] = []
+    while not machine.state.halted:
+        trace.append(snapshot(machine))
+        machine.step()
+
+    assert trace == [
+        (0, MuredOpcode.INT, Direction.F, 0, 1, 16, -1, 10, 0),
+        (1, MuredOpcode.STOP, Direction.B, 1, 2, 16, -1, 10, 0),
+    ]
+    assert machine.state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert machine.state.pc == 2
+    assert to_source(machine.result_expr()) == "42"
+
+
 def test_manual_chapter4_app_fwd_rev_join_parent_insertion_trace() -> None:
     lambda_f = Word(MuredOpcode.LAMBDA, "f")
     lambda_x = Word(MuredOpcode.LAMBDA, "x")
@@ -477,6 +498,35 @@ def test_manual_chapter4_beta_closure_quantum_trace() -> None:
     ]
     assert machine.state.pc == 6
     assert to_source(machine.result_expr()) == "(LAMBDA (y) y)"
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
+        ("42", 10),
+        ("42", 0),
+        ("(LAMBDA (x) 42)", 10),
+        ("(LAMBDA (x) 42)", 0),
+        ("((LAMBDA (x) x) 42)", 10),
+        ("((LAMBDA (x) x) 42)", 0),
+    ],
+)
+def test_mured_result_matches_chapter3_for_integer_corpus(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=64,
+    )
+    machine.run()
+    thor = group_consecutive_lambdas(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+
+    assert to_source(machine.result_expr()) == to_source(thor)
 
 
 @pytest.mark.parametrize(

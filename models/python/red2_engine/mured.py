@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum, auto
 
-from thor_lang.ast import App, Expr, Lambda, Symbol, Var
+from thor_lang.ast import App, Expr, Integer, Lambda, Symbol, Var
 
 
 class MuredOpcode(StrEnum):
@@ -11,6 +11,7 @@ class MuredOpcode(StrEnum):
     JOIN = auto()
     LAMBDA = auto()
     STOP = auto()
+    INT = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -71,6 +72,9 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             if node.name not in scope:
                 raise TypeError("free source symbols require explicit Var")
             words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
+            return
+        if isinstance(node, Integer):
+            words.append(Word(MuredOpcode.INT, node.value, head))
             return
         if isinstance(node, Lambda):
             for parameter in node.params:
@@ -141,7 +145,12 @@ class MuredMachine:
             raise ValueError("control_words must be positive")
         if not problem:
             raise ValueError("problem graph must not be empty")
-        allowed = {MuredOpcode.APP, MuredOpcode.LAMBDA, MuredOpcode.VAR}
+        allowed = {
+            MuredOpcode.APP,
+            MuredOpcode.INT,
+            MuredOpcode.LAMBDA,
+            MuredOpcode.VAR,
+        }
         if any(word.opcode not in allowed for word in problem):
             raise ValueError("problem graph contains a non-μRED source instruction")
         stop_address = len(problem)
@@ -197,6 +206,8 @@ class MuredMachine:
                 self._lambda(word)
             case MuredOpcode.STOP:
                 self._stop()
+            case MuredOpcode.INT:
+                self._int(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -339,6 +350,19 @@ class MuredMachine:
         self.state.pc += 1
         self.state.halted = True
 
+    def _int(self, word: Word) -> None:
+        if not isinstance(word.data, int):
+            raise IllegalTransition("INT requires an integer value")
+        if self.state.direction is Direction.B:
+            self.state.pc -= 1
+            return
+        self._push_graph(word)
+        if word.head:
+            self.state.pc = self.state.fsp - 1
+            self.state.direction = Direction.B
+        else:
+            self.state.pc += 1
+
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
             raise IllegalTransition("UBV requires forward execution")
@@ -429,6 +453,11 @@ class MuredMachine:
                 lambda_path,
             )
             return Lambda(tuple(parameters), body), next_address
+
+        if word.opcode is MuredOpcode.INT:
+            if type(word.data) is not int:
+                raise MuredMachineError("result INT requires an integer value")
+            return Integer(word.data), address + 1
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:

@@ -5,6 +5,7 @@ from red2_engine.mured import (
     Direction,
     IllegalTransition,
     MuredMachine,
+    MuredMachineState,
     MuredOpcode,
     Word,
 )
@@ -105,6 +106,118 @@ def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
     assert state.env == 31
     assert state.phi == 1
     assert state.pc == 1
+
+
+def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 42, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    original_q = state.q
+    original_phi = state.phi
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(MuredOpcode.INT, 42, True)
+    assert (state.direction, state.pc, state.q, state.phi) == (
+        Direction.B,
+        state.fsp - 1,
+        original_q,
+        original_phi,
+    )
+
+
+def test_int_forward_non_head_copies_itself_and_advances_through_source_spine() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 7, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    original_pc = state.pc
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(MuredOpcode.INT, 7, False)
+    assert (state.direction, state.pc) == (Direction.F, original_pc + 1)
+
+
+def test_int_reverse_changes_only_pc() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.INT, 7, False)
+    machine = MuredMachine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize("payload", ["bad", None])
+def test_int_forward_rejects_non_integer_payloads(payload: str | None) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    with pytest.raises(IllegalTransition, match="INT requires an integer value"):
+        machine.step()
 
 
 def test_var_uses_lookup_and_executes_environment_value() -> None:
