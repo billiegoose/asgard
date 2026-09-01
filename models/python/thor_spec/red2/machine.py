@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import pairwise
@@ -132,6 +132,35 @@ type _Env = tuple[_EnvEntry, ...]
 
 
 @dataclass(frozen=True, slots=True)
+class Red2DefinitionCache:
+    """Parsed RED2 definitions reusable across machines in one runtime.
+
+    The cache belongs to the RED2 engine layer: callers can prebuild it when
+    they already have a stable ``DefinitionImage`` and avoid reparsing the same
+    immutable definition graph for every pure reduction.
+    """
+
+    definitions: Mapping[str, _Term]
+    instruction_count: int
+    term_count: int
+
+    @classmethod
+    def from_image(cls, definitions: DefinitionImage | None) -> Red2DefinitionCache:
+        if definitions is None:
+            return cls({}, 0, 0)
+        parsed = _parse_definitions(
+            definitions,
+            reserve_instructions=lambda _count: None,
+            reserve_term=lambda: None,
+        )
+        return cls(
+            parsed,
+            sum(len(image.instructions) for image in definitions.programs.values()),
+            sum(_term_count(term) for term in parsed.values()),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class _ReductionRequest:
     term: _Term
     env: _Env
@@ -156,6 +185,7 @@ class Red2Machine:
         quantum: int,
         definitions: DefinitionImage | None = None,
         resource_limits: Red2ResourceLimits | None = None,
+        definition_cache: Red2DefinitionCache | None = None,
     ) -> None:
         self._resource_limits = resource_limits or Red2ResourceLimits()
         if self._resource_limits.stack_size_in_bytes < 0:
@@ -174,11 +204,17 @@ class Red2Machine:
             image.metadata,
             self._reserve_heap_term,
         ).parse(image.entry)
-        self._definitions = _parse_definitions(
-            definitions,
-            reserve_instructions=self._allocate_heap_terms,
-            reserve_term=self._reserve_heap_term,
-        )
+        if definition_cache is not None:
+            self._allocate_heap_terms(
+                definition_cache.instruction_count + definition_cache.term_count
+            )
+            self._definitions = definition_cache.definitions
+        else:
+            self._definitions = _parse_definitions(
+                definitions,
+                reserve_instructions=self._allocate_heap_terms,
+                reserve_term=self._reserve_heap_term,
+            )
         self._result: tuple[Instruction, ...] = ()
         self._result_term: _Term | None = None
         self._executed = False

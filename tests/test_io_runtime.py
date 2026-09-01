@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from collections.abc import Callable, Mapping
 from io import StringIO
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -13,6 +15,7 @@ from thor_spec.io_runtime import LatestFileClockSource, run_io_source
 from thor_spec.normalization import normalize_program
 from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
+from thor_spec.red2.instructions import DefinitionImage
 from thor_spec.semantics import reduce_expr
 
 
@@ -89,6 +92,40 @@ def test_clock_io_action_returns_integer_for_red2_model() -> None:
     )
 
     assert result == "1700000000456"
+
+
+def test_red2_io_compiles_definition_image_once_per_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import thor_spec.io_runtime as io_runtime
+
+    original_compile_definitions = cast(
+        Callable[[Mapping[str, Expr]], DefinitionImage],
+        io_runtime.__dict__["compile_definitions"],
+    )
+    calls = 0
+
+    def counting_compile_definitions(
+        definitions: Mapping[str, Expr],
+    ) -> DefinitionImage:
+        nonlocal calls
+        calls += 1
+        return original_compile_definitions(definitions)
+
+    monkeypatch.setattr(io_runtime, "compile_definitions", counting_compile_definitions)
+
+    result, stdout, stderr = run_io(
+        """
+        emit == (LAMBDA (n) (UART-TX (+ n 64)))
+        (IO-THEN (emit 1) (IO-THEN (emit 2) (emit 3)))
+        """,
+        model="red2",
+    )
+
+    assert result == "NIL"
+    assert stdout == "ABC"
+    assert stderr == ""
+    assert calls == 1
 
 
 def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:

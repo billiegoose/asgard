@@ -110,6 +110,11 @@ flag "--no-upload" help="regenerate the local cast without uploading or updating
 '''
 run = 'uv run python tools/videos/generate.py "${usage_video?}" ${usage_no_upload:+--no-upload}'
 
+[tasks.benchmark-breakout]
+description = "Benchmark deterministic Breakout across THOR, RED2, Rust, and WASM backends"
+usage = 'flag "--iterations <n>" help="samples per backend" default="3"'
+run = 'uv run python tools/videos/benchmark_breakout.py --iterations "${usage_iterations}"'
+
 [tasks.test]
 description = "Run Python tests"
 run = "uv run pytest -n 4 --dist loadfile"

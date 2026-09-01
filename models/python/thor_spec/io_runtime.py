@@ -31,7 +31,7 @@ from thor_spec.parser import parse_program
 from thor_spec.pretty import to_source
 from thor_spec.primitives import install_struct_definition
 from thor_spec.red2.compiler import compile_definitions, compile_expr
-from thor_spec.red2.machine import Red2Machine, Red2ResourceLimits
+from thor_spec.red2.machine import Red2DefinitionCache, Red2Machine, Red2ResourceLimits
 from thor_spec.red2.primitives import register_struct_accessors
 from thor_spec.semantics import reduce_expr
 
@@ -155,6 +155,14 @@ class _IoRuntime:
         self._model = model
         self._quantum = quantum
         self._definitions = definitions
+        self._red2_definition_image = (
+            compile_definitions(definitions) if model == "red2" else None
+        )
+        self._red2_definition_cache = (
+            Red2DefinitionCache.from_image(self._red2_definition_image)
+            if self._red2_definition_image is not None
+            else None
+        )
         self._stdin = stdin
         self._stdout = stdout
         self._stderr = stderr
@@ -311,8 +319,9 @@ class _IoRuntime:
         machine = Red2Machine(
             compile_expr(expr),
             quantum=self._quantum,
-            definitions=compile_definitions(self._definitions),
+            definitions=self._red2_definition_image,
             resource_limits=self._resource_limits,
+            definition_cache=self._red2_definition_cache,
         )
         machine.run()
         return machine.result_expr()
