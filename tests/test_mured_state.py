@@ -3,7 +3,7 @@ import pytest
 from red2_engine.mured import (
     Direction,
     GraphEnvironmentCollision,
-    IllegalTransition,
+    InvalidAddress,
     MuredMachine,
     MuredOpcode,
     Word,
@@ -48,16 +48,13 @@ def test_load_rejects_problem_that_meets_environment() -> None:
         )
 
 
-def test_step_rejects_unsupported_transition_before_incrementing_cycle() -> None:
+def test_step_rejects_variable_lookup_past_empty_environment() -> None:
     machine = MuredMachine.load(
         [Word(MuredOpcode.VAR, 0)],
         quantum=1,
         memory_words=8,
     )
 
-    with pytest.raises(
-        IllegalTransition,
-        match="VAR transition is not implemented",
-    ):
+    with pytest.raises(InvalidAddress, match="invalid μRED address: 8"):
         machine.step()
     assert machine.state.cycles == 0

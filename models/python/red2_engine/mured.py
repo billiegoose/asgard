@@ -122,9 +122,174 @@ class MuredMachine:
         state = self.state
         if state.halted:
             return state
+        self._validate_state()
         word = self._word(state.pc)
-        name = word.opcode.name if word.opcode is not None else "pointer"
-        raise IllegalTransition(f"{name} transition is not implemented")
+        match word.opcode:
+            case MuredOpcode.APP:
+                self._app(word)
+            case MuredOpcode.CLOSURE:
+                self._closure(word)
+            case MuredOpcode.JOIN:
+                self._join(word)
+            case MuredOpcode.LAMBDA:
+                self._lambda(word)
+            case MuredOpcode.STOP:
+                self._stop()
+            case MuredOpcode.UBV:
+                self._ubv(word)
+            case MuredOpcode.VAR:
+                self._var(word)
+            case MuredOpcode.PNP | None:
+                raise IllegalTransition(f"{word.opcode} is environment data")
+        self._validate_state()
+        state.cycles += 1
+        return state
+
+    def _validate_state(self) -> None:
+        state = self.state
+        size = len(state.memory)
+        if not 0 <= state.fsp < state.env <= size:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        if not -1 <= state.c < len(state.control_stack):
+            raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
+        if state.q < 0 or state.phi < 0:
+            raise IllegalTransition("μRED counters must be non-negative")
+        self._word(state.pc)
+
+    def _push_graph(self, word: Word) -> int:
+        address = self.state.fsp + 1
+        if address >= self.state.env:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        self.state.memory[address] = word
+        self.state.fsp = address
+        return address
+
+    def _allocate_environment(self, word: Word) -> int:
+        address = self.state.env - 1
+        if address <= self.state.fsp:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        self.state.memory[address] = word
+        self.state.env = address
+        return address
+
+    def _push_control(self, address: int) -> None:
+        next_c = self.state.c + 1
+        if next_c >= len(self.state.control_stack):
+            raise ControlStackOverflow("μRED control stack overflow")
+        self.state.control_stack[next_c] = address
+        self.state.c = next_c
+
+    def _pop_control(self) -> int:
+        if self.state.c < 0:
+            raise ControlStackUnderflow("μRED control stack underflow")
+        value = self.state.control_stack[self.state.c]
+        self.state.control_stack[self.state.c] = None
+        self.state.c -= 1
+        if value is None:
+            raise ControlStackUnderflow("μRED control stack entry is empty")
+        return value
+
+    def lookup(self, index: int) -> int:
+        if index < 0:
+            raise InvalidAddress(f"negative μRED variable index: {index}")
+        self.state.s_d = index
+        address = self.state.env
+        while True:
+            word = self._word(address)
+            if word.opcode is MuredOpcode.PNP:
+                if not isinstance(word.data, int):
+                    raise InvalidAddress("PNP requires an address")
+                address = word.data
+                continue
+            if self.state.s_d == 0:
+                self.state.s_a = address
+                return address
+            self.state.s_d -= 1
+            address += 1 if word.opcode is MuredOpcode.UBV else 2
+
+    def _app(self, word: Word) -> None:
+        state = self.state
+        if state.direction is Direction.F:
+            self._push_graph(word)
+            self._push_control(state.env)
+            state.pc += 1
+            return
+        if not isinstance(word.data, int):
+            raise InvalidAddress("APP requires an argument address")
+        parent_app = state.pc
+        state.env = self._pop_control()
+        self._push_graph(Word(MuredOpcode.JOIN, parent_app))
+        state.pc = word.data
+        state.direction = Direction.F
+
+    def _closure(self, word: Word) -> None:
+        if self.state.direction is not Direction.F:
+            raise IllegalTransition("CLOSURE requires forward execution")
+        if not isinstance(word.data, int):
+            raise MalformedClosure("CLOSURE requires an environment address")
+        code = self._word(self.state.pc + 1)
+        if code.opcode is not None or not isinstance(code.data, int):
+            raise MalformedClosure("CLOSURE requires a following code pointer")
+        self._allocate_environment(Word(MuredOpcode.PNP, word.data))
+        self.state.pc = code.data
+
+    def _join(self, word: Word) -> None:
+        if self.state.direction is not Direction.B:
+            raise IllegalTransition("JOIN requires backward execution")
+        if not isinstance(word.data, int):
+            raise InvalidAddress("JOIN requires a parent APP address")
+        self.state.s_a = self.state.pc + 1
+        parent = self._word(word.data)
+        if parent.opcode is not MuredOpcode.APP:
+            raise IllegalTransition("JOIN parent must be APP")
+        self.state.memory[word.data] = Word(MuredOpcode.APP, self.state.s_a)
+        self.state.pc = word.data - 1
+
+    def _lambda(self, word: Word) -> None:
+        state = self.state
+        if state.direction is Direction.B:
+            state.phi -= 1
+            if state.phi < 0:
+                raise IllegalTransition("LAMBDA reverse underflows phi")
+            state.pc -= 1
+            return
+        result_head = self._word(state.fsp)
+        if state.q == 0 or result_head.opcode is not MuredOpcode.APP:
+            self._push_graph(word)
+            state.phi += 1
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi))
+            state.pc += 1
+            return
+        if not isinstance(result_head.data, int):
+            raise InvalidAddress("result APP requires an argument address")
+        saved_path = self._pop_control()
+        self._allocate_environment(Word(None, result_head.data))
+        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path))
+        state.q -= 1
+        state.fsp -= 1
+        state.pc += 1
+
+    def _stop(self) -> None:
+        if self.state.direction is not Direction.B:
+            raise IllegalTransition("STOP requires backward execution")
+        self.state.pc += 1
+        self.state.halted = True
+
+    def _ubv(self, word: Word) -> None:
+        if self.state.direction is not Direction.F:
+            raise IllegalTransition("UBV requires forward execution")
+        if not isinstance(word.data, int):
+            raise InvalidAddress("UBV requires a binder depth")
+        self._push_graph(Word(MuredOpcode.VAR, self.state.phi - word.data))
+        self.state.pc = self.state.fsp - 1
+        self.state.direction = Direction.B
+
+    def _var(self, word: Word) -> None:
+        if self.state.direction is not Direction.F:
+            raise IllegalTransition("VAR requires forward execution")
+        if not isinstance(word.data, int):
+            raise InvalidAddress("VAR requires a De Bruijn index")
+        self.state.pc = self.lookup(word.data)
 
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
         if cycle_limit < 0:
