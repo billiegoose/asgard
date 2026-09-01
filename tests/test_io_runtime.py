@@ -233,6 +233,36 @@ def test_uart_rx_reads_byte_from_stdin() -> None:
     assert stderr == ""
 
 
+def test_cli_uart_rx_returns_nil_when_open_stdin_has_no_ready_byte() -> None:
+    process = subprocess.Popen(
+        [
+            "uv",
+            "run",
+            "thor-spec",
+            "--io",
+            "--model",
+            "thor",
+            "--expr",
+            "(UART-RX)",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        process.wait(timeout=3.0)
+        stdout, stderr = process.communicate(timeout=1.0)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+    assert process.returncode == 0
+    assert stdout == ""
+    assert stderr == "io result: NIL\n"
+
+
 def test_uart_tx_bytes_writes_list_of_bytes_to_stdout() -> None:
     result, stdout, stderr = run_io("(UART-TX-BYTES [65 66 67])")
 

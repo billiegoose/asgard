@@ -148,6 +148,42 @@ def test_rust_red2_vm_io_runs_caesar_cipher_with_stdout_as_uart(
     assert result.stderr == ""
 
 
+def test_rust_red2_vm_uart_rx_returns_nil_when_open_stdin_has_no_ready_byte(
+    tmp_path: Path,
+) -> None:
+    bytecode = write_bytecode(tmp_path, "(UART-RX)")
+    command = [
+        "cargo",
+        "run",
+        "-p",
+        "red2-wasm",
+        "--quiet",
+        "--",
+        str(bytecode),
+        "--quantum",
+        "100",
+        "--verbose",
+    ]
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        process.wait(timeout=5.0)
+        stdout, stderr = process.communicate(timeout=1.0)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+    assert process.returncode == 0
+    assert stdout == ""
+    assert stderr == "io result: NIL\n"
+
+
 def test_rust_red2_vm_io_runs_hangman_with_newlines_ignored(
     tmp_path: Path,
 ) -> None:

@@ -226,14 +226,16 @@ handle-letter ==
 
 handle-guess ==
   (lambda (known-a known-s known-g known-r known-d w1 w2 w3 w4 w5 w6 raw-guess)
-    (if (= raw-guess ESC)
-        (IO-RETURN NIL)
-        (if (line-ending? raw-guess)
-            (loop known-a known-s known-g known-r known-d w1 w2 w3 w4 w5 w6 NIL)
-            (IO-BIND (IO-RETURN (to-upper raw-guess))
-              (LAMBDA (guess)
-                (handle-letter known-a known-s known-g known-r known-d
-                               w1 w2 w3 w4 w5 w6 guess))))))
+    (if (= raw-guess NIL)
+        (loop known-a known-s known-g known-r known-d w1 w2 w3 w4 w5 w6 NIL)
+        (if (= raw-guess ESC)
+            (IO-RETURN NIL)
+            (if (line-ending? raw-guess)
+                (loop known-a known-s known-g known-r known-d w1 w2 w3 w4 w5 w6 NIL)
+                (IO-BIND (IO-RETURN (to-upper raw-guess))
+                  (LAMBDA (guess)
+                    (handle-letter known-a known-s known-g known-r known-d
+                                   w1 w2 w3 w4 w5 w6 guess)))))))
 
 loop ==
   (lambda (known-a known-s known-g known-r known-d w1 w2 w3 w4 w5 w6 ignored)

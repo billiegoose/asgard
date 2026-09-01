@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -536,7 +536,7 @@ impl Reducer<'_> {
             (">", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a > b)),
             ("<=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a <= b)),
             (">=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a >= b)),
-            ("=", Expr::Int(a), Expr::Int(b)) => Some(bool_expr(a == b)),
+            ("=", left, right) => constant_equal(left, right).map(bool_expr),
             ("EQUAL?", left, right) => Some(bool_expr(left == right)),
             ("CONS", left, right) => {
                 Some(Expr::Pair(Box::new(left.clone()), Box::new(right.clone())))
@@ -769,10 +769,13 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
 
     fn read_uart_rx(&mut self) -> Result<Expr, Red2Error> {
         let mut byte = [0u8; 1];
-        let read = self
-            .input
-            .read(&mut byte)
-            .map_err(|e| Red2Error(format!("UART-RX failed: {e}")))?;
+        let read = match self.input.read(&mut byte) {
+            Ok(read) => read,
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {
+                return Ok(Expr::Symbol("NIL".to_string()));
+            }
+            Err(error) => return Err(Red2Error(format!("UART-RX failed: {error}"))),
+        };
         if read == 0 {
             return Ok(Expr::Symbol("NIL".to_string()));
         }
@@ -901,12 +904,25 @@ fn is_binary_primitive(name: &str) -> bool {
 
 fn is_supported_binary_arg(name: &str, value: &Expr) -> bool {
     match name {
-        "+" | "-" | "*" | "/" | "MOD" | "<" | ">" | "<=" | ">=" | "=" => {
-            matches!(value, Expr::Int(_))
-        }
+        "+" | "-" | "*" | "/" | "MOD" | "<" | ">" | "<=" | ">=" => matches!(value, Expr::Int(_)),
+        "=" => is_constant(value),
         "EQUAL?" | "CONS" => true,
         _ => false,
     }
+}
+
+fn is_constant(value: &Expr) -> bool {
+    matches!(
+        value,
+        Expr::Int(_) | Expr::Float(_) | Expr::Char(_) | Expr::Symbol(_)
+    )
+}
+
+fn constant_equal(left: &Expr, right: &Expr) -> Option<bool> {
+    if !is_constant(left) || !is_constant(right) {
+        return None;
+    }
+    Some(left == right)
 }
 
 fn bool_expr(value: bool) -> Expr {

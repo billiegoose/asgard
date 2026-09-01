@@ -200,8 +200,9 @@ Example:
 
 ### Simulated Device Actions
 
-- `UART-RX` — read one byte/character from stdin and return its integer code, or
-  `NIL` at EOF.
+- `UART-RX` — poll one byte/character from stdin and return its integer code, or
+  `NIL` when no byte is currently available. Simulator stdin EOF is also
+  represented as `NIL` for now.
 - `UART-TX` — write one integer byte to stdout and return `NIL`.
 - `UART-TX-BYTES` — write a list of integer bytes to stdout and return `NIL`.
   Terminal examples use this for fixed text and board rows.

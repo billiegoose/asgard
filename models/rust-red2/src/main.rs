@@ -88,6 +88,7 @@ fn run_io(
     quantum: u32,
     clock_path: Option<String>,
 ) -> Result<RunOutcome, red2_wasm::bytecode::Red2Error> {
+    configure_stdin_nonblocking();
     let mut stdin = io::stdin().lock();
     let mut stdout = io::stdout().lock();
     if let Some(path) = clock_path {
@@ -100,6 +101,29 @@ fn run_io(
         vm::run_io_bundle(bundle, quantum, &mut stdin, &mut stdout).map(RunOutcome::Io)
     }
 }
+
+#[cfg(unix)]
+fn configure_stdin_nonblocking() {
+    const STDIN_FILENO: i32 = 0;
+    const F_GETFL: i32 = 3;
+    const F_SETFL: i32 = 4;
+    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
+    const O_NONBLOCK: i32 = 0x0004;
+    #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "freebsd")))]
+    const O_NONBLOCK: i32 = 0o4000;
+
+    extern "C" {
+        fn fcntl(fd: i32, cmd: i32, ...) -> i32;
+    }
+
+    let flags = unsafe { fcntl(STDIN_FILENO, F_GETFL) };
+    if flags >= 0 {
+        let _ = unsafe { fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) };
+    }
+}
+
+#[cfg(not(unix))]
+fn configure_stdin_nonblocking() {}
 
 fn is_io_action(expr: &Expr) -> bool {
     match expr {

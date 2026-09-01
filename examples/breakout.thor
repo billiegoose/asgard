@@ -179,11 +179,13 @@ handle-escape ==
 
 handle-byte ==
   (lambda (score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 byte)
-    (if (OR (= byte QLOW) (= byte QUP))
-        (IO-THEN (emit-cursor 16 1) (IO-THEN emit-show-cursor (IO-THEN emit-quit (IO-RETURN NIL))))
-        (if (= byte ESC)
-            (handle-escape score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 NIL)
-            (step score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 CMD-NONE))))
+    (if (= byte NIL)
+        (step score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 CMD-NONE)
+        (if (OR (= byte QLOW) (= byte QUP))
+            (IO-THEN (emit-cursor 16 1) (IO-THEN emit-show-cursor (IO-THEN emit-quit (IO-RETURN NIL))))
+            (if (= byte ESC)
+                (handle-escape score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 NIL)
+                (step score lives paddle-x ball-x ball-y dx dy last-tick b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 CMD-NONE)))))
 
 ; --- game physics ---
 tick-due? == (lambda (now last-tick)

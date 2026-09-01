@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 from pathlib import Path
 
@@ -116,6 +118,99 @@ def test_mise_rust_accepts_clock_flag(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert result.stdout == "A"
     assert result.stderr == ""
+
+
+def test_mise_rust_hangman_waits_with_open_stdin_and_no_keys() -> None:
+    process = subprocess.Popen(
+        [
+            "mise",
+            "run",
+            "rust",
+            "examples/hangman.thor",
+            "--quantum",
+            "5000",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        with pytest.raises(subprocess.TimeoutExpired):
+            process.wait(timeout=5.0)
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate(timeout=2.0)
+
+    assert "GUESS LETTERS; ESC QUITS\n" in stdout
+    assert "primitive" not in stderr
+    assert stderr == ""
+
+
+def test_mise_rust_caesar_waits_with_open_stdin_and_no_keys() -> None:
+    process = subprocess.Popen(
+        [
+            "mise",
+            "run",
+            "rust",
+            "examples/uart-caesar-plus4.thor",
+            "--quantum",
+            "5000",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        with pytest.raises(subprocess.TimeoutExpired):
+            process.wait(timeout=5.0)
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate(timeout=2.0)
+
+    assert stdout == ""
+    assert "primitive" not in stderr
+    assert stderr == ""
+
+
+def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys(
+    tmp_path: Path,
+) -> None:
+    clock = tmp_path / "breakout-clock.txt"
+    clock.write_text("1700000000200\n")
+    process = subprocess.Popen(
+        [
+            "mise",
+            "run",
+            "rust",
+            "examples/breakout.thor",
+            "--quantum",
+            "50000",
+            "--clock",
+            str(clock),
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        with pytest.raises(subprocess.TimeoutExpired):
+            process.wait(timeout=8.0)
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate(timeout=2.0)
+    assert "BREAKOUT 20x12\n" in stdout
+    assert stdout.count("o") >= 2
+    assert "\x1b[11;12Ho" in stdout
+    assert stderr == ""
 
 
 def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(

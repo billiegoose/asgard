@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import select
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -257,6 +258,8 @@ class _IoRuntime:
             self._stdout.flush()
             return Symbol("NIL")
         if name == "UART-RX" and not args:
+            if not _text_stream_has_ready_input(self._stdin):
+                return Symbol("NIL")
             char = self._stdin.read(1)
             if char == "":
                 return Symbol("NIL")
@@ -335,6 +338,15 @@ class _IoRuntime:
             return bytes_
         msg = f"{primitive} expects a byte list, got {to_source(value)}"
         raise IoRuntimeError(msg)
+
+
+def _text_stream_has_ready_input(stream: TextIO) -> bool:
+    try:
+        fd = stream.fileno()
+    except (AttributeError, OSError):
+        return True
+    readable, _, _ = select.select([fd], [], [], 0)
+    return bool(readable)
 
 
 def _apply_unary_lambda(expr: Expr, value: Expr) -> Expr:
