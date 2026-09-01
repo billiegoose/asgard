@@ -25,6 +25,7 @@ class Direction(StrEnum):
 class Word:
     opcode: MuredOpcode | None
     data: int | str | None = None
+    head: bool = False
 
 
 class MuredMachineError(RuntimeError):
@@ -62,19 +63,23 @@ class CycleLimitExceeded(MuredMachineError):  # noqa: N818
 def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     words: list[Word] = []
 
-    def compile_graph(node: Expr, scope: tuple[str, ...]) -> None:
+    def compile_graph(node: Expr, scope: tuple[str, ...], *, head: bool) -> None:
         if isinstance(node, Var):
-            words.append(Word(MuredOpcode.VAR, node.index))
+            words.append(Word(MuredOpcode.VAR, node.index, head))
             return
         if isinstance(node, Symbol):
             if node.name not in scope:
                 raise TypeError("free source symbols require explicit Var")
-            words.append(Word(MuredOpcode.VAR, scope.index(node.name)))
+            words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
             return
         if isinstance(node, Lambda):
             for parameter in node.params:
-                words.append(Word(MuredOpcode.LAMBDA, parameter))
-            compile_graph(node.body, tuple(reversed(node.params)) + scope)
+                words.append(Word(MuredOpcode.LAMBDA, parameter, False))
+            compile_graph(
+                node.body,
+                tuple(reversed(node.params)) + scope,
+                head=head,
+            )
             return
         if isinstance(node, App):
             if len(node.items) < 2:
@@ -82,19 +87,19 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             app_start = len(words)
             arguments = tuple(reversed(node.items[1:]))
             words.extend(Word(MuredOpcode.APP) for _ in arguments)
-            compile_graph(node.items[0], scope)
+            compile_graph(node.items[0], scope, head=True)
             for offset, argument in enumerate(arguments):
                 argument_address = len(words)
                 words[app_start + offset] = Word(
-                    MuredOpcode.APP, argument_address
+                    MuredOpcode.APP, argument_address, False
                 )
-                compile_graph(argument, scope)
+                compile_graph(argument, scope, head=True)
             return
         raise TypeError(
             f"pure λ-calculus expression required, got {type(node).__name__}"
         )
 
-    compile_graph(expr, ())
+    compile_graph(expr, (), head=True)
     return tuple(words)
 
 
@@ -275,7 +280,7 @@ class MuredMachine:
             raise InvalidAddress("APP requires an argument address")
         parent_app = state.pc
         state.env = self._pop_control()
-        self._push_graph(Word(MuredOpcode.JOIN, parent_app))
+        self._push_graph(Word(MuredOpcode.JOIN, parent_app, False))
         state.pc = word.data
         state.direction = Direction.F
 
@@ -287,7 +292,7 @@ class MuredMachine:
         code = self._word(self.state.pc + 1)
         if code.opcode is not None or not isinstance(code.data, int):
             raise MalformedClosure("CLOSURE requires a following code pointer")
-        self._allocate_environment(Word(MuredOpcode.PNP, word.data))
+        self._allocate_environment(Word(MuredOpcode.PNP, word.data, False))
         self.state.pc = code.data
 
     def _join(self, word: Word) -> None:
@@ -299,7 +304,9 @@ class MuredMachine:
         parent = self._word(word.data)
         if parent.opcode is not MuredOpcode.APP:
             raise IllegalTransition("JOIN parent must be APP")
-        self.state.memory[word.data] = Word(MuredOpcode.APP, self.state.s_a)
+        self.state.memory[word.data] = Word(
+            MuredOpcode.APP, self.state.s_a, False
+        )
         self.state.pc = word.data - 1
 
     def _lambda(self, word: Word) -> None:
@@ -314,14 +321,14 @@ class MuredMachine:
         if state.q == 0 or result_head.opcode is not MuredOpcode.APP:
             self._push_graph(word)
             state.phi += 1
-            self._allocate_environment(Word(MuredOpcode.UBV, state.phi))
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
             state.pc += 1
             return
         if not isinstance(result_head.data, int):
             raise InvalidAddress("result APP requires an argument address")
         saved_path = self._pop_control()
-        self._allocate_environment(Word(None, result_head.data))
-        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path))
+        self._allocate_environment(Word(None, result_head.data, False))
+        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
         state.q -= 1
         state.fsp -= 1
         state.pc += 1
@@ -337,7 +344,9 @@ class MuredMachine:
             raise IllegalTransition("UBV requires forward execution")
         if not isinstance(word.data, int):
             raise InvalidAddress("UBV requires a binder depth")
-        self._push_graph(Word(MuredOpcode.VAR, self.state.phi - word.data))
+        self._push_graph(
+            Word(MuredOpcode.VAR, self.state.phi - word.data, True)
+        )
         self.state.pc = self.state.fsp - 1
         self.state.direction = Direction.B
 

@@ -7,15 +7,15 @@ from thor_lang.pretty import to_source
 
 def test_compile_lambda_uses_linear_body_and_operator_layout() -> None:
     assert compile_lambda(parse_expr("(LAMBDA (x) x)")) == (
-        Word(MuredOpcode.LAMBDA, "x"),
-        Word(MuredOpcode.VAR, 0),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
     )
     assert compile_lambda(parse_expr("((LAMBDA (x) x) (LAMBDA (y) y))")) == (
-        Word(MuredOpcode.APP, 3),
-        Word(MuredOpcode.LAMBDA, "x"),
-        Word(MuredOpcode.VAR, 0),
-        Word(MuredOpcode.LAMBDA, "y"),
-        Word(MuredOpcode.VAR, 0),
+        Word(MuredOpcode.APP, 3, False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, 0, True),
     )
 
 
@@ -31,9 +31,9 @@ def test_compile_grouped_lambda_uses_nearest_de_bruijn_binder(
     variable_index: int,
 ) -> None:
     assert compile_lambda(parse_expr(source)) == (
-        Word(MuredOpcode.LAMBDA, "x"),
-        Word(MuredOpcode.LAMBDA, "y"),
-        Word(MuredOpcode.VAR, variable_index),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, variable_index, True),
     )
 
 
@@ -41,28 +41,28 @@ def test_compile_flat_application_emits_outermost_argument_first() -> None:
     source = "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))"
 
     assert compile_lambda(parse_expr(source)) == (
-        Word(MuredOpcode.APP, 4),
-        Word(MuredOpcode.APP, 6),
-        Word(MuredOpcode.LAMBDA, "x"),
-        Word(MuredOpcode.VAR, 0),
-        Word(MuredOpcode.LAMBDA, "b"),
-        Word(MuredOpcode.VAR, 0),
-        Word(MuredOpcode.LAMBDA, "a"),
-        Word(MuredOpcode.VAR, 0),
+        Word(MuredOpcode.APP, 4, False),
+        Word(MuredOpcode.APP, 6, False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "b", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "a", False),
+        Word(MuredOpcode.VAR, 0, True),
     )
 
 
 def test_decompile_application_spine_restores_source_argument_order() -> None:
     machine = MuredMachine.load(
         (
-            Word(MuredOpcode.APP, 4),
-            Word(MuredOpcode.APP, 6),
-            Word(MuredOpcode.LAMBDA, "x"),
-            Word(MuredOpcode.VAR, 0),
-            Word(MuredOpcode.LAMBDA, "b"),
-            Word(MuredOpcode.VAR, 0),
-            Word(MuredOpcode.LAMBDA, "a"),
-            Word(MuredOpcode.VAR, 0),
+            Word(MuredOpcode.APP, 4, False),
+            Word(MuredOpcode.APP, 6, False),
+            Word(MuredOpcode.LAMBDA, "x", False),
+            Word(MuredOpcode.VAR, 0, True),
+            Word(MuredOpcode.LAMBDA, "b", False),
+            Word(MuredOpcode.VAR, 0, True),
+            Word(MuredOpcode.LAMBDA, "a", False),
+            Word(MuredOpcode.VAR, 0, True),
         ),
         quantum=0,
     )

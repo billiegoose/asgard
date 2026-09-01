@@ -134,7 +134,7 @@ def test_ubv_emits_var_and_switches_to_reverse() -> None:
 
     machine.step()
 
-    assert state.memory[4] == Word(MuredOpcode.VAR, 0)
+    assert state.memory[4] == Word(MuredOpcode.VAR, 0, True)
     assert state.fsp == 4
     assert state.pc == 3
     assert state.direction is Direction.B
