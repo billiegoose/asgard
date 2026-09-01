@@ -53,21 +53,16 @@ fn main() {
         }
     };
     let result = ProgramBundle::decode(&bytes).and_then(|bundle| {
-        let preflight = vm::run_bundle(&bundle, quantum)?;
-        if is_io_action(&preflight) {
-            let mut stdin = io::stdin().lock();
-            let mut stdout = io::stdout().lock();
-            if let Some(path) = clock_path {
-                let mut system_clock = vm::SystemClockSource;
-                let initial_ms = vm::ClockSource::now_ms(&mut system_clock);
-                let mut clock = vm::LatestFileClockSource::new(path.into(), initial_ms);
-                vm::run_io_bundle_with_clock(&bundle, quantum, &mut stdin, &mut stdout, &mut clock)
-                    .map(RunOutcome::Io)
-            } else {
-                vm::run_io_bundle(&bundle, quantum, &mut stdin, &mut stdout).map(RunOutcome::Io)
-            }
+        let entry = vm::parse_bundle_entry(&bundle)?;
+        if is_io_action(&entry) {
+            run_io(&bundle, quantum, clock_path)
         } else {
-            Ok(RunOutcome::Red2(preflight))
+            let preflight = vm::run_bundle(&bundle, quantum)?;
+            if is_io_action(&preflight) {
+                run_io(&bundle, quantum, clock_path)
+            } else {
+                Ok(RunOutcome::Red2(preflight))
+            }
         }
     });
     match result {
@@ -88,6 +83,24 @@ fn main() {
     }
 }
 
+fn run_io(
+    bundle: &ProgramBundle,
+    quantum: u32,
+    clock_path: Option<String>,
+) -> Result<RunOutcome, red2_wasm::bytecode::Red2Error> {
+    let mut stdin = io::stdin().lock();
+    let mut stdout = io::stdout().lock();
+    if let Some(path) = clock_path {
+        let mut system_clock = vm::SystemClockSource;
+        let initial_ms = vm::ClockSource::now_ms(&mut system_clock);
+        let mut clock = vm::LatestFileClockSource::new(path.into(), initial_ms);
+        vm::run_io_bundle_with_clock(bundle, quantum, &mut stdin, &mut stdout, &mut clock)
+            .map(RunOutcome::Io)
+    } else {
+        vm::run_io_bundle(bundle, quantum, &mut stdin, &mut stdout).map(RunOutcome::Io)
+    }
+}
+
 fn is_io_action(expr: &Expr) -> bool {
     match expr {
         Expr::Symbol(name) => is_io_action_name(name),
@@ -101,7 +114,12 @@ fn is_io_action(expr: &Expr) -> bool {
 fn is_io_action_name(name: &str) -> bool {
     matches!(
         name,
-        "IF" | "IO-BIND" | "IO-RETURN" | "IO-THEN" | "UART-RX" | "UART-TX"
-            | "UART-TX-BYTES" | "CLOCK"
+        "IF" | "IO-BIND"
+            | "IO-RETURN"
+            | "IO-THEN"
+            | "UART-RX"
+            | "UART-TX"
+            | "UART-TX-BYTES"
+            | "CLOCK"
     )
 }

@@ -68,7 +68,10 @@ pub struct LatestFileClockSource {
 
 impl LatestFileClockSource {
     pub fn new(path: PathBuf, initial_ms: i64) -> Self {
-        Self { path, latest: initial_ms }
+        Self {
+            path,
+            latest: initial_ms,
+        }
     }
 }
 
@@ -99,11 +102,7 @@ pub fn run(program: &Program, quantum: u32) -> Result<Expr, Red2Error> {
 }
 
 pub fn run_bundle(bundle: &ProgramBundle, quantum: u32) -> Result<Expr, Red2Error> {
-    let program = bundle
-        .entry()
-        .ok_or_else(|| Red2Error("missing entry program".to_string()))?;
-    let mut parser = Parser { program };
-    let expr = parser.parse(program.entry as usize)?;
+    let expr = parse_bundle_entry(bundle)?;
     let mut reducer = Reducer {
         bundle: Some(bundle),
         parsed_definitions: BTreeMap::new(),
@@ -111,6 +110,14 @@ pub fn run_bundle(bundle: &ProgramBundle, quantum: u32) -> Result<Expr, Red2Erro
         steps: 0,
     };
     reducer.reduce(expr, &[])
+}
+
+pub fn parse_bundle_entry(bundle: &ProgramBundle) -> Result<Expr, Red2Error> {
+    let program = bundle
+        .entry()
+        .ok_or_else(|| Red2Error("missing entry program".to_string()))?;
+    let mut parser = Parser { program };
+    parser.parse(program.entry as usize)
 }
 
 pub fn run_io_bundle<R: Read, W: Write>(
@@ -143,6 +150,7 @@ pub fn run_io_bundle_with_clock<R: Read, W: Write, C: ClockSource>(
     };
     IoRunner {
         reducer,
+        quantum,
         input,
         output,
         clock,
@@ -197,8 +205,9 @@ impl Parser<'_> {
     fn parse_lambda(&mut self, pc: usize) -> Result<Expr, Red2Error> {
         let mut params = Vec::new();
         let mut cursor = pc;
+        let arity = lambda_arity(self.program.metadata.get(&format!("lambda:{pc}:arity")));
         while let Some(inst) = self.program.instructions.get(cursor) {
-            if inst.opcode != Opcode::Lambda {
+            if inst.opcode != Opcode::Lambda || arity.is_some_and(|limit| params.len() >= limit) {
                 break;
             }
             match &inst.data {
@@ -226,12 +235,19 @@ impl Parser<'_> {
                 break;
             }
             let Data::Int(field_pc) = inst.data else {
-                return Err(Red2Error("STRUCT field APP requires integer data".to_string()));
+                return Err(Red2Error(
+                    "STRUCT field APP requires integer data".to_string(),
+                ));
             };
             field_pcs.push(field_pc as usize);
             cursor += 1;
         }
-        match self.program.instructions.get(cursor).map(|inst| inst.opcode) {
+        match self
+            .program
+            .instructions
+            .get(cursor)
+            .map(|inst| inst.opcode)
+        {
             Some(Opcode::Var) => {}
             _ => return Err(Red2Error("STRUCT requires trailing VAR body".to_string())),
         }
@@ -249,6 +265,14 @@ impl Parser<'_> {
         items.extend(fields);
         Ok(Expr::App(items))
     }
+}
+
+fn lambda_arity(metadata: Option<&Vec<String>>) -> Option<usize> {
+    let values = metadata?;
+    if values.len() != 1 {
+        return None;
+    }
+    values[0].parse().ok()
 }
 
 fn instruction_expr(inst: &Instruction) -> Result<Expr, Red2Error> {
@@ -299,10 +323,18 @@ impl Reducer<'_> {
                     }
                     None => return Ok(Expr::Var(index, None)),
                 },
-                Expr::Closure(next_expr, captured_env) => {
-                    expr = *next_expr;
-                    env = captured_env;
-                }
+                Expr::Closure(next_expr, captured_env) => match *next_expr {
+                    Expr::Lambda(params, body) => {
+                        return Ok(Expr::Closure(
+                            Box::new(Expr::Lambda(params, body)),
+                            captured_env,
+                        ));
+                    }
+                    next => {
+                        expr = next;
+                        env = captured_env;
+                    }
+                },
                 Expr::Symbol(name) => {
                     if self.definition_expr(&name)?.is_some() {
                         if self.remaining == 0 {
@@ -324,7 +356,12 @@ impl Reducer<'_> {
                         env = next_env;
                     }
                 },
-                Expr::Lambda(params, body) => return Ok(Expr::Lambda(params, body)),
+                Expr::Lambda(params, body) => {
+                    if env.is_empty() {
+                        return Ok(Expr::Lambda(params, body));
+                    }
+                    return Ok(Expr::Closure(Box::new(Expr::Lambda(params, body)), env));
+                }
                 value => return Ok(value),
             }
         }
@@ -391,13 +428,25 @@ impl Reducer<'_> {
                         left.to_source()
                     )));
                 }
+                ("Y", [arg]) => {
+                    if self.remaining == 0 {
+                        return Ok(ReduceStep::Return(Expr::App(items)));
+                    }
+                    self.contract();
+                    let recursive_call =
+                        Expr::App(vec![Expr::Symbol("Y".to_string()), arg.clone()]);
+                    return Ok(ReduceStep::TailCall(
+                        Expr::App(vec![arg.clone(), recursive_call]),
+                        env.to_vec(),
+                    ));
+                }
                 _ => {}
             }
             if let Some(value) = self.try_primitive(name, &args, env)? {
                 return Ok(ReduceStep::Return(value));
             }
         }
-        if let Expr::Lambda(params, body) = operator.clone() {
+        if let Some((params, body, lambda_env)) = lambda_parts(operator.clone()) {
             if !params.is_empty() && !args.is_empty() && self.remaining > 0 {
                 let bind_count = params.len().min(args.len()).min(self.remaining as usize);
                 if bind_count == 0 {
@@ -406,11 +455,11 @@ impl Reducer<'_> {
                 for _ in 0..bind_count {
                     self.contract();
                 }
-                let mut next_env = Vec::with_capacity(bind_count + env.len());
+                let mut next_env = Vec::with_capacity(bind_count + lambda_env.len());
                 for arg in &args[..bind_count] {
-                    next_env.push(self.reduce(arg.clone(), env)?);
+                    next_env.push(Expr::Closure(Box::new(arg.clone()), env.to_vec()));
                 }
-                extend_needed_outer_env(&mut next_env, &body, bind_count, env);
+                extend_needed_outer_env(&mut next_env, &body, bind_count, &lambda_env);
                 if bind_count == params.len() && bind_count == args.len() {
                     return Ok(ReduceStep::TailCall(*body, next_env));
                 }
@@ -525,6 +574,7 @@ enum ReduceStep {
 
 struct IoRunner<'a, R: Read, W: Write, C: ClockSource> {
     reducer: Reducer<'a>,
+    quantum: u32,
     input: &'a mut R,
     output: &'a mut W,
     clock: &'a mut C,
@@ -533,6 +583,11 @@ struct IoRunner<'a, R: Read, W: Write, C: ClockSource> {
 impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
     fn run_action(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
         self.run_action_loop(expr, env.to_vec())
+    }
+
+    fn reduce_pure(&mut self, expr: Expr, env: &[Expr]) -> Result<Expr, Red2Error> {
+        self.reducer.remaining = self.quantum;
+        self.reducer.reduce(expr, env)
     }
 
     fn run_action_loop(&mut self, mut expr: Expr, mut env: Vec<Expr>) -> Result<Expr, Red2Error> {
@@ -632,12 +687,12 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         if items.is_empty() {
             return Err(Red2Error("not an IO action: ()".to_string()));
         }
-        let operator = self.reducer.reduce(items[0].clone(), env)?;
+        let operator = self.reduce_pure(items[0].clone(), env)?;
         let args = &items[1..];
         if let Expr::Symbol(name) = &operator {
             match (name.as_str(), args) {
                 ("IF", [condition, consequent, alternative]) => {
-                    let condition = self.reducer.reduce(condition.clone(), env)?;
+                    let condition = self.reduce_pure(condition.clone(), env)?;
                     if is_true(&condition) {
                         return Ok(IoStep::TailCall(consequent.clone(), env.to_vec()));
                     }
@@ -650,7 +705,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     )));
                 }
                 ("IO-RETURN", [value]) => {
-                    return self.reducer.reduce(value.clone(), env).map(IoStep::Return);
+                    return self.reduce_pure(value.clone(), env).map(IoStep::Return);
                 }
                 ("IO-BIND", [action, continuation]) => {
                     frames.push(IoFrame::Bind(continuation.clone(), env.to_vec()));
@@ -663,12 +718,12 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                 ("UART-RX", []) => return self.read_uart_rx().map(IoStep::Return),
                 ("CLOCK", []) => return Ok(IoStep::Return(Expr::Int(self.clock.now_ms()))),
                 ("UART-TX-BYTES", [value]) => {
-                    let value = self.reducer.reduce(value.clone(), env)?;
+                    let value = self.reduce_pure(value.clone(), env)?;
                     self.write_byte_list(&value)?;
                     return Ok(IoStep::Return(Expr::Symbol("NIL".to_string())));
                 }
                 ("UART-TX", [value]) => {
-                    let value = self.reducer.reduce(value.clone(), env)?;
+                    let value = self.reduce_pure(value.clone(), env)?;
                     let Expr::Int(byte) = value else {
                         return Err(Red2Error(format!(
                             "UART-TX argument is stuck: {}",
@@ -686,7 +741,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                 _ => {}
             }
         }
-        if let Expr::Lambda(params, body) = operator {
+        if let Some((params, body, lambda_env)) = lambda_parts(operator) {
             if params.len() != args.len() {
                 return Err(Red2Error(format!(
                     "expected {} argument(s), got {}",
@@ -694,16 +749,21 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
                     args.len()
                 )));
             }
-            let mut next_env = Vec::with_capacity(args.len() + env.len());
+            let mut next_env = Vec::with_capacity(args.len() + lambda_env.len());
             for arg in args {
-                next_env.push(self.reducer.reduce(arg.clone(), env)?);
+                next_env.push(self.reduce_pure(arg.clone(), env)?);
             }
-            extend_needed_outer_env(&mut next_env, &body, params.len(), env);
+            extend_needed_outer_env(&mut next_env, &body, params.len(), &lambda_env);
             return Ok(IoStep::TailCall(*body, next_env));
+        }
+        let original = Expr::App(items);
+        let reduced = self.reduce_pure(original.clone(), env)?;
+        if reduced != original {
+            return Ok(IoStep::TailCall(reduced, Vec::new()));
         }
         Err(Red2Error(format!(
             "unknown IO action: {}",
-            Expr::App(items).to_source()
+            original.to_source()
         )))
     }
 
@@ -757,8 +817,8 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
         value: Expr,
         env: &[Expr],
     ) -> Result<(Expr, Vec<Expr>), Red2Error> {
-        let continuation = self.reducer.reduce(continuation, env)?;
-        let Expr::Lambda(params, body) = continuation else {
+        let continuation = self.reduce_pure(continuation, env)?;
+        let Some((params, body, lambda_env)) = lambda_parts(continuation.clone()) else {
             return Err(Red2Error(format!(
                 "IO-BIND expects unary lambda, got {}",
                 continuation.to_source()
@@ -771,7 +831,7 @@ impl<R: Read, W: Write, C: ClockSource> IoRunner<'_, R, W, C> {
             )));
         }
         let mut next_env = vec![value];
-        extend_needed_outer_env(&mut next_env, &body, 1, env);
+        extend_needed_outer_env(&mut next_env, &body, 1, &lambda_env);
         Ok((*body, next_env))
     }
 }
@@ -786,7 +846,23 @@ enum IoStep {
     TailCall(Expr, Vec<Expr>),
 }
 
-fn extend_needed_outer_env(next_env: &mut Vec<Expr>, body: &Expr, bound_count: usize, env: &[Expr]) {
+fn lambda_parts(expr: Expr) -> Option<(Vec<String>, Box<Expr>, Vec<Expr>)> {
+    match expr {
+        Expr::Lambda(params, body) => Some((params, body, Vec::new())),
+        Expr::Closure(expr, env) => match *expr {
+            Expr::Lambda(params, body) => Some((params, body, env)),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn extend_needed_outer_env(
+    next_env: &mut Vec<Expr>,
+    body: &Expr,
+    bound_count: usize,
+    env: &[Expr],
+) {
     let needed = required_outer_env(body, bound_count);
     next_env.extend(env.iter().take(needed).cloned());
 }
@@ -800,16 +876,14 @@ fn required_outer_env(expr: &Expr, bound_count: usize) -> usize {
 fn max_var_index(expr: &Expr) -> Option<usize> {
     match expr {
         Expr::Var(index, _) => Some(*index),
-        Expr::Lambda(params, body) => max_var_index(body)
-            .and_then(|index| index.checked_sub(params.len())),
+        Expr::Lambda(params, body) => {
+            max_var_index(body).and_then(|index| index.checked_sub(params.len()))
+        }
         Expr::App(items) => items.iter().filter_map(max_var_index).max(),
         Expr::Pair(car, cdr) => max_var_index(car).max(max_var_index(cdr)),
-        Expr::Closure(expr, captured_env) => max_var_index(expr).max(
-            captured_env
-                .iter()
-                .filter_map(max_var_index)
-                .max(),
-        ),
+        Expr::Closure(expr, captured_env) => {
+            max_var_index(expr).max(captured_env.iter().filter_map(max_var_index).max())
+        }
         Expr::Int(_) | Expr::Float(_) | Expr::Char(_) | Expr::Symbol(_) => None,
     }
 }
@@ -979,10 +1053,8 @@ mod tests {
 
     #[test]
     fn latest_file_clock_uses_latest_valid_line_and_keeps_previous_on_bad_input() {
-        let path = std::env::temp_dir().join(format!(
-            "asgard-clock-{}-latest.txt",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("asgard-clock-{}-latest.txt", std::process::id()));
         let _ = std::fs::remove_file(&path);
         std::fs::write(&path, "1700000000123\nnot-a-clock\n1700000000456\n").unwrap();
         let mut clock = LatestFileClockSource::new(path.clone(), 123);

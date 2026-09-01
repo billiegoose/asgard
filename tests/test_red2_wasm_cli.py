@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from thor_spec.ast import Definition, Expr, StructDef
 from thor_spec.normalization import normalize_program
 from thor_spec.parser import parse_program
@@ -261,6 +263,29 @@ def test_rust_red2_vm_runs_deep_io_then_chain_without_host_stack_growth(
     assert result.returncode == 0
     assert result.stdout == "A" * 300
     assert result.stderr == ""
+
+
+def test_rust_red2_vm_clock_dots_runs_until_timeout_without_io_action_error(
+    tmp_path: Path,
+) -> None:
+    bytecode = write_bytecode(tmp_path, Path("examples/clock-dots.thor").read_text())
+
+    with pytest.raises(subprocess.TimeoutExpired) as timeout_info:
+        run_rust_vm(bytecode, quantum=100000, timeout=8.0)
+
+    stdout = _timeout_text(timeout_info.value.stdout)
+    stderr = _timeout_text(timeout_info.value.stderr)
+    assert "." in stdout
+    assert "unknown IO action" not in stderr
+    assert "not an IO action" not in stderr
+
+
+def _timeout_text(value: bytes | str | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
 
 
 def test_rust_red2_vm_errors_on_stuck_numeric_primitive(tmp_path: Path) -> None:
