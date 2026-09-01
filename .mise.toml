@@ -112,7 +112,7 @@ run = 'uv run python tools/videos/generate.py "${usage_video?}" ${usage_no_uploa
 
 [tasks.test]
 description = "Run Python tests"
-run = "uv run pytest"
+run = "uv run pytest -n 4 --dist loadfile"
 
 [tasks.lint]
 description = "Run Ruff"
