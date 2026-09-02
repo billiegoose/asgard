@@ -46,7 +46,7 @@
 ### Task 2: Symbol definitions and closed definition execution
 
 **Type:** implementation
-**Depends-on:** 1
+**Depends-on:** none
 **Review:** adversarial
 
 **Files:**
@@ -55,7 +55,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-symbol-definitions-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-symbol-definitions-slice-design.md`
 
 **Interfaces:**
 - Consumes: no-definition `SYM`
@@ -80,7 +80,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_compile.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-primitive-registers-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-primitive-registers-slice-design.md`
 
 **Interfaces:**
 - Consumes: head flags and passive data
@@ -104,7 +104,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-strict-add-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-strict-add-slice-design.md`
 
 **Interfaces:**
 - Consumes: primitive registers and `PRIM_2`
@@ -128,7 +128,7 @@
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-strict-primitives-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-strict-primitives-slice-design.md`
 
 **Interfaces:**
 - Consumes: ADD/fire machinery
@@ -151,7 +151,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-y-primitive-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-y-primitive-slice-design.md`
 
 **Interfaces:**
 - Consumes: `PRIM_0`, `argcnt`, q, APP/APP_VAR behavior
@@ -174,7 +174,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-if-primitive-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-if-primitive-slice-design.md`
 
 **Interfaces:**
 - Consumes: primitive registers and strict first-argument reduction machinery
@@ -198,7 +198,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-structures-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-structures-slice-design.md`
 
 **Interfaces:**
 - Consumes: passive symbols/data, APP/APP_VAR, LAMBDA-like contraction
@@ -222,7 +222,7 @@
 - Modify: `tests/test_mured_compile.py`
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-letrec-rblock-rup-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-letrec-rblock-rup-slice-design.md`
 
 **Interfaces:**
 - Consumes: SYM decompilation, environment allocation, q behavior
@@ -245,7 +245,7 @@
 - Modify: `tests/test_mured_transitions.py`
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-recp-reconstruct-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-recp-reconstruct-slice-design.md`
 
 **Interfaces:**
 - Consumes: `REC`, `RBLOCK`, `RUP` constructs
@@ -270,7 +270,7 @@
 - Modify: `tests/test_red2_machine_core.py`
 - Create: `tests/test_mured_cli.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-faithful-cli-slice-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-faithful-cli-slice-design.md`
 
 **Interfaces:**
 - Consumes: complete faithful Python RED2 subset
@@ -291,7 +291,7 @@
 **Files:**
 - Modify: `tests/test_mured_fidelity.py`
 - Modify: `docs/thor-red2-prototype.md`
-- Create: `docs/superpowers/specs/YYYY-MM-DD-red2-final-conformance-design.md`
+- Create: `docs/superpowers/specs/2026-09-02-red2-final-conformance-design.md`
 
 **Interfaces:**
 - Consumes: all faithful Python RED2 slices
