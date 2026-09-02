@@ -18,8 +18,12 @@ is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
 passive `INT`/`FLOAT`/`CHAR`, the closed head-`SYM` definition path,
-and the strict `PRIM_2` ADD fire path (Task 4 completed; remaining strict
-primitives — sub, mul, char predicates — remain in Task 5).
+the strict `PRIM_2` ADD fire path (Task 4 complete, 52/52 transition
+tests passing at `b89c0ae`), the strict primitive family table (Task 5
+complete at `2ace25c`: SUB/MUL/DIV fire + compile-time PRIM_2 for `+ - * /`),
+and remaining non-strict slices (IF / Y / STRUCT / LETREC / RECP / CLI /
+final conformance / integration gate — Tasks 6–13) with specs authored
+and sequential execution plan documented.
 It executes the Chapter 4 graph-memory instructions and register transfers
 directly, including head metadata, passive integers, floats, characters, free
 symbols, APP-VAR, and the defined-symbol branch used by this slice, but is
@@ -69,7 +73,11 @@ The current user-visible primitive surface is documented in
 - Character constants, symbol predicates, and equality are covered; a complete
   non-benchmark character library is not implemented.
 - The faithful μRED core still lacks the broader multi-definition context
-  machinery outside the closed head-`SYM` path.
+  machinery outside the closed head-`SYM` path, and the non-strict
+  IF/Y primitives, STRUCT/LETREC/RECP control-flow constructs, and CLI
+  integration remain open (Tasks 6–13 with authored specs in
+  `docs/superpowers/specs/`). The ADD fidelity corpus has 3 remaining
+  failures due to graph/decompile layout alignment (open correctness item).
 - FPGA synthesis automation is not part of this milestone.
 - Performance-accurate memory reclamation is not attempted.
 - Vendor tool integration is intentionally out of scope for the default tests.

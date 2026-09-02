@@ -57,6 +57,9 @@ _STRICT_PRIMITIVE_ARITY = {
     "NIL": 0,
 }
 
+# Non-strict primitives that need lazy evaluation (IF, Y)
+_NON_STRICT_PRIMITIVES = frozenset({"AND", "OR", "IF", "Y"})
+
 
 @dataclass(frozen=True, slots=True)
 class Word:
