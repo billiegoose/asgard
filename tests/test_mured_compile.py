@@ -171,9 +171,24 @@ def test_decompile_application_spine_restores_inline_variable_arguments() -> Non
     assert to_source(machine.result_expr()) == "(LAMBDA (f x) (f x))"
 
 
-def test_compile_lambda_rejects_non_lambda_calculus_values() -> None:
-    with pytest.raises(TypeError, match="free source symbols require explicit Var"):
-        compile_lambda(parse_expr("foo"))
+def test_compile_lambda_emits_free_symbols_as_sym_words() -> None:
+    assert compile_lambda(parse_expr("FOO")) == (
+        Word(MuredOpcode.SYM, "FOO", True),
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) FOO)"))[-1] == Word(
+        MuredOpcode.SYM,
+        "FOO",
+        True,
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) x)"))[-1] == Word(
+        MuredOpcode.VAR,
+        0,
+        True,
+    )
+    assert any(
+        word.opcode is MuredOpcode.APP_VAR
+        for word in compile_lambda(parse_expr("(LAMBDA (f x) (f x))"))
+    )
 
 
 def test_mured_machine_loads_integer_words_and_decompiles_them() -> None:

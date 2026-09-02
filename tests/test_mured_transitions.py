@@ -336,6 +336,138 @@ def test_passive_float_and_char_reverse_only_decrement_pc(opcode: MuredOpcode) -
 
 
 @pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.SYM, "FOO"),
+    ],
+)
+def test_sym_forward_head_copies_itself_then_begins_reverse_traversal(
+    opcode: MuredOpcode,
+    payload: str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, True)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
+
+
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.SYM, "bar"),
+    ],
+)
+def test_sym_forward_non_head_copies_and_advances(
+    opcode: MuredOpcode,
+    payload: str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, False)
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_sym_reverse_only_decrements_pc() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.SYM, "baz", False)
+    machine = MuredMachine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (1, "SYM requires a non-empty symbol name"),
+        (True, "SYM requires a non-empty symbol name"),
+        ("", "SYM requires a non-empty symbol name"),
+    ],
+)
+def test_sym_forward_rejects_malformed_payloads(
+    payload: int | bool | str,
+    message: str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+@pytest.mark.parametrize(
     ("payload", "message"),
     [
         (1, "FLOAT requires a floating-point value"),

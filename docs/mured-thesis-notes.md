@@ -4,6 +4,6 @@
 2. A non-contracting forward `LAMBDA` advances `pc` after copying itself and allocating `UBV`; omission would repeat the same instruction forever.
 3. Reverse `STOP` advances `pc` from the sentinel to the first result word before halt so the halted `pc` identifies the result root as the execution-model prose requires.
 
-Boundary: `APP_VAR` is implemented in this slice, but full RED2 still remains incomplete. Passive `INT`, `FLOAT`, and `CHAR` are implemented literally now so the later symbolic-constant and definition-lookup work has the needed transitions, but that work itself remains out of scope.
+Boundary: `APP_VAR` and passive no-definition `SYM` are implemented in this slice, but full RED2 still remains incomplete. Passive `INT`, `FLOAT`, and `CHAR` are implemented literally now so the later symbol-definition lookup and reduction work has the needed transitions, but that work itself remains out of scope.
 
 These are narrow reconciliations of internally incomplete pseudocode, not evaluator shortcuts.

@@ -15,6 +15,7 @@ class MuredOpcode(StrEnum):
     INT = auto()
     FLOAT = auto()
     CHAR = auto()
+    SYM = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -79,9 +80,10 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             words.append(Word(MuredOpcode.VAR, node.index, head))
             return
         if isinstance(node, Symbol):
-            if node.name not in scope:
-                raise TypeError("free source symbols require explicit Var")
-            words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
+            if node.name in scope:
+                words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
+            else:
+                words.append(Word(MuredOpcode.SYM, node.name, head))
             return
         if isinstance(node, Integer):
             words.append(Word(MuredOpcode.INT, node.value, head))
@@ -178,6 +180,7 @@ class MuredMachine:
             MuredOpcode.FLOAT,
             MuredOpcode.INT,
             MuredOpcode.LAMBDA,
+            MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
         if any(word.opcode not in allowed for word in problem):
@@ -243,6 +246,8 @@ class MuredMachine:
                 self._float(word)
             case MuredOpcode.CHAR:
                 self._char(word)
+            case MuredOpcode.SYM:
+                self._sym(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -433,6 +438,19 @@ class MuredMachine:
             raise IllegalTransition("CHAR requires a single-character string")
         self._passive(word)
 
+    def _sym(self, word: Word) -> None:
+        if type(word.data) is not str or word.data == "":
+            raise IllegalTransition("SYM requires a non-empty symbol name")
+        if self.state.direction is Direction.B:
+            self.state.pc -= 1
+            return
+        self._push_graph(word)
+        if word.head:
+            self.state.pc = self.state.fsp - 1
+            self.state.direction = Direction.B
+        else:
+            self.state.pc += 1
+
     def _app_var(self, word: Word) -> None:
         state = self.state
         if state.direction is Direction.B:
@@ -581,6 +599,11 @@ class MuredMachine:
                     "result CHAR requires a single-character string"
                 )
             return Char(word.data), address + 1
+
+        if word.opcode is MuredOpcode.SYM:
+            if type(word.data) is not str or word.data == "":
+                raise MuredMachineError("result SYM requires a symbol name")
+            return Symbol(word.data), address + 1
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:
