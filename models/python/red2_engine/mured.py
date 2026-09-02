@@ -31,6 +31,7 @@ class Word:
     opcode: MuredOpcode | None
     data: int | float | str | None = None
     head: bool = False
+    definition: int | None = None
 
 
 class MuredMachineError(RuntimeError):
@@ -327,6 +328,14 @@ class MuredMachine:
             self._push_control(state.env)
             state.pc += 1
             return
+        if word.definition is not None and state.q > 0:
+            if not isinstance(word.definition, int):
+                raise InvalidAddress("APP definition requires an address")
+            self.state.memory[state.pc] = Word(MuredOpcode.STOP)
+            state.pc = word.definition
+            state.direction = Direction.F
+            state.q -= 1
+            return
         if not isinstance(word.data, int):
             raise InvalidAddress("APP requires an argument address")
         parent_app = state.pc
@@ -441,15 +450,37 @@ class MuredMachine:
     def _sym(self, word: Word) -> None:
         if type(word.data) is not str or word.data == "":
             raise IllegalTransition("SYM requires a non-empty symbol name")
-        if self.state.direction is Direction.B:
-            self.state.pc -= 1
+        state = self.state
+        if state.direction is Direction.B:
+            if word.definition is not None and state.q > 0:
+                if not isinstance(word.definition, int) or word.definition < 0:
+                    raise InvalidAddress("SYM definition requires an address")
+                next_path = state.pc - 1
+                if next_path < 0:
+                    raise InvalidAddress("SYM definition requires a continuation")
+                self._push_control(state.env)
+                self.state.memory[state.pc] = Word(
+                    MuredOpcode.APP,
+                    next_path,
+                    word.head,
+                    word.definition,
+                )
+                return
+            state.pc -= 1
+            return
+        if word.head and word.definition is not None and state.q > 0:
+            if not isinstance(word.definition, int) or word.definition < 0:
+                raise InvalidAddress("SYM definition requires an address")
+            self._push_graph(word)
+            state.pc = state.fsp
+            state.direction = Direction.B
             return
         self._push_graph(word)
         if word.head:
-            self.state.pc = self.state.fsp - 1
-            self.state.direction = Direction.B
+            state.pc = state.fsp - 1
+            state.direction = Direction.B
         else:
-            self.state.pc += 1
+            state.pc += 1
 
     def _app_var(self, word: Word) -> None:
         state = self.state

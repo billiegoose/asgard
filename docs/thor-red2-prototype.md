@@ -17,11 +17,12 @@ and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
 is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
-passive `INT`/`FLOAT`/`CHAR`, and no-definition `SYM` slice. It executes the
-Chapter 4 graph-memory instructions and register transfers directly, including
-head metadata, passive integers, floats, characters, free symbols, and
-APP-VAR, but is still not full RED2 and is not wired to the CLI. Symbol
-definition lookup remains deferred. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
+passive `INT`/`FLOAT`/`CHAR`, and the closed head-`SYM` definition path.
+It executes the Chapter 4 graph-memory instructions and register transfers
+directly, including head metadata, passive integers, floats, characters, free
+symbols, APP-VAR, and the defined-symbol branch used by this slice, but is
+still not full RED2 and is not wired to the CLI. The broader definition-context
+machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
 The current user-visible primitive surface is documented in
@@ -65,8 +66,8 @@ The current user-visible primitive surface is documented in
   the default quantum gate.
 - Character constants, symbol predicates, and equality are covered; a complete
   non-benchmark character library is not implemented.
-- Symbolic constants and definition lookup remain deferred in the faithful
-  μRED core.
+- The faithful μRED core still lacks the broader multi-definition context
+  machinery outside the closed head-`SYM` path.
 - FPGA synthesis automation is not part of this milestone.
 - Performance-accurate memory reclamation is not attempted.
 - Vendor tool integration is intentionally out of scope for the default tests.

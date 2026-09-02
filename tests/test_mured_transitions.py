@@ -388,15 +388,120 @@ def test_sym_forward_non_head_copies_and_advances(
         q=3,
         phi=0,
     )
-    state.memory[0] = Word(opcode, payload, False)
+    state.memory[0] = Word(opcode, payload, False, 5)
     state.memory[1] = Word(MuredOpcode.STOP)
     machine = MuredMachine(state)
 
     machine.step()
 
     copied = state.memory[state.fsp]
-    assert copied == Word(opcode, payload, False)
+    assert copied == Word(opcode, payload, False, 5)
     assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_sym_head_with_definition_and_zero_quantum_remains_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[state.fsp] == Word(MuredOpcode.SYM, "FOO", True, 9)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
+
+
+def test_sym_head_with_definition_forward_enters_reverse_copy_path() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[state.fsp] == Word(MuredOpcode.SYM, "FOO", True, 9)
+    assert state.direction is Direction.B
+    assert state.pc == state.fsp
+    assert state.q == 3
+
+
+def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=2,
+        env=12,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.APP, 1, True, 9)
+    assert state.control_stack[0] == 12
+    assert state.c == 0
+    assert state.direction is Direction.B
+    assert state.pc == 2
+
+
+def test_defined_symbol_app_reverse_enters_definition_code() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=2,
+        env=12,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.APP, 1, True, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    state.control_stack[0] = 12
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.STOP)
+    assert state.pc == 9
+    assert state.direction is Direction.F
+    assert state.q == 2
+    assert state.control_stack[0] == 12
 
 
 def test_sym_reverse_only_decrements_pc() -> None:

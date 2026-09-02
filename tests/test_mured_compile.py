@@ -173,12 +173,13 @@ def test_decompile_application_spine_restores_inline_variable_arguments() -> Non
 
 def test_compile_lambda_emits_free_symbols_as_sym_words() -> None:
     assert compile_lambda(parse_expr("FOO")) == (
-        Word(MuredOpcode.SYM, "FOO", True),
+        Word(MuredOpcode.SYM, "FOO", True, None),
     )
     assert compile_lambda(parse_expr("(LAMBDA (x) FOO)"))[-1] == Word(
         MuredOpcode.SYM,
         "FOO",
         True,
+        None,
     )
     assert compile_lambda(parse_expr("(LAMBDA (x) x)"))[-1] == Word(
         MuredOpcode.VAR,

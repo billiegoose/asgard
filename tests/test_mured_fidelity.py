@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from red2_engine.mured import Direction, MuredMachine, MuredOpcode, Word
+from red2_engine.mured import (
+    Direction,
+    MuredMachine,
+    MuredOpcode,
+    Word,
+    compile_lambda,
+)
 from thor_engine.semantics import reduce_expr
 from thor_lang.ast import App, Expr, Lambda
 from thor_lang.parser import parse_expr
@@ -49,6 +55,48 @@ def dense_words(
         if word is not None:
             items.append((address, word))
     return tuple(items)
+
+
+def load_defined_symbol_machine(
+    symbol_source: str,
+    definition_source: str,
+    *,
+    quantum: int,
+    memory_words: int = 64,
+    definition_address: int = 8,
+) -> MuredMachine:
+    def relocate_definition(words: tuple[Word, ...]) -> tuple[Word, ...]:
+        relocated: list[Word] = []
+        for word in words:
+            data = word.data
+            if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                assert isinstance(data, int)
+                data = data + definition_address
+            relocated.append(Word(word.opcode, data, word.head, word.definition))
+        return tuple(relocated)
+
+    machine = MuredMachine.load(
+        compile_lambda(parse_expr(symbol_source)),
+        quantum=quantum,
+        memory_words=memory_words,
+    )
+    definition = relocate_definition(
+        compile_lambda(parse_expr(definition_source))
+    )
+    for offset, word in enumerate(definition):
+        machine.state.memory[definition_address + offset] = word
+    machine.state.memory[definition_address + len(definition)] = Word(
+        MuredOpcode.STOP
+    )
+    root = machine.state.memory[0]
+    assert root is not None
+    machine.state.memory[0] = Word(
+        root.opcode,
+        root.data,
+        True,
+        definition_address,
+    )
+    return machine
 
 
 def control_contents(
@@ -504,6 +552,38 @@ def test_mured_result_matches_chapter3_for_symbol_corpus(
         reduce_expr(expr, quantum=quantum).expr
     )
 
+    assert to_source(machine.result_expr()) == to_source(thor)
+
+
+@pytest.mark.parametrize(
+    ("quantum", "expected_source"),
+    [
+        (10, "42"),
+        (0, "FOO"),
+    ],
+)
+def test_mured_result_matches_chapter3_for_defined_symbol_corpus(
+    quantum: int,
+    expected_source: str,
+) -> None:
+    expr = parse_expr("FOO")
+    definition = parse_expr("((LAMBDA (x) x) 42)")
+    machine = load_defined_symbol_machine(
+        "FOO",
+        "((LAMBDA (x) x) 42)",
+        quantum=quantum,
+    )
+    thor = group_consecutive_lambdas(
+        reduce_expr(
+            expr,
+            quantum=quantum,
+            definitions={"FOO": definition},
+        ).expr
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == expected_source
     assert to_source(machine.result_expr()) == to_source(thor)
 
 
