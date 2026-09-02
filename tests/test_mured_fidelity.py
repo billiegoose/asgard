@@ -501,6 +501,9 @@ def test_mured_result_matches_chapter3_for_integer_corpus(
         ),
         ("((LAMBDA (x) (LAMBDA (y) x)) (LAMBDA (z) z))", 20),
         ("((LAMBDA (x) (LAMBDA (y) x)) (LAMBDA (z) z))", 1),
+        ("(LAMBDA (f x) (f x))", 10),
+        ("((LAMBDA (x) (LAMBDA (y) x)) 42)", 10),
+        ("((LAMBDA (x) (LAMBDA (y) x)) 42)", 0),
         ("((LAMBDA (x) x) (LAMBDA (y) y))", 0),
     ],
 )

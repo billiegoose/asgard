@@ -16,10 +16,10 @@ transfers directly. The Rust evaluator provides the same kind of compatibility
 and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
 is explicit: semantic parity is not machine fidelity.
 
-`red2_engine.mured` is the faithful μRED core plus the first RED2 head/INT
+`red2_engine.mured` is the faithful μRED core plus the APP-VAR/head/INT
 slice. It executes the Chapter 4 graph-memory instructions and register
-transfers directly, including head metadata and passive integers, but is not
-full RED2 and is not wired to the CLI. See
+transfers directly, including head metadata, passive integers, and APP-VAR,
+but is still not full RED2 and is not wired to the CLI. See
 [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three narrow source
 reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.

@@ -4,6 +4,7 @@ from red2_engine.mured import (
     ControlStackUnderflow,
     Direction,
     IllegalTransition,
+    InvalidAddress,
     MuredMachine,
     MuredMachineState,
     MuredOpcode,
@@ -36,6 +37,57 @@ def test_app_forward_copies_word_saves_env_and_advances() -> None:
     assert state.cycles == 1
 
 
+def test_app_var_forward_resolves_ubv_and_pushes_corrected_app_var() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.memory[30] = Word(MuredOpcode.UBV, 1)
+    state.env = 30
+    state.phi = 4
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP_VAR, 3, False)
+    assert state.fsp == 3
+    assert state.pc == 1
+    assert state.direction is Direction.F
+    assert state.cycles == 1
+
+
+def test_app_var_forward_resolves_closure_and_pushes_control_path() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.memory[30] = Word(MuredOpcode.CLOSURE, 28)
+    state.memory[31] = Word(None, 7)
+    state.env = 30
+
+    machine.step()
+
+    assert state.control_stack[0] == 28
+    assert state.c == 0
+    assert state.memory[3] == Word(MuredOpcode.APP, 7, False)
+    assert state.fsp == 3
+    assert state.pc == 1
+    assert state.direction is Direction.F
+    assert state.cycles == 1
+
+
+def test_app_var_forward_rejects_bool_payload() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, True, False)
+    state.memory[30] = Word(MuredOpcode.UBV, 1)
+    state.memory[31] = Word(MuredOpcode.UBV, 1)
+    state.env = 30
+    state.phi = 4
+
+    with pytest.raises(
+        InvalidAddress, match="APP_VAR requires a non-negative variable index"
+    ):
+        machine.step()
+
+
 def test_app_reverse_creates_join_with_parent_pointer() -> None:
     machine = base_machine()
     state = machine.state
@@ -56,6 +108,23 @@ def test_app_reverse_creates_join_with_parent_pointer() -> None:
     assert state.fsp == 4
     assert state.pc == 9
     assert state.direction is Direction.F
+
+
+def test_app_var_reverse_only_decrements_pc() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.pc == 2
+    assert state.fsp == 3
+    assert state.env == 20
+    assert state.direction is Direction.B
 
 
 def test_lookup_skips_ubv_closure_and_follows_parent_pointer() -> None:
@@ -91,6 +160,27 @@ def test_lambda_contracts_against_result_app() -> None:
     assert state.env == 30
     assert state.memory[30] == Word(MuredOpcode.CLOSURE, 32)
     assert state.memory[31] == Word(None, 9)
+    assert state.pc == 1
+
+
+def test_lambda_contracts_against_result_app_var_without_popping_control() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP_VAR, 1, False)
+    state.control_stack[0] = 22
+    state.c = 0
+    state.fsp = 3
+    state.env = 30
+    state.phi = 4
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == 0
+    assert state.control_stack[0] == 22
+    assert state.env == 29
+    assert state.memory[29] == Word(MuredOpcode.UBV, 3, False)
     assert state.pc == 1
 
 
@@ -257,7 +347,7 @@ def test_join_inserts_argument_root_and_walks_parent_backward() -> None:
     machine = base_machine()
     state = machine.state
     state.memory[4] = Word(MuredOpcode.JOIN, 3)
-    state.memory[5] = Word(MuredOpcode.VAR, 0)
+    state.memory[5] = Word(MuredOpcode.INT, 0)
     state.memory[3] = Word(MuredOpcode.APP, 9)
     state.pc = 4
     state.fsp = 5
@@ -267,6 +357,24 @@ def test_join_inserts_argument_root_and_walks_parent_backward() -> None:
 
     assert state.memory[3] == Word(MuredOpcode.APP, 5)
     assert state.s_a == 5
+    assert state.pc == 2
+
+
+def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3)
+    state.memory[5] = Word(MuredOpcode.VAR, 0)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP_VAR, 0, False)
+    assert state.s_a == 5
+    assert state.fsp == 3
     assert state.pc == 2
 
 

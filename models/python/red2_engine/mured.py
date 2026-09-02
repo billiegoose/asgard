@@ -338,7 +338,7 @@ class MuredMachine:
             raise IllegalTransition("JOIN parent must be APP")
         tail = self._word(self.state.s_a)
         if tail.opcode is MuredOpcode.VAR:
-            if not isinstance(tail.data, int):
+            if type(tail.data) is not int or tail.data < 0:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
             self.state.memory[word.data] = Word(
                 MuredOpcode.APP_VAR, tail.data, False
@@ -369,7 +369,7 @@ class MuredMachine:
             state.pc += 1
             return
         if result_head.opcode is MuredOpcode.APP_VAR:
-            if not isinstance(result_head.data, int):
+            if type(result_head.data) is not int or result_head.data < 0:
                 raise InvalidAddress("result APP_VAR requires a variable index")
             self._allocate_environment(
                 Word(MuredOpcode.UBV, state.phi - result_head.data, False)
@@ -411,23 +411,23 @@ class MuredMachine:
         if state.direction is Direction.B:
             state.pc -= 1
             return
-        if not isinstance(word.data, int) or word.data < 0:
+        if type(word.data) is not int or word.data < 0:
             raise InvalidAddress("APP_VAR requires a non-negative variable index")
         redex_address = self.lookup(word.data)
         state.pc += 1
         redex = self._word(redex_address)
         if redex.opcode is MuredOpcode.UBV:
-            if not isinstance(redex.data, int):
+            if type(redex.data) is not int or redex.data < 0:
                 raise InvalidAddress("UBV requires a binder depth")
             self._push_graph(
                 Word(MuredOpcode.APP_VAR, state.phi - redex.data, False)
             )
             return
         if redex.opcode is MuredOpcode.CLOSURE:
-            if not isinstance(redex.data, int):
+            if type(redex.data) is not int or redex.data < 0:
                 raise MalformedClosure("CLOSURE requires an environment address")
             code = self._word(redex_address + 1)
-            if code.opcode is not None or not isinstance(code.data, int):
+            if code.opcode is not None or type(code.data) is not int or code.data < 0:
                 raise MalformedClosure("CLOSURE requires a following code pointer")
             self._push_control(redex.data)
             self._push_graph(Word(MuredOpcode.APP, code.data, False))
