@@ -29,6 +29,35 @@ class Direction(StrEnum):
     B = auto()
 
 
+# Strict primitive arity mapping for RED2 primitives
+_STRICT_PRIMITIVE_ARITY = {
+    "+": 2,
+    "-": 2,
+    "*": 2,
+    "/": 2,
+    "<": 2,
+    ">": 2,
+    "<=": 2,
+    ">=": 2,
+    "=": 2,
+    "EQUAL?": 2,
+    "1-": 1,
+    "INTEGER?": 1,
+    "FLOAT?": 1,
+    "CHAR?": 1,
+    "SYMBOL?": 1,
+    "STRUCTURE?": 1,
+    "NOT": 1,
+    "TAG": 1,
+    "CAR": 1,
+    "CDR": 1,
+    "MOD": 2,
+    "TRUE": 0,
+    "FALSE": 0,
+    "NIL": 0,
+}
+
+
 @dataclass(frozen=True, slots=True)
 class Word:
     opcode: MuredOpcode | None
@@ -84,6 +113,18 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             words.append(Word(MuredOpcode.VAR, node.index, head))
             return
         if isinstance(node, Symbol):
+            # Check if it's a strict primitive
+            primitive_arity = _STRICT_PRIMITIVE_ARITY.get(node.name)
+            if primitive_arity == 0:
+                words.append(Word(MuredOpcode.PRIM_0, node.name, head))
+                return
+            if primitive_arity == 1:
+                words.append(Word(MuredOpcode.PRIM_1, node.name, head))
+                return
+            if primitive_arity == 2:
+                words.append(Word(MuredOpcode.PRIM_2, node.name, head))
+                return
+            # Otherwise treat as a free symbol
             if node.name in scope:
                 words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
             else:
@@ -531,50 +572,86 @@ class MuredMachine:
             state.pc -= 1
             return
         self._push_graph(word)
+        # Track primitive id for integer-encoded primitives
         if isinstance(word.data, int) and word.data >= 0:
             state.prim = word.data
-            # fire is managed externally by argument reduction
-        else:
-            state.fire = 0  # no-data primitive (PRIM_0/PRIM_1)
-
-                # Check if we can fire the primitive
-        # Conditions: argcnt==0, fire==0, q>0, head set, forward
+        # For string-encoded primitives or no-data primitives, manage fire
+        if not isinstance(word.data, int) or word.data < 0:
+            state.fire = 0  # PRIM_0 / PRIM_1 with string names
+        # Check if we can fire the primitive (strict primitive conditions)
         if (state.argcnt == 0 and state.fire == 0 and state.q > 0 and
             word.head and state.direction is Direction.F):
             self._fire_primitive(state, word)
-
         state.pc += 1
 
     def _fire_primitive(self, state: MuredMachineState, word: Word) -> None:
-        if not isinstance(word.data, int) or word.data < 0:
+        # Delegate to strict fire if conditions are met
+        if (state.argcnt == 0 and state.fire == 0 and state.q > 0 and
+            word.head and state.direction is Direction.F):
+            self._fire_primitive_strict(state, word)
+
+    def _fire_primitive_strict(self, state: MuredMachineState, word: Word) -> None:
+        # Only handle PRIM_2 primitives (arity-2 operations)
+        if word.opcode != MuredOpcode.PRIM_2:
             return
-        # Simple integer ADD (primitive 1 = +): both args must be INT
-        # For PRIM_2 with both args reduced: overwrite head with sum
-        if word.data == 1:  # ADD
-            # Arguments are at pc+1 and pc+2 (flat result graph layout)
-            arg_addr1 = state.pc + 1
-            arg_addr2 = state.pc + 2
-            arg1 = self._word(arg_addr1) if arg_addr1 < len(state.memory) else None
-            arg2 = self._word(arg_addr2) if arg_addr2 < len(state.memory) else None
-            if (
-                arg1 is not None
-                and arg2 is not None
-                and arg1.opcode is MuredOpcode.INT
-                and isinstance(arg1.data, int)
-                and arg2.opcode is MuredOpcode.INT
-                and isinstance(arg2.data, int)
-            ):
-                # Overwrite head with result
+            
+        # Extract primitive name from data field
+        prim_name = word.data
+        # Convert integer primitive id to name (1=ADD)
+        if isinstance(prim_name, int):
+            prim_id_to_name = {1: "+", 2: "-", 3: "*", 4: "/"}
+            prim_name = prim_id_to_name.get(prim_name)
+            if prim_name is None:
+                return
+        elif not isinstance(prim_name, str):
+            return
+            
+        # Check that both arguments are reduced to INT values
+        arg_addr1 = state.pc + 1
+        arg_addr2 = state.pc + 2
+        arg1 = self._word(arg_addr1) if arg_addr1 < len(state.memory) else None
+        arg2 = self._word(arg_addr2) if arg_addr2 < len(state.memory) else None
+        
+        if (arg1 is not None and arg2 is not None and
+            arg1.opcode is MuredOpcode.INT and isinstance(arg1.data, int) and
+            arg2.opcode is MuredOpcode.INT and isinstance(arg2.data, int)):
+            
+            # Dispatch based on primitive name
+            if prim_name == "+":
                 result = arg1.data + arg2.data
-                state.memory[state.pc] = Word(
-                    MuredOpcode.INT, result, True
-                )
+                state.memory[state.pc] = Word(MuredOpcode.INT, result, True)
                 state.fsp -= 2  # reclaim argument slots
                 state.q -= 1
-                # Update fire: all args reduced (countdown done)
                 state.fire = 0
                 return
-        # If not fired (wrong type, etc.), stay passive
+            elif prim_name == "-":
+                result = arg1.data - arg2.data
+                state.memory[state.pc] = Word(MuredOpcode.INT, result, True)
+                state.fsp -= 2  # reclaim argument slots
+                state.q -= 1
+                state.fire = 0
+                return
+            elif prim_name == "*":
+                result = arg1.data * arg2.data
+                state.memory[state.pc] = Word(MuredOpcode.INT, result, True)
+                state.fsp -= 2  # reclaim argument slots
+                state.q -= 1
+                state.fire = 0
+                return
+            elif prim_name == "/":
+                if arg2.data == 0:
+                    # Division by zero - stay passive
+                    return
+                result = arg1.data / arg2.data
+                if isinstance(result, float) and result.is_integer():
+                    result = int(result)
+                state.memory[state.pc] = Word(MuredOpcode.INT, result, True)
+                state.fsp -= 2  # reclaim argument slots
+                state.q -= 1
+                state.fire = 0
+                return
+                
+        # If conditions not met or primitive not recognized, stay passive
 
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
@@ -700,6 +777,17 @@ class MuredMachine:
         if word.opcode is MuredOpcode.SYM:
             if type(word.data) is not str or word.data == "":
                 raise MuredMachineError("result SYM requires a symbol name")
+            return Symbol(word.data), address + 1
+
+        if word.opcode in {
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
+            if type(word.data) is not str or word.data == "":
+                raise MuredMachineError(
+                    "result PRIM requires a primitive name"
+                )
             return Symbol(word.data), address + 1
 
         if word.opcode is MuredOpcode.VAR:
