@@ -16,6 +16,9 @@ class MuredOpcode(StrEnum):
     FLOAT = auto()
     CHAR = auto()
     SYM = auto()
+    PRIM_0 = auto()
+    PRIM_1 = auto()
+    PRIM_2 = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -147,6 +150,9 @@ class MuredMachineState:
     direction: Direction
     q: int
     phi: int
+    argcnt: int = 0
+    prim: int = 0
+    fire: int = 0
     s_a: int | None = None
     s_d: int | None = None
     halted: bool = False
@@ -181,6 +187,9 @@ class MuredMachine:
             MuredOpcode.FLOAT,
             MuredOpcode.INT,
             MuredOpcode.LAMBDA,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
             MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
@@ -203,6 +212,9 @@ class MuredMachine:
                 direction=Direction.F,
                 q=quantum,
                 phi=0,
+                argcnt=0,
+                prim=0,
+                fire=0,
             )
         )
 
@@ -249,6 +261,8 @@ class MuredMachine:
                 self._char(word)
             case MuredOpcode.SYM:
                 self._sym(word)
+            case MuredOpcode.PRIM_0 | MuredOpcode.PRIM_1 | MuredOpcode.PRIM_2:
+                self._prim(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -266,7 +280,7 @@ class MuredMachine:
             raise GraphEnvironmentCollision("graph and environment collide")
         if not -1 <= state.c < len(state.control_stack):
             raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
-        if state.q < 0 or state.phi < 0:
+        if state.q < 0 or state.phi < 0 or state.argcnt < 0 or state.fire < 0:
             raise IllegalTransition("μRED counters must be non-negative")
         self._word(state.pc)
 
@@ -509,6 +523,18 @@ class MuredMachine:
             self._push_graph(Word(MuredOpcode.APP, code.data, False))
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
+
+
+    def _prim(self, word: Word) -> None:
+        state = self.state
+        if state.direction is Direction.B:
+            state.pc -= 1
+            return
+        self._push_graph(word)
+        if isinstance(word.data, int) and word.data >= 0:
+            state.prim = word.data
+            state.fire = 0
+        state.pc += 1
 
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:

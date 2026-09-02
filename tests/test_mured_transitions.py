@@ -843,3 +843,18 @@ def test_stop_rejects_forward_execution() -> None:
 
     with pytest.raises(IllegalTransition, match="STOP requires backward execution"):
         machine.step()
+
+def test_prim_forward_pushes_word_and_sets_registers() -> None:
+    machine = MuredMachine.load(
+        [Word(MuredOpcode.PRIM_2, 1, False)],
+        quantum=3,
+        memory_words=32,
+        control_words=8,
+    )
+    machine.step()
+    assert machine.state.memory[2] == Word(MuredOpcode.PRIM_2, 1, False)
+    assert machine.state.fsp == 2
+    assert machine.state.prim == 1
+    assert machine.state.fire == 0
+    assert machine.state.pc == 1
+    assert machine.state.direction is Direction.F

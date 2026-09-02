@@ -31,6 +31,9 @@ def test_load_places_problem_stop_and_registers() -> None:
     assert state.direction is Direction.F
     assert state.q == 7
     assert state.phi == 0
+    assert state.argcnt == 0
+    assert state.prim == 0
+    assert state.fire == 0
     assert state.s_a is None
     assert state.s_d is None
     assert state.cycles == 0
