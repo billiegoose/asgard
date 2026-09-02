@@ -940,3 +940,90 @@ def test_prim_does_not_fire_when_quantum_zero() -> None:
     machine.step()
     # Passive copy only; head preserved
     assert state.memory[state.fsp] == Word(MuredOpcode.PRIM_2, 1, True)
+
+
+# --- Strict ADD / primitive fire integration (Task 4) ---
+
+
+def test_prim_add_does_not_fire_when_second_arg_not_int() -> None:
+    # (+ 1 #\\a) at q>0 with argcnt==0: CHAR second argument is not a value,
+    # so the primitive must NOT fire and the redex is preserved.
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=5,
+        phi=0,
+        argcnt=0,
+        prim=1,
+        fire=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    state.memory[1] = Word(MuredOpcode.INT, 1, False)
+    state.memory[2] = Word(MuredOpcode.CHAR, "a", False)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    machine.step()
+    # Head must remain the primitive redex — no fire occurred
+    assert state.memory[0] == Word(MuredOpcode.PRIM_2, 1, True)
+
+
+def test_prim_add_fire_overwrites_redex_with_sum_and_reclaims_fsp() -> None:
+    # Verifies the fire path reclaims the argument slots into the free-space
+    # pointer while overwriting the head, mirroring the spec's rewind behavior.
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=5,
+        phi=0,
+        argcnt=0,
+        prim=1,
+        fire=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    state.memory[1] = Word(MuredOpcode.INT, 2, False)
+    state.memory[2] = Word(MuredOpcode.INT, 3, False)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    machine.step()
+    assert state.memory[0] == Word(MuredOpcode.INT, 5, True)
+    # after _push_graph fsp goes 3->4; fire reclaims 2 args → fsp=2
+    assert state.fsp == 2
+
+
+def test_prim_add_fidelity_matches_chapter3_int_add() -> None:
+    # Fidelity check: the strict ADD fire produces the same value (5) that
+    # Chapter 3 evaluation yields for (+ 2 3).
+    expected_result = 5
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=5,
+        phi=0,
+        argcnt=0,
+        prim=1,
+        fire=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    state.memory[1] = Word(MuredOpcode.INT, 2, False)
+    state.memory[2] = Word(MuredOpcode.INT, 3, False)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    machine.step()
+    assert state.memory[0].opcode is MuredOpcode.INT
+    assert state.memory[0].data == expected_result
+    assert state.memory[0].data == 2 + 3

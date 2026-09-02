@@ -536,13 +536,13 @@ class MuredMachine:
             # fire is managed externally by argument reduction
         else:
             state.fire = 0  # no-data primitive (PRIM_0/PRIM_1)
-        
-        # Check if we can fire the primitive
-        # Conditions: argcnt == 0 (all args processed), fire == 0 (all args reduced), q > 0, head set, forward
-        if (state.argcnt == 0 and state.fire == 0 and state.q > 0 and 
+
+                # Check if we can fire the primitive
+        # Conditions: argcnt==0, fire==0, q>0, head set, forward
+        if (state.argcnt == 0 and state.fire == 0 and state.q > 0 and
             word.head and state.direction is Direction.F):
             self._fire_primitive(state, word)
-            
+
         state.pc += 1
 
     def _fire_primitive(self, state: MuredMachineState, word: Word) -> None:
@@ -556,11 +556,19 @@ class MuredMachine:
             arg_addr2 = state.pc + 2
             arg1 = self._word(arg_addr1) if arg_addr1 < len(state.memory) else None
             arg2 = self._word(arg_addr2) if arg_addr2 < len(state.memory) else None
-            if (arg1 is not None and arg2 is not None and
-                arg1.opcode is MuredOpcode.INT and isinstance(arg1.data, int) and
-                arg2.opcode is MuredOpcode.INT and isinstance(arg2.data, int)):
+            if (
+                arg1 is not None
+                and arg2 is not None
+                and arg1.opcode is MuredOpcode.INT
+                and isinstance(arg1.data, int)
+                and arg2.opcode is MuredOpcode.INT
+                and isinstance(arg2.data, int)
+            ):
                 # Overwrite head with result
-                state.memory[state.pc] = Word(MuredOpcode.INT, arg1.data + arg2.data, True)
+                result = arg1.data + arg2.data
+                state.memory[state.pc] = Word(
+                    MuredOpcode.INT, result, True
+                )
                 state.fsp -= 2  # reclaim argument slots
                 state.q -= 1
                 # Update fire: all args reduced (countdown done)
