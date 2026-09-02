@@ -5,11 +5,11 @@ Detects OpenRouter's malformed <dots_...> XML-style tool call syntax that appear
 in reasoning/thinking, and injects a synthetic error response so the agent
 continues rather than hanging waiting for a JSON tool call response.
 """
-import sys, re
+import sys
 
 TARGET = "/Users/billie/.nvm/versions/node/v22.22.3/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/interactive-mode.js"
 
-with open(TARGET, "r") as f:
+with open(TARGET) as f:
     lines = f.readlines()
 
 # Find the exact insertion point: "for (const content of this.streamingMessage.content) {"

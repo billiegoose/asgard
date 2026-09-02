@@ -594,7 +594,7 @@ class MuredMachine:
         # Only handle PRIM_2 primitives (arity-2 operations)
         if word.opcode != MuredOpcode.PRIM_2:
             return
-            
+
         # Extract primitive name from data field
         prim_name = word.data
         # Convert integer primitive id to name (1=ADD)
@@ -605,17 +605,17 @@ class MuredMachine:
                 return
         elif not isinstance(prim_name, str):
             return
-            
+
         # Check that both arguments are reduced to INT values
         arg_addr1 = state.pc + 1
         arg_addr2 = state.pc + 2
         arg1 = self._word(arg_addr1) if arg_addr1 < len(state.memory) else None
         arg2 = self._word(arg_addr2) if arg_addr2 < len(state.memory) else None
-        
+
         if (arg1 is not None and arg2 is not None and
             arg1.opcode is MuredOpcode.INT and isinstance(arg1.data, int) and
             arg2.opcode is MuredOpcode.INT and isinstance(arg2.data, int)):
-            
+
             # Dispatch based on primitive name
             if prim_name == "+":
                 result = arg1.data + arg2.data
@@ -650,7 +650,7 @@ class MuredMachine:
                 state.q -= 1
                 state.fire = 0
                 return
-                
+
         # If conditions not met or primitive not recognized, stay passive
 
     def _ubv(self, word: Word) -> None:
