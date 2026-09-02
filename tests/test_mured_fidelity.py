@@ -482,6 +482,37 @@ def test_mured_result_matches_chapter3_for_integer_corpus(
 @pytest.mark.parametrize(
     ("source", "quantum"),
     [
+        ("1.5", 10),
+        ("#\\a", 10),
+        ("#\\space", 10),
+        ("(LAMBDA (x) 1.5)", 10),
+        ("(LAMBDA (x) #\\newline)", 10),
+        ("((LAMBDA (x) x) 1.5)", 10),
+        ("((LAMBDA (x) x) 1.5)", 0),
+        ("((LAMBDA (x) x) #\\a)", 10),
+    ],
+)
+def test_mured_result_matches_chapter3_for_float_and_char_corpus(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=64,
+    )
+    machine.run()
+    thor = group_consecutive_lambdas(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+
+    assert to_source(machine.result_expr()) == to_source(thor)
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
         ("(LAMBDA (x) x)", 10),
         ("((LAMBDA (x) x) (LAMBDA (y) y))", 10),
         ("(LAMBDA (x) (LAMBDA (y) x))", 10),

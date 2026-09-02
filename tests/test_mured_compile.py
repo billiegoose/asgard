@@ -107,6 +107,33 @@ def test_compile_lambda_emits_integer_literals_and_results(
     assert to_source(machine.result_expr()) == expected_source
 
 
+@pytest.mark.parametrize(
+    ("source", "compiled"),
+    [
+        ("1.5", (Word(MuredOpcode.FLOAT, 1.5, True),)),
+        ("#\\a", (Word(MuredOpcode.CHAR, "a", True),)),
+    ],
+)
+def test_compile_lambda_emits_float_and_char_literals(
+    source: str,
+    compiled: tuple[Word, ...],
+) -> None:
+    assert compile_lambda(parse_expr(source)) == compiled
+
+
+def test_compile_lambda_emits_headed_float_and_char_results() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (x) 1.5)"))[-1] == Word(
+        MuredOpcode.FLOAT,
+        1.5,
+        True,
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) #\\space)"))[-1] == Word(
+        MuredOpcode.CHAR,
+        " ",
+        True,
+    )
+
+
 def test_decompile_application_spine_restores_source_argument_order() -> None:
     machine = MuredMachine.load(
         (
@@ -156,6 +183,25 @@ def test_mured_machine_loads_integer_words_and_decompiles_them() -> None:
     assert machine.state.halted is True
     assert machine.state.memory[2] == Word(MuredOpcode.INT, 42, True)
     assert to_source(machine.result_expr()) == "42"
+
+
+@pytest.mark.parametrize(
+    ("word", "expected_source"),
+    [
+        (Word(MuredOpcode.FLOAT, 1.5, True), "1.5"),
+        (Word(MuredOpcode.CHAR, " ", True), "#\\space"),
+    ],
+)
+def test_mured_machine_loads_float_and_char_words_and_decompiles_them(
+    word: Word,
+    expected_source: str,
+) -> None:
+    machine = MuredMachine.load((word,), quantum=10)
+    machine.run()
+
+    assert machine.state.halted is True
+    assert machine.state.memory[2] == word
+    assert to_source(machine.result_expr()) == expected_source
 
 
 def test_identity_application_runs_and_decompiles_after_halt() -> None:

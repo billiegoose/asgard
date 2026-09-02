@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum, auto
 
-from thor_lang.ast import App, Expr, Integer, Lambda, Symbol, Var
+from thor_lang.ast import App, Char, Expr, Float, Integer, Lambda, Symbol, Var
 
 
 class MuredOpcode(StrEnum):
@@ -13,6 +13,8 @@ class MuredOpcode(StrEnum):
     LAMBDA = auto()
     STOP = auto()
     INT = auto()
+    FLOAT = auto()
+    CHAR = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -26,7 +28,7 @@ class Direction(StrEnum):
 @dataclass(frozen=True, slots=True)
 class Word:
     opcode: MuredOpcode | None
-    data: int | str | None = None
+    data: int | float | str | None = None
     head: bool = False
 
 
@@ -83,6 +85,12 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             return
         if isinstance(node, Integer):
             words.append(Word(MuredOpcode.INT, node.value, head))
+            return
+        if isinstance(node, Float):
+            words.append(Word(MuredOpcode.FLOAT, node.value, head))
+            return
+        if isinstance(node, Char):
+            words.append(Word(MuredOpcode.CHAR, node.value, head))
             return
         if isinstance(node, Lambda):
             for parameter in node.params:
@@ -166,6 +174,8 @@ class MuredMachine:
         allowed = {
             MuredOpcode.APP,
             MuredOpcode.APP_VAR,
+            MuredOpcode.CHAR,
+            MuredOpcode.FLOAT,
             MuredOpcode.INT,
             MuredOpcode.LAMBDA,
             MuredOpcode.VAR,
@@ -229,6 +239,10 @@ class MuredMachine:
                 self._stop()
             case MuredOpcode.INT:
                 self._int(word)
+            case MuredOpcode.FLOAT:
+                self._float(word)
+            case MuredOpcode.CHAR:
+                self._char(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -393,9 +407,7 @@ class MuredMachine:
         self.state.pc += 1
         self.state.halted = True
 
-    def _int(self, word: Word) -> None:
-        if not isinstance(word.data, int):
-            raise IllegalTransition("INT requires an integer value")
+    def _passive(self, word: Word) -> None:
         if self.state.direction is Direction.B:
             self.state.pc -= 1
             return
@@ -405,6 +417,21 @@ class MuredMachine:
             self.state.direction = Direction.B
         else:
             self.state.pc += 1
+
+    def _int(self, word: Word) -> None:
+        if type(word.data) is not int:
+            raise IllegalTransition("INT requires an integer value")
+        self._passive(word)
+
+    def _float(self, word: Word) -> None:
+        if type(word.data) is not float:
+            raise IllegalTransition("FLOAT requires a floating-point value")
+        self._passive(word)
+
+    def _char(self, word: Word) -> None:
+        if type(word.data) is not str or len(word.data) != 1:
+            raise IllegalTransition("CHAR requires a single-character string")
+        self._passive(word)
 
     def _app_var(self, word: Word) -> None:
         state = self.state
@@ -540,6 +567,20 @@ class MuredMachine:
             if type(word.data) is not int:
                 raise MuredMachineError("result INT requires an integer value")
             return Integer(word.data), address + 1
+
+        if word.opcode is MuredOpcode.FLOAT:
+            if type(word.data) is not float:
+                raise MuredMachineError(
+                    "result FLOAT requires a floating-point value"
+                )
+            return Float(word.data), address + 1
+
+        if word.opcode is MuredOpcode.CHAR:
+            if type(word.data) is not str or len(word.data) != 1:
+                raise MuredMachineError(
+                    "result CHAR requires a single-character string"
+                )
+            return Char(word.data), address + 1
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:

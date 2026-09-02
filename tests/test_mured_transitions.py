@@ -228,7 +228,17 @@ def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
     )
 
 
-def test_int_forward_non_head_copies_itself_and_advances_through_source_spine() -> None:
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.FLOAT, 1.5),
+        (MuredOpcode.CHAR, "a"),
+    ],
+)
+def test_passive_float_and_char_forward_head_copy_exact_word_and_reverse(
+    opcode: MuredOpcode,
+    payload: float | str,
+) -> None:
     state = MuredMachineState(
         memory=[None] * 8,
         control_stack=[None] * 4,
@@ -240,19 +250,154 @@ def test_int_forward_non_head_copies_itself_and_advances_through_source_spine() 
         q=3,
         phi=0,
     )
-    state.memory[0] = Word(MuredOpcode.INT, 7, False)
+    state.memory[0] = Word(opcode, payload, True)
     state.memory[1] = Word(MuredOpcode.STOP)
     machine = MuredMachine(state)
-    original_pc = state.pc
 
     machine.step()
 
     copied = state.memory[state.fsp]
-    assert copied == Word(MuredOpcode.INT, 7, False)
-    assert (state.direction, state.pc) == (Direction.F, original_pc + 1)
+    assert copied == Word(opcode, payload, True)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
 
 
-def test_int_reverse_changes_only_pc() -> None:
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.FLOAT, 2.5),
+        (MuredOpcode.CHAR, "z"),
+    ],
+)
+def test_passive_float_and_char_forward_non_head_copies_and_advances(
+    opcode: MuredOpcode,
+    payload: float | str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, False)
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+@pytest.mark.parametrize(
+    "opcode",
+    [MuredOpcode.FLOAT, MuredOpcode.CHAR],
+)
+def test_passive_float_and_char_reverse_only_decrement_pc(opcode: MuredOpcode) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(opcode, 7.0 if opcode is MuredOpcode.FLOAT else "q", False)
+    machine = MuredMachine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (1, "FLOAT requires a floating-point value"),
+        (True, "FLOAT requires a floating-point value"),
+        ("bad", "FLOAT requires a floating-point value"),
+    ],
+)
+def test_float_forward_rejects_malformed_payloads(
+    payload: int | bool | str,
+    message: str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.FLOAT, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ("", "CHAR requires a single-character string"),
+        ("ab", "CHAR requires a single-character string"),
+        (1, "CHAR requires a single-character string"),
+    ],
+)
+def test_char_forward_rejects_malformed_payloads(
+    payload: int | str,
+    message: str,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.CHAR, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+def test_int_forward_non_head_copies_itself_and_advances_through_source_spine() -> None:
     state = MuredMachineState(
         memory=[None] * 8,
         control_stack=[None] * 4,
