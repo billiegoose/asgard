@@ -399,6 +399,38 @@ def test_sym_forward_non_head_copies_and_advances(
     assert (state.direction, state.pc) == (Direction.F, 1)
 
 
+def test_sym_reverse_non_head_with_definition_only_decrements_pc() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=3,
+        fsp=3,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.SYM, "bar", False, 5)
+    machine = MuredMachine(state)
+    original_state = (
+        state.memory[3],
+        tuple(state.control_stack),
+        state.c,
+        state.pc,
+        state.direction,
+    )
+
+    machine.step()
+
+    assert state.pc == 2
+    assert state.memory[3] == original_state[0]
+    assert tuple(state.control_stack) == original_state[1]
+    assert state.c == original_state[2]
+    assert state.direction is original_state[4]
+
+
 def test_sym_head_with_definition_and_zero_quantum_remains_passive() -> None:
     state = MuredMachineState(
         memory=[None] * 12,
