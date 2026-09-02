@@ -17,7 +17,9 @@ and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
 is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
-passive `INT`/`FLOAT`/`CHAR`, and the closed head-`SYM` definition path.
+passive `INT`/`FLOAT`/`CHAR`, the closed head-`SYM` definition path,
+and the strict `PRIM_2` ADD fire path (Task 4 completed; remaining strict
+primitives — sub, mul, char predicates — remain in Task 5).
 It executes the Chapter 4 graph-memory instructions and register transfers
 directly, including head metadata, passive integers, floats, characters, free
 symbols, APP-VAR, and the defined-symbol branch used by this slice, but is

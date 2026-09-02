@@ -858,3 +858,85 @@ def test_prim_forward_pushes_word_and_sets_registers() -> None:
     assert machine.state.fire == 0
     assert machine.state.pc == 1
     assert machine.state.direction is Direction.F
+
+
+# --- Strict ADD / primitive fire failures (Task 4, TDD) ---
+
+def test_prim_add_fires_when_argcnt_zero_and_quantum_positive() -> None:
+    # Manually build a PRIM_2 head with both arguments reduced to INT
+    # (simulating + with 2 and 3); argcnt=0; q>0 => fire expected
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=0,
+        prim=1,
+        fire=0,  # both args reduced: fire countdown complete
+    )
+    # Redex at 0: PRIM_2 (primitive id 1 = +)
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    # Arguments: 2 at 1, 3 at 2
+    state.memory[1] = Word(MuredOpcode.INT, 2, False)
+    state.memory[2] = Word(MuredOpcode.INT, 3, False)
+    # Stop at 3
+    state.memory[3] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    # Fire path should overwrite head (0) with sum (5) and rewind fsp
+    machine.step()
+    # After fire: head replaced by INT 5; fsp reclaimed to argument base
+    assert state.memory[0] == Word(MuredOpcode.INT, 5, True)
+
+
+def test_prim_does_not_fire_when_argcnt_positive() -> None:
+    # Partial argument: only first argument arrived; fire must stay
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=2,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=1,  # one argument still needed (partial application)
+        prim=1,
+        fire=1,  # one arg not yet reduced
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    state.memory[1] = Word(MuredOpcode.INT, 2, False)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    machine.step()
+    assert state.memory[0].opcode is MuredOpcode.PRIM_2  # unchanged
+
+
+def test_prim_does_not_fire_when_quantum_zero() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=0,
+        prim=1,
+        fire=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, 1, True)
+    state.memory[1] = Word(MuredOpcode.INT, 2, False)
+    state.memory[2] = Word(MuredOpcode.INT, 3, False)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+    machine.step()
+    # Passive copy only; head preserved
+    assert state.memory[state.fsp] == Word(MuredOpcode.PRIM_2, 1, True)

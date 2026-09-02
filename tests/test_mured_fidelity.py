@@ -530,6 +530,35 @@ def test_mured_result_matches_chapter3_for_integer_corpus(
 @pytest.mark.parametrize(
     ("source", "quantum"),
     [
+        ("(+ 2 3)", 10),
+        ("(+ 0 0)", 10),
+        ("(+ 5 7)", 10),
+        ("(+ 2 3)", 0),  # Should be passive at q=0
+        ("(+ 2 #\\a)", 10),  # Wrong type - should be passive
+        ("(+ (LAMBDA (x) x) 3)", 10),  # Lambda arg not value - should be passive
+    ],
+)
+def test_mured_result_matches_chapter3_for_add_corpus(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=64,
+    )
+    machine.run()
+    thor = group_consecutive_lambdas(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+
+    assert to_source(machine.result_expr()) == to_source(thor)
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
         ("FOO", 10),
         ("(LAMBDA (x) FOO)", 10),
         ("((LAMBDA (x) x) FOO)", 10),

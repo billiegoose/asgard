@@ -533,8 +533,40 @@ class MuredMachine:
         self._push_graph(word)
         if isinstance(word.data, int) and word.data >= 0:
             state.prim = word.data
-            state.fire = 0
+            # fire is managed externally by argument reduction
+        else:
+            state.fire = 0  # no-data primitive (PRIM_0/PRIM_1)
+        
+        # Check if we can fire the primitive
+        # Conditions: argcnt == 0 (all args processed), fire == 0 (all args reduced), q > 0, head set, forward
+        if (state.argcnt == 0 and state.fire == 0 and state.q > 0 and 
+            word.head and state.direction is Direction.F):
+            self._fire_primitive(state, word)
+            
         state.pc += 1
+
+    def _fire_primitive(self, state: MuredMachineState, word: Word) -> None:
+        if not isinstance(word.data, int) or word.data < 0:
+            return
+        # Simple integer ADD (primitive 1 = +): both args must be INT
+        # For PRIM_2 with both args reduced: overwrite head with sum
+        if word.data == 1:  # ADD
+            # Arguments are at pc+1 and pc+2 (flat result graph layout)
+            arg_addr1 = state.pc + 1
+            arg_addr2 = state.pc + 2
+            arg1 = self._word(arg_addr1) if arg_addr1 < len(state.memory) else None
+            arg2 = self._word(arg_addr2) if arg_addr2 < len(state.memory) else None
+            if (arg1 is not None and arg2 is not None and
+                arg1.opcode is MuredOpcode.INT and isinstance(arg1.data, int) and
+                arg2.opcode is MuredOpcode.INT and isinstance(arg2.data, int)):
+                # Overwrite head with result
+                state.memory[state.pc] = Word(MuredOpcode.INT, arg1.data + arg2.data, True)
+                state.fsp -= 2  # reclaim argument slots
+                state.q -= 1
+                # Update fire: all args reduced (countdown done)
+                state.fire = 0
+                return
+        # If not fired (wrong type, etc.), stay passive
 
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
