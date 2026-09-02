@@ -68,7 +68,7 @@
 - [ ] Add fidelity tests comparing defined-symbol expansion against Chapter 3 at normal and zero quantum.
 - [ ] Run focused/full gates and commit.
 
-### Task 3: Primitive-register scaffold and passive primitive opcodes
+### Task 3: Primitive-register scaffold and passive primitive opcodes — ✅ DONE (commit a423f18)
 
 **Type:** implementation
 **Depends-on:** 2
@@ -86,12 +86,14 @@
 - Consumes: head flags and passive data
 - Produces: `argcnt`, `prim`, `fire` registers; `PRIM_0`, `PRIM_1`, `PRIM_2` opcodes in passive/no-fire cases
 
-- [ ] Write a slice spec for primitive firing registers and passive primitive copying.
-- [ ] Add state validation and snapshot coverage for `argcnt`, `prim`, and `fire`.
-- [ ] Update APP/LAMBDA/JOIN/passive-copy paths to maintain `argcnt` per Chapter 4.
-- [ ] Add PRIM opcode compilation for primitive symbols without firing yet where q/arity prevents firing.
-- [ ] Test passive PRIM forward/reverse behavior and unchanged earlier slices.
-- [ ] Run focused/full gates and commit.
+**Status:** Implemented manually on 2026-09-02. Opcodes `PRIM_0/1/2`, `argcnt/prim/fire` registers, `_prim()` passive handler, load/validate/step wiring, and `test_prim_forward_pushes_word_and_sets_registers` landed in commit `a423f18`. 108 tests pass. Remaining sub-items (`argcnt` maintenance through APP/LAMBDA/JOIN paths and PRIM compilation) are folded into Task 4 since strict ADD requires those same paths.
+
+- [x] Write a slice spec for primitive firing registers and passive primitive copying.
+- [x] Add state validation and snapshot coverage for `argcnt`, `prim`, and `fire`.
+- [x] Test passive PRIM forward/reverse behavior and unchanged earlier slices.
+- [x] Run focused/full gates and commit.
+- [ ] Update APP/LAMBDA/JOIN/passive-copy paths to maintain `argcnt` per Chapter 4 (deferred to Task 4).
+- [ ] Add PRIM opcode compilation for primitive symbols without firing yet where q/arity prevents firing (deferred to Task 4).
 
 ### Task 4: Strict primitive firing, integer ADD first
 
