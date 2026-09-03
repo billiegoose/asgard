@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum, auto
 
-from thor_lang.ast import App, Char, Expr, Float, Integer, Lambda, Symbol, Var
+from thor_lang.ast import App, Char, Expr, Float, Integer, Lambda, Symbol, StructLit, Symbol, Var
 
 
 class MuredOpcode(StrEnum):
@@ -19,6 +19,7 @@ class MuredOpcode(StrEnum):
     PRIM_0 = auto()
     PRIM_1 = auto()
     PRIM_2 = auto()
+    STRUCT = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -135,6 +136,23 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
             else:
                 words.append(Word(MuredOpcode.SYM, node.name, head))
             return
+        if isinstance(node, StructLit):
+            # Emit STRUCT tag
+            words.append(Word(MuredOpcode.STRUCT, node.tag, head))
+            # Emit fields: each field becomes an APP_VAR or APP placeholder
+            field_positions: list[tuple[int, Expr]] = []
+            for field in reversed(node.fields):
+                position = len(words)
+                words.append(Word(MuredOpcode.APP, 0, False))
+                field_positions.append((position, field))
+            # Emit trailing VAR 0 as the selector
+            words.append(Word(MuredOpcode.VAR, 0, head))
+            # Backpatch field addresses and compile fields
+            for position, field in field_positions:
+                field_address = len(words)
+                words[position] = Word(MuredOpcode.APP, field_address, False)
+                compile_graph(field, scope, head=True)
+            return
         if isinstance(node, Integer):
             words.append(Word(MuredOpcode.INT, node.value, head))
             return
@@ -236,6 +254,7 @@ class MuredMachine:
             MuredOpcode.PRIM_0,
             MuredOpcode.PRIM_1,
             MuredOpcode.PRIM_2,
+            MuredOpcode.STRUCT,
             MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
@@ -309,6 +328,8 @@ class MuredMachine:
                 self._sym(word)
             case MuredOpcode.PRIM_0 | MuredOpcode.PRIM_1 | MuredOpcode.PRIM_2:
                 self._prim(word)
+            case MuredOpcode.STRUCT:
+                self._struct(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -444,6 +465,43 @@ class MuredMachine:
             state.phi -= 1
             if state.phi < 0:
                 raise IllegalTransition("LAMBDA reverse underflows phi")
+            state.pc -= 1
+            return
+        result_head = self._word(state.fsp)
+        if state.q == 0 or result_head.opcode not in {
+            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
+        }:
+            self._push_graph(word)
+            state.phi += 1
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
+            state.pc += 1
+            return
+        if result_head.opcode is MuredOpcode.APP_VAR:
+            if type(result_head.data) is not int or result_head.data < 0:
+                raise InvalidAddress("result APP_VAR requires a variable index")
+            self._allocate_environment(
+                Word(MuredOpcode.UBV, state.phi - result_head.data, False)
+            )
+            state.q -= 1
+            state.fsp -= 1
+            state.pc += 1
+            return
+        if not isinstance(result_head.data, int):
+            raise InvalidAddress("result APP requires an argument address")
+        saved_path = self._pop_control()
+        self._allocate_environment(Word(None, result_head.data, False))
+        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
+        state.q -= 1
+        state.fsp -= 1
+        state.pc += 1
+
+    def _struct(self, word: Word) -> None:
+        state = self.state
+        if state.direction is Direction.B:
+            state.phi -= 1
+            if state.phi < 0:
+                raise IllegalTransition("STRUCT reverse underflows phi")
             state.pc -= 1
             return
         result_head = self._word(state.fsp)
@@ -794,6 +852,33 @@ class MuredMachine:
                     "result PRIM requires a primitive name"
                 )
             return Symbol(word.data), address + 1
+
+        if word.opcode is MuredOpcode.STRUCT:
+            if type(word.data) is not str or word.data == "":
+                raise MuredMachineError("result STRUCT requires a tag")
+            tag = word.data
+            # Decompile fields: they are at address+1, address+2, etc.
+            # The STRUCT is followed by APPs for each field, then VAR 0
+            # Fields are stored in reverse order in memory, so we need to reverse them
+            cursor = address + 1
+            fields: list[Expr] = []
+            struct_path = path | {address}
+            while True:
+                struct_word = self._word(cursor)
+                if struct_word.opcode not in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                    break
+                if not isinstance(struct_word.data, int) or struct_word.data < 0:
+                    raise InvalidAddress("result STRUCT APP requires an argument address")
+                field, next_address = self._decompile(
+                    struct_word.data, scope, struct_path | {cursor}
+                )
+                fields.append(field)
+                cursor += 1
+            # Skip trailing VAR 0
+            cursor += 1
+            # Fields were stored in reverse order, reverse to get original order
+            fields.reverse()
+            return StructLit(tag, tuple(fields)), cursor
 
         if word.opcode is MuredOpcode.VAR:
             if not isinstance(word.data, int) or word.data < 0:
