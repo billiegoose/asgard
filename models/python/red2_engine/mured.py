@@ -504,8 +504,14 @@ class MuredMachine:
                 raise IllegalTransition("STRUCT reverse underflows phi")
             state.pc -= 1
             return
+        # At q=0, STRUCT is passive: copy to fsp, set head, reverse direction
+        if state.q == 0:
+            self._push_graph(word)
+            state.pc = state.fsp - 1
+            state.direction = Direction.B
+            return
         result_head = self._word(state.fsp)
-        if state.q == 0 or result_head.opcode not in {
+        if result_head.opcode not in {
             MuredOpcode.APP,
             MuredOpcode.APP_VAR,
         }:
