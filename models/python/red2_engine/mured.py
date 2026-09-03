@@ -52,6 +52,8 @@ _STRICT_PRIMITIVE_ARITY = {
     "CAR": 1,
     "CDR": 1,
     "MOD": 2,
+    "IF": 2,  # non-strict 3-arg primitive emitted as PRIM_2; fire handles args
+    "Y": 2,   # non-strict 1-arg primitive emitted as PRIM_2; fire handles args
     "TRUE": 0,
     "FALSE": 0,
     "NIL": 0,
