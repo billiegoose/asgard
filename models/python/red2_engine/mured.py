@@ -452,7 +452,7 @@ class MuredMachine:
             raise IllegalTransition("SYM requires a non-empty symbol name")
         state = self.state
         if state.direction is Direction.B:
-            if word.definition is not None and state.q > 0:
+            if word.head and word.definition is not None and state.q > 0:
                 if not isinstance(word.definition, int) or word.definition < 0:
                     raise InvalidAddress("SYM definition requires an address")
                 next_path = state.pc - 1
