@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum, auto
+from math import ceil, floor
 
 from thor_lang.ast import App, Char, Expr, Float, Integer, Lambda, Symbol, Var
 
@@ -463,8 +464,16 @@ class MuredMachine:
             raise InvalidAddress("APP requires an argument address")
         parent_app = state.pc
         state.env = self._pop_control()
+        saves_primitive = state.fire > 0
         self._save_primitive_context()
-        self._push_graph(Word(MuredOpcode.JOIN, parent_app, False))
+        self._push_graph(
+            Word(
+                MuredOpcode.JOIN,
+                parent_app,
+                False,
+                1 if saves_primitive else None,
+            )
+        )
         state.argcnt = 0
         state.pc = word.data
         state.direction = Direction.F
@@ -491,7 +500,11 @@ class MuredMachine:
         if parent.opcode is not MuredOpcode.APP:
             raise IllegalTransition("JOIN parent must be APP")
         tail = self._word(state.s_a)
-        saved_primitive = self._has_saved_primitive_context()
+        saved_primitive = word.definition == 1
+        if saved_primitive and not self._has_saved_primitive_context():
+            raise IllegalTransition(
+                "JOIN primitive context marker has no saved context"
+            )
         single_word = state.fsp == state.s_a
         if tail.opcode is MuredOpcode.VAR and single_word:
             if type(tail.data) is not int or tail.data < 0:
@@ -509,7 +522,9 @@ class MuredMachine:
         else:
             state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
 
-        if self._restore_primitive_context():
+        if saved_primitive:
+            if not self._restore_primitive_context():
+                raise IllegalTransition("JOIN failed to restore primitive context")
             if state.fire <= 0 or state.prim is None:
                 raise IllegalTransition("restored primitive context is not active")
             state.fire -= 1
@@ -660,30 +675,223 @@ class MuredMachine:
         primitive = state.prim
         state.prim = None
         state.fire = 0
-        if primitive == "+":
-            self._add()
-            return
-        state.pc -= 1
 
-    def _add(self) -> None:
-        state = self.state
-        second = self._word(state.pc)
-        first = self._word(state.pc + 1)
-        if (
-            state.q > 0
-            and second.opcode is MuredOpcode.INT
-            and type(second.data) is int
-            and first.opcode is MuredOpcode.INT
-            and type(first.data) is int
-        ):
+        result: Word | None = None
+        if state.q > 0 and primitive is not None:
+            if primitive in {
+                "1-",
+                "1+",
+                "MINUS",
+                "ABS",
+                "FLOOR",
+                "CEILING",
+                "EVEN?",
+                "NULL?",
+                "NOT",
+                "INTEGER?",
+                "FLOAT?",
+                "CHAR?",
+                "SYMBOL?",
+            }:
+                result = self._apply_unary_primitive(
+                    primitive,
+                    self._word(state.pc),
+                )
+            elif primitive in {
+                "+",
+                "-",
+                "*",
+                "/",
+                "<",
+                ">",
+                "<=",
+                ">=",
+                "=",
+                "EXPT",
+                "MAX",
+                "MIN",
+                "MOD",
+            }:
+                result = self._apply_binary_primitive(
+                    primitive,
+                    self._word(state.pc + 1),
+                    self._word(state.pc),
+                )
+
+        if result is not None:
             state.memory[state.pc] = Word(
-                MuredOpcode.INT,
-                second.data + first.data,
+                result.opcode,
+                result.data,
                 True,
+                result.definition,
             )
             state.fsp = state.pc
             state.q -= 1
         state.pc -= 1
+
+    def _apply_unary_primitive(self, primitive: str, operand: Word) -> Word | None:
+        value = self._number_word_value(operand)
+        if primitive == "1-":
+            if operand.opcode is MuredOpcode.INT and type(operand.data) is int:
+                return Word(MuredOpcode.INT, operand.data - 1)
+            return None
+        if primitive == "1+" and value is not None:
+            return self._number_result_word(value + 1)
+        if primitive == "MINUS" and value is not None:
+            return self._number_result_word(-value)
+        if primitive == "ABS" and value is not None:
+            return self._number_result_word(abs(value))
+        if primitive == "FLOOR" and value is not None:
+            return Word(MuredOpcode.INT, floor(value))
+        if primitive == "CEILING" and value is not None:
+            return Word(MuredOpcode.INT, ceil(value))
+        if primitive == "EVEN?":
+            if operand.opcode is MuredOpcode.INT and type(operand.data) is int:
+                return self._bool_word(operand.data % 2 == 0)
+            return None
+        if primitive == "NULL?":
+            if self._is_indeterminate_strict_value(operand):
+                return None
+            if self._is_symbol_word(operand) and operand.data == "NIL":
+                return self._bool_word(True)
+            return self._bool_word(False)
+        if primitive == "NOT":
+            if operand.opcode is MuredOpcode.SYM and operand.data == "TRUE":
+                return self._bool_word(False)
+            if operand.opcode is MuredOpcode.SYM and operand.data == "FALSE":
+                return self._bool_word(True)
+            return None
+        if primitive in {"INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?"}:
+            if self._is_indeterminate_strict_value(operand):
+                return None
+            if primitive == "INTEGER?":
+                return self._bool_word(operand.opcode is MuredOpcode.INT)
+            if primitive == "FLOAT?":
+                return self._bool_word(operand.opcode is MuredOpcode.FLOAT)
+            if primitive == "CHAR?":
+                return self._bool_word(operand.opcode is MuredOpcode.CHAR)
+            return self._bool_word(self._is_symbol_word(operand))
+        return None
+
+    def _apply_binary_primitive(
+        self,
+        primitive: str,
+        left_word: Word,
+        right_word: Word,
+    ) -> Word | None:
+        if primitive == "=":
+            left_constant = self._constant_word_key(left_word)
+            right_constant = self._constant_word_key(right_word)
+            if left_constant is None or right_constant is None:
+                return None
+            return self._bool_word(left_constant == right_constant)
+
+        left = self._number_word_value(left_word)
+        right = self._number_word_value(right_word)
+        if left is None or right is None:
+            return None
+
+        both_int = (
+            left_word.opcode is MuredOpcode.INT
+            and right_word.opcode is MuredOpcode.INT
+        )
+        if primitive == "+":
+            value = left + right
+            if both_int:
+                return Word(MuredOpcode.INT, int(value))
+            return Word(MuredOpcode.FLOAT, float(value))
+        if primitive == "-":
+            value = left - right
+            if both_int:
+                return Word(MuredOpcode.INT, int(value))
+            return Word(MuredOpcode.FLOAT, float(value))
+        if primitive == "*":
+            value = left * right
+            if both_int:
+                return Word(MuredOpcode.INT, int(value))
+            return Word(MuredOpcode.FLOAT, float(value))
+        if primitive == "/":
+            value = left / right
+            if both_int and value.is_integer():
+                return Word(MuredOpcode.INT, int(value))
+            return Word(MuredOpcode.FLOAT, value)
+        if primitive == "<":
+            return self._bool_word(left < right)
+        if primitive == ">":
+            return self._bool_word(left > right)
+        if primitive == "<=":
+            return self._bool_word(left <= right)
+        if primitive == ">=":
+            return self._bool_word(left >= right)
+        if primitive == "MOD":
+            if not both_int:
+                return None
+            return Word(MuredOpcode.INT, int(left) % int(right))
+        if primitive == "EXPT":
+            value = left**right
+            if type(value) is not int and type(value) is not float:
+                return None
+            return self._number_result_word(value)
+        if primitive == "MAX":
+            return self._number_result_word(left if left >= right else right)
+        if primitive == "MIN":
+            return self._number_result_word(left if left <= right else right)
+        return None
+
+    @staticmethod
+    def _number_word_value(word: Word) -> int | float | None:
+        if word.opcode is MuredOpcode.INT and type(word.data) is int:
+            return word.data
+        if word.opcode is MuredOpcode.FLOAT and type(word.data) is float:
+            return word.data
+        return None
+
+    @staticmethod
+    def _number_result_word(value: int | float) -> Word:
+        if type(value) is float:
+            if value.is_integer():
+                return Word(MuredOpcode.INT, int(value))
+            return Word(MuredOpcode.FLOAT, value)
+        return Word(MuredOpcode.INT, value)
+
+    @staticmethod
+    def _bool_word(value: bool) -> Word:
+        return Word(MuredOpcode.SYM, "TRUE" if value else "FALSE")
+
+    @staticmethod
+    def _is_symbol_word(word: Word) -> bool:
+        return word.opcode in {
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+
+    def _is_indeterminate_strict_value(self, word: Word) -> bool:
+        if word.opcode in {MuredOpcode.APP_VAR, MuredOpcode.VAR}:
+            return True
+        if word.opcode is not MuredOpcode.APP:
+            return False
+        if type(word.data) is not int or word.data < 0:
+            raise InvalidAddress("strict argument APP requires a graph address")
+        root = self._word(word.data)
+        return root.opcode in {
+            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
+            MuredOpcode.VAR,
+        }
+
+    @classmethod
+    def _constant_word_key(cls, word: Word) -> tuple[str, int | float | str] | None:
+        if word.opcode is MuredOpcode.INT and type(word.data) is int:
+            return ("int", word.data)
+        if word.opcode is MuredOpcode.FLOAT and type(word.data) is float:
+            return ("float", word.data)
+        if word.opcode is MuredOpcode.CHAR and type(word.data) is str:
+            return ("char", word.data)
+        if cls._is_symbol_word(word) and type(word.data) is str:
+            return ("symbol", word.data)
+        return None
 
     def _prim(self, word: Word) -> None:
         if type(word.data) is not str or word.data == "":

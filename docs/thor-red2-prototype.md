@@ -18,13 +18,17 @@ is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
 passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, the Chapter 4
-primitive registers, and the first strict firing path. It executes these
-graph-memory instructions and register transfers directly, including `argcnt`,
-`prim`, `fire`, strict-argument save/restore through APP/JOIN, one-word strict
-argument compaction, and integer `ADD` firing with quantum re-check and graph
-reclamation. The rest of the strict primitive family and the non-strict
-primitive transformations are not implemented yet, so it is still not full
-RED2 and is not wired to the CLI. The broader definition-context
+primitive registers, and a selected Chapter 3 strict primitive family. It
+executes these graph-memory instructions and register transfers directly,
+including `argcnt`, `prim`, `fire`, strict-argument save/restore through
+APP/JOIN, JOIN ownership of saved primitive contexts, one-word strict argument
+compaction, fire-time quantum re-checks, and graph reclamation after successful
+strict firing. The implemented strict slice covers numeric unary/binary
+operations and comparisons, `NULL?`/`NOT`, atomic type predicates, and constant
+`=` with Chapter 3 integer/float coercion behavior where applicable. Structural
+strict primitives, recursive equality, and the non-strict primitive
+transformations are not implemented yet, so it is still not full RED2 and is
+not wired to the CLI. The broader definition-context
 machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
@@ -62,8 +66,9 @@ The current user-visible primitive surface is documented in
 
 ## Known Omissions
 
-- Full floating-point coercions are not modeled beyond the prototype and
-  Appendix A SINE benchmark subset.
+- The faithful μRED strict slice models the Chapter 3 integer/float coercions
+  for its selected numeric primitives; broader floating-point primitive coverage
+  outside that slice and the Appendix A SINE benchmark remains incomplete.
 - Appendix A GAME is covered at the dissertation benchmark gate of
   `evaluate 1` over the nine root move outcomes; deeper search remains outside
   the default quantum gate.
@@ -72,9 +77,9 @@ The current user-visible primitive surface is documented in
 - The faithful μRED core still lacks the broader multi-definition context
   machinery outside the closed head-`SYM` path.
 - FPGA synthesis automation is not part of this milestone.
-- Integer `ADD` performs the Chapter 4/5 `fsp` reclamation required for its
-  primitive-arguments subgraph; broader performance-accurate reclamation is not
-  yet modeled throughout the machine.
+- Successful selected strict primitive firing performs the Chapter 4/5 `fsp`
+  reclamation required for its primitive-arguments subgraph; broader
+  performance-accurate reclamation is not yet modeled throughout the machine.
 - Vendor tool integration is intentionally out of scope for the default tests.
 
 ## Example Commands

@@ -10,6 +10,8 @@ from red2_engine.mured import (
     MuredOpcode,
     Word,
 )
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
 
 
 def base_machine() -> MuredMachine:
@@ -1030,8 +1032,22 @@ def test_reverse_app_saves_active_primitive_context_before_argument_reduction() 
     assert state.c >= 1
     assert state.prim is None
     assert state.fire == 0
-    assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3, False, 1)
     assert (state.direction, state.pc) == (Direction.F, 9)
+
+
+def test_nested_app_join_does_not_restore_outer_primitive_context() -> None:
+    expr = parse_expr("(INTEGER? (FOO X))")
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(INTEGER? (FOO X))"
 
 
 def test_join_restores_primitive_context_compacts_int_and_decrements_fire() -> None:
@@ -1062,6 +1078,207 @@ def test_join_restores_primitive_context_compacts_int_and_decrements_fire() -> N
     assert state.prim == "+"
     assert state.fire == 1
     assert state.pc == 2
+
+
+@pytest.mark.parametrize(
+    ("primitive", "operand", "expected"),
+    [
+        (
+            "1+",
+            Word(MuredOpcode.FLOAT, 1.5, False),
+            Word(MuredOpcode.FLOAT, 2.5, True),
+        ),
+        (
+            "FLOOR",
+            Word(MuredOpcode.FLOAT, 3.75, False),
+            Word(MuredOpcode.INT, 3, True),
+        ),
+        (
+            "EVEN?",
+            Word(MuredOpcode.INT, 8, False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+        (
+            "NOT",
+            Word(MuredOpcode.SYM, "TRUE", False),
+            Word(MuredOpcode.SYM, "FALSE", True),
+        ),
+        (
+            "CHAR?",
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+    ],
+)
+def test_unary_strict_primitive_fire_overwrites_and_reclaims(
+    primitive: str,
+    operand: Word,
+    expected: Word,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim=primitive,
+        fire=0,
+    )
+    state.memory[2] = operand
+    state.memory[3] = Word(MuredOpcode.PRIM_1, primitive, True)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory[2] == expected
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
+@pytest.mark.parametrize(
+    ("primitive", "second", "first", "expected"),
+    [
+        (
+            "+",
+            Word(MuredOpcode.FLOAT, 0.5, False),
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.FLOAT, 2.5, True),
+        ),
+        (
+            "/",
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.INT, 7, False),
+            Word(MuredOpcode.FLOAT, 3.5, True),
+        ),
+        (
+            "<",
+            Word(MuredOpcode.FLOAT, 2.5, False),
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+        (
+            "=",
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+    ],
+)
+def test_binary_strict_primitive_fire_handles_atomic_result_types(
+    primitive: str,
+    second: Word,
+    first: Word,
+    expected: Word,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=4,
+        phi=0,
+        prim=primitive,
+        fire=0,
+    )
+    state.memory[2] = second
+    state.memory[3] = first
+    state.memory[4] = Word(MuredOpcode.PRIM_2, primitive, True)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory[2] == expected
+    assert state.fsp == 2
+    assert state.q == 3
+    assert state.pc == 1
+
+
+def test_wrong_type_strict_fire_leaves_compact_spine_unchanged() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=4,
+        phi=0,
+        prim="MOD",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.FLOAT, 2.0, False)
+    state.memory[3] = Word(MuredOpcode.INT, 7, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "MOD", True)
+    before = list(state.memory)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.q == 4
+    assert state.pc == 1
+
+
+def test_strict_fire_with_exhausted_quantum_leaves_compact_spine_unchanged() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="-",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.INT, 2, False)
+    state.memory[3] = Word(MuredOpcode.INT, 7, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "-", True)
+    before = list(state.memory)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.q == 0
+    assert state.pc == 1
+
+
+def test_deferred_strict_primitive_fire_remains_unreduced() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="TAG",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.SYM, "NIL", False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "TAG", True)
+    before = list(state.memory)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 4
+    assert state.q == 3
+    assert state.pc == 1
 
 
 def test_primitive_rejects_malformed_name() -> None:

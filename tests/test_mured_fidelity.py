@@ -764,6 +764,159 @@ def test_mured_add_with_wrong_type_remains_unreduced() -> None:
     assert machine.state.fire == 0
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "(1- 5)",
+        "(1+ 1.5)",
+        "(MINUS 2.5)",
+        "(ABS -3)",
+        "(FLOOR 3.75)",
+        "(CEILING 3.25)",
+        "(EVEN? 8)",
+        "(NOT TRUE)",
+        "(NULL? NIL)",
+        "(INTEGER? 5)",
+        "(FLOAT? 5.0)",
+        "(CHAR? #\\a)",
+        "(SYMBOL? NIL)",
+        "(+ 2 0.5)",
+        "(- 7 2)",
+        "(* 3 2.5)",
+        "(/ 8 2)",
+        "(/ 7 2)",
+        "(< 2 2.5)",
+        "(> 3.0 2)",
+        "(<= 3 3)",
+        "(>= 4.0 3)",
+        "(EXPT 2 5)",
+        "(MAX 3 9.0)",
+        "(MIN 3.0 9)",
+        "(MOD 29 26)",
+        "(= 5 5)",
+        "(= #\\a #\\b)",
+        "(= NIL NIL)",
+    ],
+)
+def test_mured_selected_strict_primitives_match_chapter3(source: str) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=20).expr
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "(1- 5)",
+        "(1+ 1.5)",
+        "(MINUS 2.5)",
+        "(ABS -3)",
+        "(FLOOR 3.75)",
+        "(CEILING 3.25)",
+        "(EVEN? 8)",
+        "(NOT TRUE)",
+        "(NULL? NIL)",
+        "(INTEGER? 5)",
+        "(FLOAT? 5.0)",
+        "(CHAR? #\\a)",
+        "(SYMBOL? NIL)",
+        "(+ 2 0.5)",
+        "(- 7 2)",
+        "(* 3 2.5)",
+        "(/ 7 2)",
+        "(< 2 2.5)",
+        "(> 3.0 2)",
+        "(<= 3 3)",
+        "(>= 4.0 3)",
+        "(EXPT 2 5)",
+        "(MAX 3 9.0)",
+        "(MIN 3.0 9)",
+        "(MOD 29 26)",
+        "(= #\\a #\\a)",
+    ],
+)
+def test_mured_selected_strict_primitives_match_chapter3_at_zero_quantum(
+    source: str,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=0,
+        memory_words=96,
+        control_words=24,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=0).expr
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "(MOD 7 2.0)",
+        "(1- 2.0)",
+        "(NOT NIL)",
+    ],
+)
+def test_mured_selected_strict_wrong_types_match_chapter3(source: str) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=10,
+        memory_words=96,
+        control_words=24,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=10).expr
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "(INTEGER? 5.0)",
+        "(FLOAT? 5)",
+        "(CHAR? NIL)",
+        "(SYMBOL? #\\a)",
+        "(SYMBOL? +)",
+        "(= + +)",
+        "(= 5 5.0)",
+        "(INTEGER? (FOO X))",
+        "(INTEGER? (LAMBDA (X) X))",
+    ],
+)
+def test_mured_selected_strict_predicate_edges_match_chapter3(source: str) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=20).expr
+    )
+
+
 def test_mured_execution_does_not_depend_on_evaluator_term_graphs() -> None:
     source = Path("models/python/red2_engine/mured.py").read_text()
 
