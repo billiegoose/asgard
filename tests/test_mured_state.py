@@ -3,6 +3,7 @@ import pytest
 from red2_engine.mured import (
     Direction,
     GraphEnvironmentCollision,
+    IllegalTransition,
     InvalidAddress,
     MuredMachine,
     MuredOpcode,
@@ -31,6 +32,9 @@ def test_load_places_problem_stop_and_registers() -> None:
     assert state.direction is Direction.F
     assert state.q == 7
     assert state.phi == 0
+    assert state.argcnt == 0
+    assert state.prim is None
+    assert state.fire == 0
     assert state.s_a is None
     assert state.s_d is None
     assert state.cycles == 0
@@ -56,5 +60,24 @@ def test_step_rejects_variable_lookup_past_empty_environment() -> None:
     )
 
     with pytest.raises(InvalidAddress, match="invalid μRED address: 8"):
+        machine.step()
+    assert machine.state.cycles == 0
+
+
+@pytest.mark.parametrize("field", ["argcnt", "fire"])
+def test_step_rejects_negative_primitive_counters(field: str) -> None:
+    machine = MuredMachine.load([Word(MuredOpcode.INT, 1, True)], quantum=1)
+    setattr(machine.state, field, -1)
+
+    with pytest.raises(IllegalTransition, match="μRED counters must be non-negative"):
+        machine.step()
+    assert machine.state.cycles == 0
+
+
+def test_step_rejects_empty_primitive_register_name() -> None:
+    machine = MuredMachine.load([Word(MuredOpcode.INT, 1, True)], quantum=1)
+    machine.state.prim = ""
+
+    with pytest.raises(IllegalTransition, match="prim register requires a symbol name"):
         machine.step()
     assert machine.state.cycles == 0

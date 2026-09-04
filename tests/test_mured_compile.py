@@ -240,3 +240,96 @@ def test_result_expr_requires_halt() -> None:
     )
     with pytest.raises(RuntimeError, match="result is available only after halt"):
         machine.result_expr()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "1-",
+        "1+",
+        "ABS",
+        "CAR",
+        "CDR",
+        "CEILING",
+        "EVEN?",
+        "FLOOR",
+        "MINUS",
+        "NULL?",
+        "NOT",
+        "TAG",
+        "INTEGER?",
+        "FLOAT?",
+        "CHAR?",
+        "SYMBOL?",
+        "STRUCTURE?",
+    ],
+)
+def test_compile_lambda_emits_current_strict_unary_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_1, name, True),
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "+",
+        "-",
+        "*",
+        "/",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "=",
+        "CONS",
+        "EQUAL?",
+        "EXPT",
+        "MAX",
+        "MIN",
+        "MOD",
+    ],
+)
+def test_compile_lambda_emits_current_strict_binary_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_2, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["IF", "Y", "AND", "OR"])
+def test_compile_lambda_emits_non_strict_primitives_as_prim_zero(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_0, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["TRUE", "FALSE", "NIL"])
+def test_compile_lambda_keeps_constants_as_symbols(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.SYM, name, True),
+    )
+
+
+def test_compile_lambda_lexical_binding_shadows_primitive_name() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (+) +)")) == (
+        Word(MuredOpcode.LAMBDA, "+", False),
+        Word(MuredOpcode.VAR, 0, True),
+    )
+
+
+def test_zero_quantum_primitive_application_round_trips_passively() -> None:
+    machine = MuredMachine.from_expr(parse_expr("(+ 2 3)"), quantum=0)
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(+ 2 3)"
+
+
+def test_unapplied_lambda_body_does_not_supply_primitive_argument() -> None:
+    machine = MuredMachine.from_expr(parse_expr("(LAMBDA (x) NOT)"), quantum=3)
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(LAMBDA (x) NOT)"
+    assert machine.state.prim is None
+    assert machine.state.fire == 0

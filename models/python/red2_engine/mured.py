@@ -16,6 +16,9 @@ class MuredOpcode(StrEnum):
     FLOAT = auto()
     CHAR = auto()
     SYM = auto()
+    PRIM_0 = auto()
+    PRIM_1 = auto()
+    PRIM_2 = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -24,6 +27,49 @@ class MuredOpcode(StrEnum):
 class Direction(StrEnum):
     F = auto()
     B = auto()
+
+
+_STRICT_UNARY_PRIMITIVES = frozenset(
+    {
+        "1-",
+        "1+",
+        "ABS",
+        "CAR",
+        "CDR",
+        "CEILING",
+        "EVEN?",
+        "FLOOR",
+        "MINUS",
+        "NULL?",
+        "NOT",
+        "TAG",
+        "INTEGER?",
+        "FLOAT?",
+        "CHAR?",
+        "SYMBOL?",
+        "STRUCTURE?",
+    }
+)
+_STRICT_BINARY_PRIMITIVES = frozenset(
+    {
+        "+",
+        "-",
+        "*",
+        "/",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "=",
+        "CONS",
+        "EQUAL?",
+        "EXPT",
+        "MAX",
+        "MIN",
+        "MOD",
+    }
+)
+_NON_STRICT_PRIMITIVES = frozenset({"IF", "Y", "AND", "OR"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +129,12 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
         if isinstance(node, Symbol):
             if node.name in scope:
                 words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
+            elif node.name in _STRICT_UNARY_PRIMITIVES:
+                words.append(Word(MuredOpcode.PRIM_1, node.name, head))
+            elif node.name in _STRICT_BINARY_PRIMITIVES:
+                words.append(Word(MuredOpcode.PRIM_2, node.name, head))
+            elif node.name in _NON_STRICT_PRIMITIVES:
+                words.append(Word(MuredOpcode.PRIM_0, node.name, head))
             else:
                 words.append(Word(MuredOpcode.SYM, node.name, head))
             return
@@ -147,6 +199,9 @@ class MuredMachineState:
     direction: Direction
     q: int
     phi: int
+    argcnt: int = 0
+    prim: str | None = None
+    fire: int = 0
     s_a: int | None = None
     s_d: int | None = None
     halted: bool = False
@@ -181,6 +236,9 @@ class MuredMachine:
             MuredOpcode.FLOAT,
             MuredOpcode.INT,
             MuredOpcode.LAMBDA,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
             MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
@@ -249,6 +307,8 @@ class MuredMachine:
                 self._char(word)
             case MuredOpcode.SYM:
                 self._sym(word)
+            case MuredOpcode.PRIM_0 | MuredOpcode.PRIM_1 | MuredOpcode.PRIM_2:
+                self._prim(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -266,8 +326,10 @@ class MuredMachine:
             raise GraphEnvironmentCollision("graph and environment collide")
         if not -1 <= state.c < len(state.control_stack):
             raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
-        if state.q < 0 or state.phi < 0:
+        if state.q < 0 or state.phi < 0 or state.argcnt < 0 or state.fire < 0:
             raise IllegalTransition("μRED counters must be non-negative")
+        if state.prim is not None and (type(state.prim) is not str or state.prim == ""):
+            raise IllegalTransition("prim register requires a symbol name")
         self._word(state.pc)
 
     def _push_graph(self, word: Word) -> int:
@@ -276,6 +338,11 @@ class MuredMachine:
             raise GraphEnvironmentCollision("graph and environment collide")
         self.state.memory[address] = word
         self.state.fsp = address
+        return address
+
+    def _copy_result(self, word: Word) -> int:
+        address = self._push_graph(word)
+        self.state.argcnt += 1
         return address
 
     def _allocate_environment(self, word: Word) -> int:
@@ -324,7 +391,7 @@ class MuredMachine:
     def _app(self, word: Word) -> None:
         state = self.state
         if state.direction is Direction.F:
-            self._push_graph(word)
+            self._copy_result(word)
             self._push_control(state.env)
             state.pc += 1
             return
@@ -341,6 +408,7 @@ class MuredMachine:
         parent_app = state.pc
         state.env = self._pop_control()
         self._push_graph(Word(MuredOpcode.JOIN, parent_app, False))
+        state.argcnt = 0
         state.pc = word.data
         state.direction = Direction.F
 
@@ -391,7 +459,8 @@ class MuredMachine:
             MuredOpcode.APP,
             MuredOpcode.APP_VAR,
         }:
-            self._push_graph(word)
+            self._copy_result(word)
+            state.argcnt = 0
             state.phi += 1
             self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
             state.pc += 1
@@ -404,6 +473,7 @@ class MuredMachine:
             )
             state.q -= 1
             state.fsp -= 1
+            state.argcnt -= 1
             state.pc += 1
             return
         if not isinstance(result_head.data, int):
@@ -413,6 +483,7 @@ class MuredMachine:
         self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
         state.q -= 1
         state.fsp -= 1
+        state.argcnt -= 1
         state.pc += 1
 
     def _stop(self) -> None:
@@ -425,7 +496,7 @@ class MuredMachine:
         if self.state.direction is Direction.B:
             self.state.pc -= 1
             return
-        self._push_graph(word)
+        self._copy_result(word)
         if word.head:
             self.state.pc = self.state.fsp - 1
             self.state.direction = Direction.B
@@ -465,17 +536,18 @@ class MuredMachine:
                     word.head,
                     word.definition,
                 )
+                state.argcnt -= 1
                 return
             state.pc -= 1
             return
         if word.head and word.definition is not None and state.q > 0:
             if not isinstance(word.definition, int) or word.definition < 0:
                 raise InvalidAddress("SYM definition requires an address")
-            self._push_graph(word)
+            self._copy_result(word)
             state.pc = state.fsp
             state.direction = Direction.B
             return
-        self._push_graph(word)
+        self._copy_result(word)
         if word.head:
             state.pc = state.fsp - 1
             state.direction = Direction.B
@@ -495,7 +567,7 @@ class MuredMachine:
         if redex.opcode is MuredOpcode.UBV:
             if type(redex.data) is not int or redex.data < 0:
                 raise InvalidAddress("UBV requires a binder depth")
-            self._push_graph(
+            self._copy_result(
                 Word(MuredOpcode.APP_VAR, state.phi - redex.data, False)
             )
             return
@@ -506,16 +578,46 @@ class MuredMachine:
             if code.opcode is not None or type(code.data) is not int or code.data < 0:
                 raise MalformedClosure("CLOSURE requires a following code pointer")
             self._push_control(redex.data)
-            self._push_graph(Word(MuredOpcode.APP, code.data, False))
+            self._copy_result(Word(MuredOpcode.APP, code.data, False))
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
+
+    def _prim(self, word: Word) -> None:
+        if type(word.data) is not str or word.data == "":
+            raise IllegalTransition("PRIM requires a non-empty primitive name")
+        state = self.state
+        if state.direction is Direction.B:
+            state.pc -= 1
+            return
+        if word.opcode is MuredOpcode.PRIM_0:
+            arity = 0
+        elif word.opcode is MuredOpcode.PRIM_1:
+            arity = 1
+        elif word.opcode is MuredOpcode.PRIM_2:
+            arity = 2
+        else:
+            raise IllegalTransition("_prim requires a primitive opcode")
+        if (
+            arity > 0
+            and word.head
+            and state.argcnt >= arity
+            and state.q > 0
+        ):
+            state.prim = word.data
+            state.fire = arity
+        self._copy_result(word)
+        if word.head:
+            state.pc = state.fsp - 1
+            state.direction = Direction.B
+        else:
+            state.pc += 1
 
     def _ubv(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
             raise IllegalTransition("UBV requires forward execution")
         if not isinstance(word.data, int):
             raise InvalidAddress("UBV requires a binder depth")
-        self._push_graph(
+        self._copy_result(
             Word(MuredOpcode.VAR, self.state.phi - word.data, True)
         )
         self.state.pc = self.state.fsp - 1
@@ -631,9 +733,14 @@ class MuredMachine:
                 )
             return Char(word.data), address + 1
 
-        if word.opcode is MuredOpcode.SYM:
+        if word.opcode in {
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
             if type(word.data) is not str or word.data == "":
-                raise MuredMachineError("result SYM requires a symbol name")
+                raise MuredMachineError("result symbol requires a symbol name")
             return Symbol(word.data), address + 1
 
         if word.opcode is MuredOpcode.VAR:

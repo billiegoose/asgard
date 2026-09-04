@@ -99,6 +99,16 @@ def load_defined_symbol_machine(
     return machine
 
 
+def test_defined_symbol_copy_does_not_supply_primitive_argument() -> None:
+    machine = load_defined_symbol_machine("FOO", "NOT", quantum=3)
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "NOT"
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+
+
 def control_contents(
     control_stack: list[int | None], c: int
 ) -> tuple[int, ...]:

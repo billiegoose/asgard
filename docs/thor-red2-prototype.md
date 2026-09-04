@@ -17,11 +17,12 @@ and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
 is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
-passive `INT`/`FLOAT`/`CHAR`, and the closed head-`SYM` definition path.
-It executes the Chapter 4 graph-memory instructions and register transfers
-directly, including head metadata, passive integers, floats, characters, free
-symbols, APP-VAR, and the defined-symbol branch used by this slice, but is
-still not full RED2 and is not wired to the CLI. The broader definition-context
+passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, and the Chapter 4
+primitive-register scaffold. It executes these graph-memory instructions and
+register transfers directly, including `argcnt`, `prim`, `fire`, and passive
+`PRIM_0`/`PRIM_1`/`PRIM_2` traversal and reconstruction. Strict primitive
+firing and non-strict primitive transformations are not implemented yet, so it
+is still not full RED2 and is not wired to the CLI. The broader definition-context
 machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.

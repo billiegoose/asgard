@@ -34,6 +34,7 @@ def test_app_forward_copies_word_saves_env_and_advances() -> None:
     assert state.c == 0
     assert state.pc == 1
     assert state.direction is Direction.F
+    assert state.argcnt == 1
     assert state.cycles == 1
 
 
@@ -51,6 +52,7 @@ def test_app_var_forward_resolves_ubv_and_pushes_corrected_app_var() -> None:
     assert state.fsp == 3
     assert state.pc == 1
     assert state.direction is Direction.F
+    assert state.argcnt == 1
     assert state.cycles == 1
 
 
@@ -70,6 +72,7 @@ def test_app_var_forward_resolves_closure_and_pushes_control_path() -> None:
     assert state.fsp == 3
     assert state.pc == 1
     assert state.direction is Direction.F
+    assert state.argcnt == 1
     assert state.cycles == 1
 
 
@@ -99,6 +102,7 @@ def test_app_reverse_creates_join_with_parent_pointer() -> None:
     state.control_stack[0] = 27
     state.c = 0
     state.direction = Direction.B
+    state.argcnt = 4
 
     machine.step()
 
@@ -108,6 +112,7 @@ def test_app_reverse_creates_join_with_parent_pointer() -> None:
     assert state.fsp == 4
     assert state.pc == 9
     assert state.direction is Direction.F
+    assert state.argcnt == 0
 
 
 def test_app_var_reverse_only_decrements_pc() -> None:
@@ -151,6 +156,7 @@ def test_lambda_contracts_against_result_app() -> None:
     state.control_stack[0] = 32
     state.c = 0
     state.fsp = 3
+    state.argcnt = 1
 
     machine.step()
 
@@ -161,6 +167,7 @@ def test_lambda_contracts_against_result_app() -> None:
     assert state.memory[30] == Word(MuredOpcode.CLOSURE, 32)
     assert state.memory[31] == Word(None, 9)
     assert state.pc == 1
+    assert state.argcnt == 0
 
 
 def test_lambda_contracts_against_result_app_var_without_popping_control() -> None:
@@ -172,6 +179,7 @@ def test_lambda_contracts_against_result_app_var_without_popping_control() -> No
     state.fsp = 3
     state.env = 30
     state.phi = 4
+    state.argcnt = 1
 
     machine.step()
 
@@ -182,11 +190,13 @@ def test_lambda_contracts_against_result_app_var_without_popping_control() -> No
     assert state.env == 29
     assert state.memory[29] == Word(MuredOpcode.UBV, 3, False)
     assert state.pc == 1
+    assert state.argcnt == 0
 
 
 def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
     machine = base_machine()
     state = machine.state
+    state.argcnt = 2
 
     machine.step()
 
@@ -196,6 +206,7 @@ def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
     assert state.env == 31
     assert state.phi == 1
     assert state.pc == 1
+    assert state.argcnt == 0
 
 
 def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
@@ -220,6 +231,7 @@ def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
 
     copied = state.memory[state.fsp]
     assert copied == Word(MuredOpcode.INT, 42, True)
+    assert state.argcnt == 1
     assert (state.direction, state.pc, state.q, state.phi) == (
         Direction.B,
         state.fsp - 1,
@@ -396,6 +408,7 @@ def test_sym_forward_non_head_copies_and_advances(
 
     copied = state.memory[state.fsp]
     assert copied == Word(opcode, payload, False, 5)
+    assert state.argcnt == 1
     assert (state.direction, state.pc) == (Direction.F, 1)
 
 
@@ -485,6 +498,7 @@ def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> Non
         direction=Direction.B,
         q=3,
         phi=0,
+        argcnt=3,
     )
     state.memory[1] = Word(MuredOpcode.STOP)
     state.memory[2] = Word(MuredOpcode.SYM, "FOO", True, 9)
@@ -495,6 +509,7 @@ def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> Non
     machine.step()
 
     assert state.memory[2] == Word(MuredOpcode.APP, 1, True, 9)
+    assert state.argcnt == 2
     assert state.control_stack[0] == 12
     assert state.c == 0
     assert state.direction is Direction.B
@@ -759,12 +774,14 @@ def test_join_inserts_argument_root_and_walks_parent_backward() -> None:
     state.pc = 4
     state.fsp = 5
     state.direction = Direction.B
+    state.argcnt = 2
 
     machine.step()
 
     assert state.memory[3] == Word(MuredOpcode.APP, 5)
     assert state.s_a == 5
     assert state.pc == 2
+    assert state.argcnt == 2
 
 
 def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
@@ -836,3 +853,180 @@ def test_stop_rejects_forward_execution() -> None:
 
     with pytest.raises(IllegalTransition, match="STOP requires backward execution"):
         machine.step()
+
+
+@pytest.mark.parametrize(
+    ("opcode", "name", "arity"),
+    [
+        (MuredOpcode.PRIM_1, "NOT", 1),
+        (MuredOpcode.PRIM_2, "+", 2),
+    ],
+)
+def test_head_strict_primitive_primes_without_firing(
+    opcode: MuredOpcode,
+    name: str,
+    arity: int,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=arity,
+    )
+    state.memory[0] = Word(opcode, name, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(opcode, name, True)
+    assert state.argcnt == arity + 1
+    assert state.prim == name
+    assert state.fire == arity
+    assert (state.direction, state.pc) == (Direction.B, 2)
+    assert state.q == 3
+
+
+@pytest.mark.parametrize(
+    ("argcnt", "quantum"),
+    [
+        (1, 3),
+        (2, 0),
+    ],
+)
+def test_head_binary_primitive_stays_unprimed_without_arity_or_quantum(
+    argcnt: int,
+    quantum: int,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=quantum,
+        phi=0,
+        argcnt=argcnt,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, "+", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_2, "+", True)
+    assert state.argcnt == argcnt + 1
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_non_head_strict_primitive_is_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=2,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, "+", False)
+    state.memory[1] = Word(MuredOpcode.INT, 1, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_2, "+", False)
+    assert state.argcnt == 3
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_head_prim_zero_is_passive_in_scaffold_slice() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "Y", True)
+    assert state.argcnt == 2
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_primitive_reverse_only_walks_backward() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=5,
+        env=10,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        argcnt=4,
+        prim="+",
+        fire=2,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.PRIM_2, "+", True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.pc == 4
+    assert state.argcnt == 4
+    assert state.prim == "+"
+    assert state.fire == 2
+    assert state.direction is Direction.B
+
+
+def test_primitive_rejects_malformed_name() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_1, "", True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+
+    with pytest.raises(
+        IllegalTransition,
+        match="PRIM requires a non-empty primitive name",
+    ):
+        MuredMachine(state).step()
