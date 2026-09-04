@@ -958,7 +958,34 @@ def test_non_head_strict_primitive_is_passive() -> None:
     assert (state.direction, state.pc) == (Direction.F, 1)
 
 
-def test_head_prim_zero_is_passive_in_scaffold_slice() -> None:
+def test_other_head_prim_zero_remains_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=3,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "IF", True)
+    assert state.argcnt == 4
+    assert state.q == 3
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_non_head_y_is_passive() -> None:
     state = MuredMachineState(
         memory=[None] * 10,
         control_stack=[None] * 4,
@@ -971,6 +998,31 @@ def test_head_prim_zero_is_passive_in_scaffold_slice() -> None:
         phi=0,
         argcnt=1,
     )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "Y", False)
+    state.memory[1] = Word(MuredOpcode.INT, 7, True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "Y", False)
+    assert state.argcnt == 2
+    assert state.q == 3
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_head_y_with_no_argument_is_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=0,
+    )
     state.memory[0] = Word(MuredOpcode.PRIM_0, "Y", True)
     state.memory[2] = Word(MuredOpcode.STOP)
     machine = MuredMachine(state)
@@ -978,10 +1030,101 @@ def test_head_prim_zero_is_passive_in_scaffold_slice() -> None:
     machine.step()
 
     assert state.memory[3] == Word(MuredOpcode.PRIM_0, "Y", True)
-    assert state.argcnt == 2
+    assert state.argcnt == 1
+    assert state.q == 3
     assert state.prim is None
     assert state.fire == 0
     assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_head_y_with_zero_quantum_is_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 7, True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[3] = Word(MuredOpcode.INT, 7, True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.PRIM_0, "Y", True)
+    assert state.argcnt == 2
+    assert state.q == 0
+    assert (state.direction, state.pc) == (Direction.B, 3)
+
+
+def test_head_y_rewrites_non_app_argument_with_temporary_head_copy() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True, 9)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+    assert state.memory[4] == Word(MuredOpcode.SYM, "F", True, 9)
+    assert state.fsp == 3
+    assert state.q == 3
+    assert state.c == 0
+    assert state.control_stack[0] == 12
+    assert state.argcnt == 1
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.F, 4)
+
+
+def test_head_y_rewrites_app_argument_and_follows_code_without_extra_path_push(
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.APP, 8, True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[5] = Word(MuredOpcode.APP, 8, True)
+    state.memory[8] = Word(MuredOpcode.INT, 1, True)
+    state.control_stack[0] = 13
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[5] == Word(MuredOpcode.APP, 0, False)
+    assert state.fsp == 5
+    assert state.q == 3
+    assert state.c == 0
+    assert state.control_stack[0] == 13
+    assert state.argcnt == 1
+    assert (state.direction, state.pc) == (Direction.F, 8)
 
 
 def test_primitive_reverse_only_walks_backward() -> None:

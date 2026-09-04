@@ -917,6 +917,33 @@ def test_mured_selected_strict_predicate_edges_match_chapter3(source: str) -> No
     )
 
 
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
+        ("(Y (LAMBDA (self) 7))", 4),
+        ("(Y (LAMBDA (self) self))", 3),
+        ("(Y (LAMBDA (self) 7))", 0),
+    ],
+)
+def test_mured_y_matches_chapter3_at_bounded_quantum(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+
+
 def test_mured_execution_does_not_depend_on_evaluator_term_graphs() -> None:
     source = Path("models/python/red2_engine/mured.py").read_text()
 

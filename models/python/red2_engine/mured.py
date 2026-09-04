@@ -893,6 +893,37 @@ class MuredMachine:
             return ("symbol", word.data)
         return None
 
+    def _y(self, word: Word) -> None:
+        state = self.state
+        if state.q == 0 or state.argcnt < 1:
+            self._copy_result(word)
+            state.pc = state.fsp - 1
+            state.direction = Direction.B
+            return
+
+        state.q -= 1
+        state.pc -= 1
+        argument = self._word(state.pc)
+        state.memory[state.fsp] = Word(MuredOpcode.APP, state.pc, False)
+
+        if argument.opcode is MuredOpcode.APP:
+            if type(argument.data) is not int or argument.data < 0:
+                raise InvalidAddress("Y APP argument requires a graph address")
+            state.pc = argument.data
+            return
+
+        self._push_control(state.env)
+        scratch = state.fsp + 1
+        if scratch >= state.env:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        state.memory[scratch] = Word(
+            argument.opcode,
+            argument.data,
+            True,
+            argument.definition,
+        )
+        state.pc = scratch
+
     def _prim(self, word: Word) -> None:
         if type(word.data) is not str or word.data == "":
             raise IllegalTransition("PRIM requires a non-empty primitive name")
@@ -901,6 +932,9 @@ class MuredMachine:
             state.pc -= 1
             return
         if word.opcode is MuredOpcode.PRIM_0:
+            if word.head and word.data == "Y":
+                self._y(word)
+                return
             arity = 0
         elif word.opcode is MuredOpcode.PRIM_1:
             arity = 1
