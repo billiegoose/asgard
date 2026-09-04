@@ -1010,6 +1010,60 @@ def test_primitive_reverse_only_walks_backward() -> None:
     assert state.direction is Direction.B
 
 
+def test_reverse_app_saves_active_primitive_context_before_argument_reduction() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.control_stack[0] = 27
+    state.c = 0
+    state.direction = Direction.B
+    state.prim = "+"
+    state.fire = 2
+
+    machine.step()
+
+    assert state.env == 27
+    assert state.c >= 1
+    assert state.prim is None
+    assert state.fire == 0
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
+    assert (state.direction, state.pc) == (Direction.F, 9)
+
+
+def test_join_restores_primitive_context_compacts_int_and_decrements_fire() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.control_stack[0] = 27
+    state.c = 0
+    state.direction = Direction.B
+    state.prim = "+"
+    state.fire = 2
+
+    machine.step()
+    state.memory[5] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.INT, 2, False)
+    assert state.fsp == 3
+    assert state.c == -1
+    assert state.prim == "+"
+    assert state.fire == 1
+    assert state.pc == 2
+
+
 def test_primitive_rejects_malformed_name() -> None:
     state = MuredMachineState(
         memory=[None] * 8,

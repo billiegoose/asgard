@@ -17,12 +17,14 @@ and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
 is explicit: semantic parity is not machine fidelity.
 
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
-passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, and the Chapter 4
-primitive-register scaffold. It executes these graph-memory instructions and
-register transfers directly, including `argcnt`, `prim`, `fire`, and passive
-`PRIM_0`/`PRIM_1`/`PRIM_2` traversal and reconstruction. Strict primitive
-firing and non-strict primitive transformations are not implemented yet, so it
-is still not full RED2 and is not wired to the CLI. The broader definition-context
+passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, the Chapter 4
+primitive registers, and the first strict firing path. It executes these
+graph-memory instructions and register transfers directly, including `argcnt`,
+`prim`, `fire`, strict-argument save/restore through APP/JOIN, one-word strict
+argument compaction, and integer `ADD` firing with quantum re-check and graph
+reclamation. The rest of the strict primitive family and the non-strict
+primitive transformations are not implemented yet, so it is still not full
+RED2 and is not wired to the CLI. The broader definition-context
 machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
@@ -70,7 +72,9 @@ The current user-visible primitive surface is documented in
 - The faithful μRED core still lacks the broader multi-definition context
   machinery outside the closed head-`SYM` path.
 - FPGA synthesis automation is not part of this milestone.
-- Performance-accurate memory reclamation is not attempted.
+- Integer `ADD` performs the Chapter 4/5 `fsp` reclamation required for its
+  primitive-arguments subgraph; broader performance-accurate reclamation is not
+  yet modeled throughout the machine.
 - Vendor tool integration is intentionally out of scope for the default tests.
 
 ## Example Commands

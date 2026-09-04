@@ -188,10 +188,23 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     return tuple(words)
 
 
+@dataclass(frozen=True, slots=True)
+class _SavedPrim:
+    value: str
+
+
+@dataclass(frozen=True, slots=True)
+class _SavedFire:
+    value: int
+
+
+_ControlEntry = int | _SavedPrim | _SavedFire | None
+
+
 @dataclass(slots=True)
 class MuredMachineState:
     memory: list[Word | None]
-    control_stack: list[int | None]
+    control_stack: list[_ControlEntry]
     pc: int
     fsp: int
     env: int
@@ -353,14 +366,16 @@ class MuredMachine:
         self.state.env = address
         return address
 
-    def _push_control(self, address: int) -> None:
+    def _push_control_entry(self, value: _ControlEntry) -> None:
+        if value is None:
+            raise IllegalTransition("cannot push an empty control-stack entry")
         next_c = self.state.c + 1
         if next_c >= len(self.state.control_stack):
             raise ControlStackOverflow("μRED control stack overflow")
-        self.state.control_stack[next_c] = address
+        self.state.control_stack[next_c] = value
         self.state.c = next_c
 
-    def _pop_control(self) -> int:
+    def _pop_control_entry(self) -> _ControlEntry:
         if self.state.c < 0:
             raise ControlStackUnderflow("μRED control stack underflow")
         value = self.state.control_stack[self.state.c]
@@ -369,6 +384,47 @@ class MuredMachine:
         if value is None:
             raise ControlStackUnderflow("μRED control stack entry is empty")
         return value
+
+    def _push_control(self, address: int) -> None:
+        self._push_control_entry(address)
+
+    def _pop_control(self) -> int:
+        value = self._pop_control_entry()
+        if type(value) is not int:
+            raise IllegalTransition("expected an environment path on the control stack")
+        return value
+
+    def _save_primitive_context(self) -> None:
+        state = self.state
+        if state.fire == 0:
+            return
+        if state.prim is None:
+            raise IllegalTransition("active primitive countdown requires prim")
+        if state.c + 2 >= len(state.control_stack):
+            raise ControlStackOverflow("μRED control stack overflow")
+        self._push_control_entry(_SavedPrim(state.prim))
+        self._push_control_entry(_SavedFire(state.fire))
+        state.prim = None
+        state.fire = 0
+
+    def _has_saved_primitive_context(self) -> bool:
+        state = self.state
+        return state.c >= 0 and isinstance(
+            state.control_stack[state.c], _SavedFire
+        )
+
+    def _restore_primitive_context(self) -> bool:
+        if not self._has_saved_primitive_context():
+            return False
+        fire_entry = self._pop_control_entry()
+        prim_entry = self._pop_control_entry()
+        if not isinstance(fire_entry, _SavedFire) or not isinstance(
+            prim_entry, _SavedPrim
+        ):
+            raise IllegalTransition("malformed primitive context on control stack")
+        self.state.prim = prim_entry.value
+        self.state.fire = fire_entry.value
+        return True
 
     def lookup(self, index: int) -> int:
         if index < 0:
@@ -407,6 +463,7 @@ class MuredMachine:
             raise InvalidAddress("APP requires an argument address")
         parent_app = state.pc
         state.env = self._pop_control()
+        self._save_primitive_context()
         self._push_graph(Word(MuredOpcode.JOIN, parent_app, False))
         state.argcnt = 0
         state.pc = word.data
@@ -424,27 +481,43 @@ class MuredMachine:
         self.state.pc = code.data
 
     def _join(self, word: Word) -> None:
-        if self.state.direction is not Direction.B:
+        state = self.state
+        if state.direction is not Direction.B:
             raise IllegalTransition("JOIN requires backward execution")
         if not isinstance(word.data, int):
             raise InvalidAddress("JOIN requires a parent APP address")
-        self.state.s_a = self.state.pc + 1
+        state.s_a = state.pc + 1
         parent = self._word(word.data)
         if parent.opcode is not MuredOpcode.APP:
             raise IllegalTransition("JOIN parent must be APP")
-        tail = self._word(self.state.s_a)
-        if tail.opcode is MuredOpcode.VAR:
+        tail = self._word(state.s_a)
+        saved_primitive = self._has_saved_primitive_context()
+        single_word = state.fsp == state.s_a
+        if tail.opcode is MuredOpcode.VAR and single_word:
             if type(tail.data) is not int or tail.data < 0:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
-            self.state.memory[word.data] = Word(
-                MuredOpcode.APP_VAR, tail.data, False
+            state.memory[word.data] = Word(MuredOpcode.APP_VAR, tail.data, False)
+            state.fsp -= 2
+        elif saved_primitive and single_word:
+            state.memory[word.data] = Word(
+                tail.opcode,
+                tail.data,
+                False,
+                tail.definition,
             )
-            self.state.fsp -= 2
+            state.fsp -= 2
         else:
-            self.state.memory[word.data] = Word(
-                MuredOpcode.APP, self.state.s_a, False
-            )
-        self.state.pc = word.data - 1
+            state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
+
+        if self._restore_primitive_context():
+            if state.fire <= 0 or state.prim is None:
+                raise IllegalTransition("restored primitive context is not active")
+            state.fire -= 1
+            if state.fire == 0:
+                state.pc = word.data
+                self._fire_primitive()
+                return
+        state.pc = word.data - 1
 
     def _lambda(self, word: Word) -> None:
         state = self.state
@@ -582,6 +655,36 @@ class MuredMachine:
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
+    def _fire_primitive(self) -> None:
+        state = self.state
+        primitive = state.prim
+        state.prim = None
+        state.fire = 0
+        if primitive == "+":
+            self._add()
+            return
+        state.pc -= 1
+
+    def _add(self) -> None:
+        state = self.state
+        second = self._word(state.pc)
+        first = self._word(state.pc + 1)
+        if (
+            state.q > 0
+            and second.opcode is MuredOpcode.INT
+            and type(second.data) is int
+            and first.opcode is MuredOpcode.INT
+            and type(first.data) is int
+        ):
+            state.memory[state.pc] = Word(
+                MuredOpcode.INT,
+                second.data + first.data,
+                True,
+            )
+            state.fsp = state.pc
+            state.q -= 1
+        state.pc -= 1
+
     def _prim(self, word: Word) -> None:
         if type(word.data) is not str or word.data == "":
             raise IllegalTransition("PRIM requires a non-empty primitive name")
@@ -657,7 +760,18 @@ class MuredMachine:
             raise MuredMachineError("cyclic μRED result graph")
         word = self._word(address)
 
-        if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+        inline_argument_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+            not word.head and word.opcode in inline_argument_opcodes
+        ):
             argument_entries: list[tuple[MuredOpcode, int]] = []
             cursor = address
             app_path = path
@@ -665,14 +779,14 @@ class MuredMachine:
                 if cursor in app_path:
                     raise MuredMachineError("cyclic μRED result graph")
                 app_word = self._word(cursor)
-                if app_word.opcode not in {
-                    MuredOpcode.APP,
-                    MuredOpcode.APP_VAR,
-                }:
+                if app_word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                    if not isinstance(app_word.data, int) or app_word.data < 0:
+                        raise InvalidAddress("result APP requires an argument address")
+                    argument_entries.append((app_word.opcode, app_word.data))
+                elif not app_word.head and app_word.opcode in inline_argument_opcodes:
+                    argument_entries.append((app_word.opcode, cursor))
+                else:
                     break
-                if not isinstance(app_word.data, int) or app_word.data < 0:
-                    raise InvalidAddress("result APP requires an argument address")
-                argument_entries.append((app_word.opcode, app_word.data))
                 app_path = app_path | {cursor}
                 cursor += 1
             operator, next_address = self._decompile(cursor, scope, app_path)
@@ -686,10 +800,42 @@ class MuredMachine:
                     )
                     arguments.append(Var(argument_data, name))
                     continue
-                argument, next_address = self._decompile(
-                    argument_data, scope, app_path
-                )
-                arguments.append(argument)
+                if opcode is MuredOpcode.APP:
+                    argument, next_address = self._decompile(
+                        argument_data, scope, app_path
+                    )
+                    arguments.append(argument)
+                    continue
+                inline_word = self._word(argument_data)
+                if inline_word.opcode is MuredOpcode.INT:
+                    if type(inline_word.data) is not int:
+                        raise MuredMachineError("result INT requires an integer value")
+                    arguments.append(Integer(inline_word.data))
+                elif inline_word.opcode is MuredOpcode.FLOAT:
+                    if type(inline_word.data) is not float:
+                        raise MuredMachineError(
+                            "result FLOAT requires a floating-point value"
+                        )
+                    arguments.append(Float(inline_word.data))
+                elif inline_word.opcode is MuredOpcode.CHAR:
+                    if type(inline_word.data) is not str or len(inline_word.data) != 1:
+                        raise MuredMachineError(
+                            "result CHAR requires a single-character string"
+                        )
+                    arguments.append(Char(inline_word.data))
+                elif inline_word.opcode in {
+                    MuredOpcode.SYM,
+                    MuredOpcode.PRIM_0,
+                    MuredOpcode.PRIM_1,
+                    MuredOpcode.PRIM_2,
+                }:
+                    if type(inline_word.data) is not str or inline_word.data == "":
+                        raise MuredMachineError("result symbol requires a symbol name")
+                    arguments.append(Symbol(inline_word.data))
+                else:
+                    raise MuredMachineError(
+                        f"{inline_word.opcode} is not a valid inline argument"
+                    )
             return App((operator, *arguments)), next_address
 
         if word.opcode is MuredOpcode.LAMBDA:

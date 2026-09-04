@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -110,13 +111,13 @@ def test_defined_symbol_copy_does_not_supply_primitive_argument() -> None:
 
 
 def control_contents(
-    control_stack: list[int | None], c: int
+    control_stack: Sequence[object], c: int
 ) -> tuple[int, ...]:
     if c < 0:
         return ()
     items: list[int] = []
     for value in control_stack[: c + 1]:
-        if value is not None:
+        if type(value) is int:
             items.append(value)
     return tuple(items)
 
@@ -672,6 +673,95 @@ def test_mured_result_matches_chapter3_for_small_pure_lambda_corpus(
     )
 
     assert to_source(machine.result_expr()) == to_source(thor)
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum", "expected", "remaining_quantum"),
+    [
+        ("(+ 2 3)", 3, "5", 2),
+        ("(+ 0 0)", 1, "0", 0),
+        ("(+ (+ 1 2) 3)", 5, "6", 3),
+    ],
+)
+def test_mured_integer_add_matches_chapter3(
+    source: str,
+    quantum: int,
+    expected: str,
+    remaining_quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == expected
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+    assert machine.state.q == remaining_quantum
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+    if source == "(+ 2 3)":
+        assert machine.state.fsp == machine.state.pc
+        assert machine.state.memory[machine.state.fsp] == Word(
+            MuredOpcode.INT, 5, True
+        )
+
+
+def test_mured_add_rechecks_quantum_after_strict_argument_reduction() -> None:
+    source = "(+ (+ 1 2) 3)"
+    machine = MuredMachine.from_expr(
+        parse_expr(source),
+        quantum=1,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(+ 3 3)"
+    assert machine.state.q == 0
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+
+
+def test_mured_add_with_zero_quantum_remains_unreduced() -> None:
+    source = "(+ 2 3)"
+    machine = MuredMachine.from_expr(
+        parse_expr(source),
+        quantum=0,
+        memory_words=64,
+        control_words=16,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.q == 0
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+
+
+def test_mured_add_with_wrong_type_remains_unreduced() -> None:
+    source = "(+ 2 TRUE)"
+    machine = MuredMachine.from_expr(
+        parse_expr(source),
+        quantum=5,
+        memory_words=64,
+        control_words=16,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.q == 5
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
 
 
 def test_mured_execution_does_not_depend_on_evaluator_term_graphs() -> None:
