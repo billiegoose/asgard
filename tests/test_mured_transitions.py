@@ -958,7 +958,34 @@ def test_non_head_strict_primitive_is_passive() -> None:
     assert (state.direction, state.pc) == (Direction.F, 1)
 
 
-def test_other_head_prim_zero_remains_passive() -> None:
+def test_head_if_primes_only_the_condition() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=3,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.PRIM_0, "IF", True)
+    assert state.argcnt == 4
+    assert state.q == 3
+    assert state.prim == "IF"
+    assert state.fire == 1
+    assert (state.direction, state.pc) == (Direction.B, 3)
+
+
+def test_head_if_with_zero_quantum_is_passive() -> None:
     state = MuredMachineState(
         memory=[None] * 10,
         control_stack=[None] * 4,
@@ -967,7 +994,7 @@ def test_other_head_prim_zero_remains_passive() -> None:
         env=10,
         c=-1,
         direction=Direction.F,
-        q=3,
+        q=0,
         phi=0,
         argcnt=3,
     )
@@ -978,7 +1005,32 @@ def test_other_head_prim_zero_remains_passive() -> None:
     machine.step()
 
     assert state.memory[3] == Word(MuredOpcode.PRIM_0, "IF", True)
-    assert state.argcnt == 4
+    assert state.q == 0
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_head_if_with_too_few_arguments_is_passive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=2,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "IF", True)
     assert state.q == 3
     assert state.prim is None
     assert state.fire == 0
@@ -1342,6 +1394,120 @@ def test_binary_strict_primitive_fire_handles_atomic_result_types(
     assert state.fsp == 2
     assert state.q == 3
     assert state.pc == 1
+
+
+@pytest.mark.parametrize(
+    ("condition", "selected", "kept_path"),
+    [
+        ("TRUE", Word(MuredOpcode.APP, 10, False), 21),
+        ("FALSE", Word(MuredOpcode.APP, 9, False), 20),
+    ],
+)
+def test_if_boolean_fire_selects_one_lazy_branch_and_reclaims_spine(
+    condition: str,
+    selected: Word,
+    kept_path: int,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.fsp == 1
+    assert state.pc == selected.data
+    assert state.q == 2
+    assert state.env == kept_path
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.control_stack[1] is None
+    assert state.argcnt == 0
+    assert state.direction is Direction.F
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_if_boolean_fire_with_exhausted_quantum_reconstructs() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=4,
+        fsp=5,
+        env=12,
+        c=1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 8, False)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 10
+    state.control_stack[1] = 11
+    before = list(state.memory)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.pc == 1
+    assert state.q == 0
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.control_stack[1] is None
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_if_non_boolean_fire_starts_zero_quantum_branch_reconstruction() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "MAYBE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.q == 0
+    assert state.pc == 3
+    assert state.prim == "__IF_RECONSTRUCT__"
+    assert state.fire == 2
+    assert state.c == 2
+    assert state.control_stack[1] == 20
+    assert state.control_stack[2] == 21
 
 
 def test_wrong_type_strict_fire_leaves_compact_spine_unchanged() -> None:

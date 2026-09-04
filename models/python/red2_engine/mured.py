@@ -199,7 +199,12 @@ class _SavedFire:
     value: int
 
 
-_ControlEntry = int | _SavedPrim | _SavedFire | None
+@dataclass(frozen=True, slots=True)
+class _SavedQuantum:
+    value: int
+
+
+_ControlEntry = int | _SavedPrim | _SavedFire | _SavedQuantum | None
 
 
 @dataclass(slots=True)
@@ -670,11 +675,118 @@ class MuredMachine:
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
+    def _pop_if_branch_paths(
+        self,
+        false_branch: Word,
+        true_branch: Word,
+    ) -> tuple[int | None, int | None]:
+        true_path = (
+            self._pop_control() if true_branch.opcode is MuredOpcode.APP else None
+        )
+        false_path = (
+            self._pop_control() if false_branch.opcode is MuredOpcode.APP else None
+        )
+        return false_path, true_path
+
+    def _begin_if_reconstruction(
+        self,
+        false_branch: Word,
+        true_branch: Word,
+    ) -> None:
+        state = self.state
+        false_path, true_path = self._pop_if_branch_paths(false_branch, true_branch)
+        self._push_control_entry(_SavedQuantum(state.q))
+        if false_path is not None:
+            self._push_control(false_path)
+        if true_path is not None:
+            self._push_control(true_path)
+        state.q = 0
+        state.prim = "__IF_RECONSTRUCT__"
+        state.fire = int(false_branch.opcode is MuredOpcode.APP) + int(
+            true_branch.opcode is MuredOpcode.APP
+        )
+        state.pc -= 1
+
+        if state.fire == 0:
+            saved_q = self._pop_control_entry()
+            if not isinstance(saved_q, _SavedQuantum):
+                raise IllegalTransition("IF reconstruction lost saved quantum")
+            state.q = saved_q.value
+            state.prim = None
+
+    def _select_if_branch(self, condition: str) -> None:
+        state = self.state
+        false_slot = state.pc - 2
+        true_slot = state.pc - 1
+        false_branch = self._word(false_slot)
+        true_branch = self._word(true_slot)
+        false_path, true_path = self._pop_if_branch_paths(false_branch, true_branch)
+        if condition == "TRUE":
+            selected = true_branch
+            selected_path = true_path
+        else:
+            selected = false_branch
+            selected_path = false_path
+
+        state.q -= 1
+        if selected.opcode is MuredOpcode.APP:
+            if type(selected.data) is not int or selected.data < 0:
+                raise InvalidAddress("IF selected APP requires a graph address")
+            if selected_path is None:
+                raise IllegalTransition("IF selected APP lost its environment path")
+            state.fsp = false_slot - 1
+            state.argcnt = 0
+            state.env = selected_path
+            state.pc = selected.data
+            state.direction = Direction.F
+            return
+
+        state.memory[false_slot] = selected
+        state.fsp = false_slot
+        state.pc = false_slot
+
+    def _skip_if_branches(self) -> None:
+        state = self.state
+        false_slot = state.pc - 2
+        true_slot = state.pc - 1
+        false_branch = self._word(false_slot)
+        true_branch = self._word(true_slot)
+        self._pop_if_branch_paths(false_branch, true_branch)
+        state.pc = false_slot - 1
+
+    def _finish_if_reconstruction(self) -> None:
+        saved_q = self._pop_control_entry()
+        if not isinstance(saved_q, _SavedQuantum):
+            raise IllegalTransition("IF reconstruction lost saved quantum")
+        self.state.q = saved_q.value
+
     def _fire_primitive(self) -> None:
         state = self.state
         primitive = state.prim
         state.prim = None
         state.fire = 0
+
+        if primitive == "__IF_RECONSTRUCT__":
+            self._finish_if_reconstruction()
+            state.pc -= 1
+            return
+
+        if primitive == "IF":
+            condition = self._word(state.pc)
+            if (
+                condition.opcode is MuredOpcode.SYM
+                and type(condition.data) is str
+                and condition.data in {"TRUE", "FALSE"}
+            ):
+                if state.q > 0:
+                    self._select_if_branch(condition.data)
+                else:
+                    self._skip_if_branches()
+                return
+            false_branch = self._word(state.pc - 2)
+            true_branch = self._word(state.pc - 1)
+            self._begin_if_reconstruction(false_branch, true_branch)
+            return
 
         result: Word | None = None
         if state.q > 0 and primitive is not None:
@@ -935,6 +1047,14 @@ class MuredMachine:
             if word.head and word.data == "Y":
                 self._y(word)
                 return
+            if (
+                word.head
+                and word.data == "IF"
+                and state.argcnt >= 3
+                and state.q > 0
+            ):
+                state.prim = "IF"
+                state.fire = 1
             arity = 0
         elif word.opcode is MuredOpcode.PRIM_1:
             arity = 1

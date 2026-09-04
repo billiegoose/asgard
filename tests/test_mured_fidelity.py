@@ -920,6 +920,91 @@ def test_mured_selected_strict_predicate_edges_match_chapter3(source: str) -> No
 @pytest.mark.parametrize(
     ("source", "quantum"),
     [
+        ("(IF TRUE (+ 1 2) (+ 100 200))", 2),
+        ("(IF FALSE (+ 100 200) (+ 4 5))", 2),
+        ("(IF (= 1 1) (+ 1 2) (+ 3 4))", 3),
+        ("(IF TRUE (+ 1 2) (+ 3 4))", 0),
+        ("(IF (= 1 1) (+ 1 2) (+ 3 4))", 1),
+        ("(IF (FOO X) (+ 1 2) (+ 3 4))", 5),
+        ("((LAMBDA (x) (IF (FOO x) (+ x 1) (+ x 2))) 5)", 2),
+    ],
+)
+def test_mured_if_matches_chapter3_with_lazy_branches(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=192,
+        control_words=48,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=quantum).expr
+    )
+
+
+def test_mured_if_non_boolean_restores_quantum_after_lazy_reconstruction() -> None:
+    source = "(IF (FOO X) (+ 1 2) (+ 3 4))"
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=5,
+        memory_words=192,
+        control_words=48,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.q == 5
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+
+
+def test_mured_if_selected_branch_splices_inside_outer_strict_application() -> None:
+    source = "(+ (IF TRUE 1 2) 3)"
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=4,
+        memory_words=192,
+        control_words=48,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=4).expr
+    )
+    assert to_source(machine.result_expr()) == "4"
+
+
+def test_mured_y_if_factorial_matches_chapter3() -> None:
+    source = "((Y (LAMBDA (FACT N) (IF (= N 0) 1 (* N (FACT (1- N)))))) 3)"
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=64,
+        memory_words=512,
+        control_words=128,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "6"
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=64).expr
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
         ("(Y (LAMBDA (self) 7))", 4),
         ("(Y (LAMBDA (self) self))", 3),
         ("(Y (LAMBDA (self) 7))", 0),

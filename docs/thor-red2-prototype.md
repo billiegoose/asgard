@@ -19,18 +19,18 @@ is explicit: semantic parity is not machine fidelity.
 `red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
 passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, the Chapter 4
 primitive registers, a selected Chapter 3 strict primitive family, and the
-Chapter 4 non-strict `Y` transformation. It executes these graph-memory
-instructions and register transfers directly, including `argcnt`, `prim`,
-`fire`, strict-argument save/restore through APP/JOIN, JOIN ownership of saved
-primitive contexts, one-word strict argument compaction, fire-time quantum
-re-checks, graph reclamation after successful strict firing, and the shared-graph
-`(Y f)` to `(f (Y f))` rewrite with its temporary headed copy when needed. The
-implemented strict slice covers numeric unary/binary operations and comparisons,
-`NULL?`/`NOT`, atomic type predicates, and constant `=` with Chapter 3
-integer/float coercion behavior where applicable. Structural strict primitives,
-recursive equality, and the remaining non-strict primitives `IF`, `AND`, and
-`OR` are not implemented yet, so it is still not full RED2 and is not wired to
-the CLI. The broader definition-context
+Chapter 4 non-strict `Y` and mixed-strictness `IF` transformations. It executes
+these graph-memory instructions and register transfers directly, including
+`argcnt`, `prim`, `fire`, strict-argument save/restore through APP/JOIN, JOIN
+ownership of saved primitive contexts, one-word strict argument compaction,
+fire-time quantum re-checks, graph reclamation after successful strict firing,
+the shared-graph `(Y f)` to `(f (Y f))` rewrite, and `IF` condition forcing with
+lazy branch selection/reconstruction. The implemented strict slice covers
+numeric unary/binary operations and comparisons, `NULL?`/`NOT`, atomic type
+predicates, and constant `=` with Chapter 3 integer/float coercion behavior where
+applicable. Structural strict primitives, recursive equality, and the remaining
+non-strict primitives `AND` and `OR` are not implemented yet, so it is still not
+full RED2 and is not wired to the CLI. The broader definition-context
 machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
@@ -76,8 +76,8 @@ The current user-visible primitive surface is documented in
   the default quantum gate.
 - Character constants, symbol predicates, and equality are covered; a complete
   non-benchmark character library is not implemented.
-- The faithful μRED core implements non-strict `Y`, but `IF`, `AND`, and `OR`
-  still remain passive pending their dedicated non-strict primitive slices.
+- The faithful μRED core implements non-strict `Y` and mixed-strictness `IF`;
+  `AND` and `OR` still remain passive pending their dedicated primitive slices.
 - The faithful μRED core still lacks the broader multi-definition context
   machinery outside the closed head-`SYM` path.
 - FPGA synthesis automation is not part of this milestone.
