@@ -166,7 +166,10 @@ def test_python_engine_benchmark_doc_states_methodology_contract() -> None:
     assert "translated before timing" in text
     assert "compiled and loaded before timing" in text
     assert "times only `MuredMachine.run()`" in text
-    assert "Result reconstruction and `to_source` rendering happen after the timer stops" in text
+    assert (
+        "Result reconstruction and `to_source` rendering happen after the timer stops"
+        in text
+    )
     assert "Warmups" in text and "excluded from statistics" in text
     assert "median measured time" in text
     assert "no successful partial CSV" in text
