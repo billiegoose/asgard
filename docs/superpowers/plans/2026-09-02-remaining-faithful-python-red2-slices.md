@@ -315,11 +315,11 @@
 - Consumes: all prior tasks
 - Produces: no code; final verification evidence
 
-- [ ] Run `uv run pytest -q`.
-- [ ] Run `uv run ruff check .`.
-- [ ] Run `uv run mypy models/python tests`.
-- [ ] Run `cargo test -p red2-wasm`.
-- [ ] Run `git diff --check` and require clean status.
+- [x] Run `uv run pytest -q`.
+- [x] Run `uv run ruff check .`.
+- [x] Run `uv run mypy models/python tests`.
+- [x] Run `cargo test -p red2-wasm`.
+- [x] Run `git diff --check` and require clean status.
 
 ## Operator smoke
 
