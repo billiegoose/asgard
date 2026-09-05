@@ -297,11 +297,11 @@
 - Consumes: all faithful Python RED2 slices
 - Produces: final conformance checklist, corpus, and remaining-gap declaration
 
-- [ ] Write a final conformance spec enumerating supported vs unsupported Chapter 4 behavior.
-- [ ] Add a corpus crossing definitions, primitives, structures, recursion, q=0 reconstruction, and lazy evaluation.
-- [ ] Add static anti-shortcut checks for all faithful-machine files.
-- [ ] Update docs with final status and remaining non-Python/Rust/FPGA gaps.
-- [ ] Run full Python/Rust gates and commit.
+- [x] Write a final conformance spec enumerating supported vs unsupported Chapter 4 behavior.
+- [x] Add a corpus crossing definitions, primitives, structures, recursion, q=0 reconstruction, and lazy evaluation.
+- [x] Add static anti-shortcut checks for all faithful-machine files.
+- [x] Update docs with final status and remaining non-Python/Rust/FPGA gaps.
+- [x] Run full Python/Rust gates and commit.
 
 ### Task 13: Release/integration gate
 

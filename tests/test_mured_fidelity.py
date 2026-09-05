@@ -10,6 +10,7 @@ from red2_engine.mured import (
     Word,
     compile_lambda,
 )
+from thor_engine.golden import run_source
 from thor_engine.semantics import reduce_expr
 from thor_lang.ast import App, Expr, Lambda
 from thor_lang.parser import parse_expr
@@ -1149,13 +1150,68 @@ def test_mured_letrec_infinite_pair_prefix_matches_chapter3() -> None:
     assert machine.state.q == expected.remaining == 0
 
 
-def test_mured_execution_does_not_depend_on_evaluator_term_graphs() -> None:
-    source = Path("models/python/red2_engine/mured.py").read_text()
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
+        (
+            "one == 1\ninc == (LAMBDA (x) (+ x one))\n(inc 41)",
+            20,
+        ),
+        ("(+ (* 2 3) (1+ 3))", 20),
+        ("(IF TRUE (+ 3 4) (BAD BAD))", 20),
+        ("(Y (LAMBDA (self) 7))", 4),
+        ("(LETREC ((x [1 | y]) (y [2 | x])) x)", 1),
+        ("(LETREC ((x 7)) x)", 0),
+        (
+            "tree |= label subtrees\n"
+            "(tree-label (make-tree (+ 3 4) (BAD BAD)))",
+            100,
+        ),
+        (
+            "tree |= label subtrees\n"
+            "(tree-subtrees (make-tree 7 ((LAMBDA (z) [z 2]) 1)))",
+            100,
+        ),
+    ],
+)
+def test_final_mured_conformance_corpus_matches_chapter3(
+    source: str,
+    quantum: int,
+) -> None:
+    assert run_source(source, model="red2", quantum=quantum) == run_source(
+        source,
+        model="thor",
+        quantum=quantum,
+    )
 
-    assert "from red2_engine.machine" not in source
-    assert "_ProgramParser" not in source
-    assert "_Term" not in source
-    assert "reduce_expr" not in source
-    step_body = source[source.index("    def step(") : source.index("    def run(")]
-    assert "result_expr" not in step_body
-    assert "_decompile" not in step_body
+
+def test_faithful_machine_files_do_not_use_evaluator_shortcuts() -> None:
+    faithful_files = (
+        Path("models/python/red2_engine/mured.py"),
+        Path("models/python/red2_engine/__init__.py"),
+        Path("models/python/thor_compile/red2.py"),
+    )
+    forbidden = (
+        "from red2_engine.machine",
+        "import red2_engine.machine",
+        "thor_engine.semantics",
+        "reduce_expr",
+        "_ProgramParser",
+        "_Term",
+    )
+
+    for path in faithful_files:
+        source = path.read_text()
+        for token in forbidden:
+            assert token not in source, f"{path} contains forbidden shortcut {token!r}"
+
+    machine_source = faithful_files[0].read_text()
+    step_body = machine_source[
+        machine_source.index("    def step(") : machine_source.index("    def run(")
+    ]
+    run_start = machine_source.index("    def run(")
+    result_start = machine_source.index("    def result_expr(")
+    run_body = machine_source[run_start:result_start]
+    for execution_body in (step_body, run_body):
+        assert "result_expr" not in execution_body
+        assert "_decompile" not in execution_body

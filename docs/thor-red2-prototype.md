@@ -25,7 +25,7 @@ The μRED core currently includes:
 - `LETREC` compilation/execution through `RBLOCK`, `RUP`, `REC`, `RECP`, and q=0 reconstruction;
 - a separate physical `env_frontier` allocation watermark plus `PNP` bridges so restoring an environment path cannot cause live cells below it to be reused.
 
-See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations and [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary.
+See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations, [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary, and [`superpowers/specs/2026-09-02-red2-final-conformance-design.md`](superpowers/specs/2026-09-02-red2-final-conformance-design.md) for the completed Task 12 supported/unsupported conformance declaration.
 
 ## Program and CLI integration
 
