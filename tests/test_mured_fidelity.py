@@ -1075,6 +1075,54 @@ def test_mured_y_matches_chapter3_at_bounded_quantum(
     )
 
 
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
+        ("(LETREC ((x 7)) x)", 1),
+        ("(LETREC ((x 7)) x)", 0),
+        ("(LETREC ((x y) (y 9)) x)", 2),
+        ("(LETREC ((f (LAMBDA (n) n))) (f 1))", 2),
+    ],
+)
+def test_mured_letrec_matches_chapter3_at_bounded_quantum(
+    source: str,
+    quantum: int,
+) -> None:
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=quantum)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=256,
+        control_words=64,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+    assert machine.state.q == expected.remaining
+
+
+def test_mured_letrec_infinite_pair_prefix_matches_chapter3() -> None:
+    source = "(LETREC ((x [1 | y]) (y [2 | x])) x)"
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=1)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=1,
+        memory_words=512,
+        control_words=128,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+    assert to_source(machine.result_expr()) == (
+        "[1 | (LETREC ((x [1 | y]) (y [2 | x])) y)]"
+    )
+    assert machine.state.q == expected.remaining == 0
+
+
 def test_mured_execution_does_not_depend_on_evaluator_term_graphs() -> None:
     source = Path("models/python/red2_engine/mured.py").read_text()
 

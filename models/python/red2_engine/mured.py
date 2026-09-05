@@ -5,6 +5,7 @@ from math import ceil, floor
 
 from thor_lang.ast import (
     App,
+    Binding,
     Char,
     Expr,
     Float,
@@ -420,7 +421,7 @@ class MuredMachine:
             case MuredOpcode.RUP:
                 self._rup(word)
             case MuredOpcode.RECP:
-                raise IllegalTransition("RECP execution is deferred to Task 10")
+                self._recp(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -541,7 +542,12 @@ class MuredMachine:
                 self.state.s_a = address
                 return address
             self.state.s_d -= 1
-            address += 1 if word.opcode is MuredOpcode.UBV else 2
+            if word.opcode is MuredOpcode.UBV:
+                address += 1
+            elif word.opcode is MuredOpcode.REC:
+                address += 3
+            else:
+                address += 2
 
     def _app(self, word: Word) -> None:
         state = self.state
@@ -595,8 +601,12 @@ class MuredMachine:
             raise InvalidAddress("JOIN requires a parent APP address")
         state.s_a = state.pc + 1
         parent = self._word(word.data)
-        if parent.opcode is not MuredOpcode.APP:
-            raise IllegalTransition("JOIN parent must be APP")
+        if parent.opcode not in {
+            MuredOpcode.APP,
+            MuredOpcode.RBLOCK,
+            MuredOpcode.RECP,
+        }:
+            raise IllegalTransition("JOIN parent must be APP, RBLOCK, or RECP")
         tail = self._word(state.s_a)
         saved_primitive = word.definition == 1
         if saved_primitive and not self._has_saved_primitive_context():
@@ -604,7 +614,16 @@ class MuredMachine:
                 "JOIN primitive context marker has no saved context"
             )
         single_word = state.fsp == state.s_a
-        if tail.opcode is MuredOpcode.VAR and single_word:
+        if parent.opcode is MuredOpcode.RBLOCK:
+            state.memory[word.data] = Word(
+                MuredOpcode.RBLOCK,
+                state.s_a,
+                parent.head,
+                parent.definition,
+            )
+        elif parent.opcode is MuredOpcode.RECP:
+            state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
+        elif tail.opcode is MuredOpcode.VAR and single_word:
             if type(tail.data) is not int or tail.data < 0:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
             state.memory[word.data] = Word(MuredOpcode.APP_VAR, tail.data, False)
@@ -725,10 +744,24 @@ class MuredMachine:
 
     def _rblock(self, word: Word) -> None:
         state = self.state
-        if state.direction is not Direction.F:
-            raise IllegalTransition("RBLOCK reverse execution is deferred to Task 10")
         if type(word.data) is not int or word.data < 0:
             raise InvalidAddress("RBLOCK requires a binding graph address")
+        if state.direction is Direction.B:
+            state.env = self._pop_control()
+            saves_primitive = state.fire > 0
+            self._save_primitive_context()
+            self._push_graph(
+                Word(
+                    MuredOpcode.JOIN,
+                    state.pc,
+                    False,
+                    1 if saves_primitive else None,
+                )
+            )
+            state.pc = word.data
+            state.argcnt = -1
+            state.direction = Direction.F
+            return
 
         if state.q > 0:
             address = state.env - 3
@@ -772,6 +805,104 @@ class MuredMachine:
                 self._push_control(state.env)
             self._copy_result(word)
         state.pc += 1
+
+    def _rec_fields(self, address: int) -> tuple[int, int, int]:
+        rec = self._word(address)
+        if rec.opcode is not MuredOpcode.REC:
+            raise IllegalTransition("RECP requires a REC environment value")
+        if type(rec.data) is not int or rec.data < 0:
+            raise InvalidAddress("REC requires a binding graph address")
+        context = self._word(address + 1)
+        block = self._word(address + 2)
+        if context.opcode is not None or type(context.data) is not int:
+            raise InvalidAddress("REC requires a recursive-context pointer")
+        if block.opcode is not None or type(block.data) is not int:
+            raise InvalidAddress("REC requires a BLOCK pointer")
+        return rec.data, context.data, block.data
+
+    def _recp(self, word: Word) -> None:
+        state = self.state
+        if type(word.data) is not int or word.data < 0:
+            raise InvalidAddress("RECP requires a REC address")
+        binding_address, context, _block = self._rec_fields(word.data)
+
+        if state.direction is Direction.F:
+            if not word.head:
+                self._copy_result(word)
+                state.pc += 1
+                return
+            if state.q > 0:
+                self._allocate_environment(Word(MuredOpcode.PNP, context, False))
+                state.pc = binding_address
+                state.q -= 1
+                return
+            self._reconstruct(word.data)
+            return
+
+        if state.q > 0:
+            state.memory[state.pc] = Word(MuredOpcode.APP, binding_address, False)
+            self._push_control(context)
+            state.q -= 1
+            return
+
+        parent_recp = state.pc
+        saves_primitive = state.fire > 0
+        self._save_primitive_context()
+        self._push_graph(
+            Word(
+                MuredOpcode.JOIN,
+                parent_recp,
+                False,
+                1 if saves_primitive else None,
+            )
+        )
+        self._reconstruct(word.data)
+
+    def _reconstruct(self, rec_address: int) -> None:
+        state = self.state
+        _binding_address, context, block_address = self._rec_fields(rec_address)
+
+        source_blocks: list[Word] = []
+        cursor = block_address
+        while True:
+            source = self._word(cursor)
+            if source.opcode is not MuredOpcode.RBLOCK:
+                break
+            if type(source.data) is not int or source.data < 0:
+                raise InvalidAddress("RBLOCK requires a binding graph address")
+            source_blocks.append(source)
+            cursor += 1
+        count = len(source_blocks)
+        if count == 0:
+            raise IllegalTransition("RECONSTRUCT requires at least one RBLOCK")
+        rup = self._word(cursor)
+        if rup.opcode is not MuredOpcode.RUP or rup.data != count:
+            raise IllegalTransition("RECONSTRUCT requires matching RUP binding count")
+
+        selected_delta = rec_address - context
+        if selected_delta < 0 or selected_delta % 3 != 0:
+            raise InvalidAddress("RECP does not point inside its recursive context")
+        selected_index = selected_delta // 3
+        if selected_index >= count:
+            raise InvalidAddress("RECP recursive binding index is outside BLOCK")
+
+        parent_environment = context + 3 * count
+        self._allocate_environment(
+            Word(MuredOpcode.PNP, parent_environment, False)
+        )
+        for _ in source_blocks:
+            state.phi += 1
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
+        replacement_path = state.env
+
+        for source in source_blocks:
+            self._copy_result(source)
+        for _ in source_blocks:
+            self._push_control(replacement_path)
+        self._copy_result(rup)
+        self._copy_result(Word(MuredOpcode.VAR, selected_index, True))
+        state.pc = state.fsp - 1
+        state.direction = Direction.B
 
     def _stop(self) -> None:
         if self.state.direction is not Direction.B:
@@ -866,6 +997,10 @@ class MuredMachine:
                 raise MalformedClosure("CLOSURE requires a following code pointer")
             self._push_control(redex.data)
             self._copy_result(Word(MuredOpcode.APP, code.data, False))
+            return
+        if redex.opcode is MuredOpcode.REC:
+            self._rec_fields(redex_address)
+            self._copy_result(Word(MuredOpcode.RECP, redex_address, False))
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
@@ -1287,7 +1422,12 @@ class MuredMachine:
             raise IllegalTransition("VAR requires forward execution")
         if not isinstance(word.data, int):
             raise InvalidAddress("VAR requires a De Bruijn index")
-        self.state.pc = self.lookup(word.data)
+        redex_address = self.lookup(word.data)
+        redex = self._word(redex_address)
+        if redex.opcode is MuredOpcode.REC:
+            self._recp(Word(MuredOpcode.RECP, redex_address, word.head))
+            return
+        self.state.pc = redex_address
 
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
         if cycle_limit < 0:
@@ -1401,6 +1541,60 @@ class MuredMachine:
                         f"{inline_word.opcode} is not a valid inline argument"
                     )
             return App((operator, *arguments)), next_address
+
+        if word.opcode is MuredOpcode.RBLOCK:
+            blocks: list[Word] = []
+            cursor = address
+            letrec_path = path
+            while True:
+                block = self._word(cursor)
+                if block.opcode is not MuredOpcode.RBLOCK:
+                    break
+                if type(block.data) is not int or block.data < 0:
+                    raise InvalidAddress("result RBLOCK requires a binding address")
+                blocks.append(block)
+                letrec_path = letrec_path | {cursor}
+                cursor += 1
+            rup = self._word(cursor)
+            if rup.opcode is not MuredOpcode.RUP or rup.data != len(blocks):
+                raise MuredMachineError("result LETREC requires matching RUP")
+            letrec_path = letrec_path | {cursor}
+
+            names: list[str] = []
+            for block in blocks:
+                assert isinstance(block.data, int)
+                name_word = self._word(block.data)
+                if name_word.opcode is not MuredOpcode.SYM or not isinstance(
+                    name_word.data, str
+                ):
+                    raise MuredMachineError(
+                        "result RBLOCK binding requires leading SYM name"
+                    )
+                names.append(name_word.data)
+
+            recursive_scope: tuple[str | None, ...] = (
+                *reversed(names),
+                *scope,
+            )
+            bindings: list[Binding] = []
+            next_address = cursor + 1
+            for name, block in zip(names, blocks, strict=True):
+                assert isinstance(block.data, int)
+                binding_expr, binding_next = self._decompile(
+                    block.data + 1,
+                    recursive_scope,
+                    letrec_path,
+                )
+                next_address = max(next_address, binding_next)
+                bindings.append(Binding(name, binding_expr))
+
+            body, body_next = self._decompile(
+                cursor + 1,
+                recursive_scope,
+                letrec_path,
+            )
+            next_address = max(next_address, body_next)
+            return LetRec(tuple(bindings), body), next_address
 
         if word.opcode is MuredOpcode.STRUCT:
             if type(word.data) is not str or word.data == "":
