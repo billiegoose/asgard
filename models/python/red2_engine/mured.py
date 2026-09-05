@@ -10,6 +10,7 @@ from thor_lang.ast import (
     Float,
     Integer,
     Lambda,
+    LetRec,
     StructLit,
     Symbol,
     Var,
@@ -31,6 +32,10 @@ class MuredOpcode(StrEnum):
     PRIM_1 = auto()
     PRIM_2 = auto()
     STRUCT = auto()
+    RBLOCK = auto()
+    RUP = auto()
+    RECP = auto()
+    REC = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -127,11 +132,17 @@ class CycleLimitExceeded(MuredMachineError):  # noqa: N818
 def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     words: list[Word] = []
 
-    def compile_var_index(index: int, scope: tuple[str | None, ...]) -> int:
+    def compile_var_index(
+        index: int,
+        scope: tuple[str | None, ...],
+        name: str | None = None,
+    ) -> int:
+        if name is not None and name in scope:
+            return scope.index(name)
         source_index = 0
         synthetic_slots = 0
-        for compiled_index, name in enumerate(scope):
-            if name is None:
+        for compiled_index, scope_name in enumerate(scope):
+            if scope_name is None:
                 synthetic_slots += 1
                 continue
             if source_index == index:
@@ -144,7 +155,7 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
         scope: tuple[str | None, ...],
     ) -> int | None:
         if isinstance(node, Var):
-            return compile_var_index(node.index, scope)
+            return compile_var_index(node.index, scope, node.name)
         if isinstance(node, Symbol) and node.name in scope:
             return scope.index(node.name)
         return None
@@ -157,7 +168,11 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     ) -> None:
         if isinstance(node, Var):
             words.append(
-                Word(MuredOpcode.VAR, compile_var_index(node.index, scope), head)
+                Word(
+                    MuredOpcode.VAR,
+                    compile_var_index(node.index, scope, node.name),
+                    head,
+                )
             )
             return
         if isinstance(node, Symbol):
@@ -189,6 +204,23 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
                 tuple(reversed(node.params)) + scope,
                 head=head,
             )
+            return
+        if isinstance(node, LetRec):
+            names = tuple(binding.name for binding in node.bindings)
+            recursive_scope = tuple(reversed(names)) + scope
+            block_start = len(words)
+            words.extend(Word(MuredOpcode.RBLOCK) for _ in node.bindings)
+            words.append(Word(MuredOpcode.RUP, len(node.bindings), False))
+            compile_graph(node.body, recursive_scope, head=head)
+            for offset, binding in enumerate(node.bindings):
+                binding_address = len(words)
+                words[block_start + offset] = Word(
+                    MuredOpcode.RBLOCK,
+                    binding_address,
+                    False,
+                )
+                words.append(Word(MuredOpcode.SYM, binding.name, False))
+                compile_graph(binding.expr, recursive_scope, head=True)
             return
         if isinstance(node, StructLit):
             words.append(Word(MuredOpcode.STRUCT, node.tag, False))
@@ -308,6 +340,9 @@ class MuredMachine:
             MuredOpcode.PRIM_1,
             MuredOpcode.PRIM_2,
             MuredOpcode.STRUCT,
+            MuredOpcode.RBLOCK,
+            MuredOpcode.RUP,
+            MuredOpcode.RECP,
             MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
@@ -380,11 +415,17 @@ class MuredMachine:
                 self._prim(word)
             case MuredOpcode.STRUCT:
                 self._struct(word)
+            case MuredOpcode.RBLOCK:
+                self._rblock(word)
+            case MuredOpcode.RUP:
+                self._rup(word)
+            case MuredOpcode.RECP:
+                raise IllegalTransition("RECP execution is deferred to Task 10")
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
                 self._var(word)
-            case MuredOpcode.PNP | None:
+            case MuredOpcode.REC | MuredOpcode.PNP | None:
                 raise IllegalTransition(f"{word.opcode} is environment data")
         self._validate_state()
         state.cycles += 1
@@ -397,8 +438,8 @@ class MuredMachine:
             raise GraphEnvironmentCollision("graph and environment collide")
         if not -1 <= state.c < len(state.control_stack):
             raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
-        if state.q < 0 or state.phi < 0 or state.argcnt < 0 or state.fire < 0:
-            raise IllegalTransition("μRED counters must be non-negative")
+        if state.q < 0 or state.phi < 0 or state.argcnt < -1 or state.fire < 0:
+            raise IllegalTransition("μRED counters are outside their valid ranges")
         if state.prim is not None and (type(state.prim) is not str or state.prim == ""):
             raise IllegalTransition("prim register requires a symbol name")
         self._word(state.pc)
@@ -680,6 +721,56 @@ class MuredMachine:
         state.q -= 1
         state.fsp -= 1
         state.argcnt -= 1
+        state.pc += 1
+
+    def _rblock(self, word: Word) -> None:
+        state = self.state
+        if state.direction is not Direction.F:
+            raise IllegalTransition("RBLOCK reverse execution is deferred to Task 10")
+        if type(word.data) is not int or word.data < 0:
+            raise InvalidAddress("RBLOCK requires a binding graph address")
+
+        if state.q > 0:
+            address = state.env - 3
+            if address <= state.fsp:
+                raise GraphEnvironmentCollision("graph and environment collide")
+            state.memory[address] = Word(MuredOpcode.REC, word.data + 1, False)
+            state.memory[address + 1] = Word(None)
+            state.memory[address + 2] = Word(None)
+            state.env = address
+        else:
+            self._copy_result(word)
+            state.phi += 1
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
+        state.pc += 1
+
+    def _rup(self, word: Word) -> None:
+        state = self.state
+        if type(word.data) is not int or word.data < 0:
+            raise IllegalTransition("RUP requires a non-negative binding count")
+        if state.direction is Direction.B:
+            state.pc -= 1
+            return
+
+        count = word.data
+        if state.q > 0:
+            address = state.env
+            block_address = state.pc - count
+            for _ in range(count):
+                rec = self._word(address)
+                if rec.opcode is not MuredOpcode.REC:
+                    raise IllegalTransition(
+                        "RUP requires contiguous REC environment data"
+                    )
+                self._word(address + 1)
+                self._word(address + 2)
+                state.memory[address + 1] = Word(None, state.env, False)
+                state.memory[address + 2] = Word(None, block_address, False)
+                address += 3
+        else:
+            for _ in range(count):
+                self._push_control(state.env)
+            self._copy_result(word)
         state.pc += 1
 
     def _stop(self) -> None:

@@ -25,10 +25,14 @@ these graph-memory instructions and register transfers directly, including
 ownership of saved primitive contexts, one-word strict argument compaction,
 fire-time quantum re-checks, graph reclamation after successful strict firing,
 the shared-graph `(Y f)` to `(f (Y f))` rewrite, `IF` condition forcing with
-lazy branch selection/reconstruction, and Chapter 4 lazy `STRUCT` compilation and
-execution. `STRUCT` preserves its outer quantum while traversing fields at `q = 0`,
-uses the encoded trailing `VAR 0` selector slot, and contracts selector applications
-through the existing lambda/environment machinery. The implemented strict slice covers
+lazy branch selection/reconstruction, Chapter 4 lazy `STRUCT` compilation/execution,
+and the forward construction half of Chapter 4 `LETREC`: faithful `RBLOCK`/`RUP`
+compilation, three-word `REC` recursive-context construction when quantum is available,
+and q=0 UBV/control preparation for later reconstruction. `STRUCT` preserves its outer
+quantum while traversing fields at `q = 0`, uses the encoded trailing `VAR 0` selector
+slot, and contracts selector applications through the existing lambda/environment
+machinery. `RECP` access, reverse `RBLOCK` traversal, and `RECONSTRUCT` remain deferred
+to the next recursion slice. The implemented strict slice covers
 numeric unary/binary operations and comparisons, `NULL?`/`NOT`, atomic type
 predicates, and constant `=` with Chapter 3 integer/float coercion behavior where
 applicable. Structural strict primitives, recursive equality, and the remaining
@@ -81,6 +85,8 @@ The current user-visible primitive surface is documented in
   non-benchmark character library is not implemented.
 - The faithful μRED core implements non-strict `Y` and mixed-strictness `IF`;
   `AND` and `OR` still remain passive pending their dedicated primitive slices.
+- The faithful μRED core has the `LETREC` compile/RBLOCK/RUP construction scaffold,
+  but recursive-variable `RECP` access and LETREC reconstruction are not implemented yet.
 - The faithful μRED core still lacks the broader multi-definition context
   machinery outside the closed head-`SYM` path.
 - FPGA synthesis automation is not part of this milestone.

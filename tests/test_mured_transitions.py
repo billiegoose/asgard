@@ -338,6 +338,171 @@ def test_struct_with_selector_and_zero_quantum_reconstructs_lazily() -> None:
     assert state.pc == 1
 
 
+def test_rblock_and_rup_with_quantum_construct_rec_context() -> None:
+    state = MuredMachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=24,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 3, False)
+    state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[4] = Word(MuredOpcode.INT, 1, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.env == 21
+    assert state.memory[21] == Word(MuredOpcode.REC, 4, False)
+    assert state.memory[22] == Word(None)
+    assert state.memory[23] == Word(None)
+    assert state.pc == 1
+    assert state.q == 3
+
+    machine.step()
+
+    assert state.memory[22] == Word(None, 21, False)
+    assert state.memory[23] == Word(None, 0, False)
+    assert state.pc == 2
+    assert state.q == 3
+
+
+def test_rblock_and_rup_at_zero_quantum_prepare_reconstruction_context() -> None:
+    state = MuredMachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=2,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 3, False)
+    state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[4] = Word(MuredOpcode.INT, 1, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[6] == Word(MuredOpcode.RBLOCK, 3, False)
+    assert state.fsp == 6
+    assert state.phi == 3
+    assert state.env == 19
+    assert state.memory[19] == Word(MuredOpcode.UBV, 3, False)
+    assert state.pc == 1
+
+    machine.step()
+
+    assert state.control_stack[0] == 19
+    assert state.c == 0
+    assert state.memory[7] == Word(MuredOpcode.RUP, 1, False)
+    assert state.fsp == 7
+    assert state.pc == 2
+    assert state.q == 0
+    assert state.argcnt == 2
+
+
+def test_rblock_and_rup_construct_two_binding_context_in_physical_order() -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=8,
+        env=32,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+    machine.step()
+    machine.step()
+
+    assert state.env == 26
+    assert state.memory[26] == Word(MuredOpcode.REC, 7, False)
+    assert state.memory[27] == Word(None, 26, False)
+    assert state.memory[28] == Word(None, 0, False)
+    assert state.memory[29] == Word(MuredOpcode.REC, 5, False)
+    assert state.memory[30] == Word(None, 26, False)
+    assert state.memory[31] == Word(None, 0, False)
+    assert state.pc == 3
+    assert state.q == 4
+
+
+def test_rup_at_zero_quantum_pushes_one_path_per_binding() -> None:
+    state = MuredMachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=2,
+        fsp=6,
+        env=18,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=2,
+        argcnt=2,
+    )
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[6] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.control_stack[:2] == [18, 18]
+    assert state.c == 1
+    assert state.memory[7] == Word(MuredOpcode.RUP, 2, False)
+    assert state.argcnt == 3
+    assert state.pc == 3
+
+
+def test_recp_execution_is_explicitly_deferred() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=1,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RECP, 6, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    with pytest.raises(
+        IllegalTransition,
+        match="RECP execution is deferred to Task 10",
+    ):
+        machine.step()
+
+
 def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
     state = MuredMachineState(
         memory=[None] * 8,

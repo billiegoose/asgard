@@ -1,7 +1,7 @@
 import pytest
 
 from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
-from thor_lang.ast import Lambda, StructLit, Var
+from thor_lang.ast import Binding, Lambda, LetRec, StructLit, Var
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
 
@@ -35,6 +35,58 @@ def test_compile_grouped_lambda_uses_nearest_de_bruijn_binder(
         Word(MuredOpcode.LAMBDA, "x", False),
         Word(MuredOpcode.LAMBDA, "y", False),
         Word(MuredOpcode.VAR, variable_index, True),
+    )
+
+
+def test_compile_translated_grouped_lambda_uses_physical_binder_name() -> None:
+    assert compile_lambda(Lambda(("x", "y"), Var(0, "x"))) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_letrec_emits_one_binding_block_and_symbol_prefix() -> None:
+    assert compile_lambda(parse_expr("(LETREC ((x 1)) x)")) == (
+        Word(MuredOpcode.RBLOCK, 3, False),
+        Word(MuredOpcode.RUP, 1, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.INT, 1, True),
+    )
+
+
+def test_compile_letrec_uses_physical_recursive_binding_order() -> None:
+    assert compile_lambda(parse_expr("(LETREC ((x y) (y x)) x)")) == (
+        Word(MuredOpcode.RBLOCK, 4, False),
+        Word(MuredOpcode.RBLOCK, 6, False),
+        Word(MuredOpcode.RUP, 2, False),
+        Word(MuredOpcode.VAR, 1, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_translated_letrec_uses_physical_binder_names() -> None:
+    expr = LetRec(
+        (
+            Binding("x", Var(1, "y")),
+            Binding("y", Var(0, "x")),
+        ),
+        Var(0, "x"),
+    )
+
+    assert compile_lambda(expr) == (
+        Word(MuredOpcode.RBLOCK, 4, False),
+        Word(MuredOpcode.RBLOCK, 6, False),
+        Word(MuredOpcode.RUP, 2, False),
+        Word(MuredOpcode.VAR, 1, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
     )
 
 

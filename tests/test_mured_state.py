@@ -64,12 +64,22 @@ def test_step_rejects_variable_lookup_past_empty_environment() -> None:
     assert machine.state.cycles == 0
 
 
-@pytest.mark.parametrize("field", ["argcnt", "fire"])
-def test_step_rejects_negative_primitive_counters(field: str) -> None:
-    machine = MuredMachine.load([Word(MuredOpcode.INT, 1, True)], quantum=1)
-    setattr(machine.state, field, -1)
+def test_step_allows_rblock_argcnt_minus_one_sentinel() -> None:
+    machine = MuredMachine.load([Word(MuredOpcode.INT, 1, False)], quantum=1)
+    machine.state.argcnt = -1
 
-    with pytest.raises(IllegalTransition, match="μRED counters must be non-negative"):
+    machine.step()
+
+    assert machine.state.argcnt == 0
+    assert machine.state.cycles == 1
+
+
+@pytest.mark.parametrize(("field", "value"), [("argcnt", -2), ("fire", -1)])
+def test_step_rejects_invalid_machine_counters(field: str, value: int) -> None:
+    machine = MuredMachine.load([Word(MuredOpcode.INT, 1, True)], quantum=1)
+    setattr(machine.state, field, value)
+
+    with pytest.raises(IllegalTransition, match="μRED counters"):
         machine.step()
     assert machine.state.cycles == 0
 
