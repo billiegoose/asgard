@@ -1,6 +1,7 @@
 import pytest
 
 from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+from thor_lang.ast import Lambda, StructLit, Var
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
 
@@ -314,6 +315,51 @@ def test_compile_lambda_lexical_binding_shadows_primitive_name() -> None:
     assert compile_lambda(parse_expr("(LAMBDA (+) +)")) == (
         Word(MuredOpcode.LAMBDA, "+", False),
         Word(MuredOpcode.VAR, 0, True),
+    )
+
+
+def test_compile_structure_uses_chapter4_struct_app_var_layout() -> None:
+    assert compile_lambda(parse_expr("{PAIR 1 2}")) == (
+        Word(MuredOpcode.STRUCT, "PAIR", False),
+        Word(MuredOpcode.APP, 4, False),
+        Word(MuredOpcode.APP, 5, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.INT, 2, True),
+        Word(MuredOpcode.INT, 1, True),
+    )
+
+
+def test_compile_structure_fields_use_surrounding_scope() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (x) {PAIR x 2})")) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.STRUCT, "PAIR", False),
+        Word(MuredOpcode.APP, 5, False),
+        Word(MuredOpcode.APP, 6, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.INT, 2, True),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_structure_literal_round_trips_through_mured_result_graph() -> None:
+    source = "{PAIR 1 2}"
+    machine = MuredMachine.from_expr(parse_expr(source), quantum=3)
+
+    machine.run()
+
+    assert machine.result_expr() == parse_expr(source)
+    assert machine.state.q == 3
+
+
+def test_structure_field_decompile_removes_synthetic_selector_index() -> None:
+    source = "(LAMBDA (x) {BOX x})"
+    machine = MuredMachine.from_expr(parse_expr(source), quantum=0)
+
+    machine.run()
+
+    assert machine.result_expr() == Lambda(
+        ("x",),
+        StructLit("BOX", (Var(0, "x"),)),
     )
 
 

@@ -1005,6 +1005,52 @@ def test_mured_y_if_factorial_matches_chapter3() -> None:
 @pytest.mark.parametrize(
     ("source", "quantum"),
     [
+        ("{PAIR (+ 1 2) (* 3 4)}", 8),
+        ("{PAIR (+ 1 2) (* 3 4)}", 0),
+        ("((LAMBDA (x) {PAIR (+ x 1) x}) 5)", 1),
+    ],
+)
+def test_mured_lazy_structures_match_chapter3(source: str, quantum: int) -> None:
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=quantum)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=quantum,
+        memory_words=256,
+        control_words=64,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+    assert machine.state.q == expected.remaining
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "({PAIR 1 2} (LAMBDA (CAR CDR) CAR))",
+        "({PAIR (+ 1 2) (+ 3 4)} (LAMBDA (CAR CDR) CDR))",
+    ],
+)
+def test_mured_structure_selectors_match_chapter3_result(source: str) -> None:
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=8)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=8,
+        memory_words=256,
+        control_words=64,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+
+
+@pytest.mark.parametrize(
+    ("source", "quantum"),
+    [
         ("(Y (LAMBDA (self) 7))", 4),
         ("(Y (LAMBDA (self) self))", 3),
         ("(Y (LAMBDA (self) 7))", 0),

@@ -211,6 +211,133 @@ def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
     assert state.argcnt == 0
 
 
+def test_struct_without_selector_saves_quantum_and_allocates_ubv() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=7,
+        phi=2,
+        argcnt=0,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.APP, 8, False)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[6] == Word(MuredOpcode.STRUCT, "PAIR", False)
+    assert state.fsp == 6
+    assert state.q == 0
+    assert state.phi == 3
+    assert state.env == 15
+    assert state.memory[15] == Word(MuredOpcode.UBV, 3, False)
+    assert state.c == 0
+    assert state.control_stack[0] is not None
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_struct_reverse_restores_quantum_and_binder_depth() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=9,
+        phi=0,
+        argcnt=0,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = MuredMachine(state)
+
+    machine.step()
+    copied_struct = state.fsp
+    state.pc = copied_struct
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.q == 9
+    assert state.c == -1
+    assert state.phi == 0
+    assert state.pc == copied_struct - 1
+    assert state.direction is Direction.B
+
+
+def test_struct_with_selector_app_contracts_like_lambda() -> None:
+    state = MuredMachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=6,
+        env=20,
+        c=0,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[6] = Word(MuredOpcode.APP, 12, False)
+    state.control_stack[0] = 20
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.q == 3
+    assert state.fsp == 5
+    assert state.c == -1
+    assert state.env == 18
+    assert state.memory[18] == Word(MuredOpcode.CLOSURE, 20, False)
+    assert state.memory[19] == Word(None, 12, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_struct_with_selector_and_zero_quantum_reconstructs_lazily() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.APP, 9, False)
+    state.control_stack[0] = 14
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.q == 0
+    assert state.memory[6] == Word(MuredOpcode.STRUCT, "PAIR", False)
+    assert state.fsp == 6
+    assert state.phi == 1
+    assert state.env == 15
+    assert state.memory[15] == Word(MuredOpcode.UBV, 1, False)
+    assert state.argcnt == 0
+    assert state.c == 1
+    assert state.pc == 1
+
+
 def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
     state = MuredMachineState(
         memory=[None] * 8,

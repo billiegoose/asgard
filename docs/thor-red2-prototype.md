@@ -24,8 +24,11 @@ these graph-memory instructions and register transfers directly, including
 `argcnt`, `prim`, `fire`, strict-argument save/restore through APP/JOIN, JOIN
 ownership of saved primitive contexts, one-word strict argument compaction,
 fire-time quantum re-checks, graph reclamation after successful strict firing,
-the shared-graph `(Y f)` to `(f (Y f))` rewrite, and `IF` condition forcing with
-lazy branch selection/reconstruction. The implemented strict slice covers
+the shared-graph `(Y f)` to `(f (Y f))` rewrite, `IF` condition forcing with
+lazy branch selection/reconstruction, and Chapter 4 lazy `STRUCT` compilation and
+execution. `STRUCT` preserves its outer quantum while traversing fields at `q = 0`,
+uses the encoded trailing `VAR 0` selector slot, and contracts selector applications
+through the existing lambda/environment machinery. The implemented strict slice covers
 numeric unary/binary operations and comparisons, `NULL?`/`NOT`, atomic type
 predicates, and constant `=` with Chapter 3 integer/float coercion behavior where
 applicable. Structural strict primitives, recursive equality, and the remaining

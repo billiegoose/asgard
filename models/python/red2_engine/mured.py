@@ -3,7 +3,17 @@ from dataclasses import dataclass
 from enum import StrEnum, auto
 from math import ceil, floor
 
-from thor_lang.ast import App, Char, Expr, Float, Integer, Lambda, Symbol, Var
+from thor_lang.ast import (
+    App,
+    Char,
+    Expr,
+    Float,
+    Integer,
+    Lambda,
+    StructLit,
+    Symbol,
+    Var,
+)
 
 
 class MuredOpcode(StrEnum):
@@ -20,6 +30,7 @@ class MuredOpcode(StrEnum):
     PRIM_0 = auto()
     PRIM_1 = auto()
     PRIM_2 = auto()
+    STRUCT = auto()
     UBV = auto()
     VAR = auto()
     PNP = auto()
@@ -116,16 +127,38 @@ class CycleLimitExceeded(MuredMachineError):  # noqa: N818
 def compile_lambda(expr: Expr) -> tuple[Word, ...]:
     words: list[Word] = []
 
-    def compile_inline_argument(node: Expr, scope: tuple[str, ...]) -> int | None:
+    def compile_var_index(index: int, scope: tuple[str | None, ...]) -> int:
+        source_index = 0
+        synthetic_slots = 0
+        for compiled_index, name in enumerate(scope):
+            if name is None:
+                synthetic_slots += 1
+                continue
+            if source_index == index:
+                return compiled_index
+            source_index += 1
+        return index + synthetic_slots
+
+    def compile_inline_argument(
+        node: Expr,
+        scope: tuple[str | None, ...],
+    ) -> int | None:
         if isinstance(node, Var):
-            return node.index
+            return compile_var_index(node.index, scope)
         if isinstance(node, Symbol) and node.name in scope:
             return scope.index(node.name)
         return None
 
-    def compile_graph(node: Expr, scope: tuple[str, ...], *, head: bool) -> None:
+    def compile_graph(
+        node: Expr,
+        scope: tuple[str | None, ...],
+        *,
+        head: bool,
+    ) -> None:
         if isinstance(node, Var):
-            words.append(Word(MuredOpcode.VAR, node.index, head))
+            words.append(
+                Word(MuredOpcode.VAR, compile_var_index(node.index, scope), head)
+            )
             return
         if isinstance(node, Symbol):
             if node.name in scope:
@@ -156,6 +189,22 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
                 tuple(reversed(node.params)) + scope,
                 head=head,
             )
+            return
+        if isinstance(node, StructLit):
+            words.append(Word(MuredOpcode.STRUCT, node.tag, False))
+            app_start = len(words)
+            fields = tuple(reversed(node.fields))
+            words.extend(Word(MuredOpcode.APP) for _ in fields)
+            words.append(Word(MuredOpcode.VAR, 0, head))
+            field_scope = (None, *scope)
+            for offset, field in enumerate(fields):
+                field_address = len(words)
+                words[app_start + offset] = Word(
+                    MuredOpcode.APP,
+                    field_address,
+                    False,
+                )
+                compile_graph(field, field_scope, head=True)
             return
         if isinstance(node, App):
             if len(node.items) < 2:
@@ -258,6 +307,7 @@ class MuredMachine:
             MuredOpcode.PRIM_0,
             MuredOpcode.PRIM_1,
             MuredOpcode.PRIM_2,
+            MuredOpcode.STRUCT,
             MuredOpcode.SYM,
             MuredOpcode.VAR,
         }
@@ -328,6 +378,8 @@ class MuredMachine:
                 self._sym(word)
             case MuredOpcode.PRIM_0 | MuredOpcode.PRIM_1 | MuredOpcode.PRIM_2:
                 self._prim(word)
+            case MuredOpcode.STRUCT:
+                self._struct(word)
             case MuredOpcode.UBV:
                 self._ubv(word)
             case MuredOpcode.VAR:
@@ -569,6 +621,57 @@ class MuredMachine:
             state.argcnt -= 1
             state.pc += 1
             return
+        if not isinstance(result_head.data, int):
+            raise InvalidAddress("result APP requires an argument address")
+        saved_path = self._pop_control()
+        self._allocate_environment(Word(None, result_head.data, False))
+        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
+        state.q -= 1
+        state.fsp -= 1
+        state.argcnt -= 1
+        state.pc += 1
+
+    def _struct(self, word: Word) -> None:
+        if type(word.data) is not str or word.data == "":
+            raise IllegalTransition("STRUCT requires a non-empty tag name")
+        state = self.state
+        if state.direction is Direction.B:
+            saved_quantum = self._pop_control_entry()
+            if not isinstance(saved_quantum, _SavedQuantum):
+                raise IllegalTransition("STRUCT reverse lost saved quantum")
+            state.q = saved_quantum.value
+            state.phi -= 1
+            if state.phi < 0:
+                raise IllegalTransition("STRUCT reverse underflows phi")
+            state.pc -= 1
+            return
+
+        result_head = self._word(state.fsp)
+        if state.q == 0 or result_head.opcode not in {
+            MuredOpcode.APP,
+            MuredOpcode.APP_VAR,
+        }:
+            self._push_control_entry(_SavedQuantum(state.q))
+            state.q = 0
+            self._copy_result(word)
+            state.argcnt = 0
+            state.phi += 1
+            self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
+            state.pc += 1
+            return
+
+        if result_head.opcode is MuredOpcode.APP_VAR:
+            if type(result_head.data) is not int or result_head.data < 0:
+                raise InvalidAddress("result APP_VAR requires a variable index")
+            self._allocate_environment(
+                Word(MuredOpcode.UBV, state.phi - result_head.data, False)
+            )
+            state.q -= 1
+            state.fsp -= 1
+            state.argcnt -= 1
+            state.pc += 1
+            return
+
         if not isinstance(result_head.data, int):
             raise InvalidAddress("result APP requires an argument address")
         saved_path = self._pop_control()
@@ -1112,10 +1215,16 @@ class MuredMachine:
         expr, _ = self._decompile(self.state.pc, (), frozenset())
         return expr
 
+    @staticmethod
+    def _decompile_var_index(index: int, scope: tuple[str | None, ...]) -> int:
+        if index < len(scope):
+            return sum(name is not None for name in scope[:index])
+        return index - sum(name is None for name in scope)
+
     def _decompile(
         self,
         address: int,
-        scope: tuple[str, ...],
+        scope: tuple[str | None, ...],
         path: frozenset[int],
     ) -> tuple[Expr, int]:
         if address in path:
@@ -1160,7 +1269,9 @@ class MuredMachine:
                         if argument_data < len(scope)
                         else None
                     )
-                    arguments.append(Var(argument_data, name))
+                    arguments.append(
+                        Var(self._decompile_var_index(argument_data, scope), name)
+                    )
                     continue
                 if opcode is MuredOpcode.APP:
                     argument, next_address = self._decompile(
@@ -1199,6 +1310,54 @@ class MuredMachine:
                         f"{inline_word.opcode} is not a valid inline argument"
                     )
             return App((operator, *arguments)), next_address
+
+        if word.opcode is MuredOpcode.STRUCT:
+            if type(word.data) is not str or word.data == "":
+                raise MuredMachineError("result STRUCT requires a tag name")
+            field_entries: list[tuple[MuredOpcode, int]] = []
+            cursor = address + 1
+            struct_path = path | {address}
+            while True:
+                if cursor in struct_path:
+                    raise MuredMachineError("cyclic μRED result graph")
+                field_word = self._word(cursor)
+                if field_word.opcode not in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                    break
+                if type(field_word.data) is not int or field_word.data < 0:
+                    raise InvalidAddress(
+                        "result STRUCT field requires an address or index"
+                    )
+                field_entries.append((field_word.opcode, field_word.data))
+                struct_path = struct_path | {cursor}
+                cursor += 1
+            selector = self._word(cursor)
+            if selector.opcode is not MuredOpcode.VAR or selector.data != 0:
+                raise MuredMachineError("result STRUCT requires trailing VAR 0")
+            struct_scope: tuple[str | None, ...] = (None, *scope)
+            fields: list[Expr] = []
+            next_address = cursor + 1
+            for opcode, field_data in reversed(field_entries):
+                if opcode is MuredOpcode.APP_VAR:
+                    name = (
+                        struct_scope[field_data]
+                        if field_data < len(struct_scope)
+                        else None
+                    )
+                    fields.append(
+                        Var(
+                            self._decompile_var_index(field_data, struct_scope),
+                            name,
+                        )
+                    )
+                    continue
+                field, field_next = self._decompile(
+                    field_data,
+                    struct_scope,
+                    struct_path,
+                )
+                next_address = max(next_address, field_next)
+                fields.append(field)
+            return StructLit(word.data, tuple(fields)), next_address
 
         if word.opcode is MuredOpcode.LAMBDA:
             parameters: list[str] = []
@@ -1255,7 +1414,7 @@ class MuredMachine:
             if not isinstance(word.data, int) or word.data < 0:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
             name = scope[word.data] if word.data < len(scope) else None
-            return Var(word.data, name), address + 1
+            return Var(self._decompile_var_index(word.data, scope), name), address + 1
 
         raise MuredMachineError(
             f"{word.opcode} is not valid in a μRED result graph"
