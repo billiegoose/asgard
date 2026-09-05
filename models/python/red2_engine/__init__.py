@@ -1,7 +1,6 @@
 from collections.abc import Mapping
 
 from red2_engine.instructions import Instruction, Opcode, ProgramImage
-from red2_engine.machine import Red2Machine, Red2ResourceLimits
 from red2_engine.mured import MuredMachine, MuredMachineState, MuredOpcode, Word
 from thor_lang.ast import Expr
 
@@ -11,10 +10,10 @@ def load_faithful_machine(
     *,
     quantum: int,
     definitions: Mapping[str, Expr] | None = None,
-    memory_words: int = 256,
-    control_words: int = 64,
+    memory_words: int = 65_536,
+    control_words: int = 8_192,
 ) -> MuredMachine:
-    """Load the faithful μRED integration path without an import cycle."""
+    """Load one THOR expression into the faithful Python μRED machine."""
     from thor_compile.red2 import load_faithful_machine as load
 
     return load(
@@ -33,8 +32,6 @@ __all__ = [
     "MuredOpcode",
     "Opcode",
     "ProgramImage",
-    "Red2Machine",
-    "Red2ResourceLimits",
     "Word",
     "load_faithful_machine",
 ]

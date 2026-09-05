@@ -6,12 +6,10 @@ from red2_engine.binary import (
     encode_bundle,
     encode_program_image,
 )
-from red2_engine.machine import Red2Machine
 from thor_compile.red2 import compile_definitions, compile_expr
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_expr, parse_program
-from thor_lang.pretty import to_source
 
 
 def test_red2_binary_starts_with_magic_and_version_2() -> None:
@@ -30,21 +28,17 @@ def test_red2_binary_encoding_is_deterministic() -> None:
     assert left == right
 
 
-def test_red2_binary_round_trip_executes_same_result() -> None:
-    source = "((LAMBDA (X) (+ X 1)) 41)"
-    image = compile_expr(parse_expr(source))
+def test_red2_binary_program_image_round_trip_preserves_bytecode() -> None:
+    image = compile_expr(parse_expr("((LAMBDA (X) (+ X 1)) 41)"))
+
     decoded = decode_program_image(encode_program_image(image))
 
-    original_machine = Red2Machine(image, quantum=20)
-    decoded_machine = Red2Machine(decoded, quantum=20)
-    original_machine.run()
-    decoded_machine.run()
-
-    assert to_source(original_machine.result_expr()) == "42"
-    assert to_source(decoded_machine.result_expr()) == "42"
+    assert decoded.instructions == image.instructions
+    assert decoded.entry == image.entry
+    assert decoded.metadata == image.metadata
 
 
-def test_red2_binary_bundle_round_trip_executes_with_definitions() -> None:
+def test_red2_binary_bundle_round_trip_preserves_definitions() -> None:
     program = normalize_program(parse_program("inc == (lambda (x) (+ x 1))\n(inc 41)"))
     definitions = {
         form.name: form.expr for form in program.forms if isinstance(form, Definition)
@@ -54,18 +48,20 @@ def test_red2_binary_bundle_round_trip_executes_with_definitions() -> None:
         if not isinstance(form, Definition | StructDef):
             entry = form
     assert entry is not None
-    data = encode_bundle(compile_expr(entry), compile_definitions(definitions))
-    decoded = decode_bundle(data)
 
-    machine = Red2Machine(
-        decoded.entry,
-        quantum=20,
-        definitions=decoded.definitions,
-    )
-    machine.run()
+    entry_image = compile_expr(entry)
+    definition_image = compile_definitions(definitions)
+    decoded = decode_bundle(encode_bundle(entry_image, definition_image))
 
-    assert to_source(machine.result_expr()) == "42"
+    assert decoded.entry.instructions == entry_image.instructions
+    assert decoded.entry.entry == entry_image.entry
+    assert decoded.entry.metadata == entry_image.metadata
     assert tuple(decoded.definitions.programs) == ("inc",)
+    decoded_inc = decoded.definitions.programs["inc"]
+    original_inc = definition_image.programs["inc"]
+    assert decoded_inc.instructions == original_inc.instructions
+    assert decoded_inc.entry == original_inc.entry
+    assert decoded_inc.metadata == original_inc.metadata
 
 
 def test_red2_binary_rejects_bad_magic() -> None:

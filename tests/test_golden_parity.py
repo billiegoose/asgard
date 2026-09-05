@@ -32,6 +32,6 @@ def test_fibonacci_example_reports_first_prefix_mismatch() -> None:
     result = compare_prefixes(source, max_quantum=75)
 
     assert result.first_mismatch is not None
-    assert result.first_mismatch.quantum == 3
+    assert result.first_mismatch.quantum == 4
     assert result.snapshots[75].thor == "(+ 3 (+ 2 (+ 1 2)))"
     assert result.snapshots[75].red2 == "(+ 3 (+ 2 (+ 1 2)))"

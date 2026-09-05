@@ -18,55 +18,6 @@ def test_red2_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
     assert capsys.readouterr().out == "5\n"
 
 
-def test_red2_cli_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
-    assert (
-        red2_main(
-            [
-                "--quantum",
-                "20",
-                "--stack-size-in-bytes",
-                "1000000",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(+ 2 3)",
-            ]
-        )
-        == 0
-    )
-    captured = capsys.readouterr()
-    assert captured.out == "5\n"
-    assert captured.err == ""
-
-
-def test_thor_cli_rejects_explicit_resource_limits(
-    capsys: CaptureFixture[str],
-) -> None:
-    assert thor_main(["--stack-size-in-bytes", "1", "--expr", "(+ 2 3)"]) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "resource limits are currently supported for red2 only" in captured.err
-
-
-def test_red2_cli_reports_stack_overflow(capsys: CaptureFixture[str]) -> None:
-    assert (
-        red2_main(
-            [
-                "--stack-size-in-bytes",
-                "1",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "((LAMBDA (X) X) 42)",
-            ]
-        )
-        == 2
-    )
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "RED2 stack overflow" in captured.err
-
-
 def test_thor_cli_runs_io_quiet_by_default(capsys: CaptureFixture[str]) -> None:
     assert thor_main(["--expr", "(UART-TX 65)"]) == 0
 
@@ -85,26 +36,6 @@ def test_red2_cli_runs_io_quiet_by_default(
 
     captured = capsys.readouterr()
     assert captured.out == "B"
-    assert captured.err == ""
-
-
-def test_red2_cli_io_accepts_resource_limits(capsys: CaptureFixture[str]) -> None:
-    assert (
-        red2_main(
-            [
-                "--stack-size-in-bytes",
-                "1000000",
-                "--heap-size-in-bytes",
-                "1000000",
-                "--expr",
-                "(UART-TX (+ 60 5))",
-            ]
-        )
-        == 0
-    )
-
-    captured = capsys.readouterr()
-    assert captured.out == "A"
     assert captured.err == ""
 
 

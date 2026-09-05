@@ -687,7 +687,9 @@ def test_head_recp_at_zero_quantum_reconstructs_letrec_wrapper() -> None:
     assert state.pc == 15
     assert state.q == 0
     assert state.phi == 2
-    assert state.memory[state.env].opcode is MuredOpcode.UBV
+    env_word = state.memory[state.env]
+    assert env_word is not None
+    assert env_word.opcode is MuredOpcode.UBV
 
 
 def test_reverse_rblock_begins_sym_prefixed_binding_traversal() -> None:
@@ -712,8 +714,10 @@ def test_reverse_rblock_begins_sym_prefixed_binding_traversal() -> None:
 
     machine.step()
 
-    assert state.memory[9].opcode is MuredOpcode.JOIN
-    assert state.memory[9].data == 6
+    join = state.memory[9]
+    assert join is not None
+    assert join.opcode is MuredOpcode.JOIN
+    assert join.data == 6
     assert state.pc == 4
     assert state.env == 20
     assert state.argcnt == -1
@@ -1392,6 +1396,26 @@ def test_reverse_app_requires_saved_environment() -> None:
     with pytest.raises(ControlStackUnderflow):
         machine.step()
     assert state.cycles == 0
+
+
+def test_environment_allocation_does_not_reuse_cells_after_path_restore() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 30
+
+    first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
+    assert first == 29
+    state.memory[30] = Word(MuredOpcode.UBV, 0, False)
+    state.env = 30
+
+    second = machine._allocate_environment(Word(MuredOpcode.UBV, 2, False))
+
+    assert second == 27
+    assert state.env_frontier == 27
+    assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
+    assert state.memory[28] == Word(MuredOpcode.PNP, 30, False)
+    assert state.memory[27] == Word(MuredOpcode.UBV, 2, False)
+    assert machine.lookup(1) == 30
 
 
 def test_stop_rejects_forward_execution() -> None:

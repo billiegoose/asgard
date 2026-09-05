@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from enum import StrEnum, auto
 from math import ceil, floor
@@ -130,8 +130,17 @@ class CycleLimitExceeded(MuredMachineError):  # noqa: N818
     pass
 
 
-def compile_lambda(expr: Expr) -> tuple[Word, ...]:
+def compile_lambda(
+    expr: Expr,
+    *,
+    definition_names: Collection[str] = (),
+    unary_primitive_names: Collection[str] = (),
+) -> tuple[Word, ...]:
     words: list[Word] = []
+    visible_definitions = frozenset(definition_names)
+    visible_unary_primitives = _STRICT_UNARY_PRIMITIVES | frozenset(
+        unary_primitive_names
+    )
 
     def compile_var_index(
         index: int,
@@ -179,7 +188,9 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
         if isinstance(node, Symbol):
             if node.name in scope:
                 words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
-            elif node.name in _STRICT_UNARY_PRIMITIVES:
+            elif node.name in visible_definitions:
+                words.append(Word(MuredOpcode.SYM, node.name, head))
+            elif node.name in visible_unary_primitives:
                 words.append(Word(MuredOpcode.PRIM_1, node.name, head))
             elif node.name in _STRICT_BINARY_PRIMITIVES:
                 words.append(Word(MuredOpcode.PRIM_2, node.name, head))
@@ -240,8 +251,33 @@ def compile_lambda(expr: Expr) -> tuple[Word, ...]:
                 compile_graph(field, field_scope, head=True)
             return
         if isinstance(node, App):
-            if len(node.items) < 2:
-                raise TypeError("malformed pure λ-calculus application")
+            if not node.items:
+                words.append(Word(MuredOpcode.PNP, head=head))
+                return
+            operator = node.items[0]
+            if (
+                isinstance(operator, Symbol)
+                and operator.name not in visible_definitions
+                and operator.name in {"AND", "OR"}
+            ):
+                arguments = node.items[1:]
+                identity = Symbol("TRUE" if operator.name == "AND" else "FALSE")
+                short_circuit = Symbol("FALSE" if operator.name == "AND" else "TRUE")
+                expanded: Expr = identity
+                for argument in reversed(arguments):
+                    if operator.name == "AND":
+                        expanded = App(
+                            (Symbol("IF"), argument, expanded, short_circuit)
+                        )
+                    else:
+                        expanded = App(
+                            (Symbol("IF"), argument, short_circuit, expanded)
+                        )
+                compile_graph(expanded, scope, head=head)
+                return
+            if len(node.items) == 1:
+                compile_graph(node.items[0], scope, head=head)
+                return
             app_start = len(words)
             arguments = tuple(reversed(node.items[1:]))
             inline_indices = tuple(
@@ -307,6 +343,7 @@ class MuredMachineState:
     direction: Direction
     q: int
     phi: int
+    env_frontier: int | None = None
     argcnt: int = 0
     prim: str | None = None
     fire: int = 0
@@ -317,8 +354,16 @@ class MuredMachineState:
 
 
 class MuredMachine:
-    def __init__(self, state: MuredMachineState) -> None:
+    def __init__(
+        self,
+        state: MuredMachineState,
+        *,
+        struct_selectors: dict[str, tuple[str, int]] | None = None,
+    ) -> None:
         self.state = state
+        self.struct_selectors = (
+            {} if struct_selectors is None else dict(struct_selectors)
+        )
 
     @classmethod
     def load(
@@ -442,7 +487,8 @@ class MuredMachine:
     def _validate_state(self) -> None:
         state = self.state
         size = len(state.memory)
-        if not 0 <= state.fsp < state.env <= size:
+        env_frontier = state.env if state.env_frontier is None else state.env_frontier
+        if not 0 <= state.fsp < env_frontier <= state.env <= size:
             raise GraphEnvironmentCollision("graph and environment collide")
         if not -1 <= state.c < len(state.control_stack):
             raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
@@ -453,11 +499,13 @@ class MuredMachine:
         self._word(state.pc)
 
     def _push_graph(self, word: Word) -> int:
-        address = self.state.fsp + 1
-        if address >= self.state.env:
+        state = self.state
+        address = state.fsp + 1
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        if address >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
-        self.state.memory[address] = word
-        self.state.fsp = address
+        state.memory[address] = word
+        state.fsp = address
         return address
 
     def _copy_result(self, word: Word) -> int:
@@ -466,11 +514,20 @@ class MuredMachine:
         return address
 
     def _allocate_environment(self, word: Word) -> int:
-        address = self.state.env - 1
-        if address <= self.state.fsp:
+        state = self.state
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        if frontier != state.env:
+            bridge = frontier - 1
+            if bridge <= state.fsp:
+                raise GraphEnvironmentCollision("graph and environment collide")
+            state.memory[bridge] = Word(MuredOpcode.PNP, state.env, False)
+            frontier = bridge
+        address = frontier - 1
+        if address <= state.fsp:
             raise GraphEnvironmentCollision("graph and environment collide")
-        self.state.memory[address] = word
-        self.state.env = address
+        state.memory[address] = word
+        state.env_frontier = address
+        state.env = address
         return address
 
     def _push_control_entry(self, value: _ControlEntry) -> None:
@@ -577,6 +634,10 @@ class MuredMachine:
         if word.definition is not None and state.q > 0:
             if not isinstance(word.definition, int):
                 raise InvalidAddress("APP definition requires an address")
+            if state.c >= 0 and isinstance(
+                state.control_stack[state.c], _SavedDefinitionPath
+            ):
+                self._pop_control_entry()
             self.state.memory[state.pc] = Word(MuredOpcode.STOP)
             state.fsp -= 1
             state.pc = word.definition
@@ -784,12 +845,20 @@ class MuredMachine:
             return
 
         if state.q > 0:
-            address = state.env - 3
+            frontier = state.env if state.env_frontier is None else state.env_frontier
+            if frontier != state.env:
+                bridge = frontier - 1
+                if bridge <= state.fsp:
+                    raise GraphEnvironmentCollision("graph and environment collide")
+                state.memory[bridge] = Word(MuredOpcode.PNP, state.env, False)
+                frontier = bridge
+            address = frontier - 3
             if address <= state.fsp:
                 raise GraphEnvironmentCollision("graph and environment collide")
             state.memory[address] = Word(MuredOpcode.REC, word.data + 1, False)
             state.memory[address + 1] = Word(None)
             state.memory[address + 2] = Word(None)
+            state.env_frontier = address
             state.env = address
         else:
             self._copy_result(word)
@@ -1110,6 +1179,75 @@ class MuredMachine:
             raise IllegalTransition("IF reconstruction lost saved quantum")
         self.state.q = saved_q.value
 
+    def _cons_field_entry(
+        self,
+        descriptor: Word,
+        root_address: int,
+    ) -> tuple[Word, Word | None]:
+        if descriptor.opcode is MuredOpcode.APP:
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress("CONS APP field requires a graph address")
+            return Word(MuredOpcode.APP, descriptor.data, False), None
+        if descriptor.opcode is MuredOpcode.APP_VAR:
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress("CONS APP_VAR field requires a variable index")
+            return Word(MuredOpcode.APP_VAR, descriptor.data + 1, False), None
+        if descriptor.opcode is None:
+            raise IllegalTransition("CONS requires executable value descriptors")
+        return (
+            Word(MuredOpcode.APP, root_address, False),
+            Word(
+                descriptor.opcode,
+                descriptor.data,
+                True,
+                descriptor.definition,
+            ),
+        )
+
+    def _fire_cons(self) -> None:
+        state = self.state
+        base = state.pc
+        right_descriptor = self._word(base)
+        left_descriptor = self._word(base + 1)
+        old_fsp = state.fsp
+
+        # Structured strict arguments may already live above the compact
+        # primitive spine. Preserve those graphs and append any atomic field
+        # roots after them instead of reusing addresses they may reference.
+        next_root = max(old_fsp + 1, base + 4)
+        right_field, right_root = self._cons_field_entry(
+            right_descriptor,
+            next_root,
+        )
+        if right_root is not None:
+            next_root += 1
+        left_field, left_root = self._cons_field_entry(
+            left_descriptor,
+            next_root,
+        )
+        if left_root is not None:
+            next_root += 1
+
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        last_address = max(old_fsp, base + 3, next_root - 1)
+        if last_address >= frontier:
+            raise GraphEnvironmentCollision("graph and environment collide")
+
+        state.memory[base] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        state.memory[base + 1] = right_field
+        state.memory[base + 2] = left_field
+        state.memory[base + 3] = Word(MuredOpcode.VAR, 0, True)
+        cursor = max(old_fsp + 1, base + 4)
+        if right_root is not None:
+            state.memory[cursor] = right_root
+            cursor += 1
+        if left_root is not None:
+            state.memory[cursor] = left_root
+
+        state.fsp = last_address
+        state.q -= 1
+        state.pc = base - 1
+
     def _fire_primitive(self) -> None:
         state = self.state
         primitive = state.prim
@@ -1118,6 +1256,38 @@ class MuredMachine:
 
         if primitive == "__IF_RECONSTRUCT__":
             self._finish_if_reconstruction()
+            state.pc -= 1
+            return
+
+        if primitive == "__STRUCT_SELECTOR_RESULT__":
+            selected = self._word(state.pc)
+            if selected.opcode is MuredOpcode.APP:
+                if type(selected.data) is not int or selected.data < 0:
+                    raise InvalidAddress(
+                        "structure selector result requires a graph address"
+                    )
+                root = self._word(selected.data)
+                if root.opcode is MuredOpcode.STRUCT:
+                    self._copy_struct_value_to_result(selected.data, state.pc)
+                else:
+                    raise IllegalTransition(
+                        "structure selector returned an unsupported multiword value"
+                    )
+            else:
+                state.memory[state.pc] = Word(
+                    selected.opcode,
+                    selected.data,
+                    True,
+                    selected.definition,
+                )
+                state.fsp = state.pc
+            state.pc -= 1
+            return
+
+        if primitive == "CONS":
+            if state.q > 0:
+                self._fire_cons()
+                return
             state.pc -= 1
             return
 
@@ -1139,7 +1309,56 @@ class MuredMachine:
             return
 
         result: Word | None = None
-        if state.q > 0 and primitive is not None:
+        selector: tuple[str, int] | None = None
+        if primitive == "CAR":
+            selector = ("PAIR", 2)
+        elif primitive == "CDR":
+            selector = ("PAIR", 1)
+        elif primitive is not None:
+            selector = self.struct_selectors.get(primitive)
+
+        if state.q > 0 and selector is not None:
+            tag, field_offset = selector
+            value, source_address = self._struct_field_value(
+                self._word(state.pc),
+                tag=tag,
+                field_offset=field_offset,
+            )
+            if value is not None and source_address is not None:
+                if value.opcode is MuredOpcode.APP or (
+                    value.opcode is MuredOpcode.SYM
+                    and value.definition is not None
+                ):
+                    parent_address = state.pc
+                    parent = self._word(parent_address)
+                    if parent.opcode is not MuredOpcode.APP:
+                        raise IllegalTransition(
+                            "structure selector requires an APP result parent"
+                        )
+                    state.q -= 1
+                    state.prim = "__STRUCT_SELECTOR_RESULT__"
+                    state.fire = 1
+                    self._save_primitive_context()
+                    self._push_graph(
+                        Word(MuredOpcode.JOIN, parent_address, False, 1)
+                    )
+                    state.argcnt = 0
+                    state.pc = source_address
+                    state.direction = Direction.F
+                    return
+                if value.opcode is MuredOpcode.STRUCT:
+                    self._copy_struct_value_to_result(source_address, state.pc)
+                    state.q -= 1
+                    state.pc -= 1
+                    return
+                result = Word(
+                    value.opcode,
+                    value.data,
+                    False,
+                    value.definition,
+                )
+
+        if state.q > 0 and primitive is not None and result is None:
             if primitive in {
                 "1-",
                 "1+",
@@ -1169,6 +1388,7 @@ class MuredMachine:
                 "<=",
                 ">=",
                 "=",
+                "EQUAL?",
                 "EXPT",
                 "MAX",
                 "MIN",
@@ -1190,6 +1410,72 @@ class MuredMachine:
             state.fsp = state.pc
             state.q -= 1
         state.pc -= 1
+
+    def _struct_field_value(
+        self,
+        operand: Word,
+        *,
+        tag: str,
+        field_offset: int,
+    ) -> tuple[Word | None, int | None]:
+        if operand.opcode is not MuredOpcode.APP:
+            return None, None
+        if type(operand.data) is not int or operand.data < 0:
+            raise InvalidAddress(f"{tag} selector requires a graph address")
+        root_address = operand.data
+        root = self._word(root_address)
+        if root.opcode is not MuredOpcode.STRUCT or root.data != tag:
+            return None, None
+        descriptor = self._word(root_address + field_offset)
+        if descriptor.opcode is MuredOpcode.APP:
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress(f"{tag} field requires a graph address")
+            value = self._word(descriptor.data)
+            return value, descriptor.data
+        if descriptor.opcode is MuredOpcode.APP_VAR:
+            return None, None
+        raise IllegalTransition(f"{tag} field requires APP or APP_VAR descriptor")
+
+    def _copy_struct_value_to_result(
+        self,
+        source_address: int,
+        destination: int,
+    ) -> None:
+        source = self._word(source_address)
+        if source.opcode is not MuredOpcode.STRUCT:
+            raise IllegalTransition("structure result copy requires STRUCT root")
+
+        words: list[Word] = [source]
+        cursor = source_address + 1
+        while True:
+            word = self._word(cursor)
+            words.append(word)
+            if word.opcode is MuredOpcode.VAR:
+                if word.data != 0:
+                    raise IllegalTransition("STRUCT result requires trailing VAR 0")
+                break
+            if word.opcode not in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                raise IllegalTransition("STRUCT result requires field descriptors")
+            cursor += 1
+
+        frontier = (
+            self.state.env
+            if self.state.env_frontier is None
+            else self.state.env_frontier
+        )
+        last_address = destination + len(words) - 1
+        if last_address >= frontier:
+            raise GraphEnvironmentCollision("graph and environment collide")
+
+        for offset, word in enumerate(words):
+            self.state.memory[destination + offset] = Word(
+                word.opcode,
+                word.data,
+                word.head,
+                word.definition,
+            )
+        self.state.memory[last_address] = Word(MuredOpcode.VAR, 0, True)
+        self.state.fsp = last_address
 
     def _apply_unary_primitive(self, primitive: str, operand: Word) -> Word | None:
         value = self._number_word_value(operand)
@@ -1241,7 +1527,7 @@ class MuredMachine:
         left_word: Word,
         right_word: Word,
     ) -> Word | None:
-        if primitive == "=":
+        if primitive in {"=", "EQUAL?"}:
             left_constant = self._constant_word_key(left_word)
             right_constant = self._constant_word_key(right_word)
             if left_constant is None or right_constant is None:
@@ -1376,7 +1662,8 @@ class MuredMachine:
 
         self._push_control(state.env)
         scratch = state.fsp + 1
-        if scratch >= state.env:
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        if scratch >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
         state.memory[scratch] = Word(
             argument.opcode,

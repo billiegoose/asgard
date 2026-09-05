@@ -27,6 +27,52 @@ if TYPE_CHECKING:
 Scope = tuple[str, ...]
 
 
+def _canonical_struct_constructor(
+    tag: str,
+    accessors: tuple[str, ...],
+    expr: Expr | None,
+) -> bool:
+    if not isinstance(expr, Lambda) or expr.params != accessors:
+        return False
+    body = expr.body
+    return (
+        isinstance(body, StructLit)
+        and body.tag == tag
+        and body.fields == tuple(Symbol(accessor) for accessor in accessors)
+    )
+
+
+def _generated_struct_selector(
+    expr: Expr,
+    definitions: Mapping[str, Expr],
+) -> tuple[str, int] | None:
+    if not isinstance(expr, Lambda) or len(expr.params) != 1:
+        return None
+    tag = expr.params[0]
+    body = expr.body
+    if (
+        not isinstance(body, App)
+        or len(body.items) != 2
+        or body.items[0] != Symbol(tag)
+        or not isinstance(body.items[1], Lambda)
+    ):
+        return None
+    selector = body.items[1]
+    if not isinstance(selector.body, Symbol):
+        return None
+    accessors = selector.params
+    accessor = selector.body.name
+    if accessor not in accessors:
+        return None
+    if not _canonical_struct_constructor(
+        tag,
+        accessors,
+        definitions.get(f"make-{tag}"),
+    ):
+        return None
+    return tag, len(accessors) - accessors.index(accessor)
+
+
 _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "TRUE": 0,
     "FALSE": 0,
@@ -213,16 +259,35 @@ def load_faithful_machine(
     *,
     quantum: int,
     definitions: Mapping[str, Expr] | None = None,
-    memory_words: int = 256,
-    control_words: int = 64,
+    memory_words: int = 65_536,
+    control_words: int = 8_192,
 ) -> MuredMachine:
     """Load one expression plus visible top-level definitions into μRED memory."""
     from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
 
     definition_exprs = {} if definitions is None else dict(definitions)
-    root_words = compile_lambda(expr)
+    struct_selectors = {
+        name: selector
+        for name, definition in definition_exprs.items()
+        if (selector := _generated_struct_selector(definition, definition_exprs))
+        is not None
+    }
+    for name in struct_selectors:
+        definition_exprs.pop(name)
+
+    definition_names = frozenset(definition_exprs)
+    selector_names = frozenset(struct_selectors)
+    root_words = compile_lambda(
+        expr,
+        definition_names=definition_names,
+        unary_primitive_names=selector_names,
+    )
     compiled_definitions = {
-        name: compile_lambda(definition)
+        name: compile_lambda(
+            definition,
+            definition_names=definition_names,
+            unary_primitive_names=selector_names,
+        )
         for name, definition in definition_exprs.items()
     }
     reserved_words = sum(len(words) + 1 for words in compiled_definitions.values())
@@ -272,4 +337,6 @@ def load_faithful_machine(
         cursor += len(words) + 1
 
     machine.state.env = static_start
+    machine.state.env_frontier = static_start
+    machine.struct_selectors = struct_selectors
     return machine

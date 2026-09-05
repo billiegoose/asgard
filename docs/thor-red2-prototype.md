@@ -2,153 +2,97 @@
 
 ## Scope
 
-This project is a faithful research prototype of Hilton's THOR interpreter. It
-also includes distinct compatibility and machine-fidelity paths for investigating
-the RED2 machine and making the dissertation rules executable and comparable.
-The project prioritizes readable source, deterministic examples, and thesis
-traceability over production compiler coverage or hardware completeness.
+This project is a faithful research prototype of Hilton's THOR interpreter and RED2 graph-reduction machine. The Python THOR interpreter is the Chapter 3 semantic reference; the Python RED2 path executes the Chapter 4-style μRED graph/environment/register machine directly.
 
-The Python THOR interpreter is the executable semantic reference.
-`red2_engine.machine.Red2Machine` is the existing evaluator-backed compatibility
-model: it compiles the same THOR expressions into a linear instruction graph and
-is checked against the THOR result, but it does not execute the Chapter 4 register
-transfers directly. The Rust evaluator provides the same kind of compatibility
-and parity evidence rather than direct Chapter 4 machine fidelity. The boundary
-is explicit: semantic parity is not machine fidelity.
+There is now only one Python RED2 executor: `models/python/red2_engine/mured.py`. The older evaluator-backed compatibility machine was removed. Consequently `red2`, `mise run red2`, parity runs using `model="red2"`, and pure RED2 reductions requested by the IO host all use `MuredMachine`.
 
-`red2_engine.mured` is the faithful μRED core plus the APP-VAR/head,
-passive `INT`/`FLOAT`/`CHAR`, closed head-`SYM` definitions, the Chapter 4
-primitive registers, a selected Chapter 3 strict primitive family, and the
-Chapter 4 non-strict `Y` and mixed-strictness `IF` transformations. It executes
-these graph-memory instructions and register transfers directly, including
-`argcnt`, `prim`, `fire`, strict-argument save/restore through APP/JOIN, JOIN
-ownership of saved primitive contexts, one-word strict argument compaction,
-fire-time quantum re-checks, graph reclamation after successful strict firing,
-the shared-graph `(Y f)` to `(f (Y f))` rewrite, `IF` condition forcing with
-lazy branch selection/reconstruction, Chapter 4 lazy `STRUCT` compilation/execution,
-and Chapter 4 `LETREC`: faithful `RBLOCK`/`RUP` compilation, three-word `REC`
-recursive-context construction when quantum is available, REC-aware variable lookup,
-`RECP` access, reverse `RBLOCK` traversal, and q=0 `RECONSTRUCT` with UBV replacement
-contexts. `STRUCT` preserves its outer quantum while traversing fields at `q = 0`, uses
-the encoded trailing `VAR 0` selector slot, and contracts selector applications through
-the existing lambda/environment machinery. The implemented strict slice covers
-numeric unary/binary operations and comparisons, `NULL?`/`NOT`, atomic type
-predicates, and constant `=` with Chapter 3 integer/float coercion behavior where
-applicable. Structural strict primitives, recursive equality, and the remaining
-non-strict primitives `AND` and `OR` are not implemented yet, so it is still not
-full RED2. The existing `red2` CLI exposes this machine through opt-in
-`--faithful` pure-program execution while retaining evaluator-backed compatibility
-mode by default. Faithful program loading lays out visible top-level definitions as
-relocated static μRED graphs and annotates matching `SYM` words with definition
-addresses; nested definition expansion remains graph/register execution rather than
-an evaluator callback. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
-narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
-a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
-The current user-visible primitive surface is documented in
-[`thor-primitives.md`](thor-primitives.md).
+Semantic parity remains distinct from machine fidelity: Chapter 3 reduction is an oracle at test boundaries, not an execution callback from `MuredMachine.step()` or `run()`.
 
-## Thesis Traceability
+## Faithful Python RED2 surface
 
-- `models/python/thor_lang/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 THOR
-  syntax, source forms, and the Figure 3.1 translation from named binders to
-  De Bruijn-style variables.
-- `models/python/thor_engine/semantics.py` and `models/python/thor_lang/primitives.py` implement the
-  Chapter 3 abstract interpreter behavior for Rules 1-29, including beta
-  contraction, passive data, definitions, primitives, structures, `Y`, and
-  `LETREC` reconstruction.
-- `models/python/thor_compile/red2.py`, `models/python/red2_engine/instructions.py`,
-  `machine.py`, and `primitives.py` implement the evaluator-backed RED2
-  compatibility path: instruction-shaped data, head flags, stacks, lookup,
-  strict primitives, structures, and recursive blocks.
-- `models/python/red2_engine/mured.py` implements the faithful pure-λ subset of
-  the Chapter 4 graph-memory machine, including its instruction transitions,
-  shared graph/environment memory, and separate control stack.
-- `tests/fixtures/appendix_a/sine_core.thor`,
-  `tests/fixtures/appendix_a/sine_full.thor`,
-  `tests/fixtures/appendix_a/game_core.thor`, and
-  `tests/fixtures/appendix_a/game_full.thor` cover executable Appendix A SINE
-  and GAME benchmark fixtures with THOR/RED2 parity smoke tests.
-- `tools/vscode-thor/` contains a local VS Code-compatible TextMate syntax extension
-  for `.thor` files, with examples derived from THOR fixtures.
-- `models/python/red2_engine/pipelinec_vectors.py` and
-  `models/python/pypeline_red2/red2_stepper.py` trace the Chapter 4 instruction
-  encoding into a small PypelineC stepper subset with golden vectors. See
-  `models/python/pypeline_red2/README.md` for the optional external
-  PipelineC validation path.
+The μRED core currently includes:
 
-## Known Omissions
+- APP/APP-VAR/head traversal and JOIN reconstruction;
+- passive integer, float, character, symbol, and structure data;
+- static top-level definition graphs and recursive/cross-definition `SYM` execution;
+- Chapter 4 primitive registers (`argcnt`, `prim`, `fire`) and strict-argument save/restore through APP/JOIN;
+- selected strict numeric operations, comparisons, type predicates, `NULL?`, `NOT`, constant equality, and `EQUAL?` for supported atomic constants;
+- non-strict `Y` graph rewriting and mixed-strictness `IF`;
+- source `AND`/`OR` lowering to lazy `IF` chains when those names are not shadowed;
+- lazy `STRUCT` execution;
+- strict `CONS` construction of lazy `PAIR` graphs plus native `CAR`/`CDR` projection;
+- canonical generated `StructDef` accessors lowered by the faithful loader to native unary structure selectors, including lazy application-valued fields and preservation of explicit user overrides;
+- `LETREC` compilation/execution through `RBLOCK`, `RUP`, `REC`, `RECP`, and q=0 reconstruction;
+- a separate physical `env_frontier` allocation watermark plus `PNP` bridges so restoring an environment path cannot cause live cells below it to be reused.
 
-- The faithful μRED strict slice models the Chapter 3 integer/float coercions
-  for its selected numeric primitives; broader floating-point primitive coverage
-  outside that slice and the Appendix A SINE benchmark remains incomplete.
-- Appendix A GAME is covered at the dissertation benchmark gate of
-  `evaluate 1` over the nine root move outcomes; deeper search remains outside
-  the default quantum gate.
-- Character constants, symbol predicates, and equality are covered; a complete
-  non-benchmark character library is not implemented.
-- The faithful μRED core implements non-strict `Y` and mixed-strictness `IF`;
-  `AND` and `OR` still remain passive pending their dedicated primitive slices.
-- The faithful μRED core implements the Chapter 4 `LETREC` recursion slice, including
-  `RBLOCK`/`RUP`, three-word `REC` contexts, recursive-variable `RECP` access, and q=0
-  LETREC reconstruction.
-- The faithful CLI supports ordinary visible top-level definitions through static
-  graph layout; custom `StructDef` accessor synthesis and IO actions remain outside
-  the faithful program-integration slice.
-- FPGA synthesis automation is not part of this milestone.
-- Successful selected strict primitive firing performs the Chapter 4/5 `fsp`
-  reclamation required for its primitive-arguments subgraph; broader
-  performance-accurate reclamation is not yet modeled throughout the machine.
-- Vendor tool integration is intentionally out of scope for the default tests.
+See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations and [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary.
 
-## Example Commands
+## Program and CLI integration
 
-Run the Chapter 3 THOR reference model:
+`red2` directly runs the faithful machine; there is no `--faithful` or compatibility-mode switch.
+
+Visible source definitions are compiled into relocated static μRED graphs. `StructDef` constructors remain source definitions, while canonical generated accessor lambdas are recognized by the loader and emitted as native structure-selector primitives. A user definition that replaces a generated accessor keeps ordinary definition semantics.
+
+The IO runtime remains a host/simulator layer for actions such as UART and CLOCK. When that layer needs a pure RED2 reduction, it creates and runs a faithful μRED machine; it does not use the deleted evaluator-backed engine.
+
+The former byte-accounted `--stack-size-in-bytes` and `--heap-size-in-bytes` CLI switches were removed because the faithful machine currently exposes word capacities rather than the old compatibility evaluator's byte accounting. User-facing faithful loaders default to 65,536 graph/environment words and 8,192 control entries.
+
+## Bytecode and Rust/WASM boundary
+
+The `.red2` instruction/compiler/binary layer remains in the repository. `red2_engine.instructions`, `red2_engine.binary`, and bytecode compilation functions in `thor_compile.red2` are still used as compiler/transport infrastructure for the Rust/WASM paths.
+
+They are no longer a second Python execution engine. Python binary tests therefore check deterministic encoding and codec/bundle round trips rather than feeding decoded bytecode to the deleted evaluator.
+
+## Thesis traceability
+
+- `models/python/thor_lang/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 syntax, source forms, and named-binder/De Bruijn representation.
+- `models/python/thor_engine/semantics.py` and `models/python/thor_lang/primitives.py` implement the Chapter 3 semantic reference.
+- `models/python/red2_engine/mured.py` implements the faithful graph-memory/register transitions used by Python RED2 execution.
+- `models/python/thor_compile/red2.py` contains both faithful μRED program layout and the retained `.red2` bytecode compiler used by non-Python targets.
+- `tests/fixtures/appendix_a/sine_core.thor` and `game_core.thor` provide executable Appendix A parity gates.
+- `models/python/red2_engine/pipelinec_vectors.py` and `models/python/pypeline_red2/red2_stepper.py` explore a fixed-width PypelineC-oriented hardware RED2 subset.
+- `tools/vscode-thor/` contains the local VS Code/TextMate syntax support for `.thor` sources.
+
+## Known omissions and boundaries
+
+- The Python machine should not yet be read as a claim of exhaustive RED2/Chapter 4 primitive coverage.
+- Recursive/general structural `EQUAL?` is not implemented; the current faithful path handles supported atomic constants.
+- `AND`/`OR` are source-level lazy `IF` lowering rather than dedicated faithful primitive transitions; the tested boolean/short-circuit surface is supported, while broader partial/non-boolean semantics are not claimed.
+- The faithful resource model is word-count based internally; byte-accounted public stack/heap controls have not been reintroduced.
+- Appendix A GAME is gated at the repository's bounded benchmark scenario rather than as an unlimited search-performance claim.
+- FPGA synthesis/vendor automation remains outside the default test milestone.
+
+## Example commands
+
+Run the Chapter 3 THOR reference:
 
 ```sh
 uv run thor --expr "(+ 2 3)" --quantum 20
 ```
 
-Run the evaluator-backed RED2 compatibility model on the same expression:
+Run the faithful Python RED2 machine:
 
 ```sh
 uv run red2 --expr "(+ 2 3)" --quantum 20
 ```
 
-Run the direct Chapter 4 μRED path explicitly:
+or through the repository task:
 
 ```sh
-uv run red2 --faithful --expr "(+ 2 3)" --quantum 20
+mise run red2 --expr "(+ 2 3)" --quantum 20
 ```
 
-All three commands should print:
+Each prints:
 
 ```text
 5
 ```
 
-## Lockstep Parity Mode
+## Lockstep parity mode
 
-`mise run parity` compares THOR and RED2 at contraction-prefix
-snapshots for source files. For `--quantum N`, it runs both models for every quantum from `0`
-through `N`, alpha-normalizes bound-variable rendering differences such as RED2
-`(VAR 0)` output, and compares the user-facing expressions at every prefix.
+`mise run parity` compares THOR and faithful Python RED2 at contraction-prefix snapshots. Intermediate scheduling can differ because the Chapter 3 recursive reducer and Chapter 4 machine perform different internal phases; parity mode reports mismatch ranges and later reconvergence rather than treating every internal scheduling difference as semantic failure.
 
-This is stronger than completion-only parity, but it is not a claim that THOR's
-recursive reducer and RED2's internal machine phases schedule every intermediate
-recursive application identically. Some programs can diverge at intermediate
-prefixes and reconverge at later quanta; in that case parity mode continues to
-`N` and reports each mismatch range separately, including the THOR/RED2
-expressions at that range's first quantum and the reconvergence point for that
-range. The command exits 0 when the final quantum matches and exits 1 when the
-final quantum still differs.
-
-Example matching-prefix check:
-
-```sh
-mise run parity examples/fibonacci.thor --quantum 10
-```
-
-Example diagnostic check that reports the first Fibonacci prefix mismatch:
+Example:
 
 ```sh
 mise run parity examples/fibonacci.thor --quantum 75

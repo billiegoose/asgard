@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
 
-from red2_engine.machine import Red2DefinitionCache, Red2Machine, Red2ResourceLimits
-from red2_engine.primitives import register_struct_accessors
-from thor_compile.red2 import compile_definitions, compile_expr
+from thor_compile.red2 import load_faithful_machine
 from thor_engine.golden import ModelName
 from thor_engine.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import (
@@ -74,7 +72,6 @@ def run_io_source(
     stdout: TextIO,
     stderr: TextIO,
     clock: ClockSource | None = None,
-    resource_limits: Red2ResourceLimits | None = None,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
@@ -83,7 +80,7 @@ def run_io_source(
     diagnostics to stderr without consuming the simulated UART stream.
     """
     program = normalize_program(parse_program(source))
-    definitions, action = _prepare_io_program(program)
+    definitions, action = _prepare_io_program(program, model=model)
     runtime = _IoRuntime(
         model=model,
         quantum=quantum,
@@ -92,15 +89,20 @@ def run_io_source(
         stdout=stdout,
         stderr=stderr,
         clock=clock or SystemClockSource(),
-        resource_limits=resource_limits,
     )
     return to_source(runtime.run(action))
 
 
-def _prepare_io_program(program: Program) -> tuple[dict[str, Expr], Expr]:
+def _prepare_io_program(
+    program: Program,
+    *,
+    model: ModelName,
+) -> tuple[dict[str, Expr], Expr]:
     definitions: dict[str, Expr] = {}
     install_struct_definition("PAIR", ("CAR", "CDR"), definitions)
-    register_struct_accessors("PAIR", ("CAR", "CDR"))
+    if model == "red2":
+        definitions.pop("CAR", None)
+        definitions.pop("CDR", None)
     action: Expr | None = None
     for form in program.forms:
         if isinstance(form, Definition):
@@ -108,7 +110,6 @@ def _prepare_io_program(program: Program) -> tuple[dict[str, Expr], Expr]:
             continue
         if isinstance(form, StructDef):
             install_struct_definition(form.tag, form.accessors, definitions)
-            register_struct_accessors(form.tag, form.accessors)
             continue
         action = form
     if action is None:
@@ -148,7 +149,6 @@ class _IoRuntime:
         stdout: TextIO,
         stderr: TextIO,
         clock: ClockSource,
-        resource_limits: Red2ResourceLimits | None,
     ) -> None:
         self._model = model
         self._quantum = quantum
@@ -158,19 +158,10 @@ class _IoRuntime:
             if model == "thor"
             else None
         )
-        self._red2_definition_image = (
-            compile_definitions(definitions) if model == "red2" else None
-        )
-        self._red2_definition_cache = (
-            Red2DefinitionCache.from_image(self._red2_definition_image)
-            if self._red2_definition_image is not None
-            else None
-        )
         self._stdin = stdin
         self._stdout = stdout
         self._stderr = stderr
         self._clock = clock
-        self._resource_limits = resource_limits
         self._ticks = 0
 
     def run(self, action: Expr) -> Expr:
@@ -219,6 +210,12 @@ class _IoRuntime:
         args: tuple[Expr, ...],
         continuations: list[_Continuation],
     ) -> _NextAction | None:
+        if name == "Y" and args:
+            original = App((Symbol("Y"), *args))
+            reduced = self._pure(original)
+            if reduced != original:
+                return _NextAction(reduced)
+
         if name == "IF" and len(args) == 3:
             condition = self._pure(args[0])
             if isinstance(condition, Symbol) and condition.name == "TRUE":
@@ -319,12 +316,10 @@ class _IoRuntime:
                 quantum=self._quantum,
                 definitions=self._thor_definition_cache,
             ).expr
-        machine = Red2Machine(
-            compile_expr(expr),
+        machine = load_faithful_machine(
+            expr,
             quantum=self._quantum,
-            definitions=self._red2_definition_image,
-            resource_limits=self._resource_limits,
-            definition_cache=self._red2_definition_cache,
+            definitions=self._definitions,
         )
         machine.run()
         return machine.result_expr()

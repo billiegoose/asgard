@@ -34,8 +34,6 @@ def build_parser() -> argparse.ArgumentParser:
             "millisecond timestamps"
         ),
     )
-    parser.add_argument("--stack-size-in-bytes", type=int, default=None)
-    parser.add_argument("--heap-size-in-bytes", type=int, default=None)
     parser.add_argument(
         "--version",
         action="version",
@@ -47,12 +45,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(sys.argv[1:] if argv is None else argv)
-    if args.stack_size_in_bytes is not None or args.heap_size_in_bytes is not None:
-        print(
-            "thor: resource limits are currently supported for red2 only",
-            file=sys.stderr,
-        )
-        return 2
     if args.expr is None and args.file is None:
         parser.print_help()
         return 0
@@ -115,7 +107,6 @@ def _run_io_source(
         stdout=sys.stdout,
         stderr=sys.stderr,
         clock=clock,
-        resource_limits=None,
     )
     if verbose:
         print(f"io result: {result}", file=sys.stderr)

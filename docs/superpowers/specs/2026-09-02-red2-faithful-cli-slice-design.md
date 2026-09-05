@@ -1,6 +1,6 @@
 # 2026-09-02 — RED2 Faithful CLI Integration (Task 11)
 
-**Status:** complete
+**Status:** complete; historical CLI slice, superseded as the current default-route design by `2026-09-05-red2-faithful-default-design.md`
 **Parent plan:** `docs/superpowers/plans/2026-09-02-remaining-faithful-python-red2-slices.md`
 **Slice task:** Task 11 — *CLI/program integration for faithful machine*
 **Depends on:** Task 10 faithful Python μRED subset through RECP/RECONSTRUCT

@@ -1029,6 +1029,32 @@ def test_mured_lazy_structures_match_chapter3(source: str, quantum: int) -> None
 @pytest.mark.parametrize(
     "source",
     [
+        "(CONS 1 2)",
+        "(CONS 1 [2 3])",
+        "(CONS (+ 1 2) [3 4])",
+        "(CONS [1 2] [3 4])",
+        "(CAR (CONS 1 [2 3]))",
+        "(CDR (CONS 1 [2 3]))",
+    ],
+)
+def test_mured_cons_matches_chapter3_result(source: str) -> None:
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=100)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=100,
+        memory_words=1024,
+        control_words=256,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
         "({PAIR 1 2} (LAMBDA (CAR CDR) CAR))",
         "({PAIR (+ 1 2) (+ 3 4)} (LAMBDA (CAR CDR) CDR))",
     ],
