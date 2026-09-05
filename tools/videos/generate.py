@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,7 +104,7 @@ def _generate_breakout_video(
     title: str,
     command_model: str,
     steps: tuple[tuple[int, str, float], ...],
-    readme_writer,
+    readme_writer: Callable[[str], None],
 ) -> str | None:
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     prefix = f"asgard-{command_model}-breakout-video-"
