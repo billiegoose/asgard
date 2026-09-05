@@ -49,3 +49,32 @@ These are different native units and must not be treated as directly comparable 
 ## Breakout benchmark
 
 This battery is separate from `mise run benchmark-breakout`. `benchmark-python` is an in-process, pure, deterministic comparison of the two Python engines and excludes runtime IO, clocks, subprocess startup, Rust, and WASM. `benchmark-breakout` is the existing command-level benchmark that drives deterministic Breakout across THOR, RED2, Rust, and WASM through subprocesses and its clock/input path. It remains useful for end-to-end backend comparisons, but it measures a materially different boundary.
+
+<!-- benchmark-results:start -->
+## Latest measured results
+
+Recorded `2026-09-05T16:18:06-04:00` on `Darwin x86_64` with Python `3.14.7`.
+These numbers are machine-specific observations, not performance gates.
+
+Command:
+
+```sh
+mise run benchmark-python
+```
+
+The default run uses one warmup and five measured iterations per backend.
+Median is the primary timing; best is included as a diagnostic.
+
+| Benchmark | Backend | Result | Iterations | Median (s) | Best (s) | Speedup vs THOR | Work units | Unit |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| tak | thor | 15 | 5 | 0.025224529 | 0.023699439 | 1.000000 | 965 | `thor_contractions` |
+| tak | red2 | 15 | 5 | 0.013850101 | 0.013418374 | 1.821252 | 4290 | `mured_cycles` |
+| list | thor | 300 | 5 | 0.425242464 | 0.413411381 | 1.000000 | 36249 | `thor_contractions` |
+| list | red2 | 300 | 5 | 0.524739763 | 0.493994762 | 0.810387 | 149848 | `mured_cycles` |
+| struct | thor | 300 | 5 | 0.108080035 | 0.095214499 | 1.000000 | 6050 | `thor_contractions` |
+| struct | red2 | 300 | 5 | 0.127035064 | 0.120937858 | 0.850789 | 47496 | `mured_cycles` |
+| game | thor | 8 | 5 | 0.453905084 | 0.400399491 | 1.000000 | 10766 | `thor_contractions` |
+| game | red2 | 8 | 5 | 0.269665686 | 0.255569799 | 1.683214 | 94220 | `mured_cycles` |
+
+`thor_contractions` and `mured_cycles` are backend-native counters and are not directly comparable.
+<!-- benchmark-results:end -->
