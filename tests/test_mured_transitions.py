@@ -9,6 +9,7 @@ from red2_engine.mured import (
     MuredMachineState,
     MuredOpcode,
     Word,
+    compile_lambda,
 )
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
@@ -1020,10 +1021,47 @@ def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> Non
 
     assert state.memory[2] == Word(MuredOpcode.APP, 1, True, 9)
     assert state.argcnt == 2
-    assert state.control_stack[0] == 12
+    saved_path = state.control_stack[0]
+    assert saved_path is not None
+    assert getattr(saved_path, "value", None) == 12
     assert state.c == 0
     assert state.direction is Direction.B
     assert state.pc == 2
+
+
+def test_defined_symbol_application_reclaims_synthetic_definition_app() -> None:
+    machine = MuredMachine.from_expr(
+        parse_expr("(FOO 41)"),
+        quantum=20,
+        memory_words=64,
+    )
+    definition_address = 40
+    definition = compile_lambda(parse_expr("(LAMBDA (x) (+ x 1))"))
+    for offset, word in enumerate(definition):
+        data = word.data
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+            assert isinstance(data, int)
+            data += definition_address
+        machine.state.memory[definition_address + offset] = Word(
+            word.opcode,
+            data,
+            word.head,
+            word.definition,
+        )
+    machine.state.memory[definition_address + len(definition)] = Word(MuredOpcode.STOP)
+    root_symbol = machine.state.memory[1]
+    assert root_symbol is not None
+    machine.state.memory[1] = Word(
+        root_symbol.opcode,
+        root_symbol.data,
+        root_symbol.head,
+        definition_address,
+    )
+    machine.state.env = definition_address
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "42"
 
 
 def test_defined_symbol_app_reverse_enters_definition_code() -> None:

@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import replace
+from typing import TYPE_CHECKING
 
 from red2_engine.instructions import (
     DefinitionImage,
@@ -19,6 +20,9 @@ from thor_lang.ast import (
     Symbol,
     Var,
 )
+
+if TYPE_CHECKING:
+    from red2_engine.mured import MuredMachine
 
 Scope = tuple[str, ...]
 
@@ -202,3 +206,70 @@ def compile_definitions(definitions: Mapping[str, Expr]) -> DefinitionImage:
     return DefinitionImage(
         {name: compile_expr(expr) for name, expr in definitions.items()}
     )
+
+
+def load_faithful_machine(
+    expr: Expr,
+    *,
+    quantum: int,
+    definitions: Mapping[str, Expr] | None = None,
+    memory_words: int = 256,
+    control_words: int = 64,
+) -> MuredMachine:
+    """Load one expression plus visible top-level definitions into μRED memory."""
+    from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+
+    definition_exprs = {} if definitions is None else dict(definitions)
+    root_words = compile_lambda(expr)
+    compiled_definitions = {
+        name: compile_lambda(definition)
+        for name, definition in definition_exprs.items()
+    }
+    reserved_words = sum(len(words) + 1 for words in compiled_definitions.values())
+    if reserved_words >= memory_words:
+        raise ValueError("faithful definitions exceed μRED memory capacity")
+
+    machine = MuredMachine.load(
+        root_words,
+        quantum=quantum,
+        memory_words=memory_words,
+        control_words=control_words,
+    )
+    root_stop = len(root_words)
+    static_start = memory_words - reserved_words
+    if static_start <= root_stop:
+        raise ValueError("faithful program leaves no μRED working memory")
+
+    definition_addresses: dict[str, int] = {}
+    cursor = static_start
+    for name, words in compiled_definitions.items():
+        definition_addresses[name] = cursor
+        cursor += len(words) + 1
+
+    def relocate(word: Word, base: int) -> Word:
+        data = word.data
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+            if not isinstance(data, int):
+                raise ValueError(f"{word.opcode} requires an address")
+            data += base
+        definition = word.definition
+        if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
+            definition = definition_addresses.get(word.data)
+        return Word(word.opcode, data, word.head, definition)
+
+    for address in range(root_stop):
+        word = machine.state.memory[address]
+        if word is None:
+            raise ValueError("faithful root graph contains an uninitialized word")
+        machine.state.memory[address] = relocate(word, 0)
+
+    cursor = static_start
+    for words in compiled_definitions.values():
+        base = cursor
+        for offset, word in enumerate(words):
+            machine.state.memory[base + offset] = relocate(word, base)
+        machine.state.memory[base + len(words)] = Word(MuredOpcode.STOP)
+        cursor += len(words) + 1
+
+    machine.state.env = static_start
+    return machine

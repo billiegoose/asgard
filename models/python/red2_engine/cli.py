@@ -7,9 +7,13 @@ from red2_engine.machine import (
     DEFAULT_STACK_SIZE_IN_BYTES,
     Red2ResourceLimits,
 )
+from thor_compile.red2 import load_faithful_machine
 from thor_engine.golden import DEFAULT_QUANTUM, run_source
 from thor_engine.io_runtime import IoRuntimeError, LatestFileClockSource, run_io_source
-from thor_lang.parser import ParseError
+from thor_lang.ast import Definition, Expr, StructDef
+from thor_lang.normalization import normalize_program
+from thor_lang.parser import ParseError, parse_program
+from thor_lang.pretty import to_source
 from thor_lang.version import __version__
 
 
@@ -25,6 +29,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=DEFAULT_QUANTUM,
         help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
+    )
+    parser.add_argument(
+        "--faithful",
+        action="store_true",
+        help="run the faithful Python μRED machine instead of compatibility mode",
     )
     parser.add_argument(
         "--verbose",
@@ -60,6 +69,13 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
+        if args.faithful:
+            if (
+                args.stack_size_in_bytes is not None
+                or args.heap_size_in_bytes is not None
+            ):
+                raise ValueError("byte resource limits are not supported by --faithful")
+            return _run_faithful_source(source, quantum=args.quantum)
         resource_limits = _resource_limits_from_args(args)
         return _run_expr_source(
             source,
@@ -71,6 +87,28 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"red2: {error}", file=sys.stderr)
         return 2
+
+
+def _run_faithful_source(source: str, *, quantum: int) -> int:
+    program = normalize_program(parse_program(source))
+    definitions: dict[str, Expr] = {}
+    results: list[str] = []
+    for form in program.forms:
+        if isinstance(form, Definition):
+            definitions[form.name] = form.expr
+            continue
+        if isinstance(form, StructDef):
+            continue
+        machine = load_faithful_machine(
+            form,
+            quantum=quantum,
+            definitions=definitions,
+        )
+        machine.run()
+        results.append(to_source(machine.result_expr()))
+    if results:
+        print("\n".join(results))
+    return 0
 
 
 def _resource_limits_from_args(args: argparse.Namespace) -> Red2ResourceLimits:

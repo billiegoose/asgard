@@ -36,8 +36,12 @@ numeric unary/binary operations and comparisons, `NULL?`/`NOT`, atomic type
 predicates, and constant `=` with Chapter 3 integer/float coercion behavior where
 applicable. Structural strict primitives, recursive equality, and the remaining
 non-strict primitives `AND` and `OR` are not implemented yet, so it is still not
-full RED2 and is not wired to the CLI. The broader definition-context
-machinery outside that closed path remains incomplete. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
+full RED2. The existing `red2` CLI exposes this machine through opt-in
+`--faithful` pure-program execution while retaining evaluator-backed compatibility
+mode by default. Faithful program loading lays out visible top-level definitions as
+relocated static μRED graphs and annotates matching `SYM` words with definition
+addresses; nested definition expansion remains graph/register execution rather than
+an evaluator callback. See [`mured-thesis-notes.md`](mured-thesis-notes.md) for the three
 narrow source reconciliations used by this core. The `models/python/pypeline_red2/` artifact is
 a PypelineC-oriented fixed-width RED2 stepper subset for hardware exploration.
 The current user-visible primitive surface is documented in
@@ -87,8 +91,9 @@ The current user-visible primitive surface is documented in
 - The faithful μRED core implements the Chapter 4 `LETREC` recursion slice, including
   `RBLOCK`/`RUP`, three-word `REC` contexts, recursive-variable `RECP` access, and q=0
   LETREC reconstruction.
-- The faithful μRED core still lacks the broader multi-definition context
-  machinery outside the closed head-`SYM` path.
+- The faithful CLI supports ordinary visible top-level definitions through static
+  graph layout; custom `StructDef` accessor synthesis and IO actions remain outside
+  the faithful program-integration slice.
 - FPGA synthesis automation is not part of this milestone.
 - Successful selected strict primitive firing performs the Chapter 4/5 `fsp`
   reclamation required for its primitive-arguments subgraph; broader
@@ -109,7 +114,13 @@ Run the evaluator-backed RED2 compatibility model on the same expression:
 uv run red2 --expr "(+ 2 3)" --quantum 20
 ```
 
-Both commands should print:
+Run the direct Chapter 4 μRED path explicitly:
+
+```sh
+uv run red2 --faithful --expr "(+ 2 3)" --quantum 20
+```
+
+All three commands should print:
 
 ```text
 5

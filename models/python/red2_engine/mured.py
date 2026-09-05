@@ -286,7 +286,14 @@ class _SavedQuantum:
     value: int
 
 
-_ControlEntry = int | _SavedPrim | _SavedFire | _SavedQuantum | None
+@dataclass(frozen=True, slots=True)
+class _SavedDefinitionPath:
+    value: int
+
+
+_ControlEntry = (
+    int | _SavedPrim | _SavedFire | _SavedQuantum | _SavedDefinitionPath | None
+)
 
 
 @dataclass(slots=True)
@@ -488,8 +495,19 @@ class MuredMachine:
     def _push_control(self, address: int) -> None:
         self._push_control_entry(address)
 
+    def _push_definition_path(self, address: int) -> None:
+        self._push_control_entry(_SavedDefinitionPath(address))
+
+    def _discard_completed_definition_paths(self) -> None:
+        while self.state.c >= 0 and isinstance(
+            self.state.control_stack[self.state.c], _SavedDefinitionPath
+        ):
+            self._pop_control_entry()
+
     def _pop_control(self) -> int:
         value = self._pop_control_entry()
+        if isinstance(value, _SavedDefinitionPath):
+            return value.value
         if type(value) is not int:
             raise IllegalTransition("expected an environment path on the control stack")
         return value
@@ -560,6 +578,7 @@ class MuredMachine:
             if not isinstance(word.definition, int):
                 raise InvalidAddress("APP definition requires an address")
             self.state.memory[state.pc] = Word(MuredOpcode.STOP)
+            state.fsp -= 1
             state.pc = word.definition
             state.direction = Direction.F
             state.q -= 1
@@ -608,6 +627,7 @@ class MuredMachine:
         }:
             raise IllegalTransition("JOIN parent must be APP, RBLOCK, or RECP")
         tail = self._word(state.s_a)
+        self._discard_completed_definition_paths()
         saved_primitive = word.definition == 1
         if saved_primitive and not self._has_saved_primitive_context():
             raise IllegalTransition(
@@ -907,6 +927,7 @@ class MuredMachine:
     def _stop(self) -> None:
         if self.state.direction is not Direction.B:
             raise IllegalTransition("STOP requires backward execution")
+        self._discard_completed_definition_paths()
         self.state.pc += 1
         self.state.halted = True
 
@@ -947,7 +968,7 @@ class MuredMachine:
                 next_path = state.pc - 1
                 if next_path < 0:
                     raise InvalidAddress("SYM definition requires a continuation")
-                self._push_control(state.env)
+                self._push_definition_path(state.env)
                 self.state.memory[state.pc] = Word(
                     MuredOpcode.APP,
                     next_path,

@@ -276,11 +276,11 @@
 - Consumes: complete faithful Python RED2 subset
 - Produces: opt-in CLI path for faithful machine, without replacing evaluator-backed compatibility mode by default
 
-- [ ] Write a spec for an opt-in CLI flag or separate command path.
-- [ ] Add CLI tests proving current compatibility CLI remains unchanged.
-- [ ] Add faithful CLI tests for lambda, passive data, symbol, primitive, structure, and LETREC examples.
-- [ ] Implement the opt-in route and docs.
-- [ ] Run focused/full gates and commit.
+- [x] Write a spec for an opt-in CLI flag or separate command path.
+- [x] Add CLI tests proving current compatibility CLI remains unchanged.
+- [x] Add faithful CLI tests for lambda, passive data, symbol, primitive, structure, and LETREC examples.
+- [x] Implement the opt-in route and docs.
+- [x] Run focused/full gates and commit.
 
 ### Task 12: Final integrated RED2 conformance review
 

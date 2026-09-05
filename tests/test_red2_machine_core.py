@@ -10,7 +10,7 @@ from red2_engine.machine import (
     Red2ResourceLimits,
     Red2StackOverflowError,
 )
-from thor_compile.red2 import compile_expr
+from thor_compile.red2 import compile_expr, load_faithful_machine
 from thor_lang.ast import Integer, StructLit, Symbol
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
@@ -144,6 +144,34 @@ def test_deep_finite_result_materialization_does_not_use_python_stack() -> None:
         assert value.fields[0] == Integer(1)
         value = value.fields[1]
     assert value == Symbol("NIL")
+
+
+def test_faithful_definition_layout_relocates_addresses_not_de_bruijn_indices() -> None:
+    from red2_engine.mured import MuredOpcode
+
+    definition = parse_expr("(LAMBDA (f x) (f x))")
+    m = load_faithful_machine(
+        parse_expr("F"),
+        quantum=10,
+        definitions={"F": definition},
+        memory_words=64,
+    )
+
+    root = m.state.memory[0]
+    assert root is not None
+    assert root.definition is not None
+    base = root.definition
+    definition_words = [
+        word for word in m.state.memory[base : m.state.env + 16] if word is not None
+    ]
+    assert any(
+        word.opcode is MuredOpcode.APP_VAR and word.data == 0
+        for word in definition_words
+    )
+    assert any(
+        word.opcode is MuredOpcode.VAR and word.data == 1
+        for word in definition_words
+    )
 
 
 def test_red2_configured_resource_limits_allow_success() -> None:
