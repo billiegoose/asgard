@@ -334,3 +334,29 @@ def test_mise_hdl_prints_placeholder() -> None:
     assert result.returncode == 0
     assert result.stdout == "todo\n"
     assert result.stderr == ""
+
+
+def test_benchmark_python_task_forwards_all_public_options() -> None:
+    text = Path(".mise.toml").read_text()
+    assert "[tasks.benchmark-python]" in text
+    assert 'default="all"' in text
+    assert 'choices "all" "tak" "list" "struct" "game"' in text
+    assert '--benchmark "${usage_benchmark}"' in text
+    assert '--warmups "${usage_warmups}"' in text
+    assert '--iterations "${usage_iterations}"' in text
+    assert '--quantum "${usage_quantum}"' in text
+    assert '--cycle-limit "${usage_cycle_limit}"' in text
+
+
+def test_breakout_benchmark_task_stanza_is_unchanged() -> None:
+    text = Path(".mise.toml").read_text()
+    expected = (
+        "[tasks.benchmark-breakout]\n"
+        'description = "Benchmark deterministic Breakout across THOR, RED2, Rust, '
+        'and WASM backends"\n'
+        "usage = 'flag \"--iterations <n>\" help=\"samples per backend\" "
+        "default=\"3\"'\n"
+        "run = 'uv run python tools/videos/benchmark_breakout.py --iterations "
+        "\"${usage_iterations}\"'\n"
+    )
+    assert expected in text

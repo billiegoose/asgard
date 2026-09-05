@@ -1317,6 +1317,28 @@ def test_ubv_emits_var_and_switches_to_reverse() -> None:
     assert state.direction is Direction.B
 
 
+def test_struct_result_copy_preserves_detached_field_graph_above_destination() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.APP, 12, False)
+    state.memory[10] = Word(MuredOpcode.APP, 13, False)
+    state.memory[11] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[12] = Word(MuredOpcode.INT, 1, True)
+    state.memory[13] = Word(MuredOpcode.INT, 2, True)
+    state.fsp = 13
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.APP, 12, False)
+    assert state.memory[5] == Word(MuredOpcode.APP, 13, False)
+    assert state.memory[6] == Word(MuredOpcode.VAR, 0, True)
+    assert state.memory[12] == Word(MuredOpcode.INT, 1, True)
+    assert state.memory[13] == Word(MuredOpcode.INT, 2, True)
+    assert state.fsp == 13
+
+
 def test_join_inserts_argument_root_and_walks_parent_backward() -> None:
     machine = base_machine()
     state = machine.state

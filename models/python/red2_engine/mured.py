@@ -1445,6 +1445,7 @@ class MuredMachine:
         if source.opcode is not MuredOpcode.STRUCT:
             raise IllegalTransition("structure result copy requires STRUCT root")
 
+        old_fsp = self.state.fsp
         words: list[Word] = [source]
         cursor = source_address + 1
         while True:
@@ -1475,7 +1476,9 @@ class MuredMachine:
                 word.definition,
             )
         self.state.memory[last_address] = Word(MuredOpcode.VAR, 0, True)
-        self.state.fsp = last_address
+        # Copying only the STRUCT spine must not reclaim detached field graphs
+        # that the copied APP descriptors still reference above the destination.
+        self.state.fsp = max(old_fsp, last_address)
 
     def _apply_unary_primitive(self, primitive: str, operand: Word) -> Word | None:
         value = self._number_word_value(operand)

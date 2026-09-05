@@ -140,6 +140,19 @@ description = "Benchmark deterministic Breakout across THOR, RED2, Rust, and WAS
 usage = 'flag "--iterations <n>" help="samples per backend" default="3"'
 run = 'uv run python tools/videos/benchmark_breakout.py --iterations "${usage_iterations}"'
 
+[tasks.benchmark-python]
+description = "Benchmark pure Python THOR and RED2 workloads with parity preflight"
+usage = '''
+flag "--benchmark <name>" help="workload to run" default="all" {
+  choices "all" "tak" "list" "struct" "game"
+}
+flag "--warmups <n>" help="warmup samples per backend" default="1"
+flag "--iterations <n>" help="measured samples per backend" default="5"
+flag "--quantum <n>" help="THOR/RED2 contraction quantum" default="5000000"
+flag "--cycle-limit <n>" help="faithful RED2 cycle limit" default="2000000"
+'''
+run = 'uv run python tools/benchmark_python_engines.py --benchmark "${usage_benchmark}" --warmups "${usage_warmups}" --iterations "${usage_iterations}" --quantum "${usage_quantum}" --cycle-limit "${usage_cycle_limit}"'
+
 [tasks.test]
 description = "Run Python tests"
 run = "uv run pytest -n 4 --dist loadfile"

@@ -1,0 +1,33 @@
+{
+  "tasks": {
+    "1": {
+      "hash": "83db23d4106798fb5266217adb767f85e3a716aafd174c706b31f992e54b0665",
+      "verdict": "pass",
+      "reason": "round 1: direct recursive STRUCT depth tests, THOR parity, preserved 65,536-word memory/collision guards, and existing regressions jointly prove the repair contract"
+    },
+    "2": {
+      "hash": "8bdb0192227eee8555bfcc81a93ec40da947886052f1f2d192f438f408f9c3d1",
+      "verdict": "pass",
+      "reason": "round 3: repeated independent executions in both engines now prove exact deterministic checksums in addition to the intended orthogonal source shapes and purity constraints"
+    },
+    "3": {
+      "hash": "8c88f4bf7b3182586f8ef39b73976c069e6a7190191648bf108fdac665733300",
+      "verdict": "pass",
+      "reason": "round 1: proof directly covers parity-before-timing, the prepared-source timing boundary, failure-without-partial-CSV behavior, aggregation schema, limits, counters, and speed-order independence"
+    },
+    "4": {
+      "hash": "8f9af2545b818417eb980bca6c6be60d08d0510ea30891e687c940535b02a3a6",
+      "verdict": "pass",
+      "reason": "round 2: proof now exercises both the complete battery and explicit single-workload mise selection while validating documentation and preserving benchmark-breakout"
+    },
+    "5": {
+      "hash": "424a9987dc3b38e1797ef2e9033e57c1b5b9e380ebf2faebb7429e818f88897e",
+      "verdict": "pass",
+      "reason": "round 1: focused and full gates, whole-battery smoke, architectural inspections, memory-default pin, Breakout preservation, and diff check directly cover the integrated acceptance claim"
+    }
+  },
+  "tally": {
+    "dispatched": 8,
+    "rejected": 3
+  }
+}

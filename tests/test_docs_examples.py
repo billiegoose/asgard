@@ -141,3 +141,37 @@ def test_examples_readme_embeds_breakout_recording() -> None:
     assert "mise run generate-video breakout" in readme
     assert "examples/media/breakout.cast" in readme
     assert embed in readme
+
+
+def test_python_engine_benchmark_doc_describes_workloads_and_checksums() -> None:
+    text = Path("docs/python-engine-benchmarks.md").read_text()
+    for name, expected in (
+        ("tak", "15"),
+        ("list", "300"),
+        ("struct", "300"),
+        ("game", "8"),
+    ):
+        assert f"`{name}`" in text
+        assert f"`{expected}`" in text
+    assert "Recursive application" in text
+    assert "PAIR/list allocation" in text
+    assert "user-defined `STRUCT` allocation" in text
+    assert "Appendix-A GAME" in text
+
+
+def test_python_engine_benchmark_doc_states_methodology_contract() -> None:
+    text = Path("docs/python-engine-benchmarks.md").read_text()
+    assert "untimed parity preflight" in text
+    assert "Parsing and normalization are therefore outside the timed region" in text
+    assert "definition translation" in text
+    assert "AST-to-μRED compilation/loading" in text
+    assert "to_source" in text
+    assert "Warmups" in text and "excluded from statistics" in text
+    assert "median" in text and "best measured time" in text
+    assert "no successful partial CSV" in text
+    assert "thor_contractions" in text
+    assert "mured_cycles" in text
+    assert "different native units" in text
+    assert "no backend is required to win" in text
+    assert "benchmark-breakout" in text
+    assert "subprocesses" in text
