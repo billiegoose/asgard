@@ -162,16 +162,13 @@ def test_python_engine_benchmark_doc_describes_workloads_and_checksums() -> None
 def test_python_engine_benchmark_doc_states_methodology_contract() -> None:
     text = Path("docs/python-engine-benchmarks.md").read_text()
     assert "untimed parity preflight" in text
-    assert "Parsing and normalization are therefore outside the timed region" in text
-    assert "definition translation" in text
-    assert "AST-to-μRED compilation/loading" in text
-    assert "to_source" in text
+    assert "backend-specific setup happen outside the timed region" in text
+    assert "translated before timing" in text
+    assert "compiled and loaded before timing" in text
+    assert "times only `MuredMachine.run()`" in text
+    assert "Result reconstruction and `to_source` rendering happen after the timer stops" in text
     assert "Warmups" in text and "excluded from statistics" in text
-    assert "median" in text and "best measured time" in text
+    assert "median measured time" in text
     assert "no successful partial CSV" in text
-    assert "thor_contractions" in text
-    assert "mured_cycles" in text
-    assert "different native units" in text
-    assert "no backend is required to win" in text
     assert "benchmark-breakout" in text
     assert "subprocesses" in text

@@ -27,24 +27,13 @@ These are intentionally small, orthogonal workloads rather than one realistic ap
 
 ## Correctness and timing boundary
 
-For each selected workload, the source file is read, parsed, normalized, and split into definitions plus one expression before benchmarking. Parsing and normalization are therefore outside the timed region.
+For each selected workload, source reading, parsing, normalization, definition preparation, and backend-specific setup happen outside the timed region.
 
 The runner performs an untimed parity preflight on THOR and RED2 before warmups or measured samples. If either backend raises an exception, exceeds its configured resources, or produces the wrong checksum, the whole command fails and no successful partial CSV comparison is printed.
 
-A measured THOR sample includes backend-specific definition translation performed by `reduce_expr`, reduction, and rendering the result with `to_source`. A measured RED2 sample includes AST-to-μRED compilation/loading, machine execution through the explicit cycle limit, result reconstruction, and rendering with `to_source`. This quantity is best described as backend pipeline time, not only reducer-loop time.
+For THOR, the expression and visible definitions are translated before timing; each sample then times only the reducer executing that prepared expression. For RED2, a fresh faithful machine is compiled and loaded before timing; each sample then times only `MuredMachine.run()`. Result reconstruction and `to_source` rendering happen after the timer stops, while every warmup and measured sample is still checked for the expected result.
 
-Warmups run through the same backend path and must still produce the expected checksum, but they are excluded from statistics. The primary reported statistic is the median measured time. The best measured time is included as a diagnostic secondary statistic.
-
-## Output and work counters
-
-Successful output is CSV with two adjacent backend rows per workload. `speedup_vs_thor` is computed independently within each workload as THOR median divided by the backend median, so the THOR row is `1.0`. It is descriptive only: no backend is required to win any workload for the benchmark command to succeed.
-
-The native work counters are deliberately backend-specific:
-
-- THOR reports `thor_contractions` from `ReductionResult.steps`.
-- RED2 reports `mured_cycles` from the faithful machine cycle counter.
-
-These are different native units and must not be treated as directly comparable instruction counts. They are useful for checking deterministic work within the same backend and workload, not for comparing one THOR contraction with one μRED cycle.
+This intentionally measures reducer/VM execution rather than parsing, compilation/loading, or serialization overhead. Warmups exercise the same execution path but are excluded from statistics. The primary reported statistic is the median measured time.
 
 ## Breakout benchmark
 
@@ -53,28 +42,13 @@ This battery is separate from `mise run benchmark-breakout`. `benchmark-python` 
 <!-- benchmark-results:start -->
 ## Latest measured results
 
-Recorded `2026-09-05T16:18:06-04:00` on `Darwin x86_64` with Python `3.14.7`.
-These numbers are machine-specific observations, not performance gates.
+Recorded `2026-09-05T16:45:18-04:00` on `Darwin x86_64` with Python `3.14.7`.
+Times are median reducer/VM execution times from the default run (one warmup, five measured iterations).
 
-Command:
-
-```sh
-mise run benchmark-python
-```
-
-The default run uses one warmup and five measured iterations per backend.
-Median is the primary timing; best is included as a diagnostic.
-
-| Benchmark | Backend | Result | Iterations | Median (s) | Best (s) | Speedup vs THOR | Work units | Unit |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| tak | thor | 15 | 5 | 0.025224529 | 0.023699439 | 1.000000 | 965 | `thor_contractions` |
-| tak | red2 | 15 | 5 | 0.013850101 | 0.013418374 | 1.821252 | 4290 | `mured_cycles` |
-| list | thor | 300 | 5 | 0.425242464 | 0.413411381 | 1.000000 | 36249 | `thor_contractions` |
-| list | red2 | 300 | 5 | 0.524739763 | 0.493994762 | 0.810387 | 149848 | `mured_cycles` |
-| struct | thor | 300 | 5 | 0.108080035 | 0.095214499 | 1.000000 | 6050 | `thor_contractions` |
-| struct | red2 | 300 | 5 | 0.127035064 | 0.120937858 | 0.850789 | 47496 | `mured_cycles` |
-| game | thor | 8 | 5 | 0.453905084 | 0.400399491 | 1.000000 | 10766 | `thor_contractions` |
-| game | red2 | 8 | 5 | 0.269665686 | 0.255569799 | 1.683214 | 94220 | `mured_cycles` |
-
-`thor_contractions` and `mured_cycles` are backend-native counters and are not directly comparable.
+| Benchmark | THOR | RED2 | Speedup vs THOR |
+| --- | ---: | ---: | ---: |
+| tak | 20.09 ms | 13.35 ms | 1.50× |
+| list | 459.86 ms | 563.78 ms | 0.82× |
+| struct | 101.95 ms | 145.30 ms | 0.70× |
+| game | 426.84 ms | 256.04 ms | 1.67× |
 <!-- benchmark-results:end -->

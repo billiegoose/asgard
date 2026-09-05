@@ -12,7 +12,7 @@ from pathlib import Path
 
 from thor_compile.red2 import load_faithful_machine
 from thor_engine.golden import _initial_definitions
-from thor_engine.semantics import reduce_expr
+from thor_engine.semantics import ThorDefinitionCache, _Reducer, translate
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -44,7 +44,7 @@ class BenchmarkSpec:
 class PreparedBenchmark:
     spec: BenchmarkSpec
     thor_expr: Expr
-    thor_definitions: dict[str, Expr]
+    thor_definitions: ThorDefinitionCache
     red2_expr: Expr
     red2_definitions: dict[str, Expr]
 
@@ -89,23 +89,20 @@ def prepare_benchmark(spec: BenchmarkSpec) -> PreparedBenchmark:
         raise ValueError("benchmark source must contain one expression")
     return PreparedBenchmark(
         spec,
-        expr,
-        thor_definitions,
+        translate(expr),
+        ThorDefinitionCache.from_definitions(thor_definitions),
         expr,
         red2_definitions,
     )
 
 
 def _run_thor(prepared: PreparedBenchmark, *, quantum: int) -> Sample:
+    reducer = _Reducer(prepared.thor_definitions.definitions, quantum)
     started = time.perf_counter()
-    result = reduce_expr(
-        prepared.thor_expr,
-        quantum=quantum,
-        definitions=dict(prepared.thor_definitions),
-    )
-    rendered = to_source(result.expr)
+    reduced = reducer.reduce(prepared.thor_expr, (), 0)
     elapsed = time.perf_counter() - started
-    return Sample(rendered, elapsed, result.steps)
+    rendered = to_source(reduced)
+    return Sample(rendered, elapsed, reducer.steps)
 
 
 def _run_red2(
@@ -114,15 +111,15 @@ def _run_red2(
     quantum: int,
     cycle_limit: int,
 ) -> Sample:
-    started = time.perf_counter()
     machine = load_faithful_machine(
         prepared.red2_expr,
         quantum=quantum,
         definitions=dict(prepared.red2_definitions),
     )
+    started = time.perf_counter()
     machine.run(cycle_limit=cycle_limit)
-    rendered = to_source(machine.result_expr())
     elapsed = time.perf_counter() - started
+    rendered = to_source(machine.result_expr())
     return Sample(rendered, elapsed, machine.state.cycles)
 
 
