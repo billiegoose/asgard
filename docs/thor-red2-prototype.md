@@ -33,7 +33,7 @@ See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconcil
 
 Visible source definitions are compiled into relocated static μRED graphs. `StructDef` constructors remain source definitions, while canonical generated accessor lambdas are recognized by the loader and emitted as native structure-selector primitives. A user definition that replaces a generated accessor keeps ordinary definition semantics.
 
-The IO runtime remains a host/simulator layer for actions such as UART and CLOCK. When that layer needs a pure RED2 reduction, it creates and runs a faithful μRED machine; it does not use the deleted evaluator-backed engine.
+Python RED2 owns a separate iterative IoRunner-style action layer around `MuredMachine`, analogous to Rust's `IoRunner`/`Reducer` split. That RED2-owned layer executes UART and CLOCK actions while asking the faithful μRED machine to perform pure reductions; the THOR model keeps its separate simulator action interpreter. UART/CLOCK host effects remain outside `MuredMachine.step()` and `MuredMachine.run()`, which stay pure graph/environment/register execution.
 
 The former byte-accounted `--stack-size-in-bytes` and `--heap-size-in-bytes` CLI switches were removed because the faithful machine currently exposes word capacities rather than the old compatibility evaluator's byte accounting. User-facing faithful loaders default to 65,536 graph/environment words and 8,192 control entries.
 

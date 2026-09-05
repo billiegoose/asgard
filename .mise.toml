@@ -129,7 +129,7 @@ run = 'echo "todo"'
 description = "Generate and upload one deterministic example recording"
 usage = '''
 arg "<video>" help="video fixture to record" {
-  choices "breakout" "breakout-wasm"
+  choices "breakout" "breakout-wasm" "pong"
 }
 flag "--no-upload" help="regenerate the local cast without uploading or updating the URL"
 '''

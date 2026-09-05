@@ -12,6 +12,7 @@ def test_breakout_cast_is_committed_asciicast_v2() -> None:
     assert header["version"] == 2
     assert header["width"] == 20
     assert header["height"] == 16
+    assert header["title"] == "Asgard Breakout Python RED2"
 
 
 def test_breakout_cast_hides_cursor_during_play_and_restores_it_on_exit() -> None:
@@ -96,13 +97,37 @@ def test_wasm_breakout_cast_is_real_long_timed_recording_without_trap_output() -
     assert "stack" not in output.lower()
 
 
-def test_generate_video_task_supports_breakout_and_breakout_wasm() -> None:
+def test_pong_cast_is_real_red2_recording() -> None:
+    cast = Path("examples/media/pong.cast")
+    lines = cast.read_text().splitlines()
+    header = json.loads(lines[0])
+    events = [json.loads(line) for line in lines[1:]]
+    output = "".join(event[2] for event in events)
+    ball_draws = len(re.findall(r"\x1b\[(\d+);(\d+)Ho", output))
+
+    assert header["version"] == 2
+    assert header["width"] == 20
+    assert header["height"] == 17
+    assert header["title"] == "Asgard Pong Python RED2"
+    assert len(events) >= 100
+    assert events[-1][0] >= 4.0
+    assert events[-1][0] <= 6.0
+    assert ball_draws >= 10
+    assert "PONG 20x12" in output
+    assert "\x1b[?25hQUIT" in output
+    assert "Traceback" not in output
+    assert "RecursionError" not in output
+
+
+def test_generate_video_task_supports_red2_games_and_breakout_wasm() -> None:
     mise = Path(".mise.toml").read_text()
     generator = Path("tools/videos/generate.py").read_text()
 
     assert "[tasks.generate-video]" in mise
     assert 'arg "<video>"' in mise
-    assert 'choices "breakout" "breakout-wasm"' in mise
-    assert 'choices=("breakout", "breakout-wasm")' in generator
+    assert 'choices "breakout" "breakout-wasm" "pong"' in mise
+    assert 'choices=("breakout", "breakout-wasm", "pong")' in generator
     assert "generate_breakout_wasm" in generator
+    assert "generate_pong" in generator
+    assert 'command_model="red2"' in generator
     assert "generate-videos" not in mise

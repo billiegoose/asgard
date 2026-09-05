@@ -102,7 +102,7 @@ printf 'abcXYZ!\033' | mise run rust examples/uart-caesar-plus4.thor
 printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 ```
 
-Watch the Breakout recording:
+Watch the Python RED2 Breakout recording:
 
 [![Asgard Breakout asciicast](https://asciinema.org/a/oaQSOF9foLO34D6v.svg)](https://asciinema.org/a/oaQSOF9foLO34D6v)
 
@@ -111,6 +111,7 @@ Run terminal Breakout with a controlled latest-value clock source:
 ```sh
 mise run thor examples/breakout.thor --clock /tmp/asgard-clock
 mise run red2 examples/breakout.thor --clock /tmp/asgard-clock
+mise run red2 examples/pong.thor --clock /tmp/asgard-clock
 mise run rust examples/breakout.thor --clock /tmp/asgard-clock
 mise run wasm examples/breakout.thor --clock /tmp/asgard-clock
 ```

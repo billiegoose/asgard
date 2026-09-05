@@ -13,8 +13,10 @@ README = ROOT / "examples" / "README.md"
 MEDIA_DIR = ROOT / "examples" / "media"
 BREAKOUT_CAST = MEDIA_DIR / "breakout.cast"
 BREAKOUT_WASM_CAST = MEDIA_DIR / "breakout-wasm.cast"
-BREAKOUT_TITLE = "Asgard Breakout deterministic playthrough"
+PONG_CAST = MEDIA_DIR / "pong.cast"
+BREAKOUT_TITLE = "Asgard Breakout Python RED2"
 BREAKOUT_WASM_TITLE = "Asgard Breakout WASM"
+PONG_TITLE = "Asgard Pong Python RED2"
 
 
 def _breakout_steps() -> tuple[tuple[int, str, float], ...]:
@@ -47,14 +49,32 @@ def _breakout_wasm_steps() -> tuple[tuple[int, str, float], ...]:
     return BREAKOUT_STEPS
 
 
+def _pong_steps() -> tuple[tuple[int, str, float], ...]:
+    keys_by_tick = {
+        3: "\x1b[A",
+        4: "\x1b[A",
+        8: "\x1b[B",
+        9: "\x1b[B",
+    }
+    steps: list[tuple[int, str, float]] = [
+        (1_700_000_000_000, " ", 3.0),
+    ]
+    for tick in range(1, 19):
+        keys = keys_by_tick.get(tick, " ")
+        steps.append((1_700_000_000_000 + (tick * 200), keys, 0.05))
+    steps.append((1_700_000_003_800, "q", 0.05))
+    return tuple(steps)
+
+
 TICK_MS = 100
 BREAKOUT_STEPS = _breakout_steps()
 BREAKOUT_WASM_STEPS = _breakout_wasm_steps()
+PONG_STEPS = _pong_steps()
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate and upload example videos.")
-    parser.add_argument("video", choices=("breakout", "breakout-wasm"))
+    parser.add_argument("video", choices=("breakout", "breakout-wasm", "pong"))
     parser.add_argument(
         "--no-upload",
         action="store_true",
@@ -72,57 +92,81 @@ def main(argv: list[str] | None = None) -> int:
         if url:
             print(url)
         return 0
+    if args.video == "pong":
+        url = generate_pong(upload=not args.no_upload)
+        if url:
+            print(url)
+        return 0
     return 2
 
 
 def generate_breakout(*, upload: bool) -> str | None:
-    return _generate_breakout_video(
+    return _generate_terminal_video(
         upload=upload,
         cast=BREAKOUT_CAST,
         title=BREAKOUT_TITLE,
         command_model="red2",
+        source="examples/breakout.thor",
         steps=BREAKOUT_STEPS,
+        height=16,
         readme_writer=_write_examples_readme,
     )
 
 
 def generate_breakout_wasm(*, upload: bool) -> str | None:
-    return _generate_breakout_video(
+    return _generate_terminal_video(
         upload=upload,
         cast=BREAKOUT_WASM_CAST,
         title=BREAKOUT_WASM_TITLE,
         command_model="wasm",
+        source="examples/breakout.thor",
         steps=BREAKOUT_WASM_STEPS,
+        height=16,
         readme_writer=_write_examples_readme_wasm,
     )
 
 
-def _generate_breakout_video(
+def generate_pong(*, upload: bool) -> str | None:
+    return _generate_terminal_video(
+        upload=upload,
+        cast=PONG_CAST,
+        title=PONG_TITLE,
+        command_model="red2",
+        source="examples/pong.thor",
+        steps=PONG_STEPS,
+        height=17,
+        readme_writer=_write_examples_readme_pong,
+    )
+
+
+def _generate_terminal_video(
     *,
     upload: bool,
     cast: Path,
     title: str,
     command_model: str,
+    source: str,
     steps: tuple[tuple[int, str, float], ...],
+    height: int,
     readme_writer: Callable[[str], None],
 ) -> str | None:
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-    prefix = f"asgard-{command_model}-breakout-video-"
+    prefix = f"asgard-{command_model}-{Path(source).stem}-video-"
     with tempfile.TemporaryDirectory(prefix=prefix) as tmp:
         tmp_path = Path(tmp)
         clock = tmp_path / "clock.txt"
-        driver = tmp_path / "drive_breakout.py"
+        driver = tmp_path / "drive_terminal_game.py"
         clock.write_text("1700000000000\n")
         driver.write_text(_driver_source(clock, steps))
         command = (
             f"{sys.executable} {driver} | "
-            f"mise run {command_model} examples/breakout.thor "
+            f"mise run {command_model} {source} "
             f"--clock {clock} --quantum 50000"
         )
         env = os.environ | {
             "TERM": "xterm-256color",
             "COLUMNS": "20",
-            "LINES": "16",
+            "LINES": str(height),
         }
         subprocess.run(
             [
@@ -225,6 +269,17 @@ def _write_examples_readme_wasm(url: str) -> None:
     text = re.sub(
         r"\[!\[Asgard Breakout WASM asciicast\]\([^)]*\)\]\([^)]+\)",
         f"[![Asgard Breakout WASM asciicast]({svg_url})]({url})",
+        text,
+    )
+    README.write_text(text)
+
+
+def _write_examples_readme_pong(url: str) -> None:
+    svg_url = f"{url}.svg"
+    text = README.read_text()
+    text = re.sub(
+        r"\[!\[Asgard Pong asciicast\]\([^)]*\)\]\([^)]+\)",
+        f"[![Asgard Pong asciicast]({svg_url})]({url})",
         text,
     )
     README.write_text(text)

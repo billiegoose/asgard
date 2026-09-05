@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
 
-from thor_compile.red2 import load_faithful_machine
+from red2_engine.io_runtime import Red2IoRuntimeError, run_red2_io_action
 from thor_engine.golden import ModelName
 from thor_engine.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import (
@@ -81,14 +81,27 @@ def run_io_source(
     """
     program = normalize_program(parse_program(source))
     definitions, action = _prepare_io_program(program, model=model)
+    clock_source = clock or SystemClockSource()
+    if model == "red2":
+        host = _Red2IoHost(stdin=stdin, stdout=stdout, clock=clock_source)
+        try:
+            result = run_red2_io_action(
+                action,
+                definitions=definitions,
+                quantum=quantum,
+                host=host,
+            )
+        except Red2IoRuntimeError as error:
+            raise IoRuntimeError(str(error)) from error
+        return to_source(result)
+
     runtime = _IoRuntime(
-        model=model,
         quantum=quantum,
         definitions=definitions,
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
-        clock=clock or SystemClockSource(),
+        clock=clock_source,
     )
     return to_source(runtime.run(action))
 
@@ -118,6 +131,28 @@ def _prepare_io_program(
     return definitions, action
 
 
+@dataclass(slots=True)
+class _Red2IoHost:
+    stdin: TextIO
+    stdout: TextIO
+    clock: ClockSource
+
+    def uart_rx(self) -> int | None:
+        if not _text_stream_has_ready_input(self.stdin):
+            return None
+        char = self.stdin.read(1)
+        if char == "":
+            return None
+        return ord(char[0])
+
+    def uart_tx(self, data: bytes) -> None:
+        self.stdout.write("".join(chr(byte) for byte in data))
+        self.stdout.flush()
+
+    def clock_ms(self) -> int:
+        return self.clock.now_ms()
+
+
 @dataclass(frozen=True, slots=True)
 class _BindCont:
     lambda_expr: Expr
@@ -142,7 +177,6 @@ class _IoRuntime:
     def __init__(
         self,
         *,
-        model: ModelName,
         quantum: int,
         definitions: Mapping[str, Expr],
         stdin: TextIO,
@@ -150,14 +184,9 @@ class _IoRuntime:
         stderr: TextIO,
         clock: ClockSource,
     ) -> None:
-        self._model = model
         self._quantum = quantum
         self._definitions = definitions
-        self._thor_definition_cache = (
-            ThorDefinitionCache.from_definitions(definitions)
-            if model == "thor"
-            else None
-        )
+        self._thor_definition_cache = ThorDefinitionCache.from_definitions(definitions)
         self._stdin = stdin
         self._stdout = stdout
         self._stderr = stderr
@@ -310,19 +339,11 @@ class _IoRuntime:
         return action
 
     def _pure(self, expr: Expr) -> Expr:
-        if self._model == "thor":
-            return reduce_expr(
-                expr,
-                quantum=self._quantum,
-                definitions=self._thor_definition_cache,
-            ).expr
-        machine = load_faithful_machine(
+        return reduce_expr(
             expr,
             quantum=self._quantum,
-            definitions=self._definitions,
-        )
-        machine.run()
-        return machine.result_expr()
+            definitions=self._thor_definition_cache,
+        ).expr
 
     def _integer_arg(self, primitive: str, expr: Expr) -> int:
         value = self._pure(expr)

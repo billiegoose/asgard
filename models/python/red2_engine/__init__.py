@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
 from red2_engine.instructions import Instruction, Opcode, ProgramImage
+from red2_engine.io_runtime import Red2IoHost, Red2IoRuntimeError, run_red2_io_action
 from red2_engine.mured import MuredMachine, MuredMachineState, MuredOpcode, Word
 from thor_lang.ast import Expr
 
@@ -32,6 +33,9 @@ __all__ = [
     "MuredOpcode",
     "Opcode",
     "ProgramImage",
+    "Red2IoHost",
+    "Red2IoRuntimeError",
     "Word",
     "load_faithful_machine",
+    "run_red2_io_action",
 ]

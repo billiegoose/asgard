@@ -71,6 +71,23 @@ def test_hangman_example_documents_utility_sections() -> None:
         assert section in hangman
 
 
+def test_pong_example_documents_terminal_game_sections() -> None:
+    pong = Path("examples/pong.thor").read_text()
+
+    for section in [
+        "; --- constants ---",
+        "; --- terminal rendering ---",
+        "; --- input decoding ---",
+        "; --- game physics ---",
+        "; --- game loop ---",
+    ]:
+        assert section in pong
+    assert "CLOCK" in pong
+    assert "UART-RX" in pong
+    assert "UART-TX-BYTES" in pong
+    assert "20x12" in pong
+
+
 def test_breakout_example_documents_terminal_game_sections() -> None:
     breakout = Path("examples/breakout.thor").read_text()
 
@@ -85,6 +102,28 @@ def test_breakout_example_documents_terminal_game_sections() -> None:
     assert "CLOCK" in breakout
     assert "ESC [2J" in breakout
     assert "20x12" in breakout
+
+
+def test_docs_describe_red2_owned_io_boundary() -> None:
+    prototype = Path("docs/thor-red2-prototype.md").read_text()
+    primitives = Path("docs/thor-primitives.md").read_text()
+
+    assert "iterative IoRunner-style action layer around `MuredMachine`" in prototype
+    stale_boundary = (
+        "The IO runtime remains a host/simulator layer for actions such as "
+        "UART and CLOCK"
+    )
+    assert stale_boundary not in prototype
+    assert "outside `MuredMachine.step()` and `MuredMachine.run()`" in prototype
+    for action in ("UART-RX", "UART-TX", "UART-TX-BYTES", "CLOCK"):
+        assert action in primitives
+    assert "Python RED2 owns an iterative action runner for exactly" in primitives
+    assert "`LEDS` and `TICKS` remain THOR-host" in primitives
+    assert "stdout for simulated UART output" in primitives
+    assert "`--verbose`" in primitives
+    assert "Unix timestamp" in primitives
+    assert "latest-value" in primitives
+    assert "outside `MuredMachine.step()` and `MuredMachine.run()`" in primitives
 
 
 def test_docs_describe_clock_and_breakout() -> None:

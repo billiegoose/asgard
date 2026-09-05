@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pytest import CaptureFixture
 
@@ -98,4 +100,19 @@ def test_red2_cli_user_definition_overrides_generated_bare_struct_accessor(
 
     captured = capsys.readouterr()
     assert captured.out == "99\n"
+    assert captured.err == ""
+
+
+def test_red2_cli_clock_uses_latest_valid_value_for_io(
+    tmp_path: Path,
+    capsys: CaptureFixture[str],
+) -> None:
+    clock = tmp_path / "clock.txt"
+    clock.write_text("bad\n1700000000001\ngarbage\n1700000000065\n")
+    source = "(IO-BIND (CLOCK) (LAMBDA (now) (UART-TX (MOD now 256))))"
+
+    assert red2_main(["--clock", str(clock), "--expr", source]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "A"
     assert captured.err == ""

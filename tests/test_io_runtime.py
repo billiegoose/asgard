@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from red2_engine.io_runtime import Red2IoHost, run_red2_io_action
 from thor_engine.golden import ModelName
 from thor_engine.io_runtime import LatestFileClockSource, run_io_source
 from thor_engine.semantics import ThorDefinitionCache, reduce_expr
@@ -149,6 +150,75 @@ def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:
     assert result == "1700000000789"
 
 
+def test_thor_io_pure_reducer_has_no_red2_faithful_machine_branch() -> None:
+    source = Path("models/python/thor_engine/io_runtime.py").read_text()
+    pure_start = source.index("    def _pure(self, expr: Expr) -> Expr:")
+    pure_end = source.index("    def _integer_arg", pure_start)
+    pure_source = source[pure_start:pure_end]
+
+    assert "load_faithful_machine" not in source
+    assert "red2" not in pure_source.lower()
+    assert "reduce_expr" in pure_source
+
+
+def test_red2_io_path_delegates_to_red2_owned_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import thor_engine.io_runtime as runtime
+
+    original = run_red2_io_action
+    calls = 0
+
+    def counting_runner(
+        action: Expr,
+        *,
+        definitions: Mapping[str, Expr],
+        quantum: int,
+        host: Red2IoHost,
+    ) -> Expr:
+        nonlocal calls
+        calls += 1
+        return original(
+            action,
+            definitions=definitions,
+            quantum=quantum,
+            host=host,
+        )
+
+    monkeypatch.setattr(runtime, "run_red2_io_action", counting_runner)
+
+    result, stdout, stderr = run_io("(UART-TX 65)", model="red2")
+
+    assert result == "NIL"
+    assert stdout == "A"
+    assert stderr == ""
+    assert calls == 1
+
+
+def test_red2_deep_io_then_chain_does_not_consume_python_stack() -> None:
+    source = """
+    loop ==
+      (Y
+        (LAMBDA (self)
+          (LAMBDA (n)
+            (if (= n 250)
+                (IO-RETURN n)
+                (IO-THEN (UART-TX 46) (self (+ n 1)))))))
+
+    (loop 0)
+    """
+    previous_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(80)
+    try:
+        result, stdout, stderr = run_io(source, model="red2", quantum=20_000)
+    finally:
+        sys.setrecursionlimit(previous_limit)
+
+    assert result == "250"
+    assert stdout == "." * 250
+    assert stderr == ""
+
+
 def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
     source = """
     loop ==
@@ -175,7 +245,10 @@ def test_deep_io_then_chain_does_not_consume_python_stack() -> None:
     assert stderr == ""
 
 
-def test_clock_dots_example_emits_dots_without_python_stack_growth() -> None:
+@pytest.mark.parametrize("model", ["thor", "red2"])
+def test_clock_dots_example_emits_dots_without_python_stack_growth(
+    model: ModelName,
+) -> None:
     class StopAfterDotsError(Exception):
         pass
 
@@ -198,7 +271,7 @@ def test_clock_dots_example_emits_dots_without_python_stack_growth() -> None:
         with pytest.raises(StopAfterDotsError):
             run_io_source(
                 Path("examples/clock-dots.thor").read_text(),
-                model="thor",
+                model=model,
                 quantum=500,
                 stdin=StringIO(""),
                 stdout=stdout,
@@ -350,6 +423,25 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     assert red2_result == result
     assert red2_stdout == stdout
     assert red2_stderr == stderr
+
+
+def test_pong_runs_on_red2_and_quits_cleanly() -> None:
+    stdout = StringIO()
+    stderr = StringIO()
+    result = run_io_source(
+        Path("examples/pong.thor").read_text(),
+        model="red2",
+        quantum=50_000,
+        stdin=StringIO("q"),
+        stdout=stdout,
+        stderr=stderr,
+        clock=FixedClock(1_700_000_000_000),
+    )
+
+    assert result == "NIL"
+    assert "PONG 20x12" in stdout.getvalue()
+    assert "\x1b[?25hQUIT" in stdout.getvalue()
+    assert stderr.getvalue() == ""
 
 
 def run_breakout_source_for_test(

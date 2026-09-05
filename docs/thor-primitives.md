@@ -200,14 +200,21 @@ Example:
 
 ### Simulated Device Actions
 
+Python RED2 owns an iterative action runner for exactly `UART-RX`, `UART-TX`,
+`UART-TX-BYTES`, and `CLOCK` in this slice. `LEDS` and `TICKS` remain THOR-host
+simulator actions and are not part of the native Python RED2 device subset.
+Host effects happen outside `MuredMachine.step()` and `MuredMachine.run()`.
+
 - `UART-RX` — poll one byte/character from stdin and return its integer code, or
   `NIL` when no byte is currently available. Simulator stdin EOF is also
   represented as `NIL` for now.
 - `UART-TX` — write one integer byte to stdout and return `NIL`.
 - `UART-TX-BYTES` — write a list of integer bytes to stdout and return `NIL`.
   Terminal examples use this for fixed text and board rows.
-- `LEDS` — write an LED-bank diagnostic line to stderr and return `NIL`.
-- `TICKS` — return a deterministic simulator tick counter.
+- `LEDS` — THOR-only in this slice; write an LED-bank diagnostic line to stderr
+  and return `NIL`.
+- `TICKS` — THOR-only in this slice; return a deterministic simulator tick
+  counter.
 - `CLOCK` — return the current Unix timestamp in milliseconds as an integer. It
   is an IO action and must be sequenced with `IO-BIND` or `IO-THEN`. Python
   THOR/RED2 and Rust/Wasm runners support `--clock <path>` as a latest-value
