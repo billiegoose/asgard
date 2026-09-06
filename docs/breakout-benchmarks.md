@@ -18,39 +18,54 @@ mise run benchmark-breakout --iterations 1
 uv run python tools/videos/benchmark_breakout.py --iterations 1
 ```
 
-## Current status after native Python RED2 IO
+## Current status
 
-The historical results below are **not representative of the current Python
-RED2 implementation**. On 2026-09-05, after Python RED2 gained its own native,
-iterative IO action runner around `MuredMachine`, the existing command-level
-benchmark no longer completed its Python RED2 sample within the benchmark's
-300-second timeout.
+As of 2026-09-05, Python RED2 Breakout works again and the deterministic
+benchmark completes normally. The regression came from the native Python RED2
+IO runner repeatedly rebuilding faithful μRED state for tiny pure reductions.
+Two independent forms of repeated work were responsible:
 
-A current diagnostic run showed:
+1. Every pure reduction recompiled and relocated the complete static top-level
+   definition environment.
+2. Breakout requested 53,277 pure reductions, but only 1,623 distinct
+   `(expression, quantum)` pairs occurred in the deterministic run. In other
+   words, about 97% of those requests repeated an identical pure computation.
 
-- THOR completed the deterministic benchmark input in about **2.66 seconds** of
-  wall-clock time.
-- Python RED2 completed an immediate `q` Breakout smoke in about **13.32
-  seconds**.
-- Python RED2 did **not** complete the full 70-input benchmark within **300
-  seconds**. A 30-second probe had already emitted `QUIT`, but the process had
-  not exited.
+The repair keeps effects outside `MuredMachine`: static definitions are compiled
+and relocated once per `run_red2_io_action(...)`, and pure faithful results are
+memoized only for that IO run using `(Expr, quantum)` as the key. The cache is
+not shared across runs, and every cache miss still executes through
+`load_faithful_machine(...)`, `MuredMachine.run(...)`, and
+`MuredMachine.result_expr()`.
 
-That means the old table should not be interpreted as a current backend
-ranking. The current behavior needs profiling before this benchmark can again
-be used for Python RED2 performance comparisons. In particular, the fact that
-`QUIT` is emitted before the process terminates suggests the benchmark is now
-capturing substantial work beyond the visible end of the playthrough.
+Profiling before the repair showed why the regression was so severe. An
+immediate-quit run made 909 pure machine loads while only about 0.33 seconds of
+profiled time was spent in actual μRED execution; compilation/loading consumed
+tens of seconds. A full deterministic Breakout run made 53,277 pure reductions
+and previously took roughly 27-29 seconds even after static-definition caching.
+Before static-definition caching it exceeded the 300-second benchmark timeout.
 
-For a current comparison of the pure Python THOR reducer and faithful Python
-RED2 VM, use:
+After both caches, the same deterministic workload completes in about 2-3
+seconds on the development machine. One representative command-level sample
+was:
 
-```sh
-mise run benchmark-python
-```
+| model | seconds | speedup vs THOR |
+| --- | ---: | ---: |
+| THOR | 1.529 | 1.00x |
+| Python RED2 | 2.692 | 0.57x |
+| Rust | 1.226 | 1.25x |
+| WASM | 0.924 | 1.66x |
 
-That benchmark deliberately excludes IO, clocks, subprocess startup, and
-terminal rendering and therefore measures a different, much narrower boundary.
+The exact timings vary between runs, so these are diagnostic numbers rather
+than a performance contract. Python RED2 is still slower than THOR in the
+current command-level benchmark, and the historical 1.719-second RED2 result
+below came from an older engine architecture, so it should not be treated as a
+current target without a like-for-like investigation.
+
+The deterministic RED2 output also reaches the real quit path: the final bytes
+end in `QUIT\n`. This matters because the initial help text itself contains
+`Q QUITS`, so merely searching for the word `QUIT` is not sufficient evidence
+that the scripted `q` was processed.
 
 ## Historical result: 2026-09-01
 

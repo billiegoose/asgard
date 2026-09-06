@@ -3,6 +3,9 @@ from __future__ import annotations
 import inspect
 import sys
 from dataclasses import dataclass, field
+from typing import Any
+
+import pytest
 
 from red2_engine.io_runtime import Red2IoHost, run_red2_io_action
 from thor_lang.ast import Definition, Expr, StructDef
@@ -158,3 +161,132 @@ def test_red2_io_runtime_has_one_faithful_pure_reduction_seam() -> None:
     ):
         assert forbidden not in source
     assert "run_red2_io_action(" not in runner.split("def run_red2_io_action", 1)[1]
+
+
+def test_red2_io_compiles_static_definitions_once_per_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import red2_engine.mured as mured
+
+    source = """
+    emit == (LAMBDA (n) (UART-TX (+ n 64)))
+    (IO-THEN (emit 1) (IO-THEN (emit 2) (emit 3)))
+    """
+    action, definitions = prepare(source)
+    target = definitions["emit"]
+    original = mured.compile_lambda
+    compile_count = 0
+
+    def counting_compile(expr: Expr, *args: Any, **kwargs: Any) -> Any:
+        nonlocal compile_count
+        if expr is target:
+            compile_count += 1
+        return original(expr, *args, **kwargs)
+
+    monkeypatch.setattr(mured, "compile_lambda", counting_compile)
+    host = FakeHost()
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20_000,
+        host=host,
+    )
+
+    assert to_source(result) == "NIL"
+    assert b"".join(host.writes) == b"ABC"
+    assert compile_count == 1
+
+
+def test_red2_io_memoizes_identical_pure_reductions_within_one_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import thor_compile.red2 as red2_compile
+
+    source = """
+    emit == (LAMBDA (n) (UART-TX (+ n 64)))
+    (IO-THEN (emit 1) (IO-THEN (emit 1) (emit 1)))
+    """
+    action, definitions = prepare(source)
+    original = red2_compile.load_faithful_machine
+    loads: dict[tuple[Expr, int], int] = {}
+
+    def counting_load(
+        expr: Expr,
+        *,
+        quantum: int,
+        definitions: Any = None,
+        memory_words: int = 65_536,
+        control_words: int = 8_192,
+    ) -> Any:
+        key = (expr, quantum)
+        loads[key] = loads.get(key, 0) + 1
+        return original(
+            expr,
+            quantum=quantum,
+            definitions=definitions,
+            memory_words=memory_words,
+            control_words=control_words,
+        )
+
+    monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
+    host = FakeHost()
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20_000,
+        host=host,
+    )
+
+    assert to_source(result) == "NIL"
+    assert b"".join(host.writes) == b"AAA"
+    assert loads
+    assert max(loads.values()) == 1
+
+
+def test_red2_io_pure_result_cache_is_scoped_to_one_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import thor_compile.red2 as red2_compile
+
+    source = "(IO-RETURN (+ 40 2))"
+    action, definitions = prepare(source)
+    original = red2_compile.load_faithful_machine
+    load_count = 0
+
+    def counting_load(
+        expr: Expr,
+        *,
+        quantum: int,
+        definitions: Any = None,
+        memory_words: int = 65_536,
+        control_words: int = 8_192,
+    ) -> Any:
+        nonlocal load_count
+        load_count += 1
+        return original(
+            expr,
+            quantum=quantum,
+            definitions=definitions,
+            memory_words=memory_words,
+            control_words=control_words,
+        )
+
+    monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
+    first = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20_000,
+        host=FakeHost(),
+    )
+    first_count = load_count
+    second = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20_000,
+        host=FakeHost(),
+    )
+
+    assert to_source(first) == "42"
+    assert to_source(second) == "42"
+    assert first_count > 0
+    assert load_count == first_count * 2

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from red2_engine.instructions import (
@@ -22,7 +22,7 @@ from thor_lang.ast import (
 )
 
 if TYPE_CHECKING:
-    from red2_engine.mured import MuredMachine
+    from red2_engine.mured import MuredMachine, Word
 
 Scope = tuple[str, ...]
 
@@ -254,16 +254,26 @@ def compile_definitions(definitions: Mapping[str, Expr]) -> DefinitionImage:
     )
 
 
-def load_faithful_machine(
-    expr: Expr,
+@dataclass(frozen=True, slots=True)
+class FaithfulDefinitionCache:
+    """Precompiled static μRED definition environment reusable across machine loads."""
+
+    memory_words: int
+    definition_names: frozenset[str]
+    selector_names: frozenset[str]
+    struct_selectors: dict[str, tuple[str, int]]
+    definition_addresses: dict[str, int]
+    static_start: int
+    static_words: tuple[tuple[int, Word], ...]
+
+
+def prepare_faithful_definitions(
+    definitions: Mapping[str, Expr] | None,
     *,
-    quantum: int,
-    definitions: Mapping[str, Expr] | None = None,
     memory_words: int = 65_536,
-    control_words: int = 8_192,
-) -> MuredMachine:
-    """Load one expression plus visible top-level definitions into μRED memory."""
-    from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+) -> FaithfulDefinitionCache:
+    """Compile and relocate the static μRED definition environment once."""
+    from red2_engine.mured import MuredOpcode, Word, compile_lambda
 
     definition_exprs = {} if definitions is None else dict(definitions)
     struct_selectors = {
@@ -277,11 +287,6 @@ def load_faithful_machine(
 
     definition_names = frozenset(definition_exprs)
     selector_names = frozenset(struct_selectors)
-    root_words = compile_lambda(
-        expr,
-        definition_names=definition_names,
-        unary_primitive_names=selector_names,
-    )
     compiled_definitions = {
         name: compile_lambda(
             definition,
@@ -294,17 +299,7 @@ def load_faithful_machine(
     if reserved_words >= memory_words:
         raise ValueError("faithful definitions exceed μRED memory capacity")
 
-    machine = MuredMachine.load(
-        root_words,
-        quantum=quantum,
-        memory_words=memory_words,
-        control_words=control_words,
-    )
-    root_stop = len(root_words)
     static_start = memory_words - reserved_words
-    if static_start <= root_stop:
-        raise ValueError("faithful program leaves no μRED working memory")
-
     definition_addresses: dict[str, int] = {}
     cursor = static_start
     for name, words in compiled_definitions.items():
@@ -322,21 +317,78 @@ def load_faithful_machine(
             definition = definition_addresses.get(word.data)
         return Word(word.opcode, data, word.head, definition)
 
+    static_words: list[tuple[int, Word]] = []
+    cursor = static_start
+    for words in compiled_definitions.values():
+        base = cursor
+        static_words.extend(
+            (base + offset, relocate(word, base)) for offset, word in enumerate(words)
+        )
+        static_words.append((base + len(words), Word(MuredOpcode.STOP)))
+        cursor += len(words) + 1
+
+    return FaithfulDefinitionCache(
+        memory_words=memory_words,
+        definition_names=definition_names,
+        selector_names=selector_names,
+        struct_selectors=struct_selectors,
+        definition_addresses=definition_addresses,
+        static_start=static_start,
+        static_words=tuple(static_words),
+    )
+
+
+def load_faithful_machine(
+    expr: Expr,
+    *,
+    quantum: int,
+    definitions: Mapping[str, Expr] | FaithfulDefinitionCache | None = None,
+    memory_words: int = 65_536,
+    control_words: int = 8_192,
+) -> MuredMachine:
+    """Load one expression plus visible top-level definitions into μRED memory."""
+    from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+
+    prepared = (
+        definitions
+        if isinstance(definitions, FaithfulDefinitionCache)
+        else prepare_faithful_definitions(definitions, memory_words=memory_words)
+    )
+    if prepared.memory_words != memory_words:
+        raise ValueError("faithful definition cache memory size does not match machine")
+
+    root_words = compile_lambda(
+        expr,
+        definition_names=prepared.definition_names,
+        unary_primitive_names=prepared.selector_names,
+    )
+    machine = MuredMachine.load(
+        root_words,
+        quantum=quantum,
+        memory_words=memory_words,
+        control_words=control_words,
+    )
+    root_stop = len(root_words)
+    if prepared.static_start <= root_stop:
+        raise ValueError("faithful program leaves no μRED working memory")
+
     for address in range(root_stop):
         word = machine.state.memory[address]
         if word is None:
             raise ValueError("faithful root graph contains an uninitialized word")
-        machine.state.memory[address] = relocate(word, 0)
+        data = word.data
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+            if not isinstance(data, int):
+                raise ValueError(f"{word.opcode} requires an address")
+        definition = word.definition
+        if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
+            definition = prepared.definition_addresses.get(word.data)
+        machine.state.memory[address] = Word(word.opcode, data, word.head, definition)
 
-    cursor = static_start
-    for words in compiled_definitions.values():
-        base = cursor
-        for offset, word in enumerate(words):
-            machine.state.memory[base + offset] = relocate(word, base)
-        machine.state.memory[base + len(words)] = Word(MuredOpcode.STOP)
-        cursor += len(words) + 1
+    for address, word in prepared.static_words:
+        machine.state.memory[address] = word
 
-    machine.state.env = static_start
-    machine.state.env_frontier = static_start
-    machine.struct_selectors = struct_selectors
+    machine.state.env = prepared.static_start
+    machine.state.env_frontier = prepared.static_start
+    machine.struct_selectors = prepared.struct_selectors
     return machine
