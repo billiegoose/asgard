@@ -274,12 +274,14 @@ def test_mise_parity_reports_detailed_diagnostics() -> None:
         "75",
     )
 
-    assert result.returncode == 0
-    assert result.stdout != ""
-    assert "parity mismatch at quantum 3" in result.stderr
+    assert result.returncode != 0
+    assert result.stdout == "(+ 3 (+ 2 (+ 1 2)))\n"
+    assert "parity mismatch at quantum 8" in result.stderr
     assert "thor: " in result.stderr
     assert "red2: " in result.stderr
-    assert "parity reconverged at quantum 5" in result.stderr
+    assert "parity reconverged at quantum 9" in result.stderr
+    assert "parity mismatch at quantum 14" in result.stderr
+    assert "parity did not reconverge by quantum 75" in result.stderr
 
 
 def test_wasm_task_exits_on_compile_and_build_failures() -> None:
