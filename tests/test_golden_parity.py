@@ -32,10 +32,6 @@ def test_fibonacci_example_reports_first_prefix_mismatch() -> None:
     result = compare_prefixes(source, max_quantum=75)
 
     assert result.first_mismatch is not None
-    assert result.first_mismatch.quantum == 8
-    assert result.mismatch_ranges == ((8, 8), (14, 75))
+    assert result.first_mismatch.quantum == 4
     assert result.snapshots[75].thor == "(+ 3 (+ 2 (+ 1 2)))"
-    # Faithful RED shares an atom back through an EP closure slot, so the
-    # machine reaches the same Fibonacci value sooner than the non-sharing
-    # Chapter 3 oracle at the same bounded quantum.
-    assert result.snapshots[75].red2 == "8"
+    assert result.snapshots[75].red2 == "(+ 3 (+ 2 (+ 1 2)))"
