@@ -7,7 +7,12 @@ from typing import Any
 
 import pytest
 
-from red2_engine.io_runtime import Red2IoHost, run_red2_io_action
+from red2_engine.io_runtime import (
+    Red2IoHost,
+    Red2IoRuntimeError,
+    Red2RechargeEvent,
+    run_red2_io_action,
+)
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -145,22 +150,24 @@ def test_definitions_and_arithmetic_are_reduced_by_faithful_machine() -> None:
     assert b"".join(host.writes) == b"ABC"
 
 
-def test_red2_io_runtime_has_one_faithful_pure_reduction_seam() -> None:
+def test_red2_io_runtime_is_only_a_machine_scheduler_and_host_dispatcher() -> None:
     import red2_engine.io_runtime as runtime
 
     source = inspect.getsource(runtime)
-    helper = inspect.getsource(runtime._reduce_pure)
     runner = inspect.getsource(runtime.run_red2_io_action)
-    assert helper.count("load_faithful_machine(") == 1
-    assert ".run(" in helper
+    assert runner.count("load_faithful_machine(") == 1
     for forbidden in (
+        "_BindFrame",
+        "_ThenFrame",
+        "_NextAction",
+        "_step_action",
+        "_prepare_action_argument",
+        "_reduce_pure",
+        "pure_cache",
         "thor_engine.semantics",
-        "ThorDefinitionCache",
         "reduce_expr",
-        "_substitute",
     ):
         assert forbidden not in source
-    assert "run_red2_io_action(" not in runner.split("def run_red2_io_action", 1)[1]
 
 
 def test_red2_io_compiles_static_definitions_once_per_run(
@@ -197,39 +204,160 @@ def test_red2_io_compiles_static_definitions_once_per_run(
     assert compile_count == 1
 
 
-def test_red2_io_memoizes_identical_pure_reductions_within_one_run(
+def test_red2_io_recharges_same_machine_across_tiny_quantum(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import thor_compile.red2 as red2_compile
 
-    source = """
-    emit == (LAMBDA (n) (UART-TX (+ n 64)))
-    (IO-THEN (emit 1) (IO-THEN (emit 1) (emit 1)))
-    """
-    action, definitions = prepare(source)
+    action, definitions = prepare(
+        "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
+    )
     original = red2_compile.load_faithful_machine
-    loads: dict[tuple[Expr, int], int] = {}
+    machine_loads = 0
 
-    def counting_load(
-        expr: Expr,
-        *,
-        quantum: int,
-        definitions: Any = None,
-        memory_words: int = 65_536,
-        control_words: int = 8_192,
-    ) -> Any:
-        key = (expr, quantum)
-        loads[key] = loads.get(key, 0) + 1
-        return original(
-            expr,
-            quantum=quantum,
-            definitions=definitions,
-            memory_words=memory_words,
-            control_words=control_words,
-        )
+    def counting_load(*args: Any, **kwargs: Any) -> Any:
+        nonlocal machine_loads
+        machine_loads += 1
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
     host = FakeHost()
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=1,
+        host=host,
+        recharge_on={Red2RechargeEvent.QUANTUM_EXHAUSTED},
+    )
+
+    assert to_source(result) == "7"
+    assert b"".join(host.writes) == b"AB"
+    assert machine_loads == 1
+
+
+def test_red2_io_effect_fires_once_across_repeated_quantum_recharges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from red2_engine.mured import MuredMachine
+
+    # Several pure contractions must cross scheduler boundaries before the
+    # UART effect becomes runnable. Reconstructing/recharging must never replay
+    # the effectful redex once it has been dispatched.
+    action, definitions = prepare(
+        "(IO-THEN "
+        "(IO-RETURN (+ (+ (+ (+ 1 2) 3) 4) 5)) "
+        "(UART-TX 65))"
+    )
+    original = MuredMachine.recharge_quantum
+    recharges = 0
+
+    def counting_recharge(self: MuredMachine, quantum: int) -> Any:
+        nonlocal recharges
+        recharges += 1
+        return original(self, quantum)
+
+    monkeypatch.setattr(MuredMachine, "recharge_quantum", counting_recharge)
+    host = FakeHost()
+
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=1,
+        host=host,
+        recharge_on={
+            Red2RechargeEvent.HOST_DISPATCH,
+            Red2RechargeEvent.QUANTUM_EXHAUSTED,
+        },
+    )
+
+    assert to_source(result) == "NIL"
+    assert recharges >= 2
+    assert host.writes == [b"A"]
+
+
+def test_red2_io_default_recharges_quantum_after_each_host_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from red2_engine.mured import MuredMachine
+
+    action, definitions = prepare(
+        "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
+    )
+    original = MuredMachine.refresh_quantum
+    refreshes: list[int] = []
+
+    def counting_refresh(self: MuredMachine, quantum: int) -> Any:
+        refreshes.append(quantum)
+        return original(self, quantum)
+
+    monkeypatch.setattr(MuredMachine, "refresh_quantum", counting_refresh)
+    host = FakeHost()
+    result = run_red2_io_action(
+        action, definitions=definitions, quantum=20, host=host
+    )
+
+    assert to_source(result) == "7"
+    assert b"".join(host.writes) == b"AB"
+    assert refreshes == [20, 20]
+
+
+def test_red2_io_default_surfaces_external_quantum_exhaustion() -> None:
+    action, definitions = prepare("(IO-RETURN (+ (+ 1 2) 3))")
+
+    with pytest.raises(Red2IoRuntimeError, match="quantum exhausted"):
+        run_red2_io_action(
+            action, definitions=definitions, quantum=1, host=FakeHost()
+        )
+
+
+def test_red2_io_can_opt_into_recharge_on_quantum_exhaustion() -> None:
+    action, definitions = prepare("(IO-RETURN (+ (+ 1 2) 3))")
+
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=1,
+        host=FakeHost(),
+        recharge_on={Red2RechargeEvent.QUANTUM_EXHAUSTED},
+    )
+
+    assert to_source(result) == "6"
+
+
+def test_red2_io_rejects_zero_quantum() -> None:
+    action, definitions = prepare("(IO-RETURN 1)")
+
+    with pytest.raises(RuntimeError, match="quantum must be positive"):
+        run_red2_io_action(
+            action, definitions=definitions, quantum=0, host=FakeHost()
+        )
+
+
+def test_red2_io_uses_one_faithful_machine_for_entire_program(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One program execution owns one μRED machine, including across IO effects."""
+    import thor_compile.red2 as red2_compile
+
+    source = """
+    emit == (LAMBDA (n) (UART-TX (+ 64 n)))
+    (IO-THEN
+      (emit 1)
+      (IO-THEN
+        (emit 2)
+        (IO-BIND (CLOCK) (LAMBDA (now) (IO-RETURN now)))))
+    """
+    action, definitions = prepare(source)
+    original = red2_compile.load_faithful_machine
+    machine_loads = 0
+
+    def counting_load(*args: Any, **kwargs: Any) -> Any:
+        nonlocal machine_loads
+        machine_loads += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
+    host = FakeHost(clock_value=1_700_000_000_789)
     result = run_red2_io_action(
         action,
         definitions=definitions,
@@ -237,56 +365,6 @@ def test_red2_io_memoizes_identical_pure_reductions_within_one_run(
         host=host,
     )
 
-    assert to_source(result) == "NIL"
-    assert b"".join(host.writes) == b"AAA"
-    assert loads
-    assert max(loads.values()) == 1
-
-
-def test_red2_io_pure_result_cache_is_scoped_to_one_run(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import thor_compile.red2 as red2_compile
-
-    source = "(IO-RETURN (+ 40 2))"
-    action, definitions = prepare(source)
-    original = red2_compile.load_faithful_machine
-    load_count = 0
-
-    def counting_load(
-        expr: Expr,
-        *,
-        quantum: int,
-        definitions: Any = None,
-        memory_words: int = 65_536,
-        control_words: int = 8_192,
-    ) -> Any:
-        nonlocal load_count
-        load_count += 1
-        return original(
-            expr,
-            quantum=quantum,
-            definitions=definitions,
-            memory_words=memory_words,
-            control_words=control_words,
-        )
-
-    monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
-    first = run_red2_io_action(
-        action,
-        definitions=definitions,
-        quantum=20_000,
-        host=FakeHost(),
-    )
-    first_count = load_count
-    second = run_red2_io_action(
-        action,
-        definitions=definitions,
-        quantum=20_000,
-        host=FakeHost(),
-    )
-
-    assert to_source(first) == "42"
-    assert to_source(second) == "42"
-    assert first_count > 0
-    assert load_count == first_count * 2
+    assert to_source(result) == "1700000000789"
+    assert b"".join(host.writes) == b"AB"
+    assert machine_loads == 1

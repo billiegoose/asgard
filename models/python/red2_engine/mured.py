@@ -67,6 +67,9 @@ _STRICT_UNARY_PRIMITIVES = frozenset(
         "CHAR?",
         "SYMBOL?",
         "STRUCTURE?",
+        "IO-RETURN",
+        "UART-TX",
+        "UART-TX-BYTES",
     }
 )
 _STRICT_BINARY_PRIMITIVES = frozenset(
@@ -88,7 +91,9 @@ _STRICT_BINARY_PRIMITIVES = frozenset(
         "MOD",
     }
 )
-_NON_STRICT_PRIMITIVES = frozenset({"IF", "Y", "AND", "OR"})
+_NON_STRICT_PRIMITIVES = frozenset(
+    {"IF", "Y", "AND", "OR", "IO-BIND", "IO-THEN", "CLOCK", "UART-RX"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,9 +102,28 @@ class Word:
     data: int | float | str | None = None
     head: bool = False
     definition: int | None = None
-    # RED keeps the CLOSURE class after an atomic value is shared over it;
-    # lookup must therefore retain the original two-word closure stride.
+    # RED keeps the CLOSURE class on an environment word after sharing an
+    # atomic value over the closure.  The type/opcode becomes the atom, but
+    # LOOKUP must still step over the original two-word closure slot.
     closure_slot: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class MuredHostCall:
+    name: str
+    argument_address: int | None = None
+
+
+class MuredStopReason(StrEnum):
+    COMPLETE = auto()
+    QUANTUM_EXHAUSTED = auto()
+    HOST_CALL = auto()
+
+
+@dataclass(frozen=True, slots=True)
+class MuredRunResult:
+    reason: MuredStopReason
+    host_call: MuredHostCall | None = None
 
 
 class MuredMachineError(RuntimeError):
@@ -363,11 +387,18 @@ class MuredMachine:
         state: MuredMachineState,
         *,
         struct_selectors: dict[str, tuple[str, int]] | None = None,
+        working_memory_limit: int | None = None,
     ) -> None:
         self.state = state
         self.struct_selectors = (
             {} if struct_selectors is None else dict(struct_selectors)
         )
+        self.working_memory_limit = (
+            len(state.memory) if working_memory_limit is None else working_memory_limit
+        )
+        if not 0 < self.working_memory_limit <= len(state.memory):
+            raise ValueError("working memory limit is outside μRED memory")
+        self.pending_host_call: MuredHostCall | None = None
         self._saved_quantum_depth = 0
 
     @classmethod
@@ -444,7 +475,7 @@ class MuredMachine:
 
     def step(self) -> MuredMachineState:
         state = self.state
-        if state.halted:
+        if state.halted or self.pending_host_call is not None:
             return state
         self._validate_state()
         word = self._word(state.pc)
@@ -1174,9 +1205,7 @@ class MuredMachine:
             raise InvalidAddress("RECP recursive binding index is outside BLOCK")
 
         parent_environment = context + 3 * count
-        self._allocate_environment(
-            Word(MuredOpcode.PNP, parent_environment, False)
-        )
+        self._push_environment_marker(parent_environment)
         for _ in source_blocks:
             state.phi += 1
             self._allocate_environment(Word(MuredOpcode.UBV, state.phi, False))
@@ -1448,7 +1477,8 @@ class MuredMachine:
                 state.direction = Direction.F
                 return
             raise IllegalTransition(
-                f"IF selected EP points to unsupported environment value: {target.opcode}"
+                "IF selected EP points to unsupported environment value: "
+                f"{target.opcode}"
             )
 
         # The selected value occupies the old false-branch slot after the
@@ -1566,9 +1596,12 @@ class MuredMachine:
                 if root.opcode is MuredOpcode.STRUCT:
                     self._copy_struct_value_to_result(selected.data, state.pc)
                 else:
-                    raise IllegalTransition(
-                        "structure selector returned an unsupported multiword value"
-                    )
+                    # The structure lookup already succeeded; this is the
+                    # selected field's reduced value, and fields may contain
+                    # arbitrary graphs.  JOIN leaves a compact APP descriptor
+                    # in the selector operand slot, so promote that descriptor
+                    # over the consumed selector head before moving backward.
+                    self._promote_result_value(state.pc)
             else:
                 state.memory[state.pc] = Word(
                     selected.opcode,
@@ -1578,6 +1611,24 @@ class MuredMachine:
                 )
                 state.fsp = state.pc
             state.pc -= 1
+            return
+
+        if primitive == "IO-RETURN":
+            if state.q > 0:
+                self._promote_result_value(state.pc)
+                state.q -= 1
+            state.pc -= 1
+            return
+
+        if primitive in {"UART-TX", "UART-TX-BYTES"}:
+            if state.q > 0:
+                self._suspend_host_call(primitive, argument_address=state.pc)
+            else:
+                state.pc -= 1
+            return
+
+        if primitive in {"IO-BIND", "IO-THEN"}:
+            self._fire_io_sequence(primitive)
             return
 
         if primitive == "CONS":
@@ -1764,7 +1815,8 @@ class MuredMachine:
                 MuredOpcode.PRIM_2,
             }:
                 raise IllegalTransition(
-                    f"STRUCT result requires field descriptors; got {word.opcode} at {cursor}"
+                    "STRUCT result requires field descriptors; "
+                    f"got {word.opcode} at {cursor}"
                 )
             cursor += 1
 
@@ -1998,6 +2050,22 @@ class MuredMachine:
                 return
             if (
                 word.head
+                and word.data in {"CLOCK", "UART-RX"}
+                and state.argcnt == 0
+                and state.q > 0
+            ):
+                self._suspend_host_call(word.data)
+                return
+            if (
+                word.head
+                and word.data in {"IO-BIND", "IO-THEN"}
+                and state.argcnt >= 2
+                and state.q > 0
+            ):
+                state.prim = word.data
+                state.fire = 1
+            elif (
+                word.head
                 and word.data == "IF"
                 and state.argcnt >= 3
                 and state.q > 0
@@ -2101,10 +2169,473 @@ class MuredMachine:
             return
         self.state.pc = redex_address
 
+    def _relinearize_graph(self, address: int) -> tuple[Word, ...]:
+        """Convert a μRED result graph rooted at address into executable words."""
+
+        inline_argument_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+        atomic_opcodes = inline_argument_opcodes | {MuredOpcode.VAR}
+        memory = self.state.memory
+        output: list[Word | None] = []
+        visiting: set[tuple[int, bool]] = set()
+
+        def source_word(address: int) -> Word:
+            if not 0 <= address < len(memory):
+                raise InvalidAddress(f"invalid μRED address: {address}")
+            word = memory[address]
+            if word is None:
+                raise InvalidAddress(f"invalid μRED address: {address}")
+            return word
+
+        def emit_atomic(word: Word, *, head: bool) -> None:
+            output.append(Word(word.opcode, word.data, head, word.definition))
+
+        def emit_graph(address: int, *, head: bool) -> None:
+            key = (address, head)
+            if key in visiting:
+                raise MuredMachineError("cyclic μRED result graph")
+            visiting.add(key)
+            try:
+                word = source_word(address)
+                if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                    not word.head and word.opcode in inline_argument_opcodes
+                ):
+                    entries: list[tuple[MuredOpcode, int, int, int | None]] = []
+                    cursor = address
+                    while True:
+                        entry = source_word(cursor)
+                        if entry.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                            if not isinstance(entry.data, int) or entry.data < 0:
+                                raise InvalidAddress(
+                                    "result application requires a non-negative "
+                                    "address/index"
+                                )
+                            entries.append(
+                                (entry.opcode, entry.data, cursor, entry.definition)
+                            )
+                        elif (
+                            not entry.head
+                            and entry.opcode in inline_argument_opcodes
+                        ):
+                            entries.append(
+                                (entry.opcode, cursor, cursor, entry.definition)
+                            )
+                        else:
+                            break
+                        cursor += 1
+
+                    slots = len(output)
+                    output.extend([None] * len(entries))
+                    emit_graph(cursor, head=True)
+                    for offset, (
+                        opcode,
+                        data,
+                        source,
+                        definition,
+                    ) in enumerate(entries):
+                        if opcode is MuredOpcode.APP_VAR:
+                            output[slots + offset] = Word(
+                                MuredOpcode.APP_VAR, data, False, definition
+                            )
+                            continue
+                        target = len(output)
+                        output[slots + offset] = Word(
+                            MuredOpcode.APP, target, False, definition
+                        )
+                        if opcode is MuredOpcode.APP:
+                            emit_graph(data, head=True)
+                        else:
+                            emit_atomic(source_word(source), head=True)
+                    return
+
+                if word.opcode is MuredOpcode.RBLOCK:
+                    blocks: list[Word] = []
+                    cursor = address
+                    while source_word(cursor).opcode is MuredOpcode.RBLOCK:
+                        blocks.append(source_word(cursor))
+                        cursor += 1
+                    rup = source_word(cursor)
+                    if rup.opcode is not MuredOpcode.RUP or rup.data != len(blocks):
+                        raise MuredMachineError("result LETREC requires matching RUP")
+
+                    slots = len(output)
+                    output.extend([None] * len(blocks))
+                    output.append(Word(MuredOpcode.RUP, len(blocks), False))
+                    emit_graph(cursor + 1, head=head)
+                    for offset, block in enumerate(blocks):
+                        if not isinstance(block.data, int) or block.data < 0:
+                            raise InvalidAddress(
+                                "result RBLOCK requires a binding address"
+                            )
+                        name = source_word(block.data)
+                        if (
+                            name.opcode is not MuredOpcode.SYM
+                            or not isinstance(name.data, str)
+                        ):
+                            raise MuredMachineError(
+                                "result RBLOCK binding requires leading SYM name"
+                            )
+                        binding_address = len(output)
+                        output[slots + offset] = Word(
+                            MuredOpcode.RBLOCK,
+                            binding_address,
+                            False,
+                            block.definition,
+                        )
+                        output.append(
+                            Word(MuredOpcode.SYM, name.data, False, name.definition)
+                        )
+                        emit_graph(block.data + 1, head=True)
+                    return
+
+                if word.opcode is MuredOpcode.STRUCT:
+                    output.append(
+                        Word(MuredOpcode.STRUCT, word.data, False, word.definition)
+                    )
+                    cursor = address + 1
+                    descriptors: list[tuple[Word, int]] = []
+                    while True:
+                        descriptor = source_word(cursor)
+                        if descriptor.opcode in {
+                            MuredOpcode.APP,
+                            MuredOpcode.APP_VAR,
+                        }:
+                            if (
+                                not isinstance(descriptor.data, int)
+                                or descriptor.data < 0
+                            ):
+                                raise InvalidAddress(
+                                    "result STRUCT field requires an address or index"
+                                )
+                            descriptors.append((descriptor, cursor))
+                        elif (
+                            not descriptor.head
+                            and descriptor.opcode in inline_argument_opcodes
+                        ):
+                            descriptors.append((descriptor, cursor))
+                        else:
+                            break
+                        cursor += 1
+                    selector = source_word(cursor)
+                    if selector.opcode is not MuredOpcode.VAR or selector.data != 0:
+                        raise MuredMachineError(
+                            "result STRUCT requires a VAR 0 selector"
+                        )
+                    slots = len(output)
+                    output.extend([None] * len(descriptors))
+                    output.append(Word(MuredOpcode.VAR, 0, head))
+                    for offset, (descriptor, source_address) in enumerate(descriptors):
+                        if descriptor.opcode is MuredOpcode.APP_VAR:
+                            output[slots + offset] = Word(
+                                MuredOpcode.APP_VAR,
+                                descriptor.data,
+                                False,
+                                descriptor.definition,
+                            )
+                            continue
+                        target = len(output)
+                        output[slots + offset] = Word(
+                            MuredOpcode.APP,
+                            target,
+                            False,
+                            descriptor.definition,
+                        )
+                        if descriptor.opcode is MuredOpcode.APP:
+                            assert isinstance(descriptor.data, int)
+                            emit_graph(descriptor.data, head=True)
+                        else:
+                            emit_atomic(source_word(source_address), head=True)
+                    return
+
+                if word.opcode is MuredOpcode.LAMBDA:
+                    cursor = address
+                    while source_word(cursor).opcode is MuredOpcode.LAMBDA:
+                        lambda_word = source_word(cursor)
+                        output.append(
+                            Word(
+                                MuredOpcode.LAMBDA,
+                                lambda_word.data,
+                                False,
+                                lambda_word.definition,
+                            )
+                        )
+                        cursor += 1
+                    emit_graph(cursor, head=head)
+                    return
+
+                if word.opcode in atomic_opcodes:
+                    emit_atomic(word, head=head)
+                    return
+
+                raise MuredMachineError(
+                    f"cannot relinearize result opcode {word.opcode}"
+                )
+            finally:
+                visiting.remove(key)
+
+        emit_graph(address, head=True)
+        if any(word is None for word in output):
+            raise MuredMachineError("relinearized μRED graph contains a hole")
+        return tuple(word for word in output if word is not None)
+
+    def _value_problem(self, descriptor_address: int) -> tuple[Word, ...]:
+        """Snapshot one compact result descriptor as executable μRED words."""
+        descriptor = self._word(descriptor_address)
+        if descriptor.opcode is MuredOpcode.APP:
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress("result APP requires an argument address")
+            return self._relinearize_graph(descriptor.data)
+        if descriptor.opcode is MuredOpcode.APP_VAR:
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress("result APP_VAR requires a variable index")
+            return (
+                Word(
+                    MuredOpcode.VAR,
+                    descriptor.data,
+                    True,
+                    descriptor.definition,
+                ),
+            )
+        if descriptor.opcode in {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+            MuredOpcode.VAR,
+        }:
+            return (
+                Word(
+                    descriptor.opcode,
+                    descriptor.data,
+                    True,
+                    descriptor.definition,
+                ),
+            )
+        return self._relinearize_graph(descriptor_address)
+
+    @staticmethod
+    def _relocate_problem_word(word: Word, base: int) -> Word:
+        data = word.data
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+            if type(data) is not int or data < 0:
+                raise InvalidAddress("relocated μRED graph requires a relative address")
+            data = base + data
+        return Word(word.opcode, data, word.head, word.definition)
+
+    def _write_problem(self, destination: int, words: Sequence[Word]) -> int:
+        if not words:
+            raise MuredMachineError("μRED value graph must not be empty")
+        state = self.state
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        last_address = destination + len(words) - 1
+        if last_address >= frontier:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        for offset, word in enumerate(words):
+            state.memory[destination + offset] = self._relocate_problem_word(
+                word, destination
+            )
+        state.fsp = last_address
+        return destination
+
+    def _reserve_problem(self, words: Sequence[Word]) -> int:
+        if not words:
+            raise MuredMachineError("μRED value graph must not be empty")
+        state = self.state
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        start = frontier - len(words)
+        if start <= state.fsp:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        for offset, word in enumerate(words):
+            state.memory[start + offset] = self._relocate_problem_word(word, start)
+        state.env_frontier = start
+        return start
+
+    def _promote_result_value(self, descriptor_address: int) -> None:
+        words = self._value_problem(descriptor_address)
+        self._write_problem(descriptor_address, words)
+
+    def _suspend_host_call(
+        self,
+        name: str,
+        *,
+        argument_address: int | None = None,
+    ) -> None:
+        if self.pending_host_call is not None:
+            raise IllegalTransition("μRED machine already has a pending host call")
+        self.pending_host_call = MuredHostCall(name, argument_address)
+
+    def resume_host_call(self, result: Word) -> MuredMachineState:
+        call = self.pending_host_call
+        if call is None:
+            raise IllegalTransition("μRED machine has no pending host call")
+        if result.opcode not in {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+        }:
+            raise IllegalTransition("host call result must be an atomic μRED value")
+        if self.state.q <= 0:
+            raise IllegalTransition("pending host call requires positive quantum")
+
+        state = self.state
+        resumed = Word(result.opcode, result.data, True, result.definition)
+        if call.argument_address is None:
+            self._copy_result(resumed)
+            state.q -= 1
+            state.pc = state.fsp - 1
+            state.direction = Direction.B
+        else:
+            if state.pc != call.argument_address:
+                raise IllegalTransition("pending host call lost its result address")
+            state.memory[state.pc] = resumed
+            state.fsp = state.pc
+            state.q -= 1
+            state.pc -= 1
+
+        self.pending_host_call = None
+        return state
+
+    def _fire_io_sequence(self, primitive: str) -> None:
+        state = self.state
+        if state.q == 0:
+            state.pc -= 1
+            return
+
+        value_slot = state.pc
+        value_path = state.env
+        continuation_slot = value_slot - 1
+        continuation = self._word(continuation_slot)
+        continuation_path = (
+            self._pop_control() if continuation.opcode is MuredOpcode.APP else None
+        )
+        if continuation.opcode is not MuredOpcode.APP:
+            raise IllegalTransition(f"{primitive} continuation requires APP")
+        if type(continuation.data) is not int or continuation.data < 0:
+            raise InvalidAddress(f"{primitive} continuation requires a graph address")
+        if continuation_path is None:
+            raise IllegalTransition(
+                f"{primitive} continuation lost its environment path"
+            )
+
+        state.q -= 1
+        if primitive == "IO-THEN":
+            state.fsp = continuation_slot - 1
+            state.argcnt = 0
+            state.env = continuation_path
+            state.pc = continuation.data
+            state.direction = Direction.F
+            return
+
+        code = self._reserve_problem(self._value_problem(value_slot))
+        state.fsp = continuation_slot - 1
+        self._push_graph(Word(MuredOpcode.APP, code, False))
+        self._push_control(value_path)
+        state.argcnt = 1
+        state.env = continuation_path
+        state.pc = continuation.data
+        state.direction = Direction.F
+
+    def _relinearize_result_graph(self) -> tuple[Word, ...]:
+        """Convert the halted result graph into a fresh μRED problem graph."""
+        if not self.state.halted:
+            raise MuredMachineError("result graph is available only after halt")
+        return self._relinearize_graph(self.state.pc)
+
+    def refresh_quantum(self, quantum: int) -> MuredMachineState:
+        """Reset the budget of a live machine after scheduler-visible progress."""
+        if quantum < 0:
+            raise ValueError("quantum must be non-negative")
+        if self.state.halted:
+            raise MuredMachineError("cannot refresh quantum after halt")
+        if self.pending_host_call is not None:
+            raise MuredMachineError(
+                "cannot refresh quantum while a host call is pending"
+            )
+        self.state.q = quantum
+        return self.state
+
+    def recharge_quantum(self, quantum: int) -> MuredMachineState:
+        """Refill a live exhaustion or restart from a halted bounded result."""
+        if quantum < 0:
+            raise ValueError("quantum must be non-negative")
+        state = self.state
+        if not state.halted:
+            if self.pending_host_call is not None:
+                raise MuredMachineError(
+                    "cannot recharge quantum while a host call is pending"
+                )
+            if state.q != 0:
+                raise MuredMachineError(
+                    "live quantum can be recharged only after exhaustion"
+                )
+            state.q = quantum
+            return state
+
+        problem = self._relinearize_result_graph()
+        stop_address = len(problem)
+        if stop_address >= self.working_memory_limit:
+            raise GraphEnvironmentCollision("graph and environment collide")
+
+        for address in range(self.working_memory_limit):
+            state.memory[address] = None
+        state.memory[:stop_address] = problem
+        state.memory[stop_address] = Word(MuredOpcode.STOP)
+        for index in range(len(state.control_stack)):
+            state.control_stack[index] = None
+
+        state.pc = 0
+        state.fsp = stop_address
+        state.env = self.working_memory_limit
+        state.env_frontier = self.working_memory_limit
+        state.c = -1
+        state.direction = Direction.F
+        state.q = quantum
+        state.phi = 0
+        state.argcnt = 0
+        state.prim = None
+        state.fire = 0
+        state.s_a = None
+        state.s_d = None
+        state.halted = False
+        self.pending_host_call = None
+        self._saved_quantum_depth = 0
+        return state
+
+    def _has_saved_quantum(self) -> bool:
+        return self._saved_quantum_depth > 0
+
+    def run_until_suspend(self, *, cycle_limit: int = 100_000) -> MuredRunResult:
+        """Run until completion, host suspension, or external quantum exhaustion."""
+        if cycle_limit < 0:
+            raise ValueError("cycle_limit must be non-negative")
+        while True:
+            if self.pending_host_call is not None:
+                return MuredRunResult(MuredStopReason.HOST_CALL, self.pending_host_call)
+            if self.state.halted:
+                return MuredRunResult(MuredStopReason.COMPLETE)
+            if self.state.q == 0 and not self._has_saved_quantum():
+                return MuredRunResult(MuredStopReason.QUANTUM_EXHAUSTED)
+            if self.state.cycles >= cycle_limit:
+                raise CycleLimitExceeded(
+                    f"μRED cycle limit reached: {cycle_limit}"
+                )
+            self.step()
+
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
         if cycle_limit < 0:
             raise ValueError("cycle_limit must be non-negative")
-        while not self.state.halted:
+        while not self.state.halted and self.pending_host_call is None:
             if self.state.cycles >= cycle_limit:
                 raise CycleLimitExceeded(
                     f"μRED cycle limit reached: {cycle_limit}"

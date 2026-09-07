@@ -1149,7 +1149,8 @@ def test_sym_reverse_completes_active_primitive_countdown() -> None:
     assert state.fire == 0
 
 
-def test_defined_sym_reverse_preserves_active_primitive_until_definition_returns() -> None:
+def test_defined_sym_reverse_preserves_active_primitive_until_definition_returns(
+) -> None:
     state = MuredMachineState(
         memory=[None] * 16,
         control_stack=[None] * 8,
@@ -1462,7 +1463,8 @@ def test_head_var_executes_shared_closure_slot_atom_as_head() -> None:
     assert state.direction is Direction.B
 
 
-def test_head_var_dereferences_ep_to_closure_instead_of_executing_environment_ep() -> None:
+def test_head_var_dereferences_ep_to_closure_instead_of_executing_environment_ep(
+) -> None:
     state = MuredMachineState(
         memory=[None] * 16,
         control_stack=[None] * 4,
@@ -1652,6 +1654,34 @@ def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
     assert state.s_a == 5
     assert state.fsp == 3
     assert state.pc == 2
+
+
+def test_structure_selector_multiword_non_struct_result_replaces_selector_head(
+) -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.APP, 6, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_1, "CAR", True)
+    state.memory[6] = Word(MuredOpcode.APP, 8, False)
+    state.memory[7] = Word(MuredOpcode.SYM, "f", True)
+    state.memory[8] = Word(MuredOpcode.INT, 1, True)
+    state.pc = 3
+    state.fsp = 8
+    state.prim = "__STRUCT_SELECTOR_RESULT__"
+    state.fire = 0
+    state.direction = Direction.B
+
+    machine._fire_primitive()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[4] == Word(MuredOpcode.SYM, "f", True)
+    assert state.memory[5] == Word(MuredOpcode.INT, 1, True)
+    assert state.fsp == 5
+    assert state.pc == 2
+    assert state.prim is None
+    assert state.fire == 0
+
 
 
 def test_join_shares_single_atomic_result_through_ep_closure_slot() -> None:

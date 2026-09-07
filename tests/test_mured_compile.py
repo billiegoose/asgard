@@ -315,6 +315,9 @@ def test_result_expr_requires_halt() -> None:
         "CHAR?",
         "SYMBOL?",
         "STRUCTURE?",
+        "IO-RETURN",
+        "UART-TX",
+        "UART-TX-BYTES",
     ],
 )
 def test_compile_lambda_emits_current_strict_unary_primitives(name: str) -> None:
@@ -346,6 +349,13 @@ def test_compile_lambda_emits_current_strict_unary_primitives(name: str) -> None
 def test_compile_lambda_emits_current_strict_binary_primitives(name: str) -> None:
     assert compile_lambda(parse_expr(name)) == (
         Word(MuredOpcode.PRIM_2, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["IO-BIND", "IO-THEN", "CLOCK", "UART-RX"])
+def test_compile_lambda_emits_io_sequence_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_0, name, True),
     )
 
 

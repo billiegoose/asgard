@@ -78,9 +78,9 @@ def test_recursive_user_struct_depth_four_matches_thor() -> None:
     assert to_source(result.expr) == "10"
 
 
-def test_faithful_loader_default_memory_remains_65536_words() -> None:
+def test_faithful_loader_default_memory_is_one_million_words() -> None:
     assert load_faithful_machine.__kwdefaults__ is not None
-    assert load_faithful_machine.__kwdefaults__["memory_words"] == 65_536
+    assert load_faithful_machine.__kwdefaults__["memory_words"] == 1_048_576
 
 
 def test_graph_environment_collision_guard_still_rejects_overlap() -> None:

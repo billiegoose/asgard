@@ -270,7 +270,7 @@ class FaithfulDefinitionCache:
 def prepare_faithful_definitions(
     definitions: Mapping[str, Expr] | None,
     *,
-    memory_words: int = 65_536,
+    memory_words: int = 1_048_576,
 ) -> FaithfulDefinitionCache:
     """Compile and relocate the static μRED definition environment once."""
     from red2_engine.mured import MuredOpcode, Word, compile_lambda
@@ -343,7 +343,7 @@ def load_faithful_machine(
     *,
     quantum: int,
     definitions: Mapping[str, Expr] | FaithfulDefinitionCache | None = None,
-    memory_words: int = 65_536,
+    memory_words: int = 1_048_576,
     control_words: int = 8_192,
 ) -> MuredMachine:
     """Load one expression plus visible top-level definitions into μRED memory."""
@@ -390,5 +390,6 @@ def load_faithful_machine(
 
     machine.state.env = prepared.static_start
     machine.state.env_frontier = prepared.static_start
+    machine.working_memory_limit = prepared.static_start
     machine.struct_selectors = prepared.struct_selectors
     return machine

@@ -26,6 +26,34 @@ def test_thor_cli_runs_io_quiet_by_default(capsys: CaptureFixture[str]) -> None:
     assert captured.err == ""
 
 
+def test_red2_cli_does_not_dispatch_thor_only_leds_or_ticks(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert red2_main(["--expr", "(LEDS 1)", "--quantum", "20"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "(LEDS 1)\n"
+    assert captured.err == ""
+
+    assert red2_main(["--expr", "(TICKS)", "--quantum", "20"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "TICKS\n"
+    assert captured.err == ""
+
+
+def test_thor_cli_still_dispatches_thor_only_leds_and_ticks(
+    capsys: CaptureFixture[str],
+) -> None:
+    assert thor_main(["--expr", "(LEDS 255)"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "leds: 255\n"
+
+    assert thor_main(["--verbose", "--expr", "(TICKS)"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "io result: 0\n"
+
+
 def test_red2_cli_runs_io_quiet_by_default(
     capsys: CaptureFixture[str],
     monkeypatch: MonkeyPatch,

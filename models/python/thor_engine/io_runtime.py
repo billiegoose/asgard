@@ -1,11 +1,16 @@
 import select
 import time
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
 
-from red2_engine.io_runtime import Red2IoRuntimeError, run_red2_io_action
+from red2_engine.io_runtime import (
+    DEFAULT_RED2_RECHARGE_EVENTS,
+    Red2IoRuntimeError,
+    Red2RechargeEvent,
+    run_red2_io_action,
+)
 from thor_engine.golden import ModelName
 from thor_engine.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import (
@@ -72,6 +77,7 @@ def run_io_source(
     stdout: TextIO,
     stderr: TextIO,
     clock: ClockSource | None = None,
+    red2_recharge_on: Collection[Red2RechargeEvent] = DEFAULT_RED2_RECHARGE_EVENTS,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
@@ -81,6 +87,8 @@ def run_io_source(
     """
     program = normalize_program(parse_program(source))
     definitions, action = _prepare_io_program(program, model=model)
+    if not _contains_io_action(action, definitions, model=model):
+        raise IoRuntimeError(f"not an IO action: {to_source(action)}")
     clock_source = clock or SystemClockSource()
     if model == "red2":
         host = _Red2IoHost(stdin=stdin, stdout=stdout, clock=clock_source)
@@ -90,6 +98,7 @@ def run_io_source(
                 definitions=definitions,
                 quantum=quantum,
                 host=host,
+                recharge_on=red2_recharge_on,
             )
         except Red2IoRuntimeError as error:
             raise IoRuntimeError(str(error)) from error
@@ -171,6 +180,55 @@ class _NextAction:
 type _Continuation = _BindCont | _ThenCont
 
 _ZERO_ARG_IO_ACTIONS = frozenset({"UART-RX", "TICKS", "CLOCK"})
+_RED2_IO_ACTION_SYMBOLS = frozenset(
+    {
+        "IO-RETURN",
+        "IO-BIND",
+        "IO-THEN",
+        "UART-RX",
+        "UART-TX",
+        "UART-TX-BYTES",
+        "CLOCK",
+    }
+)
+_THOR_IO_ACTION_SYMBOLS = _RED2_IO_ACTION_SYMBOLS | {"LEDS", "TICKS"}
+
+
+def _contains_io_action(
+    expr: Expr,
+    definitions: Mapping[str, Expr],
+    *,
+    model: ModelName,
+) -> bool:
+    io_symbols = (
+        _RED2_IO_ACTION_SYMBOLS if model == "red2" else _THOR_IO_ACTION_SYMBOLS
+    )
+    stack = [expr]
+    visited_definitions: set[str] = set()
+    while stack:
+        current = stack.pop()
+        if isinstance(current, Symbol):
+            if current.name in io_symbols:
+                return True
+            if current.name not in visited_definitions:
+                definition = definitions.get(current.name)
+                if definition is not None:
+                    visited_definitions.add(current.name)
+                    stack.append(definition)
+            continue
+        if isinstance(current, App):
+            stack.extend(current.items)
+            continue
+        if isinstance(current, Lambda):
+            stack.append(current.body)
+            continue
+        if isinstance(current, StructLit):
+            stack.extend(current.fields)
+            continue
+        if isinstance(current, LetRec):
+            stack.append(current.body)
+            stack.extend(binding.expr for binding in current.bindings)
+    return False
 
 
 class _IoRuntime:

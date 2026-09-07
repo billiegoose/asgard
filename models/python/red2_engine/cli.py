@@ -2,6 +2,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from red2_engine.io_runtime import (
+    DEFAULT_RED2_RECHARGE_EVENTS,
+    Red2RechargeEvent,
+)
 from thor_engine.golden import DEFAULT_QUANTUM, run_source
 from thor_engine.io_runtime import IoRuntimeError, LatestFileClockSource, run_io_source
 from thor_lang.parser import ParseError
@@ -25,6 +29,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         help="write diagnostics to stderr",
+    )
+    parser.add_argument(
+        "--recharge-on",
+        action="append",
+        choices=[event.value for event in Red2RechargeEvent],
+        help=(
+            "scheduler event that resets the IO quantum; repeat to enable multiple "
+            "events (default: host-dispatch)"
+        ),
     )
     parser.add_argument(
         "--clock",
@@ -58,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
             quantum=args.quantum,
             verbose=args.verbose,
             clock_path=args.clock,
+            recharge_on=(
+                DEFAULT_RED2_RECHARGE_EVENTS
+                if args.recharge_on is None
+                else frozenset(Red2RechargeEvent(value) for value in args.recharge_on)
+            ),
         )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"red2: {error}", file=sys.stderr)
@@ -70,6 +88,7 @@ def _run_expr_source(
     quantum: int,
     verbose: bool,
     clock_path: Path | None,
+    recharge_on: frozenset[Red2RechargeEvent],
 ) -> int:
     try:
         return _run_io_source(
@@ -77,6 +96,7 @@ def _run_expr_source(
             quantum=quantum,
             verbose=verbose,
             clock_path=clock_path,
+            recharge_on=recharge_on,
         )
     except IoRuntimeError as error:
         message = str(error)
@@ -97,6 +117,7 @@ def _run_io_source(
     quantum: int,
     verbose: bool,
     clock_path: Path | None,
+    recharge_on: frozenset[Red2RechargeEvent],
 ) -> int:
     clock = LatestFileClockSource(clock_path) if clock_path is not None else None
     result = run_io_source(
@@ -107,6 +128,7 @@ def _run_io_source(
         stdout=sys.stdout,
         stderr=sys.stderr,
         clock=clock,
+        red2_recharge_on=recharge_on,
     )
     if verbose:
         print(f"io result: {result}", file=sys.stderr)

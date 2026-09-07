@@ -1,12 +1,12 @@
 import subprocess
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from io import StringIO
 from pathlib import Path
 
 import pytest
 
-from red2_engine.io_runtime import Red2IoHost, run_red2_io_action
+from red2_engine.io_runtime import Red2IoHost, Red2RechargeEvent, run_red2_io_action
 from thor_engine.golden import ModelName
 from thor_engine.io_runtime import LatestFileClockSource, run_io_source
 from thor_engine.semantics import ThorDefinitionCache, reduce_expr
@@ -175,6 +175,7 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
         definitions: Mapping[str, Expr],
         quantum: int,
         host: Red2IoHost,
+        recharge_on: Collection[Red2RechargeEvent],
     ) -> Expr:
         nonlocal calls
         calls += 1
@@ -183,6 +184,7 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
             definitions=definitions,
             quantum=quantum,
             host=host,
+            recharge_on=recharge_on,
         )
 
     monkeypatch.setattr(runtime, "run_red2_io_action", counting_runner)
@@ -462,6 +464,54 @@ def run_breakout_source_for_test(
     )
     assert result == "NIL"
     return stdout.getvalue(), stderr.getvalue()
+
+
+def test_breakout_red2_stdout_matches_thor_byte_for_byte() -> None:
+    source = Path("examples/breakout.thor").read_text()
+    # Same deterministic interaction shape as the benchmark: timed no-op bytes
+    # interspersed with paddle motion, followed by the real quit key.
+    keys_by_tick = {
+        10: "\x1b[C",
+        11: "\x1b[C",
+        12: "\x1b[C",
+        23: "\x1b[D",
+        24: "\x1b[D",
+        25: "\x1b[D",
+        26: "\x1b[D",
+        38: "\x1b[C",
+        39: "\x1b[C",
+        51: "\x1b[D",
+        52: "\x1b[D",
+        53: "\x1b[D",
+        66: "\x1b[C",
+        67: "\x1b[C",
+        68: "\x1b[C",
+    }
+    stdin_text = "".join(
+        keys_by_tick.get(tick, " ") for tick in range(1, 71)
+    ) + "q"
+    clock = FixedClock(1_700_000_007_200)
+
+    thor_stdout, thor_stderr = run_breakout_source_for_test(
+        source, stdin_text, clock=clock
+    )
+
+    red2_stdout = StringIO()
+    red2_stderr = StringIO()
+    result = run_io_source(
+        source,
+        model="red2",
+        quantum=50_000,
+        stdin=StringIO(stdin_text),
+        stdout=red2_stdout,
+        stderr=red2_stderr,
+        clock=FixedClock(1_700_000_007_200),
+    )
+
+    assert result == "NIL"
+    assert red2_stderr.getvalue() == thor_stderr == ""
+    assert red2_stdout.getvalue() == thor_stdout
+    assert red2_stdout.getvalue().endswith("QUIT\n")
 
 
 def run_breakout_for_test(
