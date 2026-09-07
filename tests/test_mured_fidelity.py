@@ -1004,6 +1004,91 @@ def test_mured_y_if_factorial_matches_chapter3() -> None:
 
 
 @pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("((LAMBDA (x) (IF TRUE x 0)) 5)", "5"),
+        ("((LAMBDA (x) (IF FALSE 0 x)) 5)", "5"),
+        (
+            "((Y (LAMBDA (fib n) "
+            "(IF (< n 2) n (+ (fib (1- n)) (fib (1- (1- n))))))) 0)",
+            "0",
+        ),
+        (
+            "((Y (LAMBDA (fib n) "
+            "(IF (< n 2) n (+ (fib (1- n)) (fib (1- (1- n))))))) 6)",
+            "8",
+        ),
+    ],
+)
+def test_mured_if_selected_environment_pointer_executes_as_head(
+    source: str,
+    expected: str,
+) -> None:
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=2_000,
+        memory_words=32_768,
+        control_words=8_192,
+    )
+
+    machine.run(cycle_limit=50_000)
+
+    assert to_source(machine.result_expr()) == expected
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=2_000).expr
+    )
+
+
+def test_mured_environment_pointer_shares_duplicate_forcing() -> None:
+    source = "((LAMBDA (n) (+ n n)) (+ 20 1))"
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=100,
+        memory_words=256,
+        control_words=64,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "42"
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=100).expr
+    )
+    assert machine.state.cycles == 19
+    shared = [
+        word
+        for word in machine.state.memory
+        if word is not None and word.closure_slot
+    ]
+    assert shared == [Word(MuredOpcode.INT, 21, False, closure_slot=True)]
+
+
+def test_mured_environment_pointer_preserves_lexical_capture_when_shared() -> None:
+    source = "((LAMBDA (x) ((LAMBDA (n) (+ n n)) (+ x 1))) 20)"
+    expr = parse_expr(source)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=100,
+        memory_words=256,
+        control_words=64,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "42"
+    assert to_source(machine.result_expr()) == to_source(
+        reduce_expr(expr, quantum=100).expr
+    )
+    assert sorted(
+        (word.opcode, word.data)
+        for word in machine.state.memory
+        if word is not None and word.closure_slot
+    ) == [(MuredOpcode.INT, 20), (MuredOpcode.INT, 21)]
+
+
+@pytest.mark.parametrize(
     ("source", "quantum"),
     [
         ("{PAIR (+ 1 2) (* 3 4)}", 8),
@@ -1128,6 +1213,27 @@ def test_mured_letrec_matches_chapter3_at_bounded_quantum(
 
     assert to_source(machine.result_expr()) == to_source(expected.expr)
     assert machine.state.q == expected.remaining
+
+
+def test_mured_reconstructed_letrec_unwinds_binding_depth_before_outer_argument(
+) -> None:
+    source = (
+        "(LETREC ((even (LAMBDA (n) (IF (= n 0) TRUE (odd (1- n))))) "
+        "(odd (LAMBDA (n) (IF (= n 0) FALSE (even (1- n)))))) (even 4))"
+    )
+    expr = parse_expr(source)
+    expected = reduce_expr(expr, quantum=1)
+    machine = MuredMachine.from_expr(
+        expr,
+        quantum=1,
+        memory_words=2_048,
+        control_words=512,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == to_source(expected.expr)
+    assert machine.state.phi == 0
 
 
 def test_mured_letrec_infinite_pair_prefix_matches_chapter3() -> None:

@@ -22,6 +22,7 @@ class MuredOpcode(StrEnum):
     APP = auto()
     APP_VAR = auto()
     CLOSURE = auto()
+    EP = auto()
     JOIN = auto()
     LAMBDA = auto()
     STOP = auto()
@@ -96,6 +97,9 @@ class Word:
     data: int | float | str | None = None
     head: bool = False
     definition: int | None = None
+    # RED keeps the CLOSURE class after an atomic value is shared over it;
+    # lookup must therefore retain the original two-word closure stride.
+    closure_slot: bool = False
 
 
 class MuredMachineError(RuntimeError):
@@ -364,6 +368,7 @@ class MuredMachine:
         self.struct_selectors = (
             {} if struct_selectors is None else dict(struct_selectors)
         )
+        self._saved_quantum_depth = 0
 
     @classmethod
     def load(
@@ -450,6 +455,8 @@ class MuredMachine:
                 self._app_var(word)
             case MuredOpcode.CLOSURE:
                 self._closure(word)
+            case MuredOpcode.EP:
+                self._ep(word)
             case MuredOpcode.JOIN:
                 self._join(word)
             case MuredOpcode.LAMBDA:
@@ -530,6 +537,20 @@ class MuredMachine:
         state.env = address
         return address
 
+    def _push_environment_marker(self, parent: int) -> int:
+        """Push one faithful RED MARKER/PNP at the physical environment frontier."""
+        if type(parent) is not int or parent < 0:
+            raise InvalidAddress("PNP requires an environment address")
+        state = self.state
+        frontier = state.env if state.env_frontier is None else state.env_frontier
+        address = frontier - 1
+        if address <= state.fsp:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        state.memory[address] = Word(MuredOpcode.PNP, parent, False)
+        state.env_frontier = address
+        state.env = address
+        return address
+
     def _push_control_entry(self, value: _ControlEntry) -> None:
         if value is None:
             raise IllegalTransition("cannot push an empty control-stack entry")
@@ -554,6 +575,19 @@ class MuredMachine:
 
     def _push_definition_path(self, address: int) -> None:
         self._push_control_entry(_SavedDefinitionPath(address))
+
+    def _push_saved_quantum(self, quantum: int) -> None:
+        self._push_control_entry(_SavedQuantum(quantum))
+        self._saved_quantum_depth += 1
+
+    def _pop_saved_quantum(self) -> int:
+        saved = self._pop_control_entry()
+        if not isinstance(saved, _SavedQuantum):
+            raise IllegalTransition("reconstruction lost saved quantum")
+        if self._saved_quantum_depth <= 0:
+            raise IllegalTransition("saved quantum bookkeeping underflow")
+        self._saved_quantum_depth -= 1
+        return saved.value
 
     def _discard_completed_definition_paths(self) -> None:
         while self.state.c >= 0 and isinstance(
@@ -617,12 +651,12 @@ class MuredMachine:
                 self.state.s_a = address
                 return address
             self.state.s_d -= 1
-            if word.opcode is MuredOpcode.UBV:
-                address += 1
-            elif word.opcode is MuredOpcode.REC:
+            if word.opcode is MuredOpcode.REC:
                 address += 3
-            else:
+            elif word.opcode is MuredOpcode.CLOSURE or word.closure_slot:
                 address += 2
+            else:
+                address += 1
 
     def _app(self, word: Word) -> None:
         state = self.state
@@ -670,7 +704,7 @@ class MuredMachine:
         code = self._word(self.state.pc + 1)
         if code.opcode is not None or not isinstance(code.data, int):
             raise MalformedClosure("CLOSURE requires a following code pointer")
-        self._allocate_environment(Word(MuredOpcode.PNP, word.data, False))
+        self._push_environment_marker(word.data)
         self.state.pc = code.data
 
     def _join(self, word: Word) -> None:
@@ -683,10 +717,11 @@ class MuredMachine:
         parent = self._word(word.data)
         if parent.opcode not in {
             MuredOpcode.APP,
+            MuredOpcode.EP,
             MuredOpcode.RBLOCK,
             MuredOpcode.RECP,
         }:
-            raise IllegalTransition("JOIN parent must be APP, RBLOCK, or RECP")
+            raise IllegalTransition("JOIN parent must be APP, EP, RBLOCK, or RECP")
         tail = self._word(state.s_a)
         self._discard_completed_definition_paths()
         saved_primitive = word.definition == 1
@@ -695,13 +730,53 @@ class MuredMachine:
                 "JOIN primitive context marker has no saved context"
             )
         single_word = state.fsp == state.s_a
-        if parent.opcode is MuredOpcode.RBLOCK:
+        shareable_atomic = single_word and self._is_shareable_ep_value(tail)
+        if parent.opcode is MuredOpcode.EP and shareable_atomic:
+            if type(parent.data) is not int or parent.data < 0:
+                raise InvalidAddress("EP requires an environment address")
+            target = self._word(parent.data)
+            if target.opcode is not MuredOpcode.CLOSURE:
+                raise IllegalTransition("EP sharing target is not an unshared closure")
+            state.memory[parent.data] = Word(
+                tail.opcode,
+                tail.data,
+                False,
+                tail.definition,
+                closure_slot=True,
+            )
+            state.memory[word.data] = Word(
+                tail.opcode,
+                tail.data,
+                False,
+                tail.definition,
+            )
+            state.fsp -= 2
+        elif parent.opcode is MuredOpcode.RBLOCK:
             state.memory[word.data] = Word(
                 MuredOpcode.RBLOCK,
                 state.s_a,
                 parent.head,
                 parent.definition,
             )
+            if state.q == 0:
+                previous = (
+                    state.memory[word.data - 1] if word.data > 0 else None
+                )
+                if previous is None or previous.opcode is not MuredOpcode.RBLOCK:
+                    binding_count = 1
+                    cursor = word.data + 1
+                    while cursor < len(state.memory):
+                        candidate = state.memory[cursor]
+                        if (
+                            candidate is None
+                            or candidate.opcode is not MuredOpcode.RBLOCK
+                        ):
+                            break
+                        binding_count += 1
+                        cursor += 1
+                    state.phi -= binding_count
+                    if state.phi < 0:
+                        raise IllegalTransition("RBLOCK reverse underflows phi")
         elif parent.opcode is MuredOpcode.RECP:
             state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
         elif tail.opcode is MuredOpcode.VAR and single_word:
@@ -732,6 +807,97 @@ class MuredMachine:
                 return
         state.pc = word.data - 1
 
+    @staticmethod
+    def _is_shareable_ep_value(word: Word) -> bool:
+        if word.opcode in {MuredOpcode.INT, MuredOpcode.FLOAT, MuredOpcode.CHAR}:
+            return True
+        return word.opcode is MuredOpcode.SYM and word.definition is None
+
+    def _ep(self, word: Word) -> None:
+        state = self.state
+        if type(word.data) is not int or word.data < 0:
+            raise InvalidAddress("EP requires an environment address")
+
+        target_address = word.data
+        seen: set[int] = set()
+        while True:
+            if target_address in seen:
+                raise IllegalTransition("cyclic EP environment chain")
+            seen.add(target_address)
+            target = self._word(target_address)
+            if target.opcode is not MuredOpcode.EP:
+                break
+            if type(target.data) is not int or target.data < 0:
+                raise InvalidAddress("EP requires an environment address")
+            target_address = target.data
+
+        if state.direction is Direction.F:
+            # Original RED treats EP as an argument descriptor in problem mode:
+            # preserve the current environment path and continue walking the
+            # application spine.  Dereferencing happens only in result mode.
+            self._copy_result(word)
+            self._push_control(state.env)
+            state.pc += 1
+            return
+
+        parent_ep = state.pc
+        caller_path = self._pop_control()
+        if caller_path != state.env:
+            self._push_environment_marker(caller_path)
+        if target.opcode is MuredOpcode.CLOSURE:
+            saves_primitive = state.fire > 0
+            self._save_primitive_context()
+            self._push_graph(
+                Word(
+                    MuredOpcode.JOIN,
+                    parent_ep,
+                    False,
+                    1 if saves_primitive else None,
+                )
+            )
+            state.argcnt = 0
+            state.pc = target_address
+            state.direction = Direction.F
+            return
+        if target.opcode is MuredOpcode.UBV:
+            if type(target.data) is not int:
+                raise InvalidAddress("UBV requires a binder depth")
+            state.memory[parent_ep] = Word(
+                MuredOpcode.VAR,
+                state.phi - target.data,
+                False,
+            )
+            state.pc -= 1
+            return
+        if target.opcode in {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
+            state.memory[parent_ep] = Word(
+                target.opcode,
+                target.data,
+                False,
+                target.definition,
+            )
+            if state.fire > 0:
+                if state.prim is None:
+                    raise IllegalTransition(
+                        "active primitive countdown requires prim"
+                    )
+                state.fire -= 1
+                if state.fire == 0:
+                    state.pc = parent_ep
+                    self._fire_primitive()
+                    return
+            state.pc -= 1
+            return
+        raise IllegalTransition("EP points to unsupported environment value")
+
     def _lambda(self, word: Word) -> None:
         state = self.state
         if state.direction is Direction.B:
@@ -741,10 +907,11 @@ class MuredMachine:
             state.pc -= 1
             return
         result_head = self._word(state.fsp)
-        if state.q == 0 or result_head.opcode not in {
-            MuredOpcode.APP,
-            MuredOpcode.APP_VAR,
-        }:
+        if (
+            state.q == 0
+            or state.argcnt == 0
+            or result_head.opcode is MuredOpcode.STOP
+        ):
             self._copy_result(word)
             state.argcnt = 0
             state.phi += 1
@@ -762,11 +929,33 @@ class MuredMachine:
             state.argcnt -= 1
             state.pc += 1
             return
-        if not isinstance(result_head.data, int):
-            raise InvalidAddress("result APP requires an argument address")
-        saved_path = self._pop_control()
-        self._allocate_environment(Word(None, result_head.data, False))
-        self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
+        if result_head.opcode is MuredOpcode.EP:
+            if type(result_head.data) is not int or result_head.data < 0:
+                raise InvalidAddress("result EP requires an environment address")
+            self._pop_control()
+            self._allocate_environment(Word(MuredOpcode.EP, result_head.data, False))
+            state.q -= 1
+            state.fsp -= 1
+            state.argcnt -= 1
+            state.pc += 1
+            return
+        if result_head.opcode is MuredOpcode.APP:
+            if not isinstance(result_head.data, int):
+                raise InvalidAddress("result APP requires an argument address")
+            saved_path = self._pop_control()
+            self._allocate_environment(Word(None, result_head.data, False))
+            self._allocate_environment(Word(MuredOpcode.CLOSURE, saved_path, False))
+        else:
+            # Historical PUSH-BINDING accepts immediate argument data directly.
+            # Presence is tracked by argcount; the value need not be pointer-shaped.
+            self._allocate_environment(
+                Word(
+                    result_head.opcode,
+                    result_head.data,
+                    False,
+                    result_head.definition,
+                )
+            )
         state.q -= 1
         state.fsp -= 1
         state.argcnt -= 1
@@ -777,10 +966,7 @@ class MuredMachine:
             raise IllegalTransition("STRUCT requires a non-empty tag name")
         state = self.state
         if state.direction is Direction.B:
-            saved_quantum = self._pop_control_entry()
-            if not isinstance(saved_quantum, _SavedQuantum):
-                raise IllegalTransition("STRUCT reverse lost saved quantum")
-            state.q = saved_quantum.value
+            state.q = self._pop_saved_quantum()
             state.phi -= 1
             if state.phi < 0:
                 raise IllegalTransition("STRUCT reverse underflows phi")
@@ -791,8 +977,9 @@ class MuredMachine:
         if state.q == 0 or result_head.opcode not in {
             MuredOpcode.APP,
             MuredOpcode.APP_VAR,
+            MuredOpcode.EP,
         }:
-            self._push_control_entry(_SavedQuantum(state.q))
+            self._push_saved_quantum(state.q)
             state.q = 0
             self._copy_result(word)
             state.argcnt = 0
@@ -807,6 +994,17 @@ class MuredMachine:
             self._allocate_environment(
                 Word(MuredOpcode.UBV, state.phi - result_head.data, False)
             )
+            state.q -= 1
+            state.fsp -= 1
+            state.argcnt -= 1
+            state.pc += 1
+            return
+
+        if result_head.opcode is MuredOpcode.EP:
+            if type(result_head.data) is not int or result_head.data < 0:
+                raise InvalidAddress("result EP requires an environment address")
+            self._pop_control()
+            self._allocate_environment(Word(MuredOpcode.EP, result_head.data, False))
             state.q -= 1
             state.fsp -= 1
             state.argcnt -= 1
@@ -921,7 +1119,7 @@ class MuredMachine:
                 state.pc += 1
                 return
             if state.q > 0:
-                self._allocate_environment(Word(MuredOpcode.PNP, context, False))
+                self._push_environment_marker(context)
                 state.pc = binding_address
                 state.q -= 1
                 return
@@ -1002,7 +1200,17 @@ class MuredMachine:
 
     def _passive(self, word: Word) -> None:
         if self.state.direction is Direction.B:
-            self.state.pc -= 1
+            state = self.state
+            if state.fire > 0:
+                if state.prim is None:
+                    raise IllegalTransition(
+                        "active primitive countdown requires prim"
+                    )
+                state.fire -= 1
+                if state.fire == 0:
+                    self._fire_primitive()
+                    return
+            state.pc -= 1
             return
         self._copy_result(word)
         if word.head:
@@ -1046,6 +1254,20 @@ class MuredMachine:
                 )
                 state.argcnt -= 1
                 return
+            # Historical SYM RESULT falls through MOVE-BACKWARD.  Thus an
+            # ordinary symbol completes an active strict-argument countdown
+            # exactly like INT/FLOAT/CHAR.  Definition expansion above is the
+            # exception: it diverts to the definition before MOVE-BACKWARD and
+            # must leave the enclosing primitive context active.
+            if state.fire > 0:
+                if state.prim is None:
+                    raise IllegalTransition(
+                        "active primitive countdown requires prim"
+                    )
+                state.fire -= 1
+                if state.fire == 0:
+                    self._fire_primitive()
+                    return
             state.pc -= 1
             return
         if word.head and word.definition is not None and state.q > 0:
@@ -1085,12 +1307,31 @@ class MuredMachine:
             code = self._word(redex_address + 1)
             if code.opcode is not None or type(code.data) is not int or code.data < 0:
                 raise MalformedClosure("CLOSURE requires a following code pointer")
-            self._push_control(redex.data)
-            self._copy_result(Word(MuredOpcode.APP, code.data, False))
+            self._push_control(state.env)
+            self._copy_result(Word(MuredOpcode.EP, redex_address, False))
+            return
+        if redex.opcode is MuredOpcode.EP:
+            if type(redex.data) is not int or redex.data < 0:
+                raise InvalidAddress("EP requires an environment address")
+            self._push_control(state.env)
+            self._copy_result(Word(MuredOpcode.EP, redex.data, False))
             return
         if redex.opcode is MuredOpcode.REC:
             self._rec_fields(redex_address)
             self._copy_result(Word(MuredOpcode.RECP, redex_address, False))
+            return
+        if redex.opcode in {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
+            self._copy_result(
+                Word(redex.opcode, redex.data, False, redex.definition)
+            )
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
@@ -1099,11 +1340,15 @@ class MuredMachine:
         false_branch: Word,
         true_branch: Word,
     ) -> tuple[int | None, int | None]:
+        # Original RED saves an environment context for both PTR and EP
+        # arguments.  APP is the Python μRED spelling of PTR; an EP branch
+        # therefore consumes a control-stack path just like an APP branch.
+        path_opcodes = {MuredOpcode.APP, MuredOpcode.EP}
         true_path = (
-            self._pop_control() if true_branch.opcode is MuredOpcode.APP else None
+            self._pop_control() if true_branch.opcode in path_opcodes else None
         )
         false_path = (
-            self._pop_control() if false_branch.opcode is MuredOpcode.APP else None
+            self._pop_control() if false_branch.opcode in path_opcodes else None
         )
         return false_path, true_path
 
@@ -1114,23 +1359,21 @@ class MuredMachine:
     ) -> None:
         state = self.state
         false_path, true_path = self._pop_if_branch_paths(false_branch, true_branch)
-        self._push_control_entry(_SavedQuantum(state.q))
+        self._push_saved_quantum(state.q)
         if false_path is not None:
             self._push_control(false_path)
         if true_path is not None:
             self._push_control(true_path)
         state.q = 0
         state.prim = "__IF_RECONSTRUCT__"
-        state.fire = int(false_branch.opcode is MuredOpcode.APP) + int(
-            true_branch.opcode is MuredOpcode.APP
+        path_opcodes = {MuredOpcode.APP, MuredOpcode.EP}
+        state.fire = int(false_branch.opcode in path_opcodes) + int(
+            true_branch.opcode in path_opcodes
         )
         state.pc -= 1
 
         if state.fire == 0:
-            saved_q = self._pop_control_entry()
-            if not isinstance(saved_q, _SavedQuantum):
-                raise IllegalTransition("IF reconstruction lost saved quantum")
-            state.q = saved_q.value
+            state.q = self._pop_saved_quantum()
             state.prim = None
 
     def _select_if_branch(self, condition: str) -> None:
@@ -1160,7 +1403,63 @@ class MuredMachine:
             state.direction = Direction.F
             return
 
-        state.memory[false_slot] = selected
+        if selected.opcode is MuredOpcode.EP:
+            if type(selected.data) is not int or selected.data < 0:
+                raise InvalidAddress("IF selected EP requires an environment address")
+            if selected_path is None:
+                raise IllegalTransition("IF selected EP lost its environment path")
+
+            target_address = selected.data
+            seen: set[int] = set()
+            while True:
+                if target_address in seen:
+                    raise IllegalTransition("cyclic IF-selected EP environment chain")
+                seen.add(target_address)
+                target = self._word(target_address)
+                if target.opcode is not MuredOpcode.EP:
+                    break
+                if type(target.data) is not int or target.data < 0:
+                    raise InvalidAddress(
+                        "IF selected EP chain requires an environment address"
+                    )
+                target_address = target.data
+
+            # IF executes the selected argument as a HEAD instruction.  If an
+            # EP has already been shared to an atom, that means the atom itself
+            # becomes the one-word result.  If it still names a closure, enter
+            # that closure directly: the conditional has already disappeared,
+            # so no JOIN/return frame belongs around this head execution.
+            state.env = selected_path
+            if self._is_shareable_ep_value(target):
+                state.memory[false_slot] = Word(
+                    target.opcode,
+                    target.data,
+                    True,
+                    target.definition,
+                )
+                state.fsp = false_slot
+                state.pc = false_slot
+                state.direction = Direction.B
+                return
+            if target.opcode is MuredOpcode.CLOSURE:
+                state.fsp = false_slot - 1
+                state.argcnt = 0
+                state.pc = target_address
+                state.direction = Direction.F
+                return
+            raise IllegalTransition(
+                f"IF selected EP points to unsupported environment value: {target.opcode}"
+            )
+
+        # The selected value occupies the old false-branch slot after the
+        # four-word IF construct is collapsed.  It is now the result head,
+        # even though it was stored as an application argument before firing.
+        state.memory[false_slot] = Word(
+            selected.opcode,
+            selected.data,
+            True,
+            selected.definition,
+        )
         state.fsp = false_slot
         state.pc = false_slot
 
@@ -1174,10 +1473,7 @@ class MuredMachine:
         state.pc = false_slot - 1
 
     def _finish_if_reconstruction(self) -> None:
-        saved_q = self._pop_control_entry()
-        if not isinstance(saved_q, _SavedQuantum):
-            raise IllegalTransition("IF reconstruction lost saved quantum")
-        self.state.q = saved_q.value
+        self.state.q = self._pop_saved_quantum()
 
     def _cons_field_entry(
         self,
@@ -1455,8 +1751,21 @@ class MuredMachine:
                 if word.data != 0:
                     raise IllegalTransition("STRUCT result requires trailing VAR 0")
                 break
-            if word.opcode not in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
-                raise IllegalTransition("STRUCT result requires field descriptors")
+            if word.opcode not in {
+                MuredOpcode.APP,
+                MuredOpcode.APP_VAR,
+                MuredOpcode.EP,
+                MuredOpcode.INT,
+                MuredOpcode.FLOAT,
+                MuredOpcode.CHAR,
+                MuredOpcode.SYM,
+                MuredOpcode.PRIM_0,
+                MuredOpcode.PRIM_1,
+                MuredOpcode.PRIM_2,
+            }:
+                raise IllegalTransition(
+                    f"STRUCT result requires field descriptors; got {word.opcode} at {cursor}"
+                )
             cursor += 1
 
         frontier = (
@@ -1738,6 +2047,58 @@ class MuredMachine:
         if redex.opcode is MuredOpcode.REC:
             self._recp(Word(MuredOpcode.RECP, redex_address, word.head))
             return
+        if redex.opcode is MuredOpcode.EP:
+            if type(redex.data) is not int or redex.data < 0:
+                raise InvalidAddress("EP requires an environment address")
+            target_address = redex.data
+            seen: set[int] = set()
+            while True:
+                if target_address in seen:
+                    raise IllegalTransition("cyclic VAR-head EP environment chain")
+                seen.add(target_address)
+                target = self._word(target_address)
+                if target.opcode is not MuredOpcode.EP:
+                    break
+                if type(target.data) is not int or target.data < 0:
+                    raise InvalidAddress("EP requires an environment address")
+                target_address = target.data
+            if target.opcode is MuredOpcode.UBV:
+                if type(target.data) is not int:
+                    raise InvalidAddress("UBV requires a binder depth")
+                self._copy_result(
+                    Word(MuredOpcode.VAR, self.state.phi - target.data, True)
+                )
+                self.state.pc = self.state.fsp - 1
+                self.state.direction = Direction.B
+                return
+            if target.opcode is MuredOpcode.CLOSURE:
+                self.state.pc = target_address
+                return
+            if self._is_shareable_ep_value(target):
+                self._copy_result(
+                    Word(target.opcode, target.data, True, target.definition)
+                )
+                self.state.pc = self.state.fsp - 1
+                self.state.direction = Direction.B
+                return
+            raise IllegalTransition(
+                f"VAR-head EP points to unsupported environment value: {target.opcode}"
+            )
+        if redex.closure_slot or self._is_shareable_ep_value(redex):
+            if redex.closure_slot and not self._is_shareable_ep_value(redex):
+                raise IllegalTransition(
+                    "shared closure slot contains unsupported environment value"
+                )
+            # RED's VAR-head action loads an immediate environment value into
+            # PGDR, marks that register HEAD, and executes the detached value.
+            # Do not execute the environment cell in place: the following word
+            # is another binding/marker, not part of the executable graph.
+            self._copy_result(
+                Word(redex.opcode, redex.data, True, redex.definition)
+            )
+            self.state.pc = self.state.fsp - 1
+            self.state.direction = Direction.B
+            return
         self.state.pc = redex_address
 
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
@@ -1763,6 +2124,80 @@ class MuredMachine:
             return sum(name is not None for name in scope[:index])
         return index - sum(name is None for name in scope)
 
+    def _decompile_ep_value(
+        self,
+        word: Word,
+        scope: tuple[str | None, ...],
+        path: frozenset[int],
+    ) -> Expr:
+        """Project a result EP through its environment without mutating state."""
+        if type(word.data) is not int or word.data < 0:
+            raise InvalidAddress("result EP requires an environment address")
+
+        target_address = word.data
+        seen: set[int] = set()
+        while True:
+            if target_address in seen:
+                raise MuredMachineError("cyclic result EP environment chain")
+            seen.add(target_address)
+            target = self._word(target_address)
+            if target.opcode is MuredOpcode.EP:
+                if type(target.data) is not int or target.data < 0:
+                    raise InvalidAddress("result EP requires an environment address")
+                target_address = target.data
+                continue
+            break
+
+        if target.opcode is MuredOpcode.CLOSURE:
+            code = self._word(target_address + 1)
+            if code.opcode is not None or type(code.data) is not int or code.data < 0:
+                raise MalformedClosure("CLOSURE requires a following code pointer")
+            expr, _ = self._decompile(code.data, scope, path)
+            return expr
+
+        if target.opcode is MuredOpcode.UBV:
+            if type(target.data) is not int:
+                raise InvalidAddress("UBV requires a binder depth")
+            index = self.state.phi - target.data
+            if index < 0:
+                raise InvalidAddress("result EP resolves to an invalid variable index")
+            name = scope[index] if index < len(scope) else None
+            return Var(self._decompile_var_index(index, scope), name)
+
+        if target.opcode is MuredOpcode.VAR:
+            if type(target.data) is not int or target.data < 0:
+                raise InvalidAddress("result VAR requires a De Bruijn index")
+            name = scope[target.data] if target.data < len(scope) else None
+            return Var(self._decompile_var_index(target.data, scope), name)
+
+        if target.opcode is MuredOpcode.INT:
+            if type(target.data) is not int:
+                raise MuredMachineError("result INT requires an integer value")
+            return Integer(target.data)
+        if target.opcode is MuredOpcode.FLOAT:
+            if type(target.data) is not float:
+                raise MuredMachineError("result FLOAT requires a floating-point value")
+            return Float(target.data)
+        if target.opcode is MuredOpcode.CHAR:
+            if type(target.data) is not str or len(target.data) != 1:
+                raise MuredMachineError(
+                    "result CHAR requires a single-character string"
+                )
+            return Char(target.data)
+        if target.opcode in {
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
+            if type(target.data) is not str or target.data == "":
+                raise MuredMachineError("result symbol requires a symbol name")
+            return Symbol(target.data)
+
+        raise MuredMachineError(
+            f"result EP points to unsupported environment value: {target.opcode}"
+        )
+
     def _decompile(
         self,
         address: int,
@@ -1781,6 +2216,7 @@ class MuredMachine:
             MuredOpcode.PRIM_0,
             MuredOpcode.PRIM_1,
             MuredOpcode.PRIM_2,
+            MuredOpcode.EP,
         }
         if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
             not word.head and word.opcode in inline_argument_opcodes
@@ -1822,7 +2258,11 @@ class MuredMachine:
                     arguments.append(argument)
                     continue
                 inline_word = self._word(argument_data)
-                if inline_word.opcode is MuredOpcode.INT:
+                if inline_word.opcode is MuredOpcode.EP:
+                    arguments.append(
+                        self._decompile_ep_value(inline_word, scope, app_path)
+                    )
+                elif inline_word.opcode is MuredOpcode.INT:
                     if type(inline_word.data) is not int:
                         raise MuredMachineError("result INT requires an integer value")
                     arguments.append(Integer(inline_word.data))
@@ -1917,18 +2357,26 @@ class MuredMachine:
                 if cursor in struct_path:
                     raise MuredMachineError("cyclic μRED result graph")
                 field_word = self._word(cursor)
-                if field_word.opcode not in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                if field_word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                    if type(field_word.data) is not int or field_word.data < 0:
+                        raise InvalidAddress(
+                            "result STRUCT field requires an address or index"
+                        )
+                    field_entries.append((field_word.opcode, field_word.data))
+                elif (
+                    not field_word.head
+                    and field_word.opcode in inline_argument_opcodes
+                ):
+                    field_entries.append((field_word.opcode, cursor))
+                else:
                     break
-                if type(field_word.data) is not int or field_word.data < 0:
-                    raise InvalidAddress(
-                        "result STRUCT field requires an address or index"
-                    )
-                field_entries.append((field_word.opcode, field_word.data))
                 struct_path = struct_path | {cursor}
                 cursor += 1
             selector = self._word(cursor)
             if selector.opcode is not MuredOpcode.VAR or selector.data != 0:
-                raise MuredMachineError("result STRUCT requires trailing VAR 0")
+                raise MuredMachineError(
+                    f"result STRUCT requires trailing VAR 0; got {selector} at {cursor}"
+                )
             struct_scope: tuple[str | None, ...] = (None, *scope)
             fields: list[Expr] = []
             next_address = cursor + 1
@@ -1946,13 +2394,53 @@ class MuredMachine:
                         )
                     )
                     continue
-                field, field_next = self._decompile(
-                    field_data,
-                    struct_scope,
-                    struct_path,
-                )
-                next_address = max(next_address, field_next)
-                fields.append(field)
+                if opcode is MuredOpcode.APP:
+                    field, field_next = self._decompile(
+                        field_data,
+                        struct_scope,
+                        struct_path,
+                    )
+                    next_address = max(next_address, field_next)
+                    fields.append(field)
+                    continue
+                inline_word = self._word(field_data)
+                if inline_word.opcode is MuredOpcode.EP:
+                    fields.append(
+                        self._decompile_ep_value(
+                            inline_word,
+                            struct_scope,
+                            struct_path,
+                        )
+                    )
+                elif inline_word.opcode is MuredOpcode.INT:
+                    if type(inline_word.data) is not int:
+                        raise MuredMachineError("result INT requires an integer value")
+                    fields.append(Integer(inline_word.data))
+                elif inline_word.opcode is MuredOpcode.FLOAT:
+                    if type(inline_word.data) is not float:
+                        raise MuredMachineError(
+                            "result FLOAT requires a floating-point value"
+                        )
+                    fields.append(Float(inline_word.data))
+                elif inline_word.opcode is MuredOpcode.CHAR:
+                    if type(inline_word.data) is not str or len(inline_word.data) != 1:
+                        raise MuredMachineError(
+                            "result CHAR requires a single-character string"
+                        )
+                    fields.append(Char(inline_word.data))
+                elif inline_word.opcode in {
+                    MuredOpcode.SYM,
+                    MuredOpcode.PRIM_0,
+                    MuredOpcode.PRIM_1,
+                    MuredOpcode.PRIM_2,
+                }:
+                    if type(inline_word.data) is not str or inline_word.data == "":
+                        raise MuredMachineError("result symbol requires a symbol name")
+                    fields.append(Symbol(inline_word.data))
+                else:
+                    raise MuredMachineError(
+                        f"{inline_word.opcode} is not a valid inline STRUCT field"
+                    )
             return StructLit(word.data, tuple(fields)), next_address
 
         if word.opcode is MuredOpcode.LAMBDA:
@@ -2011,6 +2499,9 @@ class MuredMachine:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
             name = scope[word.data] if word.data < len(scope) else None
             return Var(self._decompile_var_index(word.data, scope), name), address + 1
+
+        if word.opcode is MuredOpcode.EP:
+            return self._decompile_ep_value(word, scope, path), address + 1
 
         raise MuredMachineError(
             f"{word.opcode} is not valid in a μRED result graph"

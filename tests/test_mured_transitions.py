@@ -59,7 +59,7 @@ def test_app_var_forward_resolves_ubv_and_pushes_corrected_app_var() -> None:
     assert state.cycles == 1
 
 
-def test_app_var_forward_resolves_closure_and_pushes_control_path() -> None:
+def test_app_var_forward_resolves_closure_to_ep_and_saves_caller_path() -> None:
     machine = base_machine()
     state = machine.state
     state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
@@ -69,9 +69,9 @@ def test_app_var_forward_resolves_closure_and_pushes_control_path() -> None:
 
     machine.step()
 
-    assert state.control_stack[0] == 28
+    assert state.control_stack[0] == 30
     assert state.c == 0
-    assert state.memory[3] == Word(MuredOpcode.APP, 7, False)
+    assert state.memory[3] == Word(MuredOpcode.EP, 30, False)
     assert state.fsp == 3
     assert state.pc == 1
     assert state.direction is Direction.F
@@ -152,6 +152,23 @@ def test_lookup_skips_ubv_closure_and_follows_parent_pointer() -> None:
     assert state.s_a == 27
 
 
+def test_lookup_preserves_two_word_stride_after_closure_is_shared_to_atom() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 20
+    state.memory[20] = Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    state.memory[21] = Word(None, 7)
+    state.memory[22] = Word(MuredOpcode.UBV, 1)
+
+    assert machine.lookup(0) == 20
+    assert machine.lookup(1) == 22
+
+
 def test_lambda_contracts_against_result_app() -> None:
     machine = base_machine()
     state = machine.state
@@ -194,6 +211,46 @@ def test_lambda_contracts_against_result_app_var_without_popping_control() -> No
     assert state.memory[29] == Word(MuredOpcode.UBV, 3, False)
     assert state.pc == 1
     assert state.argcnt == 0
+
+
+def test_lambda_contracts_against_result_ep_as_one_word_binding() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 24, False)
+    state.control_stack[0] = 19
+    state.c = 0
+    state.fsp = 3
+    state.env = 30
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == -1
+    assert state.env == 29
+    assert state.memory[29] == Word(MuredOpcode.EP, 24, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_lambda_contracts_against_immediate_int_argument() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.INT, 42, False)
+    state.fsp = 3
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == -1
+    assert state.env == 31
+    assert state.memory[31] == Word(MuredOpcode.INT, 42, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
 
 
 def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
@@ -724,6 +781,36 @@ def test_reverse_rblock_begins_sym_prefixed_binding_traversal() -> None:
     assert state.direction is Direction.F
 
 
+def test_passive_int_reverse_completes_active_strict_primitive() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="+",
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.INT, 2, False)
+    state.memory[3] = Word(MuredOpcode.INT, 3, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "+", True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
 def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
     state = MuredMachineState(
         memory=[None] * 8,
@@ -1033,6 +1120,70 @@ def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> Non
     assert state.pc == 2
 
 
+def test_sym_reverse_completes_active_primitive_countdown() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="NOT",
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "NOT", True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.SYM, "FALSE", True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_defined_sym_reverse_preserves_active_primitive_until_definition_returns() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=4,
+        env=16,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        argcnt=2,
+        prim="=",
+        fire=1,
+    )
+    state.memory[3] = Word(MuredOpcode.STOP)
+    state.memory[4] = Word(MuredOpcode.SYM, "A", True, 12)
+    state.memory[12] = Word(MuredOpcode.INT, 65, True)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.APP, 3, True, 12)
+    assert state.prim == "="
+    assert state.fire == 1
+    assert state.argcnt == 1
+    assert state.c == 0
+    saved_path = state.control_stack[0]
+    assert saved_path is not None
+    assert type(saved_path).__name__ == "_SavedDefinitionPath"
+    assert getattr(saved_path, "value", None) == 16
+    assert state.pc == 4
+    assert state.direction is Direction.B
+
+
 def test_defined_symbol_application_reclaims_synthetic_definition_app() -> None:
     machine = MuredMachine.from_expr(
         parse_expr("(FOO 41)"),
@@ -1284,6 +1435,99 @@ def test_int_forward_rejects_non_integer_payloads(payload: str | None) -> None:
         machine.step()
 
 
+def test_head_var_executes_shared_closure_slot_atom_as_head() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=6,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[6] = Word(MuredOpcode.INT, 5, False, closure_slot=True)
+    state.memory[7] = Word(None, 11, False)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.memory[6] == Word(MuredOpcode.INT, 5, False, closure_slot=True)
+    assert state.fsp == 2
+    assert state.pc == 1
+    assert state.direction is Direction.B
+
+
+def test_head_var_dereferences_ep_to_closure_instead_of_executing_environment_ep() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=3,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    state.memory[8] = Word(MuredOpcode.INT, 9, True)
+    state.memory[10] = Word(MuredOpcode.EP, 12, False)
+    state.memory[11] = Word(MuredOpcode.PNP, 15, False)
+    state.memory[12] = Word(MuredOpcode.CLOSURE, 14, False)
+    state.memory[13] = Word(None, 8, False)
+    state.memory[14] = Word(MuredOpcode.UBV, 1, False)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.pc == 12
+    assert state.direction is Direction.F
+    assert state.memory[10] == Word(MuredOpcode.EP, 12, False)
+    assert state.memory[11] == Word(MuredOpcode.PNP, 15, False)
+
+    machine.step()
+
+    assert state.pc == 8
+    assert state.env < 10
+    assert state.memory[state.env] == Word(MuredOpcode.PNP, 14, False)
+
+
+
+def test_head_var_executes_direct_immediate_binding_as_detached_head() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=6,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[6] = Word(MuredOpcode.INT, 5, False)
+    state.memory[7] = Word(MuredOpcode.PNP, 6, False)
+    machine = MuredMachine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.memory[6] == Word(MuredOpcode.INT, 5, False)
+    assert state.memory[7] == Word(MuredOpcode.PNP, 6, False)
+    assert state.fsp == 2
+    assert state.pc == 1
+    assert state.direction is Direction.B
+
+
+
 def test_var_uses_lookup_and_executes_environment_value() -> None:
     machine = base_machine()
     state = machine.state
@@ -1315,6 +1559,40 @@ def test_ubv_emits_var_and_switches_to_reverse() -> None:
     assert state.fsp == 4
     assert state.pc == 3
     assert state.direction is Direction.B
+
+
+def test_struct_result_copy_preserves_inline_atomic_field_descriptor() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.INT, 7, False)
+    state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    state.fsp = 10
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.INT, 7, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 10
+
+
+def test_struct_result_copy_preserves_ep_field_descriptor() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.EP, 20, False)
+    state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[20] = Word(MuredOpcode.INT, 7, False, closure_slot=True)
+    state.memory[21] = Word(None, 11, False)
+    state.fsp = 21
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.EP, 20, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 21
 
 
 def test_struct_result_copy_preserves_detached_field_graph_above_destination() -> None:
@@ -1376,6 +1654,60 @@ def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
     assert state.pc == 2
 
 
+def test_join_shares_single_atomic_result_through_ep_closure_slot() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3)
+    state.memory[5] = Word(MuredOpcode.INT, 21, True)
+    state.memory[20] = Word(MuredOpcode.CLOSURE, 27)
+    state.memory[21] = Word(None, 9)
+    state.pc = 4
+    state.fsp = 5
+    state.env = 20
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.INT, 21, False)
+    assert state.memory[20] == Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    assert state.memory[21] == Word(None, 9)
+    assert state.fsp == 3
+    assert state.pc == 2
+
+
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        (Word(MuredOpcode.CLOSURE, 27), "(F 42)"),
+        (Word(MuredOpcode.INT, 21, False, closure_slot=True), "(F 21)"),
+    ],
+)
+def test_result_expr_projects_ep_without_mutating_environment(
+    target: Word,
+    expected: str,
+) -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[20] = target
+    state.memory[21] = Word(None, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 3
+    state.fsp = 4
+    state.halted = True
+    before = list(state.memory)
+
+    assert to_source(machine.result_expr()) == expected
+    assert state.memory == before
+
+
 def test_closure_adds_parent_path_and_jumps_to_code() -> None:
     machine = base_machine()
     state = machine.state
@@ -1390,6 +1722,66 @@ def test_closure_adds_parent_path_and_jumps_to_code() -> None:
     assert state.env == 19
     assert state.memory[19] == Word(MuredOpcode.PNP, 27)
     assert state.pc == 9
+
+
+def test_ep_result_restores_caller_path_and_activates_unshared_closure() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[20] = Word(MuredOpcode.CLOSURE, 27)
+    state.memory[21] = Word(None, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 21, True)
+    state.control_stack[0] = 24
+    state.c = 0
+    state.pc = 3
+    state.fsp = 3
+    state.env = 18
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.env == 17
+    assert state.memory[17] == Word(MuredOpcode.PNP, 24, False)
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
+    assert state.c == -1
+    assert state.pc == 20
+    assert state.direction is Direction.F
+
+    machine.step()
+
+    assert state.env == 16
+    assert state.memory[16] == Word(MuredOpcode.PNP, 27, False)
+    assert state.pc == 9
+    assert state.direction is Direction.F
+
+
+def test_ep_result_copies_already_shared_atom_without_reducing_again() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[20] = Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    state.memory[21] = Word(None, 9)
+    state.control_stack[0] = 24
+    state.c = 0
+    state.pc = 3
+    state.fsp = 3
+    state.env = 18
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.env == 17
+    assert state.memory[17] == Word(MuredOpcode.PNP, 24, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 21, False)
+    assert state.fsp == 3
+    assert state.c == -1
+    assert state.pc == 2
+    assert state.direction is Direction.B
 
 
 def test_stop_is_reverse_only_and_points_pc_at_result_root() -> None:
@@ -1438,6 +1830,25 @@ def test_environment_allocation_does_not_reuse_cells_after_path_restore() -> Non
     assert state.memory[28] == Word(MuredOpcode.PNP, 30, False)
     assert state.memory[27] == Word(MuredOpcode.UBV, 2, False)
     assert machine.lookup(1) == 30
+
+
+def test_environment_marker_uses_physical_frontier_without_extra_bridge() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 30
+
+    first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
+    assert first == 29
+    state.env = 30
+
+    marker = machine._push_environment_marker(26)
+
+    assert marker == 28
+    assert state.env == 28
+    assert state.env_frontier == 28
+    assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
+    assert state.memory[28] == Word(MuredOpcode.PNP, 26, False)
+    assert state.memory[27] is None
 
 
 def test_stop_rejects_forward_execution() -> None:
@@ -2100,6 +2511,41 @@ def test_if_non_boolean_fire_starts_zero_quantum_branch_reconstruction() -> None
     assert state.c == 2
     assert state.control_stack[1] == 20
     assert state.control_stack[2] == 21
+
+
+def test_if_non_boolean_reconstruction_counts_ep_branch_path() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.EP, 12, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "MAYBE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+    machine = MuredMachine(state)
+
+    machine._fire_primitive()
+
+    assert state.q == 0
+    assert state.pc == 3
+    assert state.prim == "__IF_RECONSTRUCT__"
+    assert state.fire == 2
+    assert state.c == 2
+    assert type(state.control_stack[0]).__name__ == "_SavedQuantum"
+    assert state.control_stack[1] == 20
+    assert state.control_stack[2] == 21
+
 
 
 def test_wrong_type_strict_fire_leaves_compact_spine_unchanged() -> None:
