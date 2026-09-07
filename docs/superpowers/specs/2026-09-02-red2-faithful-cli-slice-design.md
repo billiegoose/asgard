@@ -7,7 +7,7 @@
 
 ## Goal
 
-Expose the faithful Python μRED machine through the existing `red2` command as an explicit opt-in execution mode while preserving the evaluator-backed compatibility route as the default.
+Expose the faithful Python μRED machine through the existing `red2` command as an explicit opt-in execution mode.
 
 The faithful route must execute normalized THOR expressions directly through `MuredMachine`; neither `step()` nor `run()` may invoke the Chapter 3 evaluator or compatibility `Red2Machine`.
 
@@ -19,7 +19,7 @@ The faithful route must execute normalized THOR expressions directly through `Mu
 - With `--faithful`, pure THOR program forms are parsed/normalized and evaluated by the faithful μRED machine.
 - `--faithful` is intentionally opt-in for this slice; it does not replace compatibility mode.
 - The faithful route is pure-expression/program execution only. `--clock` and `--verbose` retain their compatibility meanings and are not used to add IO semantics to μRED.
-- Explicit `--stack-size-in-bytes` / `--heap-size-in-bytes` are rejected with `--faithful` because μRED currently exposes word-count capacities rather than the compatibility machine's byte-accounted resource model. Silently reinterpreting bytes as words would be misleading.
+- Explicit `--stack-size-in-bytes` / `--heap-size-in-bytes` are rejected with `--faithful` because μRED currently exposes word-count capacities rather than byte-accounted resource limits. Silently reinterpreting bytes as words would be misleading.
 
 ## Program runner
 

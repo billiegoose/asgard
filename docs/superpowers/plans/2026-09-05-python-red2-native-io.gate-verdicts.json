@@ -1,0 +1,28 @@
+{
+  "tasks": {
+    "1": {
+      "hash": "b797c39a9df1e056faa8bbed9d1b3adbbf7b364a5b02c7a5db6adff7c147ef1e",
+      "verdict": "pass",
+      "reason": "round 2: after round-1 rejection for missing IO-RETURN coverage, proof leg (d) now directly exercises IO-RETURN as well as IO-BIND, IO-THEN and a low-recursion-limit Y loop; legs (a)-(e) cover M1-M5 at the RED2 IO-runner layer"
+    },
+    "2": {
+      "hash": "2cdaa3d7d01536d3b5a0425a07c43421baa2968733e9bbf84c9e0a646e19268b",
+      "verdict": "pass",
+      "reason": "round 1: proof legs (a)-(e) verify UART/CLOCK behavior unchanged, show RED2 actions delegated to run_red2_io_action, confirm no RED2 branch in _IoRuntime._pure, and cover M1-M5"
+    },
+    "3": {
+      "hash": "00d154013ba74b9051976b7deb9b4de774a2ecf1f98bd84432cf35309a9ed56e",
+      "verdict": "pass",
+      "reason": "round 2: after round-1 rejection for asserting μRED purity beyond the documentation-layer exam, the Claim is narrowed to what a reader can establish from the docs; legs (a)-(c) now directly cover M1-M3 at that layer"
+    },
+    "4": {
+      "hash": "d0c6d62eb4a4ee9c8b7ddaaa8deacb32d7ee8581ef5f46fbac89c5c9588e0d9b",
+      "verdict": "pass",
+      "reason": "round 1: each proof leg (a)-(d) directly satisfies M1-M4, covering focused ownership tests, full Python quality gates, Rust regression, and exact UART/CLOCK smoke outputs"
+    }
+  },
+  "tally": {
+    "dispatched": 6,
+    "rejected": 2
+  }
+}

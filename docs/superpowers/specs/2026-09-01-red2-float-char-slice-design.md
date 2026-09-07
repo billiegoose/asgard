@@ -15,7 +15,7 @@ This slice adds:
 - halted-result decompilation to `Float` and `Char`;
 - transition, compiler-layout, fidelity, and documentation coverage.
 
-Out of scope: symbolic constants and definition lookup, primitive firing, structures, recursion, CLI integration, Rust implementation, FPGA work, or evaluator-backed execution.
+Out of scope: symbolic constants and definition lookup, primitive firing, structures, recursion, CLI integration, Rust implementation, or FPGA work.
 
 ## Transition Semantics
 

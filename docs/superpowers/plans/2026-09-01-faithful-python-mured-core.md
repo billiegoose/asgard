@@ -4,7 +4,7 @@
 
 **Goal:** Add an isolated Python μRED machine that executes the pure λ-calculus Chapter 4 instruction transitions directly over graph memory, environment memory, and a control stack.
 
-**Architecture:** Create `red2_engine.mured` as a new executable machine specification, leaving the current evaluator-backed `Red2Machine` and all CLIs unchanged. Build the fixed memory/register model first, add literal instruction transitions and `LOOKUP`, then add pure-lambda compilation, halted-result decompilation, and manually derived cycle traces.
+**Architecture:** Create `red2_engine.mured` as an executable machine specification while leaving all CLIs unchanged. Build the fixed memory/register model first, add literal instruction transitions and `LOOKUP`, then add pure-lambda compilation, halted-result decompilation, and manually derived cycle traces.
 
 **Tech Stack:** Python 3.14, frozen/slotted dataclasses, pytest, Ruff, mypy
 
@@ -21,7 +21,7 @@
 - `step()` executes exactly one fetched instruction transition; `run()` adds no semantics.
 - AST conversion is allowed only before loading and after halt.
 - Quantum changes only at contractions identified by the thesis rules.
-- The existing `red2_engine.machine.Red2Machine`, CLIs, `.red2` format, and Rust crate remain unchanged.
+- Existing CLIs, the `.red2` format, and the Rust crate remain unchanged.
 - Python remains `>=3.14`; add no runtime dependencies.
 
 ---
@@ -942,7 +942,7 @@ git commit -m "feat: compile and inspect pure lambda graphs"
 - Consumes: `MuredMachine.from_expr`, `MuredMachine.step`, `MuredMachine.result_expr`, and public μRED types from Tasks 1–3
 - Produces: public package exports for `MuredMachine`, `MuredMachineState`, `MuredOpcode`, and `Word`; committed fidelity and anti-shortcut acceptance tests
 
-This task does not alter machine semantics. It establishes evidence that the new path executes instruction cycles and clearly distinguishes it from the legacy evaluator-backed `Red2Machine`.
+This task does not alter machine semantics. It establishes evidence that the new path executes instruction cycles directly.
 
 - [ ] **Step 1: Add the manually derived cycle trace**
 
@@ -1074,7 +1074,7 @@ Keep `Red2Machine`, `Red2ResourceLimits`, `Instruction`, `Opcode`, and `ProgramI
 
 In `docs/thor-red2-prototype.md`:
 
-- state explicitly that `red2_engine.machine.Red2Machine` is the existing evaluator-backed compatibility model and does not execute Chapter 4 register transfers directly;
+- state explicitly that `MuredMachine` executes Chapter 4 register transfers directly;
 - add `red2_engine.mured` as the faithful pure-λ μRED core;
 - state that the new core is not yet full RED2 and is not wired to the CLI;
 - link `docs/mured-thesis-notes.md` for the three source reconciliations;

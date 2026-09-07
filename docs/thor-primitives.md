@@ -200,10 +200,17 @@ Example:
 
 ### Simulated Device Actions
 
-Python RED2 owns an iterative action runner for exactly `UART-RX`, `UART-TX`,
-`UART-TX-BYTES`, and `CLOCK` in this slice. `LEDS` and `TICKS` remain THOR-host
-simulator actions and are not part of the native Python RED2 device subset.
-Host effects happen outside `MuredMachine.step()` and `MuredMachine.run()`.
+Python RED2 supports exactly `UART-RX`, `UART-TX`, `UART-TX-BYTES`, and `CLOCK`
+as native `MuredMachine` suspension points in this device subset. A running machine
+returns a host-call suspension, the RED2 scheduler performs that effect, and the
+same machine resumes without rebuilding its graph or continuation. `LEDS` and
+`TICKS` remain THOR-host simulator actions and are not part of the Python RED2
+device subset.
+
+Each successful RED2 host dispatch replenishes the configured contraction quantum
+by default. External quantum exhaustion is instead reported unless callers opt into
+the `quantum-exhausted` recharge event; `red2 --recharge-on ...` exposes those
+scheduler choices.
 
 - `UART-RX` — poll one byte/character from stdin and return its integer code, or
   `NIL` when no byte is currently available. Simulator stdin EOF is also

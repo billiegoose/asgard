@@ -15,7 +15,7 @@ This slice adds only APP-VAR behavior:
 - decompile APP-VAR spine entries back to source applications;
 - document that this is still not full RED2.
 
-Out of scope: primitive firing, symbols/definition lookup, floats/chars, structures, recursion, CLI integration, Rust, or evaluator-backed execution.
+Out of scope: primitive firing, symbols/definition lookup, floats/chars, structures, recursion, CLI integration, or Rust.
 
 ## Transition Semantics
 

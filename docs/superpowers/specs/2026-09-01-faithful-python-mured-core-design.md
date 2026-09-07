@@ -8,7 +8,7 @@ This is the first step toward a faithful RED2 implementation. Full THOR/RED2 ins
 
 ## Current Problem
 
-The existing Python `red2_engine.machine.Red2Machine` exposes RED2-like registers and instruction memory, but it decodes instructions into a private term graph and evaluates that graph. The existing Rust executor similarly reconstructs an expression tree before reduction. Consequently, neither implementation executes the Chapter 4 graph machine, and final-result parity does not establish machine fidelity.
+At this milestone, the available software executors did not yet execute the Chapter 4 graph machine directly; final-result parity alone therefore did not establish machine fidelity.
 
 The new implementation will be isolated from these evaluators so that old abstractions cannot accidentally substitute for the thesis execution model.
 
@@ -26,7 +26,7 @@ Create `models/python/red2_engine/mured.py` as an independent μRED core for the
 - one-instruction machine stepping;
 - pure-lambda problem-graph loading and halted-result decompilation.
 
-The first milestone does not replace `red2_engine.machine.Red2Machine`, alter a CLI, or change the `.red2` format.
+The first milestone does not alter a CLI or change the `.red2` format.
 
 ## Architecture
 
@@ -216,7 +216,7 @@ The following are explicitly deferred:
 - `LETREC`, `RBLOCK`, `RUP`, `RECP`, and `REC`;
 - simulator I/O;
 - integration with the current Python RED2 CLI;
-- replacement or removal of the existing evaluator-backed `Red2Machine`;
+- CLI/default-path migration;
 - a faithful Rust RED2 port;
 - FPGA memory sizing, buses, and synthesis;
 - Thor modules or hardware components.

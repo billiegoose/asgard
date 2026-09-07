@@ -2,7 +2,7 @@
 
 ## Goal
 
-Implement the Chapter 4 strict-primitive firing mechanism in `models/python/red2_engine/mured.py`, with integer `+` as the first firing primitive. Execution remains direct graph-memory/register execution; no evaluator-backed shortcut is permitted.
+Implement the Chapter 4 strict-primitive firing mechanism in `models/python/red2_engine/mured.py`, with integer `+` as the first firing primitive. Execution remains direct graph-memory/register execution; no semantic shortcut is permitted.
 
 ## Thesis contract
 

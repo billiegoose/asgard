@@ -4,7 +4,7 @@
 
 This project is a faithful research prototype of Hilton's THOR interpreter and RED2 graph-reduction machine. The Python THOR interpreter is the Chapter 3 semantic reference; the Python RED2 path executes the Chapter 4-style μRED graph/environment/register machine directly.
 
-There is now only one Python RED2 executor: `models/python/red2_engine/mured.py`. The older evaluator-backed compatibility machine was removed. Consequently `red2`, `mise run red2`, parity runs using `model="red2"`, and pure RED2 reductions requested by the IO host all use `MuredMachine`.
+Python RED2 execution is implemented by `models/python/red2_engine/mured.py`. `red2`, `mise run red2`, and parity runs using `model="red2"` all execute through `MuredMachine`.
 
 Semantic parity remains distinct from machine fidelity: Chapter 3 reduction is an oracle at test boundaries, not an execution callback from `MuredMachine.step()` or `run()`.
 
@@ -33,15 +33,17 @@ See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconcil
 
 Visible source definitions are compiled into relocated static μRED graphs. `StructDef` constructors remain source definitions, while canonical generated accessor lambdas are recognized by the loader and emitted as native structure-selector primitives. A user definition that replaces a generated accessor keeps ordinary definition semantics.
 
-Python RED2 owns a separate iterative IoRunner-style action layer around `MuredMachine`, analogous to Rust's `IoRunner`/`Reducer` split. That RED2-owned layer executes UART and CLOCK actions while asking the faithful μRED machine to perform pure reductions; the THOR model keeps its separate simulator action interpreter. UART/CLOCK host effects remain outside `MuredMachine.step()` and `MuredMachine.run()`, which stay pure graph/environment/register execution.
+Effectful Python RED2 programs also stay on one persistent `MuredMachine`. The machine recognizes `UART-RX`, `UART-TX`, `UART-TX-BYTES`, and `CLOCK` as native suspension points and returns a `MuredHostCall`; the scheduler performs the host operation and resumes that same graph, environment, control stack, and register state. It does not reduce IO continuations by constructing fresh AST requests or loading replacement machines. The THOR model keeps its separate simulator action interpreter.
 
-The former byte-accounted `--stack-size-in-bytes` and `--heap-size-in-bytes` CLI switches were removed because the faithful machine currently exposes word capacities rather than the old compatibility evaluator's byte accounting. User-facing faithful loaders default to 65,536 graph/environment words and 8,192 control entries.
+The IO scheduler treats the contraction quantum as a responsiveness/watchdog budget. By default, every successful host dispatch resets the quantum to the configured amount. Genuine external quantum exhaustion is surfaced as an error unless `quantum-exhausted` is explicitly enabled as a recharge event; the lower-level machine suspension is therefore suitable for a future interactive wait/kill policy.
+
+User-facing faithful loaders default to 1,048,576 graph/environment words and 8,192 control entries. Environment allocation is currently monotonic: there is no graph/environment garbage collector yet, so sufficiently long-running programs can still exhaust the finite arena even when each individual reduction is small.
 
 ## Bytecode and Rust/WASM boundary
 
 The `.red2` instruction/compiler/binary layer remains in the repository. `red2_engine.instructions`, `red2_engine.binary`, and bytecode compilation functions in `thor_compile.red2` are still used as compiler/transport infrastructure for the Rust/WASM paths.
 
-They are no longer a second Python execution engine. Python binary tests therefore check deterministic encoding and codec/bundle round trips rather than feeding decoded bytecode to the deleted evaluator.
+Python binary tests check deterministic encoding and codec/bundle round trips; the bytecode layer is compiler/transport infrastructure rather than the Python execution path.
 
 ## Thesis traceability
 

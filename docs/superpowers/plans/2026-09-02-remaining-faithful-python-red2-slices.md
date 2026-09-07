@@ -274,7 +274,7 @@
 
 **Interfaces:**
 - Consumes: complete faithful Python RED2 subset
-- Produces: opt-in CLI path for faithful machine, without replacing evaluator-backed compatibility mode by default
+- Produces: opt-in CLI path for the faithful machine
 
 - [x] Write a spec for an opt-in CLI flag or separate command path.
 - [x] Add CLI tests proving current compatibility CLI remains unchanged.

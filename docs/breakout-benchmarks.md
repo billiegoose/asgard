@@ -7,7 +7,7 @@ left/right key pattern followed by `q`, with a controlled latest-value clock
 file.
 
 Unlike [`python-engine-benchmarks.md`](python-engine-benchmarks.md), this is not
-a reducer/VM microbenchmark. It includes source preparation, IO action handling,
+a reducer/VM microbenchmark. It includes source preparation, IO handling,
 subprocess and `mise` startup, terminal output, and backend-specific host/runtime
 overhead.
 
@@ -18,82 +18,74 @@ mise run benchmark-breakout --iterations 1
 uv run python tools/videos/benchmark_breakout.py --iterations 1
 ```
 
-## Current status
+## Current Python RED2 execution model
 
-As of 2026-09-05, Python RED2 Breakout works again and the deterministic
-benchmark completes normally. The regression came from the native Python RED2
-IO runner repeatedly rebuilding faithful μRED state for tiny pure reductions.
-Two independent forms of repeated work were responsible:
+Python RED2 runs an effectful program on one persistent faithful `MuredMachine`.
+`UART-RX`, `UART-TX`, `UART-TX-BYTES`, and `CLOCK` are machine suspension
+points. When one is reached, the machine returns a host-call request; the host
+performs the effect and resumes the same graph, environment, control stack, and
+register state. IO continuations are not converted into fresh AST reduction
+requests and no replacement machine is loaded between effects.
 
-1. Every pure reduction recompiled and relocated the complete static top-level
-   definition environment.
-2. Breakout requested 53,277 pure reductions, but only 1,623 distinct
-   `(expression, quantum)` pairs occurred in the deterministic run. In other
-   words, about 97% of those requests repeated an identical pure computation.
+The contraction quantum is a scheduler/watchdog budget. The default RED2 IO
+policy replenishes the configured quantum after every successful host dispatch.
+If the machine genuinely exhausts its quantum before another host dispatch,
+that exhaustion is surfaced unless callers explicitly enable the
+`quantum-exhausted` recharge event.
 
-The repair keeps effects outside `MuredMachine`: static definitions are compiled
-and relocated once per `run_red2_io_action(...)`, and pure faithful results are
-memoized only for that IO run using `(Expr, quantum)` as the key. The cache is
-not shared across runs, and every cache miss still executes through
-`load_faithful_machine(...)`, `MuredMachine.run(...)`, and
-`MuredMachine.result_expr()`.
+Faithful loaders currently default to 1,048,576 graph/environment words and
+8,192 control entries. Environment allocation is monotonic and there is not yet
+a graph/environment garbage collector, so sufficiently long-running programs
+can still exhaust the finite arena. The larger default is intended to make
+interactive examples practical; it is not a substitute for future reclamation.
 
-Profiling before the repair showed why the regression was so severe. An
-immediate-quit run made 909 pure machine loads while only about 0.33 seconds of
-profiled time was spent in actual μRED execution; compilation/loading consumed
-tens of seconds. A full deterministic Breakout run made 53,277 pure reductions
-and previously took roughly 27-29 seconds even after static-definition caching.
-Before static-definition caching it exceeded the 300-second benchmark timeout.
+The scheduler also distinguishes genuine external quantum exhaustion from the
+temporary `q = 0` states used internally by faithful `IF`/`STRUCT`
+reconstruction. Those internal states must complete normally rather than being
+exposed as scheduler suspensions.
 
-After both caches, the same deterministic workload completes in about 2-3
-seconds on the development machine. One representative command-level sample
-was:
+## Current result
 
-| model | seconds | speedup vs THOR |
-| --- | ---: | ---: |
-| THOR | 1.529 | 1.00x |
-| Python RED2 | 2.692 | 0.57x |
-| Rust | 1.226 | 1.25x |
-| WASM | 0.924 | 1.66x |
-
-The exact timings vary between runs, so these are diagnostic numbers rather
-than a performance contract. Python RED2 is still slower than THOR in the
-current command-level benchmark, and the historical 1.719-second RED2 result
-below came from an older engine architecture, so it should not be treated as a
-current target without a like-for-like investigation.
-
-The deterministic RED2 output also reaches the real quit path: the final bytes
-end in `QUIT\n`. This matters because the initial help text itself contains
-`Q QUITS`, so merely searching for the word `QUIT` is not sufficient evidence
-that the scripted `q` was processed.
-
-## Historical result: 2026-09-01
-
-Before the native RED2 IO runner, and after caching Python RED2 definition
-compilation/parsing per IO run, this machine produced:
+Measured on 2026-09-06 with three deterministic iterations:
 
 | Backend | Mean seconds | Best seconds | Speedup vs THOR |
 | --- | ---: | ---: | ---: |
-| THOR | 16.576 | 16.576 | 1.00x |
-| Python RED2 | 1.719 | 1.719 | 9.64x |
-| Rust RED2 | 1.120 | 1.120 | 14.81x |
-| WASM RED2 | 0.850 | 0.850 | 19.50x |
+| THOR | 1.432 | 1.408 | 1.00x |
+| Python RED2 | 1.240 | 1.232 | 1.15x |
+| Rust RED2 | 1.041 | 1.034 | 1.38x |
+| WASM RED2 | 0.786 | 0.763 | 1.82x |
 
-The command output was:
+Raw command output:
 
 ```text
 model,mean_seconds,best_seconds,speedup_vs_thor
-thor,16.576,16.576,1.00x
-red2,1.719,1.719,9.64x
-rust,1.120,1.120,14.81x
-wasm,0.850,0.850,19.50x
+thor,1.432,1.408,1.00x
+red2,1.240,1.232,1.15x
+rust,1.041,1.034,1.38x
+wasm,0.786,0.763,1.82x
 ```
 
-An even earlier run on 2026-08-29 measured Python RED2 at 157.970 seconds
-versus THOR at 93.051 seconds. At that point the RED2 slowdown was dominated by
-recompiling and reparsing all RED2 definitions for each pure IO sub-expression.
-Caching removed that particular cost, producing the 2026-09-01 result above.
+These timings are diagnostic rather than a performance contract. Command
+startup, host load, filesystem state, and terminal/runtime overhead can move the
+numbers between runs.
 
-Those measurements remain useful as historical architecture checkpoints, but
-they should not be compared directly with the current native-IO implementation
-without first fixing or replacing the command-level benchmark path.
+The deterministic RED2 run reaches the real quit path: its final output ends in
+`QUIT\n`. That is stronger evidence than merely finding the word `QUIT`, since
+the initial help text also contains `Q QUITS`.
+
+## Default-capacity acceptance checks
+
+With the current faithful defaults and the default host-dispatch recharge
+policy:
+
+- deterministic Breakout completes its scripted quit path in 194,740 μRED
+  cycles and uses about 15,646 working graph/environment words;
+- deterministic Pong completes its scripted quit path in 27,863 μRED cycles and
+  uses about 7,163 working graph/environment words;
+- `examples/clock-dots.thor` continues through repeated CLOCK polling long
+  enough to emit normally under the default arena instead of failing almost
+  immediately from monotonic environment growth.
+
+Breakout and Pong therefore fit comfortably inside the default arena. Infinite
+or very long-lived recursive IO programs remain bounded by the current absence
+of graph/environment reclamation.

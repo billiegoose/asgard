@@ -6,11 +6,11 @@
 
 ## Goal
 
-Close the faithful Python RED2 implementation plan with an explicit conformance boundary. This review does not add an evaluator-backed fallback or claim exhaustive historical RED2 coverage. It records what the current Python μRED path faithfully executes, protects that path against evaluator/decompiler shortcuts, and exercises the integrated source surface against the Chapter 3 THOR semantic reference at test boundaries.
+Close the faithful Python RED2 implementation plan with an explicit conformance boundary. This review does not add a fallback execution path or claim exhaustive historical RED2 coverage. It records what the current Python μRED path faithfully executes, protects that path against evaluator/decompiler shortcuts, and exercises the integrated source surface against the Chapter 3 THOR semantic reference at test boundaries.
 
 ## Execution invariant
 
-`MuredMachine.step()` and `MuredMachine.run()` execute only graph/environment memory transitions and machine registers. They do not invoke the Chapter 3 evaluator, the deleted evaluator-backed `Red2Machine`, or result decompilation.
+`MuredMachine.step()` and `MuredMachine.run()` execute only graph/environment memory transitions and machine registers. They do not invoke the Chapter 3 evaluator or result decompilation.
 
 Result decompilation is presentation-only and is available after halt through `result_expr()`.
 
@@ -72,12 +72,12 @@ The Python implementation is now the repository's faithful RED2 execution path, 
 - exhaustive coverage of every primitive or library operation described historically around THOR/RED2;
 - recursive/general structural `EQUAL?` beyond the supported atomic-constant path;
 - dedicated Chapter 4 `AND` and `OR` primitive transitions: the current source surface lowers them to lazy `IF` chains when not shadowed;
-- byte-accounted public stack/heap controls equivalent to the deleted compatibility evaluator; the faithful machine uses word capacities;
+- byte-accounted public stack/heap controls; the faithful machine uses word capacities;
 - proof that every intermediate contraction prefix is identical to the Chapter 3 recursive evaluator. Lockstep parity intentionally permits internal scheduling differences and records reconvergence;
 - performance-accurate hardware timing, exhaustive reclamation/cost modeling, or FPGA/vendor synthesis integration;
 - equivalence between the Python μRED memory format and the retained `.red2` bytecode/Rust/WASM compatibility representation. Those paths have their own tests and remain separate implementation targets.
 
-These are declared gaps, not reasons to reintroduce evaluator-backed Python execution. Future Python RED2 work should extend the faithful machine/frontend semantics directly.
+These are declared gaps. Future Python RED2 work should extend the faithful machine/frontend semantics directly.
 
 ## Non-Python boundary
 

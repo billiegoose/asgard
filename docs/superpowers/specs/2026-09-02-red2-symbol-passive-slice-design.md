@@ -15,7 +15,7 @@ This slice adds:
 - direct forward/reverse execution for symbols whose associated definition is absent (`definition = bottom` in the thesis);
 - tests and docs proving definition lookup remains deferred.
 
-Out of scope: symbol hash-table addresses, definition storage, reducing a symbol to its definition, primitive firing, structures, recursion, CLI integration, Rust implementation, or evaluator-backed execution.
+Out of scope: symbol hash-table addresses, definition storage, reducing a symbol to its definition, primitive firing, structures, recursion, CLI integration, or Rust implementation.
 
 ## Transition Semantics
 

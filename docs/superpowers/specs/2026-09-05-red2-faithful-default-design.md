@@ -8,7 +8,7 @@
 
 Make the faithful Python μRED machine the only Python RED2 execution engine. `red2`, `mise run red2`, parity execution with `model="red2"`, and pure reductions performed by the IO host all execute through `MuredMachine`.
 
-The evaluator-backed Python compatibility machine is deleted rather than retained behind a compatibility switch.
+Python RED2 has a single faithful execution path rather than parallel execution modes.
 
 ## Runtime architecture
 
@@ -24,7 +24,7 @@ The evaluator-backed Python compatibility machine is deleted rather than retaine
 
 `red2` is faithful by default and has no compatibility mode or `--faithful` flag.
 
-The old `--stack-size-in-bytes` and `--heap-size-in-bytes` switches are removed. They described byte-accounted limits implemented only by the deleted compatibility evaluator. The faithful μRED loader currently exposes fixed word capacities instead; silently preserving the byte flags would misrepresent their meaning.
+The `--stack-size-in-bytes` and `--heap-size-in-bytes` switches are removed because the faithful μRED loader exposes word capacities instead; silently preserving the byte flags would misrepresent their meaning.
 
 `--clock`, `--verbose`, source-file/`--expr`, and quantum handling remain available through the existing CLI/IO host integration.
 
@@ -93,4 +93,4 @@ Permanent regression coverage includes:
 
 ## Remaining scope
 
-This migration establishes one truthful Python RED2 execution path; it does not claim that every RED2/Chapter 4 primitive or every historical compatibility feature has been implemented. Remaining omissions are documented in `docs/thor-red2-prototype.md` and should be closed through faithful machine/frontend work rather than by resurrecting evaluator-backed execution.
+This migration establishes one truthful Python RED2 execution path; it does not claim that every RED2/Chapter 4 primitive has been implemented. Remaining omissions are documented in `docs/thor-red2-prototype.md` and should be closed through faithful machine/frontend work directly.

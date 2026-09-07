@@ -4,7 +4,7 @@
 
 **Goal:** Evolve the faithful Python μRED core in place with RED2 spine-head metadata and direct passive integer execution.
 
-**Architecture:** Add head metadata without changing addresses or register layout, then add `INT` as the first RED2 data instruction. Existing class names remain compatible; the compiler, machine transitions, and result boundary evolve together without evaluator-backed execution.
+**Architecture:** Add head metadata without changing addresses or register layout, then add `INT` as the first RED2 data instruction. The compiler, machine transitions, and result boundary evolve together through direct machine execution.
 
 **Tech Stack:** Python 3.11+, pytest, Ruff, mypy, Thor AST/parser
 
