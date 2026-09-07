@@ -9,7 +9,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-README = ROOT / "examples" / "README.md"
+ROOT_README = ROOT / "README.md"
+EXAMPLES_README = ROOT / "examples" / "README.md"
 MEDIA_DIR = ROOT / "examples" / "media"
 BREAKOUT_CAST = MEDIA_DIR / "breakout.cast"
 BREAKOUT_WASM_CAST = MEDIA_DIR / "breakout-wasm.cast"
@@ -37,11 +38,12 @@ def _breakout_steps() -> tuple[tuple[int, str, float], ...]:
         67: "\x1b[C",
         68: "\x1b[C",
     }
+    scaled_keys_by_tick = {tick * 6: keys for tick, keys in keys_by_tick.items()}
     steps: list[tuple[int, str, float]] = []
-    for tick in range(1, 71):
-        keys = keys_by_tick.get(tick, " ")
+    for tick in range(1, 421):
+        keys = scaled_keys_by_tick.get(tick, " ")
         steps.append((1_700_000_000_000 + (tick * TICK_MS), keys, 0.1))
-    steps.append((1_700_000_007_200, "q", 0.1))
+    steps.append((1_700_000_042_200, "q", 0.1))
     return tuple(steps)
 
 
@@ -110,6 +112,7 @@ def generate_breakout(*, upload: bool) -> str | None:
         steps=BREAKOUT_STEPS,
         height=16,
         readme_writer=_write_examples_readme,
+        memory_words=4_194_304,
     )
 
 
@@ -149,6 +152,7 @@ def _generate_terminal_video(
     steps: tuple[tuple[int, str, float], ...],
     height: int,
     readme_writer: Callable[[str], None],
+    memory_words: int | None = None,
 ) -> str | None:
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     prefix = f"asgard-{command_model}-{Path(source).stem}-video-"
@@ -158,10 +162,15 @@ def _generate_terminal_video(
         driver = tmp_path / "drive_terminal_game.py"
         clock.write_text("1700000000000\n")
         driver.write_text(_driver_source(clock, steps))
+        memory_arg = (
+            f" --memory-words {memory_words}"
+            if command_model == "red2" and memory_words is not None
+            else ""
+        )
         command = (
             f"{sys.executable} {driver} | "
             f"mise run {command_model} {source} "
-            f"--clock {clock} --quantum 50000"
+            f"--clock {clock} --quantum 50000{memory_arg}"
         )
         env = os.environ | {
             "TERM": "xterm-256color",
@@ -185,6 +194,18 @@ def _generate_terminal_video(
             check=True,
         )
         _normalize_cast_duration(cast, duration=5.2, title=title)
+        output = "".join(
+            json.loads(line)[2] for line in cast.read_text().splitlines()[1:]
+        )
+        failure_markers = (
+            "ERROR task failed",
+            "Traceback (most recent call last)",
+            "BrokenPipeError:",
+            "graph and environment collide",
+        )
+        for marker in failure_markers:
+            if marker in output:
+                raise RuntimeError(f"recorded command failed: found {marker!r} in cast")
     if not upload:
         return None
     upload_result = subprocess.run(
@@ -252,37 +273,41 @@ def _extract_asciinema_url(output: str) -> str:
     return match.group(0)
 
 
-def _write_examples_readme(url: str) -> None:
-    svg_url = f"{url}.svg"
-    text = README.read_text()
-    text = re.sub(
-        r"\[!\[Asgard Breakout asciicast\]\([^)]*\)\]\([^)]+\)",
-        f"[![Asgard Breakout asciicast]({svg_url})]({url})",
-        text,
+def _replace_asciinema_embed(path: Path, alt_text: str, url: str) -> None:
+    lines = path.read_text().splitlines()
+    prefix = f"[![{alt_text}]"
+    open_paren = chr(40)
+    close_paren = chr(41)
+    replacement = (
+        f"[![{alt_text}]"
+        f"{open_paren}{url}.svg{close_paren}]"
+        f"{open_paren}{url}{close_paren}"
     )
-    README.write_text(text)
+    for index, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[index] = replacement
+            path.write_text(chr(10).join(lines) + chr(10))
+            return
+    msg = f"could not find {alt_text!r} embed in {path}"
+    raise RuntimeError(msg)
+
+
+def _write_examples_readme(url: str) -> None:
+    alt_text = "Asgard Breakout asciicast"
+    _replace_asciinema_embed(EXAMPLES_README, alt_text, url)
+    _replace_asciinema_embed(ROOT_README, alt_text, url)
 
 
 def _write_examples_readme_wasm(url: str) -> None:
-    svg_url = f"{url}.svg"
-    text = README.read_text()
-    text = re.sub(
-        r"\[!\[Asgard Breakout WASM asciicast\]\([^)]*\)\]\([^)]+\)",
-        f"[![Asgard Breakout WASM asciicast]({svg_url})]({url})",
-        text,
+    _replace_asciinema_embed(
+        EXAMPLES_README,
+        "Asgard Breakout WASM asciicast",
+        url,
     )
-    README.write_text(text)
 
 
 def _write_examples_readme_pong(url: str) -> None:
-    svg_url = f"{url}.svg"
-    text = README.read_text()
-    text = re.sub(
-        r"\[!\[Asgard Pong asciicast\]\([^)]*\)\]\([^)]+\)",
-        f"[![Asgard Pong asciicast]({svg_url})]({url})",
-        text,
-    )
-    README.write_text(text)
+    _replace_asciinema_embed(EXAMPLES_README, "Asgard Pong asciicast", url)
 
 
 if __name__ == "__main__":

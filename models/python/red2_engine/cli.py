@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
     )
     parser.add_argument(
+        "--memory-words",
+        type=int,
+        default=1_048_576,
+        help="faithful RED2 memory arena in words (default: 1048576)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="write diagnostics to stderr",
@@ -69,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
         return _run_expr_source(
             source,
             quantum=args.quantum,
+            memory_words=args.memory_words,
             verbose=args.verbose,
             clock_path=args.clock,
             recharge_on=(
@@ -86,6 +93,7 @@ def _run_expr_source(
     source: str,
     *,
     quantum: int,
+    memory_words: int,
     verbose: bool,
     clock_path: Path | None,
     recharge_on: frozenset[Red2RechargeEvent],
@@ -94,6 +102,7 @@ def _run_expr_source(
         return _run_io_source(
             source,
             quantum=quantum,
+            memory_words=memory_words,
             verbose=verbose,
             clock_path=clock_path,
             recharge_on=recharge_on,
@@ -115,6 +124,7 @@ def _run_io_source(
     source: str,
     *,
     quantum: int,
+    memory_words: int,
     verbose: bool,
     clock_path: Path | None,
     recharge_on: frozenset[Red2RechargeEvent],
@@ -124,6 +134,7 @@ def _run_io_source(
         source,
         model="red2",
         quantum=quantum,
+        red2_memory_words=memory_words,
         stdin=sys.stdin,
         stdout=sys.stdout,
         stderr=sys.stderr,

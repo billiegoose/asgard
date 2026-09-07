@@ -1,3 +1,4 @@
+import os
 import select
 import time
 from collections.abc import Collection, Mapping
@@ -77,6 +78,7 @@ def run_io_source(
     stdout: TextIO,
     stderr: TextIO,
     clock: ClockSource | None = None,
+    red2_memory_words: int = 1_048_576,
     red2_recharge_on: Collection[Red2RechargeEvent] = DEFAULT_RED2_RECHARGE_EVENTS,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
@@ -98,6 +100,7 @@ def run_io_source(
                 definitions=definitions,
                 quantum=quantum,
                 host=host,
+                memory_words=red2_memory_words,
                 recharge_on=red2_recharge_on,
             )
         except Red2IoRuntimeError as error:
@@ -147,12 +150,7 @@ class _Red2IoHost:
     clock: ClockSource
 
     def uart_rx(self) -> int | None:
-        if not _text_stream_has_ready_input(self.stdin):
-            return None
-        char = self.stdin.read(1)
-        if char == "":
-            return None
-        return ord(char[0])
+        return _read_ready_input_byte(self.stdin)
 
     def uart_tx(self, data: bytes) -> None:
         self.stdout.write("".join(chr(byte) for byte in data))
@@ -353,12 +351,8 @@ class _IoRuntime:
             self._stdout.flush()
             return Symbol("NIL")
         if name == "UART-RX" and not args:
-            if not _text_stream_has_ready_input(self._stdin):
-                return Symbol("NIL")
-            char = self._stdin.read(1)
-            if char == "":
-                return Symbol("NIL")
-            return Integer(ord(char[0]))
+            rx_byte = _read_ready_input_byte(self._stdin)
+            return Symbol("NIL") if rx_byte is None else Integer(rx_byte)
         if name == "LEDS" and len(args) == 1:
             value = self._pure(args[0])
             print(f"leds: {to_source(value)}", file=self._stderr)
@@ -426,13 +420,19 @@ class _IoRuntime:
         raise IoRuntimeError(msg)
 
 
-def _text_stream_has_ready_input(stream: TextIO) -> bool:
+def _read_ready_input_byte(stream: TextIO) -> int | None:
+    """Read one UART byte without mixing fd readiness with TextIO buffering."""
     try:
         fd = stream.fileno()
     except (AttributeError, OSError):
-        return True
+        char = stream.read(1)
+        return None if char == "" else ord(char[0])
+
     readable, _, _ = select.select([fd], [], [], 0)
-    return bool(readable)
+    if not readable:
+        return None
+    data = os.read(fd, 1)
+    return None if not data else data[0]
 
 
 def _apply_unary_lambda(expr: Expr, value: Expr) -> Expr:

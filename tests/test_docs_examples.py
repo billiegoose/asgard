@@ -158,28 +158,46 @@ def test_wasm_breakout_cast_is_committed_asciicast_v2() -> None:
     assert header["title"] == "Asgard Breakout WASM"
 
 
+def _asciinema_embed(alt_text: str, url: str) -> str:
+    open_paren = chr(40)
+    close_paren = chr(41)
+    return (
+        f"[![{alt_text}]"
+        f"{open_paren}{url}.svg{close_paren}]"
+        f"{open_paren}{url}{close_paren}"
+    )
+
+
 def test_readme_embeds_latest_breakout_recording() -> None:
     readme = Path("README.md").read_text()
-    embed = (
-        "[![Asgard Breakout asciicast]"
-        "(https://asciinema.org/a/oaQSOF9foLO34D6v.svg)]"
-        "(https://asciinema.org/a/oaQSOF9foLO34D6v)"
+    embed = _asciinema_embed(
+        "Asgard Breakout asciicast",
+        "https://asciinema.org/a/ZA2OrmB0Mc9aAdfq",
     )
 
     assert embed in readme
 
 
-def test_examples_readme_embeds_breakout_recording() -> None:
+def test_examples_readme_embeds_latest_recordings() -> None:
     readme = Path("examples/README.md").read_text()
-    embed = (
-        "[![Asgard Breakout asciicast]"
-        "(https://asciinema.org/a/oaQSOF9foLO34D6v.svg)]"
-        "(https://asciinema.org/a/oaQSOF9foLO34D6v)"
+    breakout_embed = _asciinema_embed(
+        "Asgard Breakout asciicast",
+        "https://asciinema.org/a/ZA2OrmB0Mc9aAdfq",
+    )
+    pong_embed = _asciinema_embed(
+        "Asgard Pong asciicast",
+        "https://asciinema.org/a/4O27VEiw9i3E2gjy",
+    )
+    wasm_embed = _asciinema_embed(
+        "Asgard Breakout WASM asciicast",
+        "https://asciinema.org/a/FwTtMVlFHcivZAfA",
     )
 
     assert "mise run generate-video breakout" in readme
     assert "examples/media/breakout.cast" in readme
-    assert embed in readme
+    assert breakout_embed in readme
+    assert pong_embed in readme
+    assert wasm_embed in readme
 
 
 def test_python_engine_benchmark_doc_describes_workloads_and_checksums() -> None:

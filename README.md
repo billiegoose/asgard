@@ -104,7 +104,7 @@ printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
 
 Watch the Python RED2 Breakout recording:
 
-[![Asgard Breakout asciicast](https://asciinema.org/a/oaQSOF9foLO34D6v.svg)](https://asciinema.org/a/oaQSOF9foLO34D6v)
+[![Asgard Breakout asciicast](https://asciinema.org/a/ZA2OrmB0Mc9aAdfq.svg)](https://asciinema.org/a/ZA2OrmB0Mc9aAdfq)
 
 Run terminal Breakout with a controlled latest-value clock source:
 

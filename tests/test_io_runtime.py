@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from collections.abc import Callable, Collection, Mapping
@@ -175,6 +176,7 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
         definitions: Mapping[str, Expr],
         quantum: int,
         host: Red2IoHost,
+        memory_words: int,
         recharge_on: Collection[Red2RechargeEvent],
     ) -> Expr:
         nonlocal calls
@@ -184,6 +186,7 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
             definitions=definitions,
             quantum=quantum,
             host=host,
+            memory_words=memory_words,
             recharge_on=recharge_on,
         )
 
@@ -425,6 +428,39 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     assert red2_result == result
     assert red2_stdout == stdout
     assert red2_stderr == stderr
+
+
+def test_uart_rx_does_not_hide_buffered_fd_bytes_from_followup_polls() -> None:
+    source = """
+    (IO-BIND (UART-RX)
+      (LAMBDA (a)
+        (IO-BIND (UART-RX)
+          (LAMBDA (b)
+            (IO-BIND (UART-RX)
+              (LAMBDA (c)
+                (UART-TX-BYTES [a b c])))))))
+    """
+
+    for model in ("thor", "red2"):
+        read_fd, write_fd = os.pipe()
+        stdin = os.fdopen(read_fd, "r", encoding="utf-8")
+        try:
+            os.write(write_fd, b"ABC")
+            stdout = StringIO()
+            result = run_io_source(
+                source,
+                model=model,
+                quantum=50_000,
+                stdin=stdin,
+                stdout=stdout,
+                stderr=StringIO(),
+            )
+        finally:
+            os.close(write_fd)
+            stdin.close()
+
+        assert result == "NIL"
+        assert stdout.getvalue() == "ABC"
 
 
 def test_pong_runs_on_red2_and_quits_cleanly() -> None:

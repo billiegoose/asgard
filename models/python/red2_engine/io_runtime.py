@@ -40,6 +40,7 @@ def run_red2_io_action(
     definitions: Mapping[str, Expr],
     quantum: int,
     host: Red2IoHost,
+    memory_words: int = 1_048_576,
     recharge_on: Collection[Red2RechargeEvent] = DEFAULT_RED2_RECHARGE_EVENTS,
 ) -> Expr:
     """Run one effectful THOR/RED2 program on exactly one faithful μRED machine."""
@@ -53,6 +54,7 @@ def run_red2_io_action(
         action,
         quantum=quantum,
         definitions=definitions,
+        memory_words=memory_words,
     )
 
     while True:

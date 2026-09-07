@@ -28,6 +28,7 @@ quiet = true
 usage = '''
 arg "<file>" help="THOR source file"
 flag "--quantum <n>" help="maximum contraction quantum" default="2000"
+flag "--memory-words <n>" help="faithful RED2 memory arena in words" default="1048576"
 flag "--verbose" help="write diagnostics to stderr"
 flag "--clock <path>" help="latest-value clock source for CLOCK"
 flag "--recharge-on-host-dispatch" help="reset RED2 IO quantum after each host dispatch"
@@ -43,7 +44,7 @@ if [ -n "${usage_recharge_on_host_dispatch:-}" ] || [ -n "${usage_recharge_on_qu
   [ -n "${usage_recharge_on_host_dispatch:-}" ] && recharge_args="$recharge_args --recharge-on host-dispatch"
   [ -n "${usage_recharge_on_quantum_exhausted:-}" ] && recharge_args="$recharge_args --recharge-on quantum-exhausted"
 fi
-uv run red2 "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"} $recharge_args
+uv run red2 "${usage_file?}" --quantum "${usage_quantum?}" --memory-words "${usage_memory_words?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"} $recharge_args
 exit $?
 '''
 
