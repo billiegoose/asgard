@@ -2565,6 +2565,29 @@ class MuredMachine:
         self.state.q = quantum
         return self.state
 
+    def checkpoint_quantum(self, quantum: int) -> MuredMachineState:
+        """Reconstruct a live bounded result, then restart this same machine."""
+        if quantum < 0:
+            raise ValueError("quantum must be non-negative")
+        state = self.state
+        if state.halted:
+            raise MuredMachineError("cannot checkpoint an already halted machine")
+        if self.pending_host_call is not None:
+            raise MuredMachineError("cannot checkpoint while a host call is pending")
+
+        # A committed host result is now part of the graph.  Drive the machine
+        # through RED2's ordinary q=0 reconstruction path so temporary graph and
+        # environment state is discarded without firing another effect.  The
+        # resulting bounded graph is then relinearized by recharge_quantum below.
+        state.q = 0
+        while not state.halted:
+            self.step()
+            if self.pending_host_call is not None:
+                raise IllegalTransition(
+                    "zero-quantum checkpoint attempted to dispatch a host effect"
+                )
+        return self.recharge_quantum(quantum)
+
     def recharge_quantum(self, quantum: int) -> MuredMachineState:
         """Refill a live exhaustion or restart from a halted bounded result."""
         if quantum < 0:

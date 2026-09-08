@@ -125,6 +125,37 @@ def test_live_quantum_suspension_recharges_same_machine_without_reconstruction(
     assert to_source(machine.result_expr()) == "10"
 
 
+def test_checkpoint_quantum_reconstructs_and_restarts_same_machine() -> None:
+    from thor_lang.parser import parse_expr
+    from thor_lang.pretty import to_source
+
+    machine = MuredMachine.from_expr(
+        parse_expr("(+ (+ 1 2) (+ 3 4))"),
+        quantum=1,
+        memory_words=128,
+        control_words=32,
+    )
+    identity = id(machine)
+
+    machine.run(cycle_limit=100_000)
+    assert machine.state.halted is True
+    assert to_source(machine.result_expr()) != "10"
+
+    # Restart the bounded prefix, make live progress, then checkpoint that
+    # partially reduced state through the ordinary q=0 reconstruction path.
+    machine.recharge_quantum(2)
+    machine.run_until_suspend(cycle_limit=machine.state.cycles + 100_000)
+    assert machine.state.halted is False
+
+    machine.checkpoint_quantum(10)
+
+    assert id(machine) == identity
+    assert machine.state.halted is False
+    assert machine.state.q == 10
+    machine.run(cycle_limit=machine.state.cycles + 100_000)
+    assert to_source(machine.result_expr()) == "10"
+
+
 def test_recharging_quantum_relinearizes_inline_struct_fields() -> None:
     from red2_engine.mured import Direction, MuredMachineState, MuredOpcode, Word
     from thor_lang.pretty import to_source

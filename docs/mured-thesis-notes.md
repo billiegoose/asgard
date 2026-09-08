@@ -8,9 +8,9 @@
 
 The machine's `env` register is the current environment-path tip. Restoring a previously saved path may therefore move `env` upward even though cells allocated below that address are still live. Treating `env` itself as the physical allocation frontier allowed later bindings to overwrite captured closures.
 
-The Python implementation tracks a separate monotonically downward `env_frontier` for physical allocation. If a new environment object must be allocated while `env` points above that frontier, the allocator first inserts a `PNP` bridge from the new lower region back to the restored path, then allocates below it. Graph growth checks `env_frontier`, not merely the current `env`.
+The Python implementation tracks a separate monotonically downward `env_frontier` for physical allocation within one live reduction segment. If a new environment object must be allocated while `env` points above that frontier, the allocator first inserts a `PNP` bridge from the new lower region back to the restored path, then allocates below it. Graph growth checks `env_frontier`, not merely the current `env`.
 
-`env_frontier` is host bookkeeping for the shared immutable environment region. It is not claimed as an additional thesis execution register and does not change variable lookup semantics; the inserted `PNP` nodes preserve the logical environment path.
+`env_frontier` is host bookkeeping for the shared immutable environment region. It is not claimed as an additional thesis execution register and does not change variable lookup semantics; the inserted `PNP` nodes preserve the logical environment path. Long-running IO adds a scheduler-visible reclamation boundary: after a committed host effect, a machine with low graph/environment headroom is driven through RED2's existing q=0 bounded-result reconstruction and the same `MuredMachine` is recharged from that result graph. This resets the physical working region without replaying the effect or introducing a second evaluator. Roomy machines take the cheaper live `refresh_quantum` path instead.
 
 ## Frontend integration bookkeeping
 

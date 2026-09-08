@@ -61,6 +61,7 @@ def run(
     host: FakeHost | None = None,
     *,
     quantum: int = 5000,
+    memory_words: int = 1_048_576,
 ) -> tuple[str, FakeHost]:
     action, definitions = prepare(source)
     fake = host or FakeHost()
@@ -69,6 +70,7 @@ def run(
         definitions=definitions,
         quantum=quantum,
         host=fake,
+        memory_words=memory_words,
     )
     return to_source(result), fake
 
@@ -128,6 +130,71 @@ def test_y_defined_action_chain_is_iterative() -> None:
         sys.setrecursionlimit(previous)
     assert result == "250"
     assert b"".join(host.writes) == b"." * 250
+
+
+def test_recursive_io_chain_reclaims_memory_at_host_checkpoints() -> None:
+    source = """
+    loop ==
+      (LAMBDA (n)
+        (if (= n 250)
+            (IO-RETURN n)
+            (IO-THEN (UART-TX 46) (loop (+ n 1)))))
+    (loop 0)
+    """
+
+    result, host = run(source, quantum=20_000, memory_words=128)
+
+    assert result == "250"
+    assert b"".join(host.writes) == b"." * 250
+
+
+def test_clock_dots_style_loop_survives_bounded_memory() -> None:
+    class BoundedClockHost(FakeHost):
+        def __init__(self) -> None:
+            super().__init__()
+            self.now = 0
+
+        def clock_ms(self) -> int:
+            self.now += 1000
+            return self.now
+
+        def uart_tx(self, data: bytes) -> None:
+            super().uart_tx(data)
+            if len(self.writes) == 500:
+                raise StopIteration
+
+    source = """
+    DOT == 46
+    SECOND-MS == 1000
+
+    loop ==
+      (Y
+        (LAMBDA (self)
+          (LAMBDA (last)
+            (IO-BIND (CLOCK)
+              (LAMBDA (now)
+                (if (>= (- now last) SECOND-MS)
+                    (IO-THEN (UART-TX DOT) (self now))
+                    (self last)))))))
+
+    (IO-BIND (CLOCK)
+      (LAMBDA (start)
+        (loop start)))
+    """
+    action, definitions = prepare(source)
+    host = BoundedClockHost()
+
+    with pytest.raises(StopIteration):
+        run_red2_io_action(
+            action,
+            definitions=definitions,
+            quantum=100_000,
+            host=host,
+            memory_words=256,
+        )
+
+    assert len(host.writes) == 500
+    assert b"".join(host.writes) == b"." * 500
 
 
 def test_action_exposure_does_not_leak_bound_vars_between_machines() -> None:
@@ -275,7 +342,7 @@ def test_red2_io_effect_fires_once_across_repeated_quantum_recharges(
     assert host.writes == [b"A"]
 
 
-def test_red2_io_default_recharges_quantum_after_each_host_dispatch(
+def test_red2_io_default_refreshes_roomy_machine_after_host_dispatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from red2_engine.mured import MuredMachine
@@ -283,14 +350,21 @@ def test_red2_io_default_recharges_quantum_after_each_host_dispatch(
     action, definitions = prepare(
         "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
     )
-    original = MuredMachine.refresh_quantum
+    original_refresh = MuredMachine.refresh_quantum
+    original_checkpoint = MuredMachine.checkpoint_quantum
     refreshes: list[int] = []
+    checkpoints: list[int] = []
 
     def counting_refresh(self: MuredMachine, quantum: int) -> Any:
         refreshes.append(quantum)
-        return original(self, quantum)
+        return original_refresh(self, quantum)
+
+    def counting_checkpoint(self: MuredMachine, quantum: int) -> Any:
+        checkpoints.append(quantum)
+        return original_checkpoint(self, quantum)
 
     monkeypatch.setattr(MuredMachine, "refresh_quantum", counting_refresh)
+    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", counting_checkpoint)
     host = FakeHost()
     result = run_red2_io_action(
         action, definitions=definitions, quantum=20, host=host
@@ -299,6 +373,37 @@ def test_red2_io_default_recharges_quantum_after_each_host_dispatch(
     assert to_source(result) == "7"
     assert b"".join(host.writes) == b"AB"
     assert refreshes == [20, 20]
+    assert checkpoints == []
+
+
+def test_red2_io_checkpoints_small_machine_after_host_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from red2_engine.mured import MuredMachine
+
+    action, definitions = prepare(
+        "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
+    )
+    original = MuredMachine.checkpoint_quantum
+    checkpoints: list[int] = []
+
+    def counting_checkpoint(self: MuredMachine, quantum: int) -> Any:
+        checkpoints.append(quantum)
+        return original(self, quantum)
+
+    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", counting_checkpoint)
+    host = FakeHost()
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20,
+        host=host,
+        memory_words=256,
+    )
+
+    assert to_source(result) == "7"
+    assert b"".join(host.writes) == b"AB"
+    assert checkpoints == [20, 20]
 
 
 def test_red2_io_default_surfaces_external_quantum_exhaustion() -> None:
