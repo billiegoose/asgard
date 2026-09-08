@@ -1,0 +1,447 @@
+\begin{slide}{}
+\begin{center}
+	An Architecture for Declarative\\
+	Programming\\[1in]
+	Dissertation Defense\\
+	Michael L. Hilton\\[1in]
+\end{center}
+\begin{flushleft}
+\underline{GOAL}: Develop a computing architecture to implement the 
+{\em complete} $\lambda\beta$-calculus efficiently.
+\end{flushleft}
+\end{slide}
+
+\begin{slide}{}
+\begin{center}
+	\underline{Outline}\\[.6in]
+\end{center}
+\begin{flushleft}
+\begin{itemize}
+\item $\lambda\beta$-Calculus
+\item Explain Implementation Difficulties
+\item Present RED2 Solutions
+\item Assessment of the RED2 Architecture
+\item Enhancements \& Expansions 
+\end{itemize}
+\end{flushleft}
+\end{slide}
+
+
+
+%3
+\begin{slide}{}
+\begin{center}
+	The Untyped $\lambda\beta$-Calculus\\[.75in]
+\end{center}
+
+\underline{SYNTAX}
+
+$x \in $ Identifiers\\
+$e \in \lambda$-Expressions
+
+$e$ ::=  $x \mid \lambda x . e \mid e_1 e_2$\\[.5in]
+
+\underline{SEMANTICS}
+
+$\alpha$-Conversion:
+$\lambda x . e\  \longleftrightarrow\ \lambda y .[y/x]e$
+
+$\beta$-Reduction:
+$(\lambda x . e_1) e_2$ \red $[e_2/x]e_1$
+
+\begin{flushleft}
+Where ``$[e_2/x]e_1$'' means ``substitute $e_2$ for every occurrence of
+$x$ in $e_1$''
+\end{flushleft}
+\end{slide}
+
+\begin{slide}{}
+\begin{center}
+SUBSTITUTION
+\end{center}
+
+1. $[e_1/x]x = e_1$\\
+2. $[e_1/x]y = y$, where $x \not= y$\\
+3. $[e_1/x](e_2 \ e_3) = ([e_1/x]e_2 \ [e_1/x]e_3)$\\
+4. $[e_1/x](\lambda x.e_2) = \lambda x.e_2$\\
+5. $[e_1/x](\lambda y.e_2) = \lambda y . [e_1/x]e_2$,\\ \hspace*{2em}
+		if $x \not= y$ and \\ \hspace*{2em} either $y \not\in fv(e_1)$ 
+		or $x \not\in fv(e_2)$\\
+6. $[e_1/x](\lambda y.e_2) = \lambda z . [e_1/x]([z/y]e_2)$,\\ \hspace*{2em}
+		if $x \not= y$ and $y \in fv(e_1)$ and $x \in fv(e_2)$,\\ \hspace*{2em}
+		and $z \not\in fv(e_1) \cup fv(e_2)$
+
+\begin{center}
+FREE VARIABLE
+\end{center}
+
+1. $fv(x) = \{x\}$\\
+2. $fv(e_1 \ e_2) = fv(e_1) \cup fv(e_2)$\\
+3. $fv(\lambda x.e) = fv(e)-\{x\}$
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+	ENRICHED $\lambda$-CALCULUS\\[1in]
+\end{center}
+
+\begin{flushleft}
+The pure $\lambda$-calculus is powerful enough to compute all
+computable functions.
+
+However, it is desirable to add constants, such as the integers,
+and new rules to manipulate them:
+\end{flushleft}
+
+\begin{center}
+$\vdots$\\
+(+ 0 0) \red 0\\
+(+ 0 1) \red 1\\
+(+ 1 1) \red 2\\
+$\vdots$\\
+(+ 12 7) \red 19\\
+$\vdots$
+\end{center}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+	REDUCTION SYSTEMS
+\end{center}
+
+\begin{flushleft}
+
+Reduction systems perform computation through equivalence preserving
+transformations.
+
+Occurrences of LHS's of rules (REDEX) are replaced by their RHS's
+(CONTRACTUM). 
+\end{flushleft}
+
+\begin{center}
+$(\lambda x . (+ \ x \ 1)) \ 2 $ \red\\
+$(+ \ 2 \ 1)$ \red\\
+$3$
+\end{center}
+
+\begin{flushleft}
+Each reduction is semantically an atomic action.
+\end{flushleft}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+	NORMAL FORMS\\[1in]
+\end{center}
+
+\begin{flushleft}
+When there are no more redexes, an expression is in NORMAL FORM.
+
+Not all expressions have a normal form:
+\end{flushleft}
+
+\begin{center}
+	$(\lambda x . x \ x) \ (\lambda x . x \ x)$\\[1in]
+\end{center}
+
+\begin{flushleft}
+\underline{Church-Rosser I}\\
+If an expression has a normal form, it is unique.
+
+\underline{Church-Rosser II}\\
+Always contracting the leftmost redex is guaranteed to
+to produce the normal form, if it exists.
+\end{flushleft}
+\end{slide}
+
+
+
+\begin{slide}{}
+\begin{center}
+The Complete $\lambda\beta$-Calculus\\
+What is it?\\[2em]
+PARTIAL EVALUATION
+\end{center}
+
+\begin{flushleft}
+The $\lambda$-calculus IS NOT just functional programming.
+
+The $\lambda$-calculus transforms {\em expressions}.\\[1in]
+
+
+
+\underline{Example}:
+The body of an abstraction is reduced even if the abstraction is
+not applied to an argument.
+\end{flushleft}
+\begin{center}
+	$(\lambda x . (+ \ x \ (* \ 2 \ 3)))$ \red\\
+
+	$(\lambda x . (+ \ x \ 6))$
+\end{center}
+\end{slide}
+
+\begin{slide}{}
+\begin{center}
+The Complete $\lambda\beta$-Calculus\\
+What is it?\\[2em]
+PARTIAL EVALUATION (Cont.)
+\end{center}
+\vspace*{1.5in}
+\begin{flushleft}
+Proper handling of unbound variables is extended to include 
+all language primitives.
+\end{flushleft}
+\begin{center}
+	($\lambda x$ . (equal? [1 2 3] [1 $x$ 3])) \red\\
+
+	($\lambda x$ . (equal? $x$ 2))
+\end{center}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+The Complete $\lambda\beta$-Calculus\\
+What is it?\\[2em]
+INCREMENTAL REDUCTION\\[1in]
+\end{center}
+
+\begin{flushleft}
+The user can specify how many reductions are to be performed.
+\end{flushleft}
+\begin {itemize}
+	\item allows `stepping' through reduction of expressions
+	\item debugging tool
+	\item guards against non-terminating reduction sequences
+	\item partial execution
+\end{itemize}
+\end{slide}
+
+
+
+\begin{slide}{}
+\begin{center}
+IMPLEMENTATION ISSUES THAT SHAPED RED2
+\end{center}
+
+Reduction Order\\
+\hspace*{1.5em} Applicative order, Normal order, or \\ 
+\hspace*{1.5em} something else?
+
+Representation of Expressions\\
+\hspace*{1.5em} \head eliminate variable name clashes\\
+\hspace*{1.5em} \head support de-compilation\\
+\hspace*{1.5em} \head support reduction order using a \\
+\hspace*{2em} minimum of memory bandwidth
+
+Substitution Mechanism\\
+\hspace*{1.5em} Delay via environment, Graph mutation,\\
+\hspace*{1.5em} or eliminate substitution?
+\end{slide}
+
+
+
+\begin{slide}{}
+\begin{center}
+Representation of Expressions\\[.5em]
+ELIMINATE NAME CLASHES\\[2em]
+\end{center}
+
+\begin{flushleft}
+\underline{PROBLEM}\\
+Use of symbolic identifiers is useful
+for people, but complicates the mechanical manipulation
+of expressions.\\[.5in]
+\underline{SOLUTION}\\
+Use DeBruijn indices, which are based on the structure of
+expressions.\\[1in]
+\end{flushleft}
+\begin{center}
+\( (\lambda x . \lambda y . (x \ (y \ (\lambda z . y z)))) \)
+
+\( (\lambda \lambda . (1 \ (0 \ (\lambda.1 \ 0)))) \)
+\end{center}
+
+\end{slide}
+
+
+
+\begin{slide}{}
+\begin{center}
+Representation of Expressions\\[.5em]
+SUPPORT DE-COMPILATION\\[2em]
+\end{center}
+Strings or Graphs?
+\vspace*{4in}
+%put figure 4.1 here
+\begin{flushleft}
+If expressions are represented as graphs, an inorder traversal yields 
+a normal order reduction sequence.
+\end{flushleft}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+Representation of Expressions\\[.5em]
+SUPPORTING REDUCTION/TRAVERSAL\\[2em]
+\end{center}
+
+\begin{flushleft}
+Graphs can be represented linearly in memory by instructions which
+mirror the objects in the $\lambda$-calculus.
+\end{flushleft}
+\vspace*{2in}
+%put lgr1.tex here
+\begin{flushleft}
+A more compact representation uses a {\em head bit} to indicate if a single
+instruction is the operand of an application.
+\end{flushleft}
+\vspace*{2in}
+%put lgr2.tex here
+\end{slide}
+
+%13
+\begin{slide}{}
+\begin{center}
+	COMPILATION EXAMPLES\\[.5in]
+\end{center}
+
+$\cal C$ [ $(\lambda x . (+ \ x \ 1))\ 5$] \ =
+\begin{tabbing}
+0:123\=LAMBDA123\=\kill
+0: \> \spine INT \> 5\\
+1: \> \spine LAMBDA \> $x$\\
+2: \> \spine INT \> 1\\
+3: \> \spine VAR \> 0\\
+4: \> \head PRIM\_2 \> +
+\end{tabbing}
+
+
+
+$\cal C$ [ $(\lambda a . \lambda b . (a \ b)) \ (\lambda x . x)$] \ = 
+\begin{tabbing}
+0:123\=LAMBDA123\=\kill
+0: \> \spine APP \> 5\\
+1: \> \spine LAMBDA \> $a$\\
+2: \> \spine LAMBDA \> $b$\\
+3: \> \spine VAR \> 0\\
+4: \> \head VAR \> 1\\[1em]
+5: \> \spine LAMBDA \> $x$\\
+6: \> \head VAR \> 0
+\end{tabbing}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+RED2 MEMORY MODEL
+\end{center}
+
+\vspace*{2in}
+%put figure 4.7 here
+
+ADDRESS REGISTERS:
+\begin{tabbing}
+12\={\em env}:12\=\kill
+\>{\em pc} \> Program Counter\\
+\>{\em fsp} \> Free Space Pointer\\
+\>{\em env} \> Environment Pointer\\
+\>{\em c} \> Control Stack
+\end{tabbing}
+
+DATA REGISTERS:
+\begin{tabbing}
+12\={\em env}:12\=\kill
+\>{\em d} \> Direction Flag\\
+\>{\em q} \> Quantum\\
+\>$\phi$ \> Binding Offset\\[1em]
+%12\={\em argcnt}:12\=\kill
+%\>{\em argcnt} \> argument count\\
+%\>{\em prim} \> primitive operator\\
+%\>{\em fire} \> operator argument count
+\end{tabbing}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+EXECUTION MODEL
+\end{center}
+\vspace*{\fill}
+\end{slide}
+
+\begin{slide}{}
+\begin{center}
+Instruction Execution Example\\[.5em]
+CONTRACTING A $\beta$-REDEX\\[2em] 
+%put lambda.tex picture here
+\end{center}
+\vspace*{\fill}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+Instruction Execution Example\\[.5em]
+BINARY ARITHMETIC PRIMITIVE\\[2em]
+%put figure 5.1 here
+\end{center}
+\vspace*{\fill}
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+ASSESSMENT OF RED2\\[2in]
+\end{center}
+
+\begin{itemize}
+\item Efficient for the $\lambda$-calculus
+\item Compares well with functional language implementations
+\item Performs poorly with regard to sharing
+\item Suitable for implementation using existing von-Neumann technology
+\end{itemize}
+
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+SHARING
+\end{center}
+
+Memory management policy of RED2 is not conducive to sharing in
+general.\\
+
+\vspace*{2in}
+%put in Figure 5.2 here
+
+Arguments that reduce to atomic data values can be shared via the
+environment. 
+
+Sharing of structures could be done by adding a separate memory area
+which is garbage collected.
+\end{slide}
+
+
+\begin{slide}{}
+\begin{center}
+ADDING LOGIC PROGRAMMING\\[.5in]
+\end{center}
+
+\begin{itemize}
+\item Relations represented \`{a} la Clark
+\item Depth-first SLD-Resolution with left-most selection rule
+\item Single solution
+\item {\tt UNIFY} primitive
+\item Use {\tt AND} and {\tt OR} to control search
+\end{itemize}
+
+RED2 Not Well Suited For Logic Programming
+
+\end{slide}

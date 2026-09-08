@@ -1,0 +1,185 @@
+;; A set of functional programming examples from John Hughes' paper
+;; "Why functional programming matters", The Computer Journal, Vol 32, No. 2
+
+;; list reduction stuff
+
+(define reduce
+   (lambda (f id list)
+      (if (null? list)
+         id
+         (f (car list) (reduce f id (cdr list))))))
+
+(define sum (reduce + 0))
+(define product (reduce * 1))
+(define anytrue (reduce or false))
+(define alltrue (reduce and true))
+;(define ++ (lambda (a b) (reduce cons b a)))
+(define length (reduce (lambda (el len) (1+ len)) 0))
+;(define map (lambda (f) (reduce (lambda (a l) (cons (f a) l)) [])))
+
+(define ++
+   (lambda (a b)
+      (if (null? a)
+         b
+         (cons (car a) (++ (cdr a) b)))))
+         
+(define map
+   (lambda (f l)
+      (if (null? l)
+            []
+            (cons (f (car l)) (map f (cdr l))))))
+
+(define reverse
+   (lambda (l)
+      (letrec ((rev (lambda (l rl)
+                     (if (null? l)
+                        rl
+                        (rev (cdr l) (cons (car l) rl))))))
+         (rev l nil))))
+
+
+;;; Tree reduction stuff
+
+(defstruct tree label subtrees)
+
+(define redtree 
+   (lambda (node-op list-op basis tree)
+      (node-op (tree-label tree)
+               (redtree1 node-op list-op basis (tree-subtrees tree)))))
+
+(define redtree1 
+   (lambda (node-op list-op basis subtrees)
+      (if (null? subtrees)
+            basis
+            (list-op (redtree node-op list-op basis (car subtrees))
+                     (redtree1 node-op list-op basis (cdr subtrees))))))
+
+
+
+(define sumtree (redtree + + 0))
+(define labels (redtree cons ++ []))
+(define maptree
+   (lambda (f) (redtree (lambda (label subtrees) (make-tree (f label) subtrees))
+                        cons
+                        [])))
+
+(define t1
+   {tree 1 [{tree 2 []}
+            {tree 3 [{tree 4 []}]}
+           ]})
+
+
+
+;;; Game playing alpha-beta algorithm
+;;; To play any specific game, you need to define two functions,
+;;; moves : position -> list of position
+;;;      which generates a list of possible positions from current position
+;;; static : position -> number
+;;;      which evaluates the merits of a postion, with a large number
+;;;      being good, and a small number being not so good
+
+
+(define reptree (lambda (f a) (make-tree a (map (reptree f) (f a)))))
+(define gametree (reptree moves empty-board)))
+
+(define maximise
+   (lambda (tree)
+      (if (null? (tree-subtrees tree))
+         (tree-label tree)
+         (maximum (map minimise (tree-subtrees tree))))))
+         
+(define maximum
+   (lambda (list)
+      (letrec ((maximum1 
+                (lambda (list x)
+                  (if (null? list)
+                     x
+                     (maximum1 (cdr list) (max x (car list)))))))
+         (maximum1 (cdr list) (car list)))))
+         
+
+(define minimise
+   (lambda (tree)
+      (if (null? (tree-subtrees tree))
+         (tree-label tree)
+         (minimum (map maximise (tree-subtrees tree))))))
+         
+(define minimum
+   (lambda (list)
+      (letrec ((minimum1 
+                (lambda (list x)
+                  (if (null? list)
+                     x
+                     (minimum1 (cdr list) (min x (car list)))))))
+         (minimum1 (cdr list) (car list)))))
+
+         
+(define prune
+   (lambda (depth tree)
+      (if (= depth 0)
+         (make-tree (tree-label tree) [])
+         (make-tree (tree-label tree)
+                    (map (prune (1- depth)) (tree-subtrees tree))))))
+
+         
+(define evaluate
+   (lambda (depth)
+      (maximise (maptree static (prune depth (gametree))))))
+
+      
+
+;;; Simple peg game to test functions.  The board is an odd numbered
+;;; row of holes that players take turns putting pegs in.  The object
+;;; is to end up with the longest uninterrupted peg sequence.
+;;;
+;;; The game board is represented as a list of elements,
+;;; which are either X, O, or Empty
+;;; A position is a game board
+
+(define empty-board [e e e e e])
+
+;;; Generate all possible moves from a given position.
+;;; If there is an even number of E's it is X's turn, else it's O's turn.
+
+(define moves  
+   (lambda (board)   
+         (letrec ((moves1
+               (lambda (player front back)
+                  (if (null? back)
+                     nil
+                     (if (equal? (car back) E)
+                        (cons (++ (reverse front) (cons player (cdr back)))
+                              (moves1 player (cons (car back) front) (cdr back)))
+                        (moves1 player (cons (car back) front) (cdr back)))))))
+            (moves1 (whose-turn? board) nil board)))))
+
+
+;;; Static evaluates a position's "goodness".
+;;; The criteria is the longest possible sequence of uninterrupted PLAYER
+;;; pieces.
+
+(define static
+   (lambda (board)
+      (let ((player (whose-turn? board)))
+         (letrec ((eval 
+                   (lambda (board rating best)
+                     (if (null? board)
+                        (max best rating)
+                        (if (or (equal? (car board) player)
+                                (equal? (car board) E))
+                           (eval (cdr board) (1+ rating) best)
+                           (eval (cdr board) 0 (max rating best)))))))
+            (eval board 0 0)))))
+
+
+(define whose-turn?
+   (lambda (board)
+      (letrec ((ecount
+                (lambda (l) 
+                  (if (null? l)
+                     0
+                     (if (equal? E (car l))
+                        (+ 1 (ecount (cdr l)))
+                        (ecount (cdr l)))))))
+         (if (even? (ecount board)) X O))))
+

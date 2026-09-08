@@ -1,0 +1,119 @@
+;;; A Constructive Programming approach to the Sine function
+;;; Adapted from a paper by Gerald Roylance in L&FP 88.
+
+(define pi 3.1415962)
+(define epsilon 0.000001)
+
+;;; The trigonometric sine function is periodic and symmetric;
+;;; these properties will be exploited.  SINE maps its argument
+;;; into the interval [-pi/2, 3*pi/2], which has a period of 2*pi
+;;; and is symmetric about the axis pi/2.
+	
+(define sine
+	(lambda (x) (period-maker sine-full (minus (/ pi 2)) (* 2 pi)) x))
+
+
+;;; PERIOD-MAKER takes a function FCN (of the variable X) that is defined
+;;; on the interval [a, a+period] and returns a function that replicates
+;;; FCN over the rest of the real line.
+
+(define period-maker
+	(lambda (fcn a period x)	
+		(let ((cycles (floor (/ (- x a) period))))
+			(fcn (- x (* cycles period))))))
+
+
+;;; SINE-FULL reflects SINE-HALF about the axis pi/2. SINE-HALF computes
+;;; the value of sine over half of the mapping interval.  This gives us
+;;; full coverage of the mapping interval.
+
+(define sine-full
+	(lambda (x) (reflection-maker sine-half (/ pi 2) x)))
+
+	
+;;; REFLECTION-MAKER takes a function FCN (of the variable X) and reflects
+;;; it around an AXIS.
+
+(define reflection-maker
+	(lambda (fcn axis x)
+		(fcn (if (< x axis) x (- (* 2 axis) x)))))
+
+
+;;; The value of SINE-HALF is computed by a truncated taylor series
+;;; expansion.  The terms in the taylor series are produced using
+;;; HORNERS-RULE.
+
+(define sine-half
+	(lambda (x)
+		(let ((x2 (* x x))) (sine-series x x2))))
+
+(define sine-series
+	(lambda (x x2)		
+		(* x (horners-rule sine-coefficient x2
+					(sine-number-of-terms epsilon (/ pi 2))))))
+
+
+;;; SINE-COEFFICENT generates the coefficient of the Ith term in the
+;;; sine power series.
+
+(define sine-coefficient
+	(lambda (i)
+		(/ (expt -1.0 i) (factorial (+ (* 2 i) 1)))))
+			
+(define factorial
+	(lambda (n)
+		(if (= n 0) 1 (* n (factorial (1- n))))))
+
+
+(define sine-term
+	(lambda (i x)
+		(* (sine-coefficient i)
+			(expt x (1+ (+ i i))))))
+
+		
+;;; TRUNCATED-SERIES produces a power series of length N
+;;; made of terms computed by TERM.
+
+(define truncated-series
+	(lambda (term length x)
+		(if (= length 0)
+			0.0
+			(+ (term length x)
+				(truncated-series term (1- length) x)))))
+
+
+;;; HORNERS-RULE produces a nested form of a power series polynomial
+;;; which uses the fewest possible arithmetic operations.  The
+;;; function COEFFICIENT produces the Ith coefficient for the Ith term
+;;; in the series. 
+
+(define horners-rule
+	(lambda (coefficient variable length)
+		(letrec
+			((term
+				(lambda (n)
+			 		(if (= n length)
+						(coefficient n)
+			 			(+ (coefficient n) (* variable (term (1+ n))))))))
+			(term 0))))
+			
+
+;;; The absolute error of in the truncated sum of an alternating sign,
+;;; absolutely convergent series is less than the magnitude of the first
+;;; term neglected.  Thus it is easy to compute how many terms in a
+;;; series are necessary to achieve a specific absolute error <= EPSilon
+;;; for a particular VALUE.
+;;; A series should not be truncated until its terms are definitely getting
+;;; smaller.  The individual terms of the sine series are monotonically
+;;; decreasing when the denominator starts growing faster than
+;;; x^(2i+1).  This point happens when 2i+1 > x, hence we will use as
+;;; our starting point  i = (x-1)/2.
+
+(define sine-number-of-terms
+	(lambda (eps value)
+		(letrec ((loop
+						(lambda (i)
+							(if (< (abs ((sine-term i) value)) (abs eps))
+								(1- i)
+								(loop (1+ i))))))
+			(loop (ceiling (/ (- value 1) 2))))))

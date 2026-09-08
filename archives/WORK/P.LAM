@@ -1,0 +1,4 @@
+(define p (lambda (x cont) (or (and (unify x 1) cont) (and (unify x 2) cont))))
+(define q (lambda (x cont) (or (and (unify x 2) cont) (and (unify x 3) cont))))
+(define test (prove (lambda (x) (p x (q x true)))))
+

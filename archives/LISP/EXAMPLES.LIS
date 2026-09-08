@@ -1,0 +1,116 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; MISCELLANEOUS EXAMPLES 
+
+
+(define fact (Y (ˆ (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))))
+(define fact1 (ˆ (n) (if (= n 0) 1 (* n (fact1 (- n 1))))))
+
+;;; List representation using lambda expressions.
+
+(define nil (ˆ (a b) b))
+(define listp (ˆ (a) (a (ˆ (b c d) d)) (ˆ (b c) c)))
+(define cons (ˆ (a b c) (c a) b))
+(define head (ˆ (a) a (ˆ (a b) a)))
+(define tail (ˆ (a) (a (ˆ (b c) c))))
+(define null (ˆ (a) ((((a (ˆ (b c) c)) (ˆ (a b) a)) (ˆ (a b c) c)) (ˆ (a b) a))))
+(define pairp (ˆ (a) (a (ˆ (b c d e) d) (ˆ (a b) a) (ˆ (d) d))))
+
+(defun ˆ-list (n)
+  (if (zerop n)
+      'nil
+    `(ˆ (c) ((c ,n) ,(ˆ-list (1- n))))))
+
+(define length
+  (Y (ˆ (length list)
+	(if (pairp list) (+ 1 (length (tail list))) 0))))
+
+
+(eval `(define twolist ,(ˆ-list 2)))
+(eval `(define threelist ,(ˆ-list 3)))
+(eval `(define fourlist ,(ˆ-list 4)))
+
+(define reverse
+  (ˆ (x)
+     (ˆ (reverse-1) (reverse-1 x nil))
+     (Y (ˆ (reverse-1 list rev-list)
+	   ( (pairp list)
+	       (reverse-1 (tail list) (cons (head list) rev-list))
+	     rev-list)))))
+
+(define append
+  (Y (ˆ (append x y)
+	(if (pairp x)
+	    (cons (head x) (append (tail x) y))
+	  y))))
+
+(define nreverse
+  (Y (ˆ (nreverse x)
+	(if (pairp x)
+	    (append (nreverse (tail x)) (cons (head x) nil))
+	  nil))))
+
+(defun naive-rev (x)
+  (if (null x) nil (append (naive-rev (cdr x)) (list (car x)))))
+
+(define twice (ˆ (x) (compose x x)))
+(define double (ˆ (n) (+ n n)))
+
+;;; Examples from Sussman and Abelson's paper "Computation: An Introduction to
+;;; Engineering Design"
+
+;;; Sum the values of the function F evaluated at discrete points on
+;;; the interval from A to B with points determined by NEXT.
+
+(define sum
+  (ˆ (f a next b)
+     (if (> a b) 0 (+ (f a) (sum f (next a) next b)))))
+
+(defun sum (f a next b)
+  (if (> a b) 0 (+ (funcall f a) (sum f (funcall next a) next b))))
+
+
+
+(define integral
+  (ˆ (f a b dx)
+     (* (sum f (+ a (/ dx 2)) (ˆ (x) (+ dx x)) b)
+	dx)))
+
+(defun integral (f a b dx)
+  (* (sum f (+ a (/ dx 2)) #'(lambda (x) (+ dx x)) b)
+     dx))
+
+
+;;; Picard's method for approximating the solution of differential equations.
+
+;;; The picard-operator takes as its arguments a function F and the initial
+;;; value x0.  It produces an operator, which when applied to a function Y,
+;;; produces a function of T and dX.
+
+(define picard-operator
+  (ˆ (f x0 y t dx)
+     (+ x0 (integral (ˆ (s) (f (y s) s)) 0 t dx))))
+
+
+
+;;; The nth-order Picard approximation to the solution is  obtained by
+;;; beginning with any arbitrary function, and applying the operator n times.
+
+(define picard-method
+  (ˆ (f x0 n)
+     ((repeated-application n (picard-operator f x0))
+      (ˆ (x) x0))))
+
+
+(define repeated-application
+  (ˆ (n operator)
+     (if (= n 0)
+	 (ˆ (x) x)
+       (compose operator
+		(repeated-application (- n 1) operator)))))
+
+(define compose (ˆ (f g x) (f (g x))))
+  
+
+
+(define ptest (ˆ (order) (picard-method (ˆ (x t) x) 0 order)))

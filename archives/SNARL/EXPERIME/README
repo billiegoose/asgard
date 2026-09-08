@@ -1,0 +1,49 @@
+This directory contains a version of HORSE that uses lambda expressions
+for lists and structures, curses for I/O, and works on UNIX machines, too.
+
+16 Oct
+Output logging added.
+Debug output supression added.
+Bugs with letrec corrected.  Binding offset was not maintained correctly;
+  also, incorrect env pointer was loaded when expanding a REC instruction.
+Output history added.
+
+17 Oct
+Fixed bug in parser.  When LET, LET*, or LETREC was in the head position,
+  any non-atomic args were not parsed.
+Added file name and line number to parser error reporting.
+Changed reductions, red_limit, total_reductions to be unsigned longs so
+  that more reductions can occur before reductions == red_limit.
+
+18 Oct
+Fixed bug in parser. YYVAL.INTVAL declaration changed from int to long.
+  The parser was incorrectly reading in large fixnum values.
+Bug with letrec corrected.  When a REC is being expanded, the env value
+  should be pushed on the stack *after* all ubv's have been pushed into
+  the env.
+
+1 Nov
+Working on a new EQUAL predicate.
+Improved the user screen output while in SUPRESS mode.
+
+6 Nov
+New EQUAL predicate completed.
+Fixed IF primitive so that the cut back is from primitive's address, and
+  not WS.  This makes sure IF's memory management works even if its 
+  conditional's memory management doesn't.
+Changed outstring stuff to check for CTRL-C user interrupt on IBM.
+Changed AND and OR primitives to evaluate all their arguments, if
+  necessary, to try and come up with a boolean answer.  Any non-boolean
+  args are carried along.  Previously, evaluation stopped when a non-boolean
+  arg was found.
+
+
+11 Jan 90
+Added character and string data types.
+Modified type predicates not to fire it their arg is an unbound variable.
+Corrected problems with AND, OR, EQUAL?.
+Changed EQUAL? so that EQUAL* is never ever seen by the user.
+Changed memory cutback management in JOIN to trim back it the destination
+	is an atomic head.
+HORSE now conforms to the user's manual.
+Releasing Version 1.0!

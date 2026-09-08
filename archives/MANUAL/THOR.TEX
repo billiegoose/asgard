@@ -1,0 +1,828 @@
+\newcommand{\single}[1]{$\langle{\mbox{\em #1\/}}\rangle$}
+\newcommand{\one}[1]{$\langle{\mbox{\em #1\/}}\rangle^\dagger$}
+\newcommand{\zero}[1]{$\langle{\mbox{\em #1\/}}\rangle^\star$}
+\newcommand{\reds}{$\stackrel{1}{\longrightarrow}$}
+\newcommand{\red}{${\longrightarrow}$}
+
+
+\chapter{THOR}
+\label{chapter-THOR}
+
+	This chapter presents THOR's syntax and
+gives an informal semantics to its built-in primitives.
+
+\section{Syntax}
+
+	THOR is a small language with a minimal syntax.  The domain 
+of THOR is the set of well-formed lambda expressions,
+as defined by the following BNF formulae:
+\begin{tabbing}
+12345\=\kill
+\>	\single{expression} ::= \one{exp}\\[.10in]
+\>	\single{exp} ::= \= (\single{expression}) $\mid$ \single{abstraction}
+				$\mid$ \single{constant} $\mid$ \single{list} $\mid$ \\
+\>\>			 \single{structure} $\mid$ \single{string}\\[.10in]
+\>	\single{abstraction} ::= \=
+		(LAMBDA (\one{symbol}) \single{expression}) $\mid$\\
+\>\>		(LET (\one{binding-pair}) \single{expression}) $\mid$\\
+\>\>		(LET* (\one{binding-pair}) \single{expression}) $\mid$\\
+\>\>		(LETREC (\one{binding-pair}) \single{expression}) \\[.10in]
+\>	\single{binding-pair} ::= (\single{symbol} \single{expression})\\[.10in]
+\>	\single{constant} ::= \single{character} $\mid$  \single{integer} $\mid$
+		 \single{float} $\mid$ \single{symbol}\\[.10in]
+\>	\single{list} ::= [ \zero{exp}]
+		 $\mid$ [ \one{exp} $\parallel$ \single{exp}]\\ [.10in]
+\>	\single{structure} ::= \{ \single{symbol} \zero{exp} \}\\[.10in]
+\>	\single{string} ::= ``\zero{character}''\\[.10in]
+\end{tabbing}
+A superscript $\dagger$ means one or more occurrences and a 
+superscript $\star$ means zero or more occurrences.
+
+	As is customary in functional languages, application is 
+left associative and is indicated simply by juxtaposition.
+Parentheses can be used to group applications and override left associativity.
+
+	THOR is extremely permissive about the content of expressions it
+will reduce.  For the most part, THOR has no real semantic notion of 
+`content' or `meaning'. If an expression is syntactically well-formed, 
+then it is allowable.  For example, the expression {\mbox {\tt (1 2)}}, 
+which is the integer 1 applied to the integer 2, is allowable, and
+reduces to itself.  This
+expression, which has no meaning in conventional programming languages
+(indeed, it would almost surely generate a compilation or run-time
+error), is perfectly acceptable in THOR.  You are free to assign to it 
+whatever meaning you wish.
+
+	A result of this permissiveness is that there are no run-time errors 
+in THOR.  If there is a problem of some kind, then reduction simply does
+not take place.  For example, if the arguments to a primitive do not
+have the proper type, then the primitive does not fire.  
+
+	This may all seem
+crazy at first, but that is only because you are used to using conventional
+programming languages which are highly restrictive in their view of what
+computation is.  
+
+
+\section{Abstraction Mechanisms}
+
+		Abstraction is the way functions are formed in the lambda
+calculus.  THOR provides four abstraction mechanisms:  {\tt LAMBDA}, 
+{\tt LET}, {\tt LET*}, and {\tt LETREC}.  The first three are all simple
+variants of lambda binding, and the fourth, {\tt LETREC}, will be
+discussed in a later section devoted to recursion.
+
+\subsection{\tt LAMBDA}
+
+\begin{quote}
+	{\tt (LAMBDA (${\mbox{\sl var}}_1$ \ldots) {\sl body})}
+\end{quote}
+
+	{\tt LAMBDA} is the basic abstraction mechanism. It's semantics are 
+equivalent to $\lambda$, but its syntax differs in that a single 
+{\tt LAMBDA} can be used to bind more than one variable.  For example, 
+the expression 
+{\mbox ($\lambda$x.$\lambda$y.(+ x y))} can be written as 
+{\mbox{\tt (lambda (x y) (+ x y))}} in THOR.
+
+	When a {\tt LAMBDA} abstraction is applied to an argument, a
+$\beta$-reduction can occur.  When this happens, the argument is
+substituted for each free occurrence of the bound variable  in
+the body of the abstraction.  The lambda variables are  
+bound from left to right in sequence, as illustrated in this example:
+	\footnote{The $\longrightarrow$ symbol is used to indicate the 
+		expression on the left reduces to the expression on the right.  
+		When accompanied by an integer, the integer indicates how many 
+		reductions have taken place. }
+\begin{quote}
+\begin{tt}
+	((lambda (x y) (+ x y)) 3 7) \reds \\
+	((lambda (y) (+ 3 y) 7) \reds \\
+	(+ 3 7) \reds \\
+	10
+\end{tt}
+\end{quote}
+
+	It may also be the case that a lambda variable is not part of a 
+$\beta$-redex, so it does not get bound.  In the rest of this manual,
+such a variable will be referred to as an {\em unbound variable}.
+
+
+\subsection{\tt LET}
+
+\begin{quote}
+	{\tt (LET ((${\mbox{\sl var}}_1$ ${\mbox{\sl exp}}_1$) \ldots) 
+				{\sl body})}
+\end{quote}
+
+	{\tt LET} is a sugared form of $\lambda$ binding, in which
+all the binding pairs are bound in the same context. 
+The expression 
+\begin{center}
+{\mbox{\tt (let (($v_1$ $e_1$) \ldots\ ($v_n$ $e_n$)) exp)}} 
+\end{center}
+is equivalent to 
+\begin{center}
+{\mbox{\tt ((lambda ($v_1$ \ldots\ $v_n$) exp) $e_1$ \ldots\ $e_n$)}}
+\end{center}
+Each binding pair is a $\beta$-redex, and they are contracted from left
+to right:
+\begin{quote}
+\begin{tt}
+	(let ((a 1) (b 2)) (+ a b)) \reds \\
+	(let ((b 2)) (+ 1 b)) \reds \\
+	(+ 1 2) \reds \\
+	3
+\end{tt}
+\end{quote}
+
+	Although {\tt LET} can be expressed in terms of {\tt LAMBDA}, it is
+included in THOR because in many circumstances it is more
+understandable than an equivalent {\tt LAMBDA} expression.
+
+
+\subsection{\tt LET*}
+
+\begin{quote}
+	{\tt (LET* ((${\mbox{\sl var}}_1$ ${\mbox{\sl exp}}_1$) \ldots) 
+				{\sl body})}
+\end{quote}
+
+	{\tt LET*} is a sugared form of $\lambda$ binding, where
+the binding pairs are bound in nested contexts.
+The expression 
+\begin{center}
+{\mbox{\tt (let* (($v_1$ $e_1$) \ldots\ ($v_n$ $e_n$)) exp)}} 
+\end{center}
+is equivalent to 
+\begin{center}
+{\mbox{\tt ((lambda ($v_1$) (\ldots\ ((lambda ($v_n$) exp) $e_n$) 
+										\ldots)) $e_1$)}}
+\end{center}
+Each binding pair is a $\beta$-redex, and they are contracted from left
+to right:
+\begin{quote}
+\begin{tt}
+	(let ((a 1) (b (+ a 4)) (+ a b)) \reds \\
+	(let ((b (+ 1 4)) (+ 1 b)) \reds \\
+	(+ 1 (+ 1 4)) $\stackrel{2}{\longrightarrow}$\\
+	6
+\end{tt}
+\end{quote}
+
+	 Although {\tt LET*} can be expressed in 
+terms of {\tt LAMBDA}, it is
+included in THOR because it is often more understandable.
+
+
+
+\section{Constants}
+
+	There are four types of constant in THOR: characters, 
+integers, floating point
+numbers, and symbols.  With the exception of symbols that
+are associated with expressions (see Section~\ref{sec-defining}),
+constants reduce to themselves.
+
+	All constants are represented by character sequences that are
+delimited by the following: white space (spaces, tabs,
+and newlines), fence characters (parens, braces, and brackets), commas,
+semicolons, single quotes, double quotes, and the vertical bar.
+
+
+\subsection{Characters}
+
+	Character constants are represented using the C language
+conventions --- the character is enclosed in single quotes, and the
+backslash is used as an escape character for delimiters.  The escaped
+characters are:
+\begin{tabbing}
+12345\=12345\=\kill
+\>\verb1\n1 \>Newline\\
+\>\verb1\t1 \>Tab\\
+\>\verb1\b1 \>Backspace\\
+\>\verb1\r1 \>Carriage Return\\
+\>\verb1\f1 \>Form Feed\\
+\>\verb1\'1 \>Single Quote\\
+\>\verb1\"1 \>Double Quote\\
+\>\verb1\\1 \>Backslash
+\end{tabbing}
+
+Unlike C,
+however,	characters are represented as a separate data type in THOR, 
+distinct from the other basic types.
+
+
+\subsection{Character Primitives}
+
+	At the present time, there are four built-in primitives applicable to
+characters: 
+\begin{tabbing}
+{\tt char->int} {\sl c}12345\=\kill
+{\tt ATOM?} {\sl c} \> {\tt TRUE} if {\sl c} is a character; does not fire
+if {\sl c} \\ \> is an unbound variable.\\
+{\tt CHAR->INT} {\sl c} \> converts character {\sl c} to an integer\\ 
+{\tt INT->CHAR} {\sl x} \> converts integer {\sl x} to a character\\
+{\tt CHAR?} {\sl c}     \> {\tt TRUE} if {\sl c} is a character; does not fire
+if {\sl c} \\ \> is an unbound variable; {\tt FALSE} otherwise.
+\end{tabbing}
+All four are {\em strict} unary operators.  A strict operator is one which 
+reduces its arguments before it is fired.  
+
+
+
+\subsection{Integers}
+
+	Integers are represented by an optional sign followed by one or more 
+decimal digits.  (Currently the only radix supported is base 10.)
+The value of the largest and smallest integers available
+varies from machine to machine, but will at least be equivalent to that
+of a signed long in a machine's C language implementation.
+
+\subsection{Floating Point Numbers}
+
+	Floating point numbers are represented by an optional sign followed
+by zero or more decimal digits, followed by a period, then one or more
+decimal digits. (Exponential notation is not currently supported.)  The
+range and precision of floating point numbers available varies from
+machine to machine, but will at least be equivalent to that of a single
+precision float in a machine's C language implementation.
+
+
+
+\subsection{Numeric Primitives}
+
+	THOR includes most of the common unary and binary arithmetic and
+relational operators.  All of the numeric primitives are strict, and
+integer $\leftrightarrow$ floating point conversions
+are automatically performed if necessary. 
+If there are not enough arguments or the arguments
+are not of numeric type, the operator is not fired.  The firing of an
+operator counts as one reduction.
+
+\subsubsection{Unary Arithmetic Operators}
+\begin{tabbing}
+{\tt CEILING} {\sl x}12345\=\kill
+{\tt 1+} {\sl x} \>	Increments {\sl x} by 1\\
+{\tt 1-} {\sl x} \>  Decrements {\sl x} by 1\\
+{\tt ABS} {\sl x} \> Absolute value of {\sl x}\\
+{\tt CEILING} {\sl x} \>	The smallest integer value greater than or
+			equal to {\sl x}\\
+{\tt FLOOR} {\sl x} \>	The largest integer value less than or equal to
+			{\sl x}\\
+{\tt MINUS} {\sl x} \>  Changes the sign of {\sl x}\\
+{\tt SQRT} {\sl x} \> Square root of {\sl x}
+\end{tabbing}
+
+
+\subsubsection{Binary Arithmetic Operators}
+\begin{tabbing}
+{\tt MODULO} {\sl x} {\sl y}1234\=\kill
+{\tt +} {\sl x} {\sl y} \> Sum of {\sl x} and {\sl y}\\
+{\tt -} {\sl x} {\sl y} \> Difference of {\sl x} and {\sl y}\\
+{\tt *} {\sl x} {\sl y} \> Product of {\sl x} and {\sl y}\\
+{\tt /} {\sl x} {\sl y} \> Quotient of {\sl x} and {\sl y}\\
+{\tt EXPT} {\sl x} {\sl y} \>{\sl X} raised to the power of {\sl y}.
+		Neither argument can be zero;\\
+		\> when {\sl x} is negative, {\sl y} must be an integer.\\
+{\tt MAX} {\sl x} {\sl y} \> The larger of the values of {\sl x} and
+{\sl y}\\
+{\tt MIN} {\sl x} {\sl y} \> The smaller of the values of {\sl x} and
+{\sl y}\\
+{\tt MODULO} {\sl x} {\sl y} \> The integer remainder of {\sl x} divided
+by {\sl y}\\
+\end{tabbing}
+
+\subsubsection{Unary Relational Operators}
+\begin{tabbing}
+{\tt NEGATIVE?} {\sl x}12345\=\kill
+{\tt EVEN?} {\sl x} \> {\tt TRUE} if {\sl x} is an even number; {\tt FALSE}
+			otherwise\\
+{\tt NEGATIVE?} {\sl x} \> {\tt TRUE} if {\sl x} $<$ 0; {\tt FALSE} otherwise\\
+{\tt ODD?} {\sl x} \> {\tt TRUE} if {\sl x} is an odd number; {\tt FALSE}
+			otherwise\\ 
+{\tt POSITIVE?} {\sl x} \> {\tt TRUE} if {\sl x} $\geq$ 0; {\tt FALSE} otherwise
+\end{tabbing}
+
+\subsubsection{Binary Relational Operators}
+\begin{tabbing}
+{\tt $=$} {\sl x} {\sl y}12345\=\kill
+{\tt $=$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} equals {\sl y}; {\tt FALSE}
+otherwise\\ 
+{\tt $<>$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} is not equal to {\sl y};
+{\tt FALSE} otherwise\\ 
+{\tt $>$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} is greater than {\sl y};
+{\tt FALSE} otherwise\\ 
+{\tt $<$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} is less than {\sl y};
+{\tt FALSE} otherwise\\ 
+{\tt $>=$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} is greater than or equal
+to {\sl y}; {\tt FALSE} otherwise\\ 
+{\tt $<=$} {\sl x} {\sl y} \> {\tt TRUE} if {\sl x} is less than or equal
+to {\sl y}; {\tt FALSE} otherwise
+\end{tabbing}
+
+\subsubsection{Type Predicates}
+
+	There are three type predicates that are germane to numbers: 
+\begin{tabbing}
+{\tt INTEGER?} {\sl x}12345\=\kill
+{\tt ATOM?} {\sl x}  \>  {\tt TRUE} if {\sl x} is an integer or a
+floating point number;\\ \> does not fire if {\sl x} is
+an unbound variable.\\
+{\tt INTEGER?} {\sl x}  \> {\tt TRUE} only if {\sl x} is an integer; does not fire
+ if {\sl x}\\ \> is an unbound variable; {\tt FALSE} otherwise.\\
+{\tt FLOAT?} {\sl x} \> {\tt TRUE} only if {\sl x} is an floating point
+number;\\ \> does not fire if {\sl x} is an unbound variable; 
+{\tt FALSE} otherwise.
+\end{tabbing}
+
+
+\subsection{Symbols}
+
+	Symbols are the major component of programs in THOR; they can play the
+role of variable, primitive, or constant depending on the context.
+Symbols are represented by one or more consecutive non-delimiting characters.
+Note that this means symbols can begin with digits (such as the
+built-in primitive {\tt 1+}) and punctuation marks.  Symbols are not
+case sensitive; the HORSE reader converts them internally to all upper-case.
+
+	There is a small group of reserved symbols in THOR which cannot
+be used as constants or variables without protecting them first (see
+Section~\ref{sec-protect} for an explanation of `protecting' symbols). 
+They are {\tt LAMBDA, LET, LET*, LETREC, DEFINE, RDEFINE,} and 
+{\tt DEFSTRUCT}.
+
+\subsection{Symbol Primitives}
+
+	There are two primitives that deal with symbols, and both are strict
+unary type predicates: 
+\begin{tabbing}
+{\tt SYMBOL?} {\sl s}12345\=\kill
+{\tt ATOM?} {\sl s} \> {\tt TRUE} if {\sl s} is a symbol; does
+not reduce if {\sl s} \\ \> is an unbound variable. \\
+{\tt SYMBOL?} {\sl s} \> {\tt TRUE} only if {\sl s} is a symbol; does
+not reduce if {\sl s} \\  \>is an unbound variable; {\tt FALSE}
+otherwise.
+\end{tabbing}
+
+
+
+\section{Protecting Symbols and Variables}
+\label{sec-protect}
+
+	The scoping rules of the lambda calculus specify that a variable is
+bound to the smallest enclosing abstraction with a lambda binding of 
+the same name. Unfortunately, this can sometimes cause {\em name capture}
+problems, and is the 
+reason that 
+axiomatizations of the lambda calculus generally include a rule that
+$\alpha$-substitution must take place before $\beta$-reduction if the
+argument contains free variables with the same name as the lambda variable in
+the $\beta$-redex.  
+
+Name capture is illustrated by the following reduction sequence:
+\begin{quote}\begin{tt}
+	(lambda (a b) a b) (lambda (a b) a b) \reds\\
+	(lambda (b) ((lambda (a b) a b) b)) \reds\\
+	(lambda (b) (lambda (b) b b))
+\end{tt}\end{quote}
+This result is not what was intended by the original expression;  a
+correct result would be $\alpha$-equivalent to 
+{\mbox{\tt (lambda (x) (lambda (y) x y))}}.  
+
+	Instead of introducing new variable names via $\alpha$-substitution,
+THOR solves the name capture problem with a protection device (represented as
+the character \#) which `blocks' a level of unwanted scope binding. 
+Using protection devices, THOR's solution to the previous example would
+be 
+\begin{center}
+	{\mbox{\tt (lambda (b) (lambda (b) \#b b))}}
+\end{center}
+Each \# blocks one
+level of scope binding;  multiple \#'s can be used to block several
+levels.  For example, the following expressions are $\alpha$-equivalent:
+\begin{tt}
+\begin{tabbing}
+12345\=12345\=\kill
+\>	(lambda (x x x) x \#\#x \#x)  $\stackrel{\alpha}{=}$ 
+		(lambda (a b c) c a b)\\
+\>	(lambda (x) (x (lambda (x) \#x x))) $\stackrel{\alpha}{=}$ \\
+\>\>		(lambda (a) (a (lambda (b) a b)))\\
+\>	(lambda (x) x \#x) $\stackrel{\alpha}{=}$ 
+		(lambda (a) a x)
+\end{tabbing}
+\end{tt}
+In the last expression above,	the protection device is used to declare
+that the \underline{symbolic constant} {\tt x} is the desired meaning.  If more \#'s are
+used than there are binding levels, the excess \#'s are ignored.
+
+
+
+
+\section{Compound Data Objects}
+
+	There are three classes of compound data objects in THOR: lists, strings,
+and structures.  The first two classes can contain a variable number of elements
+which can be accessed only in sequence.  The third class are tuples of
+fixed size whose elements can be accessed randomly.  All three 
+classes of object are constructed in a {\em lazy} manner, which 
+means their elements
+are not reduced at the time the object is created, but only when they
+are accessed.
+
+	The  current implementation of THOR uses special lambda expressions
+to represent all three classes of compound data objects.  The HORSE
+reader and printer recognize these lambda expressions and compile or
+print them using an alternative syntax.  If you use
+these objects in conventional ways (i.e., only as arguments to
+primitives) you won't ever notice they are lambda expressions.  However,
+if one of them becomes the operator in an expression, it behaves like a
+lambda expression, and weird things can happen.  Chances are you will
+never have to be concerned about this, but be aware there is more to
+these objects than apparent from their syntax.
+
+
+\subsection{Lists}
+
+	Lists are binary recursive data structures which form linearly
+ordered collections of values.  The empty list, which contains no values, is
+written as either the symbol {\tt NIL} or as {\tt [ \ ]}.  Nonempty
+lists are written as {\tt [ {\sl x} $\parallel$ {\sl y}]}, where {\sl x}
+is an element of the list, and {\sl y} is recursively the rest of the
+list.  (The $\parallel$ is the vertical bar character on most
+computer keyboards.)
+For example, the list of the first three natural numbers can be
+written as
+\begin{center}
+	{\tt [1 $\parallel$ [2 $\parallel$ [3 $\parallel$ NIL]]]}
+\end{center}
+However, there is a much better shorthand notation for proper lists (which end
+in {\tt NIL}), which omits the intermediate $\parallel$'s and
+brackets.  In this shorthand, the above example would be written as
+{\mbox{\tt [1 2 3]}}.
+
+
+\subsection{List Primitives}
+
+	All of the list primitives except for {\tt PAIR?} are implemented as
+special lambda expressions, so they take more than one reduction to
+accomplish their task and generate intermediate expressions if they are
+not finished when the allowed reductions are exhausted.  Here are the
+list primitives, along with the number of reductions they require:
+\begin{tabbing}
+{\tt CON0S} {\sl a} {\sl b}12345\=\kill
+{\tt CAR} {\sl l} \> Selects the first element in list {\sl l}.\\ 
+\>Costs 5 reductions.\\
+{\tt CDR} {\sl l} \> Selects all but the first element of list {\sl
+l}.\\
+\> Costs 5 reductions.\\
+{\tt CONS} {\sl a} {\sl b} \> Constructs the list   
+[{\sl a} $\parallel$ {\sl b}]. \\ \> Costs 3 reductions.\\
+\end{tabbing}
+\pagebreak
+\begin{tabbing}
+{\tt CON0S} {\sl a} {\sl b}12345\=\kill
+{\tt NULL?} {\sl l} \> {\tt TRUE} only if {\sl l} is the symbol {\tt NIL},
+which is the empty list;\\ \> does not fire if {\sl l} is an unbound
+variable; {\tt FALSE} otherwise.\\
+\>Costs 2 reductions.\\
+{\tt PAIR?} {\sl l} \> {\tt TRUE} only if {\sl l} is a list; does not
+fire if {\sl l} \\ \> is an unbound variable; {\tt FALSE} otherwise.\\
+\>Costs 1 reduction.
+\end{tabbing}
+
+\subsection{Strings}
+
+	Strings are actually lists of characters.  Their textual
+representation is as a sequence of characters enclosed in double quotes.
+The backslash character may be used as an escape, just as it is used with
+character constants.
+
+
+\subsection{String Primitives}
+
+	Since strings are actually lists of characters, all of the list
+primitives except for {\tt PAIR?} will work with strings also.  There
+are currently only two string specific functions:  
+\begin{tabbing}
+{\tt CONS-STRING} {\sl c} {\sl s}12345\=\kill
+{\tt CONS-STRING} {\sl c} {\sl s} \> Creates a new string by prepending
+the character {\sl c} \\ \>to the string {\sl s}.\\
+{\tt STRING?} {\sl s} \> {\tt TRUE} only if {\sl s} is a string;
+does not fire if {\sl s} \\ \> is an unbound variable; {\tt FALSE} otherwise.
+\end{tabbing}
+
+
+\subsection{Structures}
+
+	Structures are tuples that carry a type tag.  They are of fixed
+length, and their elements are filled in when they are created.  
+Section~\ref{sec-defstruct} gives information about how to use
+the {\tt defstruct} special form to define and access structures.
+In addition, you can also
+create a structure directly by using its print syntax.  For example, when
+\begin{center}
+	{\tt \{binop + 5 6\}}
+\end{center}
+is read by the HORSE reader, a structure of type {\tt binop} is created
+with {\tt +} as its first element, {\tt 5} as its second element, and
+{\tt 6} as its third element.  Using the print syntax is convenient, but
+there is no check to see if a structure created in this way conforms to
+the definition of structures of that type (if such a definition has
+been made).
+
+
+\subsection{Structure Primitives}
+
+	In addition to the structure defining, creating, and accessing
+mechanisms described in Section~\ref{sec-defstruct}, there are two
+primitives for operating on structures:  
+\begin{tabbing}
+{\tt STRUCTURE?} {\sl s}12345\=\kill
+{\tt STRUCTURE?} {\sl s} \> {\tt TRUE} only if {\sl s} is a structure;
+does not fire \\ \> if {\sl s} is an unbound variable; {\tt FALSE}
+otherwise.\\
+{\tt TAG} {\sl s} \> Reduces to the type tag of structure {\sl s}.
+\end{tabbing}
+	
+
+\section{Logical Primitives}
+
+	The logical operators are {\tt AND, OR,} and {\tt NOT}.  They operate
+on boolean values, which are represented by the symbols {\tt TRUE} and
+{\tt FALSE}.  
+
+	The {\tt NOT} is a strict unary operator with simple semantics: 
+\begin{quote}\begin{tt}
+	NOT TRUE \reds\  FALSE\\
+	NOT FALSE \reds\  TRUE
+\end{tt}\end{quote}
+The {\tt AND} and {\tt OR} can take any number of arguments, and their
+operational semantics are more complicated.  
+
+\subsection{\tt AND}
+
+	The semantics of the {\tt AND} primitive can be expressed by the
+following rules:
+\begin{quote}
+	{\tt AND TRUE \reds\  TRUE}\\
+		 If {\tt AND} has a single argument which
+reduces to {\tt TRUE}, then the {\tt AND} expression also reduces to
+{\tt TRUE}\\[.10in]
+	{\tt AND $e_1$ \ldots\ TRUE \ldots\ $e_n$ \reds\  AND $e_1$ \ldots\ $e_n$
+}\\
+		If the {\tt AND} expression has more than one argument, and one of
+its arguments reduces to {\tt TRUE}, the {\tt TRUE} is dropped from the
+expression.\\[.10in]
+	{\tt AND $e_1$ \ldots\ FALSE \ldots\ $e_n$ \reds\  FALSE}\\
+	  If any of the arguments reduces to {\tt FALSE}, then the entire {\tt AND}
+expression reduces to {\tt FALSE}.
+\end{quote}
+The arguments are reduced in order from left to right.
+
+	Implied by these rules, but not explicitly stated, is that some of the
+arguments might not reduce to a boolean value; these non-boolean
+arguments remain in place, and reduction of the {\tt AND} continues.	
+The reasoning behind this behavior has to do with strong head normalization: 
+it is desirable to squeeze out as much information (i.e., perform as
+many reductions) as possible from an expression.  Here are a few examples:
+\begin{quote}
+\begin{tt}
+(and ($<$ 3 4) (odd? 5)) \reds\\ 
+(and true (odd? 5)) \reds\\ 
+(and (odd? 5)) \reds\\
+(and true) \reds\\
+true\\[.10in]
+(and ($>$ 3 4) (odd? 5)) \reds\\  
+(and false (odd? 5)) \reds\\
+false\\[.10 in]
+(and ($<$ 3 4) (even? 5)) \reds\\ 
+(and true (even? 5)) \reds\\ 
+(and (even? 5)) \reds\\
+(and false) \reds\\
+false\\[.10in]
+(and ($>$ x 4) (odd? 5)) \reds\\
+(and ($>$ x 4) true) \reds\\
+(and ($>$ x 4))
+\end{tt}
+\end{quote}
+
+
+\subsection{\tt OR}
+
+	The semantics of the {\tt OR} primitive are similar to those of the
+{\tt AND}, and can be expressed by the
+following rules:
+\begin{quote}
+	{\tt OR FALSE\reds\  FALSE}\\
+		 If {\tt OR} has a single argument which
+reduces to {\tt FALSE}, then the {\tt OR} expression reduces to
+{\tt FALSE}\\[.10in]
+	{\tt OR $e_1$ \ldots\ FALSE \ldots\ $e_n$ \reds\  OR $e_1$ \ldots\ $e_n$
+}\\
+		If the {\tt OR} expression has more than one argument, and one of
+its arguments reduces to {\tt FALSE}, the {\tt FALSE} is dropped from the
+expression.\\[.10in]
+	{\tt OR $e_1$ \ldots\ TRUE \ldots\ $e_n$ \reds\  TRUE}\\
+	  If any of the arguments reduces to {\tt TRUE}, then the entire {\tt OR}
+expression reduces to {\tt TRUE}.
+\end{quote}
+The comments made about the {\tt AND} primitive also apply to {\tt OR}.
+
+\section{The {\tt IF} Conditional}
+
+\begin{quote}
+	{\tt (IF {\sl cond} {\sl true-exp} {\sl false-exp})}
+\end{quote}
+
+	There is only one conditional operator in THOR, the {\tt IF}.
+The {\tt IF} is strict only in its first argument, the conditional
+expression {\sl cond}.  If {\sl cond} reduces to {\tt TRUE}, then the 
+{\tt IF} expression reduces to {\sl true-exp};  if {\sl cond} reduces to
+{\tt FALSE}, then the {\tt IF} expression reduces to {\sl false-exp}. 
+If {\sl cond} does not reduce to either {\tt TRUE} or {\tt FALSE}, then
+the {\tt IF} expression is left as is, and neither {\sl true-exp} nor
+{\sl false-exp} is reduced.
+
+
+\section{Recursion}
+
+	There are three forms of recursion in THOR:  explicit single
+recursion using the {\tt REC} operator; implicit single recursion
+accomplished through symbols that have associated definitions; and
+explicit multiple recursion using the {\tt LETREC} abstraction
+mechanism.
+
+\subsection{The {\tt REC} Operator}
+
+	The {\tt REC} operator is used to explicitly cause recursion.  It is a
+strange and wondrous thing, with the following semantics:
+\begin{quote}\begin{tt}
+	(REC {\sl f}) \reds\ ({\sl f} (REC {\sl f}))
+\end{tt}\end{quote}
+where {\sl f} is an arbitrary expression.  An expression for computing
+the factorial of an integer is presented as an example of recursion using
+the {\tt REC} operator:
+\begin{center}\begin{tt}
+	(rec (lambda (fact n) (if (= n 0) 1 (* n (fact (1- n))))))
+\end{tt}\end{center}
+Note that {\tt fact} is a variable, which gets bound to the
+entire {\tt REC} expression during reduction.
+
+	One must be careful when
+using the {\tt REC} operator (and any of the other forms of recursion) not
+to create an expression which has no normal form, or the reduction
+sequence will not terminate.
+
+\subsection{Recursion via Symbol Definitions}
+
+	Recursion can be obtained implicitly through the reduction of symbols
+that have been associated with expressions by the use of a defining form
+(see Section~\ref{sec-defining}).  This is the form of recursion most
+people are familiar with.  To contrast this method with using the {\tt
+REC} operator, here is another expression for computing factorials:
+\begin{center}\begin{tt}
+	(define fact  (lambda (n) (if (= n 0) 1 (* n (fact (1- n))))))
+\end{tt}\end{center}
+In this expression, {\tt fact} is not a variable, but a symbolic
+constant (that just happens to be on both sides of the definition).  
+When the symbol {\tt
+fact} is encountered as an operator during reduction, it is replaced by
+the expression 
+\begin{center}
+	{\tt (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))}
+\end{center}
+
+
+\pagebreak
+\subsection{Mutual Recursion with {\tt LETREC}}
+
+\begin{quote}
+	{\tt (LETREC ((${\mbox{\sl var}}_1$ ${\mbox{\sl exp}}_1$) \ldots) 
+				{\sl body})}
+\end{quote}
+
+	The {\tt LETREC} abstraction mechanism provides a way to create local
+mutually recursive expressions.  Each of the binding pairs are bound in
+parallel in a context that has been specially extended to include all of
+the binding pairs, so that any ${\mbox{\sl var}}_i$ can be referenced
+inside any ${\mbox{\sl exp}}_j$.  The {\sl body} is then reduced in this
+new context. There is no reduction charge for creating the recursion
+context, but there is a charge of one reduction each time a 
+${\mbox{\sl var}}_i$ references this context.
+
+	As a highly contrived example of mutual recursion, the following
+expression determines if an integer is even:
+\begin{tt}
+\begin{tabbing}
+12\=1234\=12345\=\kill
+   (lambda (x)\\
+\>        (letrec ((even? (lambda (n) (if (= n 0) TRUE (odd? (1- n)))))\\
+\>\>\>               (odd? (lambda (n) (if (= n 0) FALSE (even? (1-
+n))))))\\
+\>\>			(even? x)))
+\end{tabbing}
+\end{tt}
+
+	
+	When in step mode, the reduction semantics of the {\tt LETREC} 
+are more complex.  The behavior of {\tt LETREC} must take into account
+THOR's requirement that the user be able to control the number of
+reductions performed on an expression.
+The special context of local recursive definitions that is created by
+a letrec may need to exist for however long the letrec's
+body exists, which may be many reductions. But the user may wish to stop
+reduction before the body is completely reduced.
+Therefore, some sort of 
+mechanism must exist for preserving the recursive context across
+invocations of the reducer.  This is done by reconstructing the letrec
+binding expression everywhere its context will be needed again.  These
+places are easy to find, because they are simply everywhere one of the 
+${\mbox{\sl var}}_i$ exist in the body.  
+
+	An example of this behavior is in order.  The expression
+\begin{tt}
+\begin{tabbing}
+12345\=111\=111111\=\kill
+\>(letrec ((x (cons 1 y))\\
+\>\>\>	  (y (cons 2 x)))\\
+\>\>	x)
+\end{tabbing}
+\end{tt}
+describes an infinite list of alternating 1's and 2's.  Assume that
+HORSE is in step mode and that the force switch is turned on, so that lists
+evaluate eagerly.  Allowing a single reduction lets the {\tt LETREC}
+create the recursion context and have the body, which is the recursion 
+variable {\tt x}, be expanded by its value, {\tt (cons 1 y)}.  But now
+there are no more reductions allowed, and all of the recursion variables
+in the body must be `wrapped' in a reconstructed letrec.  (There happens
+to be just one recursion variable in the body, the {\tt y}.)  So the
+expression is now:
+\pagebreak
+\begin{tt}
+\begin{tabbing}
+12345\=22222\=111\=111111\=\kill
+\>(cons 1\\
+\>\>(letrec ((x (cons 1 y))\\
+\>\>\>\>	  (y (cons 2 x)))\\
+\>\>\>	y))
+\end{tabbing}
+\end{tt}
+Allowing another reduction causes the {\tt CONS} to be reduced:
+\begin{center}\begin{tt}
+[1 $\parallel$ (letrec ((x (cons 1 y)) (y (cons 2 x))) y)]
+\end{tt}\end{center}
+The cdr of this list is now of a form similar to that of the original
+expression, and its reduction sequence unfolds in a similar way.  Another
+reduction gives
+\begin{center}\begin{tt}
+[ 1 $\parallel$ (cons 2 (letrec ((x (cons 1 y)) (y (cons 2 x))) x))]
+\end{tt}\end{center}
+The reduction sequence can continue on in this fashion, ad infinitum.
+
+
+
+\section{The {\tt EQUAL?} Primitive}
+
+	In the lambda calculus, two expressions are $\alpha$-equivalent if
+they are syntactically the same except for their bound variable names. 
+This is a way of saying that the syntactic structure of the expressions is
+identical.  The {\tt EQUAL?} predicate tests for this kind of
+structural equality.
+
+	{\tt EQUAL?} is a strict binary operator that works by decomposing
+its arguments into their atomic constituents and then checking these
+for syntactic
+equality. If all the parts are equal, the result is {\tt TRUE};  if the
+parts are not equal, the result is {\tt FALSE}; and if some of the parts
+are unbound variables, then the result will be a new expression that is
+a conjunction of equality tests on the unbound variables.  The process
+of decomposing expressions and checking their constituent 
+subexpressions for $\alpha$-equality may take many reductions, so some
+strange looking expressions may be generated as intermediate forms. 
+Also, if any of the constituents are lazy compound data objects, the
+elements of the objects will be reduced before they are compared.
+
+	Here are some examples:
+\begin{tt}\begin{tabbing}
+12345\=12345\=\kill
+\>	(equal? 1 1) \red\  true\\
+\>	(equal? 1 "hello") \red\  false\\
+\>	(equal? (a b) (a b)) \red\ true\\
+\>	(equal? (a b c) (a b)) \red\ false\\
+\>	(lambda (x) (equal? (a 1) (x 1))) \red\\
+\>\>		 (lambda (x) (equal? a x))\\
+\>	(lambda (x y) (equal? (x y) (a b))) \red\\
+\>\>	 (lambda (x y) (and (equal? x a) (equal? y b))\\
+\>	(equal? (lambda (a) a) (lambda (b) b)) \red\ true\\
+\>	(equal? (lambda (x) 1) (lambda (x) x)) \red\ false\\
+\>	(equal? [1 2 3] [1 2 3]) \red\ true\\
+\>	(equal? [1 2] [1 2 3]) \red\ false\\
+\>	(lambda (x) (equal? [1 x 3] [1 2 3])) \red\\
+\>\>	 (lambda (x) (equal? x 2))\\
+\>	(equal? \{node 2 (+ 1 4)\} \{node 2 5\}) \red\ true\\
+\>	(equal? \{node 2 sym\} \{tree 3 [1 2]\}) \red\ false
+\end{tabbing}\end{tt}
+
+	
+

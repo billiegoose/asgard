@@ -1,0 +1,226 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; INTERFACE TO THE LAMBDA-PROCESSOR SIMULATOR
+;;; Mike Hilton, 5 Aug 88
+
+
+
+(defvar *trace* nil "debugging trace flag")
+(defvar *stats* t "statistics print flag")
+
+
+;;; RED
+;;; Reduces an expression; returns reduced expression as its result.
+
+(defun red (exp &optional (limit -1))
+  (prep-reducer)
+  (load-exp exp)
+  (set-value redlimit limit)
+  (reducer)
+  (when (and (not *monitor*) (lambda-monitor-exposed lambda-window))
+    (clear (send lambda-window :get-pane 'memory)))
+  (when *trace*
+    (print *stack*)
+    (display *mem* (value problem) (1+ (value result)))
+    (terpri) (terpri)
+    (display *mem* (1+ (value result)) (1+ (value rgar)))
+    (terpri) (terpri)
+    (display-env *mem* (value environment) (memory-array-size *mem*)))
+  (let ((redexp (decompile-ˆ (1+ (value result)) *mem*)))
+    (when *stats*
+      (format t "~&RESULT: ~A" redexp)
+      (stats))
+    redexp))
+
+
+;;; LOAD-EXP
+;;; Compile an expression and load it into graph memory.
+
+(defun load-exp (exp)
+  (set-value result
+	     (1- (load-ˆ (compile-ˆ exp)
+			 (if (boundp 'problem) (value problem) 0)
+			 *mem*)))
+  (transfer result rgar))
+
+;;; PREP-REDUCER
+;;; Inititalization actions to be done before reduction starts.
+
+(defun prep-reducer ()
+  (setq mcycles 0)
+  (reset pgar)
+  (reset pgdr)
+  (reset rgar)
+  (reset rgdr)
+  (reset environment)
+  (reset reductions)
+  (reset *stack*)
+  (reset *mem*)
+  (if (boundp 'primreg) (reset primreg))
+  (if (boundp 'argreg) (reset argreg))
+  (if (boundp 'argcount) (reset argcount))
+  (if (boundp 'inhibit) (reset inhibit))
+  (if (boundp 'max-var) (reset max-var))
+  (if (boundp 'scratch) (reset scratch))
+  (set-value environment (memory-array-size *mem*))
+  (if (boundp 'context-base) (set-value context-base (1- (value environment))))
+  (set-value binding-offset 0)
+  (set-value mode 'HEAD)
+  (set-value pgar (value problem)))
+
+
+;;; TRACE-ˆ
+;;; Prints out info about the state of the lambda-processor.
+
+(defun trace-ˆ ()
+  (format t "~%stack = ~A~%" *stack*)
+  (display *mem* (value pgar)
+	 ;  (if (>= (value pgar) (value problem))
+	 ;      (max (value problem) (- (value pgar) 2))
+	 ;    (max 0 (- (value pgar) 2)))
+	   (if (<= (value pgar) (value result))
+	       (min (+ (value pgar) 4) (1+ (value result)))
+	     (min (+ (value pgar) 4) (+ 2 (value rgar)))))
+  (terpri) (terpri)
+  (display *mem*
+	   (max (1+ (value result)) (- (value rgar) 4))
+	   (max (1+ (value result)) (1+ (value rgar))))
+  (terpri)
+  (terpri)
+  (display-env *mem* (value environment) (memory-array-size *mem*))
+  (format t "~&~%pgar = ~4d    pgdr = ~A" (value pgar) pgdr)
+  (format t "~%rgar = ~4d    rgdr = ~A" (value rgar) rgdr)
+  (if (boundp 'primreg)
+      (format t "~%primreg = ~a   argreg = ~a" primreg argreg))
+  (format t
+   "~%mode = ~A    result = ~A    temp = ~A   env = ~A  reds = ~A  offset = ~A  base = ~A~%"
+   mode result temp environment reductions binding-offset context-base)
+  )
+
+
+;;; STATS
+;;; Prints out statistics for a reduction.
+
+(defun stats (&optional (stream t))
+  (let* ((mreads (memory-array-reads *mem*))
+	(mwrites (memory-array-writes *mem*))
+	(sreads (stack-reads *stack*))
+	(swrites (stack-writes *stack*))
+	(tmem (+ mreads mwrites sreads swrites))
+	(gsize (- (address-register-max rgar) (value problem)))
+	(ssize (stack-max *stack*))
+	(esize (- (memory-array-size *mem*) (address-register-min environment))))
+    (format stream "~&~%REDUCTIONS: ~D" (value reductions))
+    (format stream "~&RATIO: ~A" (float (/ (- (value rgar) (value problem)) tmem)))
+    (format stream "~&MEMORY size: ~5D  reads: ~5D  writes: ~5D"
+	    (+ gsize esize) mreads mwrites)
+    (format stream "~&graph size: ~D  env size: ~D" gsize esize)
+    (format stream "~&STACK  size: ~5d  reads: ~5D  writes: ~5D" ssize sreads swrites)
+    (format stream "~&total mem accesses = ~D  size = ~D"
+	    tmem
+	    (+ gsize esize ssize))))
+
+
+
+
+
+;;; REDUCTION LISTENER
+
+(defflavor reduction-listener
+	((state nil))
+	(dw:dynamic-window
+	 tv:process-mixin)
+  :writable-instance-variables
+  :readable-instance-variables
+  (:default-init-plist
+   :label "Reduction Listener"
+   :process '(red-loop)
+))
+
+(defmethod (prompt reduction-listener) (string)  (format self string))
+(defmethod (set-state reduction-listener) (val) (setq state val))
+(defmethod (state reduction-listener) () state)
+
+(defun red-loop (window)
+  (send window :expose)
+  (loop (red-command window)))
+
+(defun red-command (listener)
+  (send listener :select)
+  (prompt listener "~&red> ")
+  (let ((input (send listener :any-tyi)))
+    (cond ((and input (listp input) (eq (first input) :menu))
+	   (menu-input (send listener :superior) input t)
+	   (format listener "~&~A" input))
+	  (t
+						; keyboard input via reduction listener
+	   (send listener :untyi input)
+	   (let ((exp (read listener)))
+	     (cond ((integerp exp)
+		    (set-value redlimit exp)
+		    (reduction-command listener))
+		   ((eq exp '*)
+		    (set-value redlimit -1)
+		    (reduction-command listener))
+		   ((and (listp exp) (eq (first exp) 'define))
+		    (eval exp)
+		    (prompt listener (format nil "~%~A defined" (second exp))))
+		   ((or (listp exp) (symbolp exp))
+		    (prep-reducer)  
+		    (load-exp exp)
+		    (set-state listener 'NEW)
+		    (when *monitor*
+		      (clear-panes (send listener :superior))
+		      (display (send (send listener :superior) :get-pane 'problem)
+			       (value problem) (value result))
+		      ))
+		   (t
+		    (set-state listener nil)
+		    (prompt listener "~&input ignored"))))))))
+
+(defun reduction-command (listener)
+  (if (null (state listener))
+      (prompt listener "~&ERROR: no loaded expression~%")
+    (when (eq (state listener) 'OLD)
+      (set-value result
+		 (move-ˆ-code *mem* (1+ (value result)) (value rgar) (value problem)))
+      (prep-reducer)  
+      (transfer result rgar))
+    (if *monitor*
+	(monitored-reducer (send listener :superior))
+      (reducer))
+    (print (decompile-ˆ (1+ (value result)) *mem*) listener)
+    (if *stats* (stats listener))
+    (set-state listener 'OLD)))
+
+
+;;; MOVE-ˆ-CODE
+;;; Transfer the graph starting at location FROM to location TO.
+
+(defun move-ˆ-code (mem start end to)
+  (let ((addr start)
+	(dest to)
+	(offset (- to start)))
+    (loop
+      (when (> addr end) (return dest))
+      (let ((el (element mem addr)))
+	(set-element (element mem dest)
+		     (flag el)
+		     (type el)
+		     (if (eq (type el) 'PTR)
+			 (+ offset (operand el))
+		       (operand el))))
+      (incf addr)
+      (incf dest))))
+
+
+
+;;; DEFINE
+;;; Allows functions to be defined.
+
+(defmacro define (name &body body)
+  `(progn
+     (setf (get ',name 'LPDEF) (1+ (value problem)))
+     (set-value problem (load-ˆ (cons (list 'COMMENT 'DEF ',name)
+					  (compile-ˆ ',(first body)))
+				    (value problem) *mem*))))

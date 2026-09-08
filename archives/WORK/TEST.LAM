@@ -1,0 +1,75 @@
+;;; Functions that test out unification features
+;;; many of these functions are taken from a paper by Uday Reddy
+;;; in the graph reduction workshop proceedings
+
+;; Example 1
+
+(define member
+	(lambda (x list)
+		(if (not (not (unify list [])))
+			(lambda (lcdr) (unify list [x|lcdr]))
+			(if (unify x (car list))
+				true
+				(member x (cdr list))))))
+
+(define test1-1
+	(lambda (y) (if (member y [1 2]) y no)))
+
+(define test1-2
+	(lambda (car cdr) (if (member 1 [car|cdr]) [car | cdr] no)))
+
+(define test1-3
+	(lambda (a)
+		(if (member [x|a] [[w|1][x|2][z|3]])
+			a
+			no)))
+
+(define test1-4 (member 2 [1 2 3]))
+
+			
+;;; Example 2
+			
+(define retrieve
+	(lambda (key alist attr)
+		(if (member [key | attr] alist)
+			attr
+			false))))
+				
+(define test2-1	(retrieve a [[b|2][a|1]]))
+(define test2-2
+	(lambda (car cdr) a (retrieve a [car|cdr] 1) [car|cdr]))
+(define test2-3
+	(lambda (x) a (retrieve x [[b|2][a|1]] 1) x ))
+
+;;; Example 3
+
+(define translate
+	(lambda (sequence table) (trans sequence table 1)))
+
+(define trans
+	(lambda (seq table n)
+		(if (null? seq)
+			[]
+			(lambda (symbol)
+				(if (and (unify (car seq) [Def symbol])
+							(integer? (retrieve symbol table n)))
+					[[Assign symbol n] | (trans (cdr seq) table (1+ n))]
+					(lambda (i)
+						(if (and (unify (car seq) [Use symbol])
+									(integer? (retrieve symbol table i)))
+						[[Use i] | (trans (cdr seq) table n)]
+						???)))))))
+	
+
+
+(define test3-1
+	(lambda (tabcar tabcdr)
+		(a (translate [[Def x] [Use x]] [tabcar|tabcdr]) [tabcar|tabcdr])))
+		
+(define test3-2
+	(lambda (tabcar tabcdr)
+		(a
+		(translate	[[Def x] [Def y]]
+					 	[tabcar|tabcdr])
+		[tabcar|tabcdr])))
+		

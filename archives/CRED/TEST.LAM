@@ -1,0 +1,63 @@
+(define l1 (cons 1 (cons 2 (cons 3 nil))))
+(define l2 (cons a (cons b nil)))
+(define ints (from 1))
+
+(define from (Y (lambda (from n) (cons n (from (1+ n))))))
+
+(define nth (Y (lambda (nth n list) (if (= 0 n) (car list) 
+	(nth (1- n) (cdr list))))))
+
+(define i12 (letrec ((x (cons 1 y)) (y (cons 2 x))) x))
+(define t12 (letrec ((x (cons 1 y)) (y (cons 2 x)))
+					(cons (car x) (car y))))
+
+(define y12
+	((lambda (v) (lambda (x y) x) (select pair 1 v) (select pair 2 v))
+	 (Y (lambda (f) (pack pair 2 (cons 1 (select pair 2 f))
+	 								     (cons 2 (select pair 1 f)))))))
+(define x12
+	((lambda (v) (select pair 1 v))
+	 (Y (lambda (f) (pack pair 2 (cons 1 (select pair 2 f))
+	 								     (cons 2 (select pair 1 f)))))))
+
+(define map 
+	(lambda (fun list) 
+		(if (null? list) 
+			nil 
+			(cons (fun (car list))
+				(map fun (cdr list))))))
+
+(define reverse (lambda (l) (reverse' l nil)))
+(define reverse'
+	(lambda (l rl)
+		(if (null? l) rl (reverse' (cdr l) (cons (car l) rl)))))
+
+
+(define reduce
+	(Y (lambda (reduce op val list)
+		(if (null? list)
+			val
+			(op (car list)
+			    (reduce op val (cdr list)))))))
+
+(define sum (reduce + 0))
+(define product (reduce * 1))
+(define ++ (lambda (a b) (reduce cons b a)))
+
+
+(define fact (y (lambda (fact n) (if (= n 0) 1 (* n (fact (1- n)))))))
+
+(define fib (lambda (x) (if (or (= x 1) (= x 0)) 1 
+	(+ (fib (1- x) ) (fib (- x 2))))))
+
+
+
+	
+;; linfib is from Kieburtz, Graph Reduction proceedings, p.294
+
+(define linfib
+	(lambda (n) (letrec ((fib (lambda (x y n) 
+					 					(if (= n 0) 
+											y 
+											(fib 	y (+ x y) (1- n))))))
+			(fib 0 1 n))))

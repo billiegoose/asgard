@@ -1,0 +1,114 @@
+\documentstyle[bezier]{book}
+
+\newcommand{\fsp}{{\it fsp}}
+\newcommand{\env}{{\it env}}
+\newcommand{\pg}{{\it pc}}
+\newcommand{\argcnt}{{\it argcnt}}
+\newcommand{\prim}{{\it prim}}
+\newcommand{\fire}{{\it fire}}
+
+\newcommand{\lrect}[2]{
+\put(3,#1){\line(0,1){2}}
+\put(16,#1){\line(0,1){2}}
+\put(3,#1){\line(1,0){13}}
+\put(3,#2){\line(1,0){13}}
+}
+
+\newcommand{\spine}{$\circ$}
+\newcommand{\head}{$\bullet$}
+
+\begin{document}
+\setlength{\unitlength}{1ex}
+
+
+\begin{figure}
+\begin{center}
+
+\begin{picture}(72,60)(-5,0)
+\put(16,2){\makebox(0,0){Before}}
+\put(5,5){
+\begin{picture}(20,50)
+%control stack 0-10
+\put(3,0){\line(1,0){13}}
+\put(3,0){\line(0,1){1}}
+\put(16,0){\line(0,1){1}}
+\put(3,10){\line(1,0){13}}
+\put(3,11){\line(0,-1){2}}
+\put(16,11){\line(0,-1){2}}
+\bezier{50}(3,1)(3,9.5)(3,18)
+\bezier{50}(16,1)(16,9.5)(16,18)
+\bezier{6}(3,18)(3,24)(3,30)
+\bezier{6}(16,18)(16,24)(16,30)
+\bezier{50}(3,32)(3,41)(3,50)
+\bezier{50}(16,32)(16,41)(16,50)
+%environment 10
+\lrect{16}{18}
+\put(9.5,17){\makebox(0,0){$\cdots$}}
+\put(18,17){\makebox(0,0)[lc]{$\leftarrow$ \env}}
+\put(2,17){\makebox(0,0)[rc]{$a_2$:}}
+% graph 30
+\lrect{28}{30}
+\put(4,29){\makebox(0,0)[lc]{\footnotesize \spine INT}}
+\put(14,29){\makebox(0,0)[rc]{\footnotesize 17}}
+\put(2,29){\makebox(0,0)[rc]{$a_1+1$:}}
+\put(18,29){\makebox(0,0)[lc]{$\leftarrow$ \fsp}}
+
+\lrect{30}{32}
+\put(2,31){\makebox(0,0)[rc]{$a_1$:}}
+\put(9.5,31){\makebox(0,0){$\cdots$}}
+\lrect{42}{44}
+\put(9.5,43){\makebox(0,0){$\cdots$}}
+\lrect{44}{46}
+\put(4,45){\makebox(0,0)[lc]{\footnotesize \spine LAMBDA $x$}}
+\put(18,45){\makebox(0,0)[lc]{$\leftarrow$ \pg}}
+%end 50
+\put(3,50){\line(1,0){13}}
+\put(3,50){\line(0,-1){1}}
+\put(16,50){\line(0,-1){1}}
+\end{picture}
+}
+\put(48,2){\makebox(0,0){After}}
+\put(40,5){
+\begin{picture}(20,50)
+%control stack 0-10
+\put(3,0){\line(1,0){13}}
+\put(3,0){\line(0,1){1}}
+\put(16,0){\line(0,1){1}}
+\put(3,10){\line(1,0){13}}
+\put(3,11){\line(0,-1){2}}
+\put(16,11){\line(0,-1){2}}
+\bezier{50}(3,1)(3,9.5)(3,18)
+\bezier{50}(16,1)(16,9.5)(16,18)
+\bezier{6}(3,20)(3,25)(3,30)
+\bezier{6}(16,20)(16,25)(16,30)
+\bezier{50}(3,32)(3,41)(3,50)
+\bezier{50}(16,32)(16,41)(16,50)
+%environment 10
+\lrect{16}{18}
+\put(9.5,17){\makebox(0,0){$\cdots$}}
+\put(2,17){\makebox(0,0)[rc]{$a_2$:}}
+\lrect{18}{20}
+\put(4,19){\makebox(0,0)[lc]{\footnotesize INT}}
+\put(14,19){\makebox(0,0)[rc]{\footnotesize 17}}
+\put(18,19){\makebox(0,0)[lc]{$\leftarrow$ \env}}
+% graph 30
+\lrect{30}{32}
+\put(2,31){\makebox(0,0)[rc]{$a_1$:}}
+\put(9.5,31){\makebox(0,0){$\cdots$}}
+\put(18,31){\makebox(0,0)[lc]{$\leftarrow$ \fsp}}
+\lrect{42}{44}
+\put(9.5,43){\makebox(0,0){$\cdots$}}
+\put(18,43){\makebox(0,0)[lc]{$\leftarrow$ \pg}}
+\lrect{44}{46}
+\put(4,45){\makebox(0,0)[lc]{\footnotesize \spine LAMBDA $x$}}
+%end 50
+\put(3,50){\line(1,0){13}}
+\put(3,50){\line(0,-1){1}}
+\put(16,50){\line(0,-1){1}}
+\end{picture}
+}
+\end{picture}
+
+\end{center}
+\end{figure}
+\end{document}

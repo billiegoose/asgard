@@ -1,0 +1,47 @@
+(define from (lambda (x) [x | (from (1+ x))]))
+
+
+(define siv
+	(rec (lambda (list)
+		[2 | ((rec (lambda (sieve l)
+					(let ((rest (sift (car l) (cdr l))))
+						[ (car rest) | (sieve (cdr rest))])))
+					list)])))
+
+
+
+(define sieve
+	(lambda (list) 
+		(cons (car list) (sieve (sift (car list) (cdr list))))))
+
+(define sift
+	(lambda (x list)		
+		(if (= 0 (modulo (car list) x))
+			 (sift x (cdr list))
+			 (cons (car list) (sift x (cdr list))))))
+
+(define primes (sieve (from 2)))
+			 
+(define xtake (lambda (n list)
+	(if (= n 0) nil (x (car list) (xtake (1- n) (cdr list))))))
+
+(define take (lambda (n list)
+	(if (= n 0) nil (cons (car list) (take (1- n) (cdr list))))))
+	
+
+(define nats [0 | (map 1+ nats)])
+
+(define ints (rec (lambda (x) [0| (map 1+ x)])))
+
+(define map (lambda (f list)
+	(if (null? list)
+		nil
+		(cons (f (car list)) (map f (cdr list))))))
+		
+(define ones (rec (lambda (x) [1 | x])))
+
+(define xmap (lambda (f list)
+	(if (null? list)
+		nil
+		(x (f (car list)) (xmap f (cdr list))))))
+

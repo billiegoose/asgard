@@ -1,0 +1,230 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; Definitions for memory units in lambda-processor simulator.
+;;; Mike Hilton, 1 Aug 88
+
+
+
+;;;; BASIC MEMORY ELEMENT
+
+(defflavor memory-element
+	((flag nil)				; binary flag
+	 (type nil)
+	 (operand nil))
+	()
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+(defmethod (:print-self memory-element) (stream &rest ignore)
+  (format stream "~C ~7A ~7A"
+	  (case flag
+	    (HEAD #\H) (BINDING #\B) (AP #\A) (SHARE #\S)
+	    (t (cond (flag #\t)
+		     ((not flag) #\n)
+		     (t #\?))))
+	  type operand))
+
+(defmethod (flag memory-element) () flag)
+(defmethod (type memory-element) () type)
+(defmethod (operand memory-element) () operand)
+
+(defmethod (set-element memory-element) (fl ty op)
+  (setq flag fl type ty operand op))
+
+(defmethod (reset memory-element) ()
+  (setq flag nil type nil operand nil))
+
+
+
+;;;; MEMORY ARRAY
+
+(defflavor memory-array
+	((size	1000)				; number of elements in array
+	 array					; one-D array of memory elements
+	 (writes 0)					; number of memory writes
+	 (reads 0)					; number of memory reads
+	 )
+	()
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+
+(defmethod (:init memory-array :after) (&rest ignore)
+  (setq array (make-array size :element-type 'memory-element))
+  (dotimes (i size)
+    (setf (aref array i) (make-instance 'memory-element))))
+
+(defmethod (display memory-array) (from to)
+  (dotimes (i (- to from))
+    (format t "~&~8D: ~A" (+ i from) (element self (+ i from)))))
+
+(defmethod (display-env memory-array) (from to)
+  (let ((i from))
+    (loop
+      (when (= i to) (return (values)))
+      (let ((el (element self i)))
+	(cond ((eq (type el) 'MARKER)
+	       (format t "~&~8D: ~A" i el)
+	       (incf i))
+	      (t
+	       (format t "~&~8D: ~A, ~A, ~A" i
+		       el (element self (+ 1 i)) (element self (+ 2 i))
+		       )
+	       (incf i 3)))))))
+
+(defmethod (element memory-array) (address)
+  (if (integerp address)
+      (aref array address)
+    (aref array (value address))))
+
+(defmethod (mem-write memory-array) (address flag type operand)
+  (incf writes)
+  (set-element (element self address) flag type operand))
+  
+(defmethod (mwrite memory-array) (addr-reg data-reg)
+  (mem-write self addr-reg (flag data-reg) (type data-reg) (operand data-reg)))
+
+(defmethod (mread memory-array) (addr-reg data-reg)
+  (incf reads)
+  (let ((el (element self addr-reg)))
+    (set-element  data-reg (flag el) (type el) (operand el))))
+   
+(defmethod (reset memory-array) ()
+  (setq reads 0 writes 0))
+
+
+
+      
+;;;; MACHINE REGISTERS
+
+
+;;; General Purpose registers
+
+(defflavor register
+	((value 0)
+	 (name nil))
+	()
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+(defmethod (inc register) (&optional (delta 1))
+  (setq value (+ value delta)))
+
+(defmethod (dec register) (&optional (delta 1))
+  (setq value (- value delta)))
+
+(defmethod (name register) () name)
+
+(defmethod (:print-self register) (stream &rest ignore)
+  (format stream "<~A: ~D>" name value))
+
+(defmethod (reset register) (&optional (val 0))
+  (set-value self val))
+
+(defmethod (set-value register) (val) (setq value val))
+
+(defmethod (transfer register) (dest)
+  (set-value dest (value self)))
+
+(defmethod (value register) () value)
+
+
+
+;;; Data registers are used for moving data between main memory and the cpu.
+
+(defflavor data-register
+	((name nil))
+	(memory-element)
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+(defmethod (transfer data-register) (dest)
+  (set-element dest flag type operand))
+
+(defmethod (name data-register) () name)
+
+(defmethod (:print-self data-register :before) (stream &rest ignore)
+  (format stream "<"))
+;  (if name (format stream "~7A: " name)))
+
+(defmethod (:print-self data-register :after) (stream &rest ignore)
+  (format stream ">"))
+
+(defmethod (set-flag data-register) (val) (setq flag val))
+(defmethod (set-type data-register) (val) (setq type val))
+(defmethod (set-operand data-register) (val) (setq operand val))
+(defmethod (set-value data-register) (val)
+  (set-element self (first val) (second val) (third val)))
+
+;;; Address registers keep information about the minimum and maximum values stored in the
+;;; register.
+
+(defflavor address-register
+	((min most-positive-fixnum)		; minimum address
+	 (max most-negative-fixnum))		; maximum address
+	(register)
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+(defmethod (inc address-register :after) (&rest ignore)
+  (setq max (max value max)))
+
+(defmethod (dec address-register :after) (&rest ignore)
+  (setq min (min value min)))
+
+(defmethod (:print-self address-register) (stream &rest ignore)
+  (if name
+      (format stream "<~7A: ~D>" name value)
+    (format stream "<~D>" value)))
+
+(defmethod (reset address-register :after) (&rest ignore)
+  (setq min most-positive-fixnum max most-negative-fixnum))
+
+(defmethod (set-value address-register) (val)
+  (setq value val
+	max (max val max)
+	min (min val min))
+  val)
+
+
+
+
+;;;; STACK
+
+(defflavor stack
+	((list nil)				; actual stacked data
+	 (depth 0)				; current stack depth
+	 (max 0)				; maximum stack depth
+	 (writes 0)				; number of writes to stack
+	 (reads 0))				; number of reads from stack
+	()
+  :readable-instance-variables
+  :writable-instance-variables
+  :initable-instance-variables)
+
+(defmethod (:print-self stack) (stream &rest ignore)
+  (format stream "<stack:  ~A>" list))
+
+(defmethod (s-push stack) (object)
+  (push object list)
+  (incf depth)
+  (setq max (max depth max))
+  (incf writes))
+
+(defmethod (s-pop stack) ()
+  (incf reads)
+  (decf depth)
+  (pop list))
+
+
+(defmethod (s-top stack) ()
+  (incf reads)
+  (car list))
+
+(defmethod (reset stack) ()
+  (setq list nil depth 0 max 0 writes 0 reads 0))

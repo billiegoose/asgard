@@ -1,0 +1,49 @@
+(primitive 
+  AND
+  (cond ((eq? mode 'problem)         
+         (when (<= 1 argcount)
+               (set-primreg 1)
+               (writeln "reset-list: " reset-list)
+               (push-aux reset-list))
+         (goto change-directions))
+        (else
+          (writeln "reset-list: " reset-list)
+          (cond ((and (eq? (d-reg-type rgdr) 'SYM)
+                      (eq? (d-reg-operand rgdr) 'FALSE))
+                 (set! (d-reg-class pgdr) 'HEAD)  ; put FALSE result in PGDR
+                 (set! (d-reg-type pgdr) 'SYM)
+                 (set! (d-reg-operand pgdr) 'FALSE)
+                 (transfer pgdr pgdr)
+                 (transfer (pop-aux) temp) ; old reset list
+                 (show (wait "undoing unifications"))
+                 (let loop ()              ; undo unifications within AND
+                   (when (not (eq? reset-list temp))
+                         (let* ((val (pop-reset))
+                                (addr (pop-reset)))
+                           (mwrite addr val)
+                           (loop))))
+                 (show (wait "popping off arguments"))
+                 (let loop ()                  ; find end of args
+                   (transfer (-1+ rgar) rgar)  ;   pop previous arg off graph
+                   (show (send simulator send-pane 'result 'remove-last))
+                   (transfer (-1+ pgar) pgar)   ;   read next arg
+                   (mread pgar rgdr)           
+                   (cond ((member (d-reg-class rgdr) '(HEAD CONTROL))
+                          (transfer (1+ pgar) pgar)      ; let move-backward
+                          (goto move-backward))          ;   handle it
+                         (else 
+                           (if (member (d-reg-type rgdr) '(PTR EP))
+                               (pop-stack))
+                           (loop)))))
+                 (else
+                   (mwrite pgar pgdr)              ; overwrite operand with AND
+                   (set! (d-reg-class primreg) #T) ; reset primreg
+                   (set! (d-reg-type primreg) 1)
+                   (set! (d-reg-operand primreg) 1)
+                   (transfer primreg primreg)
+		   (set! (d-reg-operand pgdr) 'TRUE) ; set partial result TRUE
+                   (set! (d-reg-type pgdr) 'SYM)
+                   (transfer pgdr pgdr)
+                   (transfer (-1+ rgar) rgar)       ; pop old AND off graph
+                   (show (send simulator send-pane 'result 'remove-last))
+                   (goto move-backward))))))

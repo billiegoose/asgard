@@ -1,0 +1,24 @@
+; LIST PRIMITIVES FOR HEAD ORDER REDUCTION SYSTEM
+; Mike Hilton, 19 Sep 89
+
+; In this version, Lists are represented as lambda expressions
+; which are specially marked to show that they represent lists.
+; The marking bits are placed by the C function INSTALL_PRIMITIVES
+; on the binding for $$pair.
+
+(define cons (lambda (car cdr $$pair) $$pair car cdr))
+
+(define car 
+  (lambda (cons) 
+;    (if (null? cons)
+;        nil
+        (cons (lambda (car cdr) car))))
+
+(define cdr 
+  (lambda (cons) 
+;    (if (null? cons)
+;        nil
+        (cons (lambda (car cdr) cdr))))
+
+(define null? (equal nil))
+

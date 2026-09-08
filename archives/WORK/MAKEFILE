@@ -1,0 +1,46 @@
+# Huge memory model
+MODEL=H
+
+# compiler flags
+CFLAGS=/A$(MODEL) /c /Zi /Od /DIBM
+
+CL=cl $(CFLAGS)
+
+.Y.C:
+	 pcyacc $*.Y
+
+
+compiler.c: compiler.y
+
+main.obj: main.c lrs.h
+      $(CL) $*.C
+
+red.obj: red.c lrs.h
+      $(CL) $*.C
+
+prims.obj: prims.c lrs.h
+      $(CL) $*.C
+
+u.obj: unify.c lrs.h
+		cl $(CFLAGS) /Fou unify.c
+
+a.obj: arith.c lrs.h
+		cl $(CFLAGS) /Foa arith.c
+
+c.obj: compiler.c lrs.h
+		cl $(CFLAGS) /Foc compiler.c
+
+e.obj: edit.c 
+		cl $(CFLAGS) /Foe edit.c
+
+p.obj: printer.c lrs.h
+		cl $(CFLAGS) /Fop printer.c
+
+d.obj: debug.c lrs.h
+		cl $(CFLAGS) /Fod debug.c
+
+# make the executable
+
+horse.exe: main.obj red.obj prims.obj a.obj c.obj p.obj e.obj d.obj u.obj 
+     LINK /NOI /CO $**, $@, NUL.MAP, lcurses.lib 
+

@@ -1,0 +1,347 @@
+\chapter{An Extended Example}
+\label{chapter-examples}
+
+	The strong head normalizing semantics of THOR are unique enough to
+warrant providing an example of how it can be used effectively. This
+chapter will demonstrate how THOR can be used to constructively program
+numerical functions.  The sine example given in this chapter is adapted
+from a paper by Roylance \cite{roylance}, as 
+is much of the accompanying discussion. 
+The original work was presented in Scheme, but THOR provides a more
+natural vehicle for this style of programming.
+
+\section{Constructive Programming}
+
+	Constructive programming is an `indirect' programming paradigm in
+which you don't merely write a procedure for computing values, but you
+write a procedure for constructing a procedure that computes values.
+Constructive programming is particularly useful for numerical programs,
+because they can often be written to closely match their mathematical
+basis.
+
+	Constructive programs are generally longer and often more difficult
+to write than conventional programs.  Then why bother?  Because they
+offer some significant advantages.  The
+clarity and believability of a program is enhanced because much of its
+theoretical foundation is included explicitly in the code.  This also
+helps to
+reduce the chance of programming errors.  In addition, a single
+constructive program specifies a whole family of procedures whose
+characteristics, such as accuracy or dimension, can be changed by trivial
+modifications to input parameters. 
+
+
+	In many languages, simply executing constructive programs as
+they are written (without any kind of preprocessing) would be grossly
+inefficient.  In THOR it is possible (using the {\tt RDEFINE} special
+form) to `reduce away' much of the constructive description, generating
+more efficient code.  
+	\footnote{The term {\em abstract interpretation} is often used to
+	describe the symbolic, meta-execution of a program without data.  However,
+	this term is not appropriate to THOR, because there is nothing
+	`meta' about what is going on here.  The same reduction mechanism is
+	used to reduce programs without data as is used for programs with
+	data.}
+
+	As an example of using {\tt RDEFINE} and strong head normalization in
+THOR, the rest of this chapter is
+devoted to constructively programming the trigonometric sine function as
+a simple Taylor series expansion.  In the process of constructing an
+expression for the
+sine function, we will develop several general purpose higher order
+expressions that are useful in other constructive programming projects.
+
+	I do not claim simple Taylor series 
+expansions are the best way to compute the sine function, but most 
+people are familiar
+with them.  The same techniques could be used with more sophisticated 
+methods of
+computing sine, such as Chebyshev economization.
+
+
+\section{Approximating the Sine Function}
+
+	The trigonometric function $\sin(x)$ can be represented by the
+Taylor Series
+\[\sum_{i=0}^{\infty} (-1)^{i} \frac{1}{(2i+1)!} x^{2i+1} \]
+This particular series is absolutely convergent for all values of $x$. 
+We shall use a finite approximation of this infinite series as the basis of our 
+sine function.  
+
+	Before constructing an approximation to this series,
+let us first take a moment to think about the nature of numerical
+approximations in general, and then about this one in particular. 
+Approximations are most effective if they only cover small
+intervals, so we would like to find ways to reduce the interval size.  This
+is easy to do with the sine function because it is periodic, with period
+$2\pi$. If the periodic interval is chosen to be [$-\pi/2, 3\pi/2$], 
+the interval size can be reduced even further because this particular 
+interval is symmetrical about $\pi/2$. 
+
+	Periodicity can be exploited to reduce interval size in many numerical
+programs, so it is worthwhile to encapsulate this notion into a higher
+order expression:
+\begin{tt}\begin{tabbing}
+(de\=fine period-maker\\
+\>	(la\=mbda (fcn a period x)\\
+\>\>	(le\=t ((cycles (floor (/ (- x a) period))))\\
+\>\>\>	(fcn (- x (* cycles period))))))
+\end{tabbing}\end{tt}
+This expression takes a function, {\tt fcn}, of the variable {\tt x},
+that is defined over the interval [{\tt a}, {\tt a+period}] and reduces
+to an expression that replicates {\tt fcn} over the rest of the real
+number line.
+
+
+	Symmetry can also be exploited to reduce interval size in many
+programs.  Reflection of a function about an axis of symmetry is
+encapsulated by this higher order expression:
+\begin{tt}\begin{tabbing}
+(de\=fine reflection-maker\\
+\>	(la\=mbda (fcn axis x)\\
+\>\>  (fcn (if (< x axis) x (- (* 2 axis) x)))))
+\end{tabbing}\end{tt}
+
+
+	We can now define our sine expression in terms of these two higher
+order expressions:
+\begin{tt}\begin{tabbing}
+(de\=fine sine\\
+\>	(la\=mbda (x)\\
+\>\>		(period-maker sine-full (minus (/ pi 2))  (* 2 pi) x)))\\[.10in]
+\kill
+(de\=fine sine-full\\
+\>	(la\=mbda (x)\\
+\>\>		(reflection-maker sine-half (/ pi 2) x)))
+\end{tabbing}\end{tt}
+The function {\tt sine-half}, which computes the value of $\sin(x)$ over
+of the interval [$-\pi/2, \pi/2$], is reflected about the axis $\pi/2$
+in {\tt sine-full}
+so that it can compute $\sin(x)$ for the entire interval [$-\pi/2,
+3\pi/2$].
+
+	Now that we have reduced our interval to a reasonable size, we can
+turn our attention back to approximating the Taylor series for $\sin(x)$.
+The $i$th term in this series can be represented in a direct way 
+by {\tt sine-term}:
+\begin{tt}\begin{tabbing}
+(de\=fine sine-coefficient\\
+\>	(la\=mbda (i)\\
+\>\>	(/ \=(expt -1.0 i) \\
+\>\>\>			(factorial (1+ (* 2 i))))))\\[.10in]
+\kill
+(de\=fine sine-term \\
+\>	(la\=mbda (i x)\\
+\>\>		(* \=(sine-coefficient i)\\
+\>\>\>		(expt x (1+ (* 2 i)))))
+\end{tabbing}\end{tt}
+The series can now be approximated by simply adding together 
+however many terms we decide are sufficient for our purposes.
+Such a series can be generated by the expression {\tt truncated-series}:
+\begin{tt}\begin{tabbing}
+(de\=fine truncated-series\\
+\>	(lam\=bda (term length x)\\
+\>\>		(if \=(< length 0)\\
+\>\>\>			0.0\\
+\>\>\>			(+ \=(term length x)\\
+\>\>\>\>				(truncated-series term (1- length) x)))))
+\end{tabbing}\end{tt}
+Our approximation of $\sin(x)$ using, say, the first 5 terms of the
+Taylor series could be completed by defining {\tt sine-half} to be:
+\begin{tt}\begin{tabbing}
+(de\=fine sine-half\\
+\>	(la\=mbda (x)\\
+\>\>		(truncated-series sine-term 5 x)))
+\end{tabbing}\end{tt}
+The expression {\tt (sine pi)} will now reduce to zero with six-place accuracy
+in 406 reductions.  
+
+	It is likely that
+{\tt sine} will be heavily used in numerical programs, so it is worth
+some extra effort to try and cut down on the number of reductions it
+takes.  We will now do this in three ways:  
+\begin{enumerate}
+	\item Change the way the series is represented.
+	\item Use only the minimum number of series terms needed to achieve 
+the desired accuracy.
+	\item Use {\tt rdefine} instead of {\tt define} to `reduce away' much
+of the constructive description.
+\end{enumerate}
+
+
+\section{Horner's Rule}
+
+	In the previous section, a simple, straightforward power series was
+used to approximate $\sin(x)$.  We can cut down on the number of
+arithmetic operations required to compute the series by using Horner's
+rule, which rearranges polynomials of the form
+\[ P(x) = a_0 + a_1x + a_2x^2 + \cdots + a_nx^n \]
+which takes \(n(n+1)/2\) multiplications and $n$ additions to compute,
+into the form
+\[ P(x) = a_{0} + x(a_1 + x(a_{2} + x(\ldots(a_{n-1} + a_nx)\ldots)))\]
+which takes only $n$ multiplications and $n$ additions.
+Horner's rule is known to be an optimal way to rearrange a polynomial 
+for rapid evaluation without having to do substantial calculations
+during the rearrangement.  Horner's rule can be codified as a higher order
+expression:
+\begin{tt}\begin{tabbing}
+(de\=fine horners-rule\\
+\>	(la\=mbda (coefficient length variable)\\
+\>\>	(let\=rec ((\=term  \\
+\>\>\>\>			 	(lam\=bda (n)\\
+\>\>\>\>\>				(if \=(= n length)\\
+\>\>\>\>\>\>				(coefficient n)\\
+\>\>\>\>\>\>				(+ \=(coefficient n)\\
+\>\>\>\>\>\>\>					(* variable (term (1+ n))))))))\\
+\>\>\>		(term 0))))
+\end{tabbing}\end{tt}
+{\tt Coefficient} should be a function that produces the
+$i$th coefficient for the $i$th term in the series; {\tt length} is the
+number of terms in the polynomial.
+
+	The power series we are using to represent $\sin(x)$ is of
+the form
+\[ a_0x + a_1x^3 + a_2x^5 + \cdots + a_nx^{2n+1} \]
+which cannot be directly produced using {\tt horners-rule}.  However, if we
+rewrite the series as
+\[ x(a_0 + a_1x^2 + a_2x^4 + \cdots + a_nx^{2n}) \]
+we can use {\tt horners-rule} to construct the proper series by letting 
+{\tt variable} be $x^2$ and multiplying the resulting series by $x$:
+\begin{tt}\begin{tabbing}
+(de\=fine sine-series\\
+\>	(la\=mbda (x x2)\\
+\>\>		(* x (horners-rule sine-coefficient 5 x2))))\\[.10in]
+\kill
+(de\=fine sine-half\\
+\> (la\=mbda (x)\\
+\>\>	(le\=t ((x2 (* x x))\\
+\>\>\>	(sine-series x x2))))
+\end{tabbing}\end{tt}
+With these changes, {\tt (sine pi)} now reduces to zero in 359
+reductions, versus the 406 reductions it previously took.
+
+\section{Minimizing the Number of Terms}
+
+	There is another part of this program to which constructive
+programming can be applied, and that is in calculating the number of
+terms which need to be evaluated in order to achieve the value of
+$\sin(x)$ within a specified accuracy.  In the discussions above, the
+number of terms was arbitrarily chosen to be 5.  There is, however, a
+way to properly compute this number.
+
+	The absolute error in the truncated sum of an alternating sign,
+absolutely convergent series (like the one we are using) is less than
+the magnitude of the first term neglected.  Another factor to consider
+is that a series should not be truncated until its terms are definitely
+getting smaller. For the Taylor series we are using,
+\[\sum_{i=0}^{\infty} (-1)^{i} \frac{1}{(2i+1)!} x^{2i+1} \]
+the individual terms are monotonically decreasing when the 
+denominator starts growing faster
+than $x^{2i+1}$, which happens when $2i+1>x$.  Therefore, we must have
+at least $\lceil(x-1)/2 \rceil$ terms in our series.
+
+	Putting all of this together yields the expression 
+{\tt sine-number-of-terms}, which calculates the number of terms
+necessary to achieve accuracy {\tt eps} at the point {\tt value}:
+
+\pagebreak
+\begin{tt}\begin{tabbing}
+(de\=fine sine-number-of-terms\\
+\>   (la\=mbda (eps value)\\
+\>\>    (let\=rec ((\=loop\\
+\>\>\>\>             (la\=mbda (i)\\
+\>\>\>\>\>              (if \=(< (abs ((sine-term i) value)) (abs eps))\\
+\>\>\>\>\>\>                 (1- i)\\
+\>\>\>\>\>\>                 (loop (1+ i))))))\\
+\>\>\>         (loop (ceiling (/ (- value 1) 2))))))
+\end{tabbing}\end{tt}
+We can now redefine {\tt sine-series} so that it uses {\tt
+sine-number-of-terms} instead of hard coding in the number 5.
+An additional benefit is that by using different values for {\tt eps}, 
+other versions of {\tt sine} can be automatically 
+generated which have differing accuracies.
+
+
+\section{`Reducing Away' the Descriptions}
+
+	Using Horner's Rule and the minimal number of series terms has lowered the
+number of reductions (i.e., computational work) required to calculate
+$\sin(x)$, but not by a significant amount.  Each time {\tt sine} is
+used, it goes through the process of constructing a program to calculate
+$\sin(x)$.  To really cut down on the number of reductions, this
+repetitive construction cost must be eliminated.
+
+	This is where the strong head normalization semantics of THOR come
+into play.  Using the {\tt rdefine} special form, it is possible to
+reduce expressions before they are associated with symbols, thus
+allowing much of the overhead of constructive description to be `reduced
+away' at load time.  This overhead is only paid once, when the
+expressions are defined, and not each time {\tt sine} is reduced.
+
+	By selectively choosing the correct {\tt define}'s to change into
+{\tt rdefine}'s, the number of reductions required for {\tt sine} can be
+cut dramatically.  By {\tt rdefine}-ing {\tt sine}, {\tt sine-full}, and
+{\tt sine-series} 
+	\footnote{To fully utilize strong head normalization in {\tt
+	sine-series}, it is necessary to change it's definition slightly
+	so that the {\tt value} parameter of {\tt sine-number-of-terms} is
+	not a variable, but a real number.  A good choice for {\tt value}
+	is $\pi/2$, which is the axis of reflection for our chosen interval.
+	This has only a slight affect on the overall accuracy of {\tt sine}.}
+the number of reductions required for {\tt (sine pi)}
+is cut to 33.  That's less than one-tenth of the reductions required
+previously!
+
+	What exactly is going on here?  When the {\tt redefine}'s are
+processed by HORSE, the constructive descriptions build expressions for
+computing $\sin(x)$, and these newly constructed expressions are
+associated with the {\tt rdefine}'d symbol.  For example, after
+rdefinition, the expression associated with {\tt sine-series} is:
+
+\pagebreak
+\begin{tt}\begin{tabbing}
+(LA\=MBDA (X X2) \\
+\>	(* X (+ \=1.000000\\
+\>\>	     (* X2 (+ \=-0.166667 \\
+\>\>\>			      (* X2 (+ \=0.008333 \\
+\>\>\>\>							(* X2 (+ \=-0.000198 \\
+\>\>\>\>\>									(* X2 0.000003))))))))))
+\end{tabbing}\end{tt}
+The constructive definitions of the Taylor series terms, Horner's Rule,
+and the minimum number of terms to use have all disappeared, leaving
+behind an arithmetic expression.  We can have confidence that this
+arithmetic expression is correct, because it was produced from a
+mathematically correct description by equivalence preserving transformations.
+
+\section{Discussion}
+
+	A couple of comments need to be made about using {\tt rdefine}.  The
+first is that the order of definitions and rdefinitions is important. 
+This is nothing new; most programming languages require programs to be
+ordered in certain ways for purposes of scoping and such.  
+The order in which definitions were presented in this chapter was chosen
+deliberately and must be maintained to reap the full benefits of {\tt
+rdefine}-ing.   This leads right into the second point, which is
+selecting the proper symbols to {\tt rdefine}.
+
+	Selecting the proper symbols to {\tt rdefine} and the
+proper ordering for all definitions is partly trial-and-error, partly
+art.  For example, if we had
+only {\tt rdefine}'d {\tt sine} after everything else had been defined,
+{\tt (sine pi)} would take 216 reductions.  An improvement over the
+initial situation, but clearly lacking.  A look at the resulting
+expression for {\tt sine} reveals that it is huge, littered with
+duplicate subexpressions.  It is recomputing all the duplicate subexpressions
+that costs so much.  The choice of rdefined symbols presented
+above eliminates many of the duplicate expressions, allowing the value
+of many arguments to be shared thereby reducing the computation required.
+
+	THOR is a new language with many novel features.  Most of my
+energies have been devoted to it's design and implementation;  I have
+not had a lot of time to actually write programs in THOR and gain
+experience in how to best utilize its new abilities.
+Perhaps for Version 2.0 I will have enough experience using THOR to
+provide more and better examples and suggestions.
+
+
+

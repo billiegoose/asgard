@@ -1,0 +1,177 @@
+\documentstyle{report}
+\title{User's Manual and Programming Guide for THOR/HORSE \\ Version 1.0}
+\author{Klaus J. Berkling \\ Michael L. Hilton \\ \\ School of Computer and Information Sciences \\
+Syracuse University\\Syracuse, NY 13244  USA \\ \\
+\copyright 1990}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{Introduction}
+
+	This document serves two functions ---  first, it is a
+programmer's guide to The Head Order Reduction Language
+(THOR), a lazy, untyped functional language with normal-order semantics;
+second, it is a
+user's manual for the Head Order Reduction System (HORSE), which
+is a programming environment for  THOR.  This document is not a
+tutorial; although the material presented is not technically
+difficult, it assumes that the reader has some familiarity
+with the principles and lexicon of the lambda calculus and functional
+programming.
+
+
+\section{THOR}
+
+	THOR is an implementation of an enriched lambda calculus. 
+The pure lambda calculus has a
+simple syntax and semantics which deals only with expressions
+composed of variables, applications, and abstractions.  While
+these are all that is needed to compute all computable functions,
+it is more convenient to `enrich' the pure lambda calculus with
+other kinds of objects, like integers and floating point numbers,
+and primitive operations to manipulate these objects.
+
+	THOR is intended to be used as the assembly language of the
+RED 1.5 reduction machine, which is currently being designed at
+Syracuse University.  THOR is in itself a functional
+programming language, albeit a rather limited old-fashioned one when
+compared to the `modern' functional languages (such as
+Haskell) for which THOR is designed to be the compilation target language.
+  When faced with it's deficiencies (such as lack of input-output
+primitives), it is helpful to remember that THOR is still under
+development, and is not yet an industrial strength language.
+The syntax and semantics of THOR are presented in 
+Chapter~\ref{chapter-THOR}.
+
+	THOR is similar in many ways to early functional languages such as 
+Henderson's LISPKIT-LISP \cite{henderson}.  There are, however, 
+a few important exceptions:
+\begin{itemize}
+	\item THOR is a {\em reduction\/} language.
+	\item THOR reduces expression to {\em strong head normal form\/}.
+	\item Computation in THOR is controllable by the user.
+\end{itemize}
+It is these exceptions that combine to make THOR unique among current
+programming languages.  Each of these points will now be expanded
+further.
+
+
+\subsection{Reduction Languages}
+
+	In a reduction language, computation is accomplished through
+equivalence preserving transformations performed on expressions. 
+In general, these transformations make an expression simpler,
+hence the name `reduction' language.  
+	\footnote{It should be noted that being a reduction language
+	generally has more to do with how a language is implemented
+	than with any property of the language itself.  For
+	instance, it is possible to implement pure LISP or Scheme as
+	a reduction language.}
+The process of transforming an expression into an equivalent,
+simpler one is usually referred to as {\em reduction\/}.
+
+	Because all computation proceeds via equivalence preserving
+transformations, reduction languages have
+semantics that are relatively easy to reason about.  That is
+a big plus when it comes to proving properties of programs.  
+
+	All programming languages can be viewed as transformation
+systems in the sense that a body of code is transformed, via some
+mechanism, into a result of some sort.  With most conventional
+programming languages, this transformation system accepts code as
+input and yields some sort of data objects (which are created by
+executing this code) as output.  Thus,
+there is a fundamental difference in the input and output types
+of the transformation system.  This limits the ability of
+software to transform itself without using some sort of external
+meta-programming mechanism.
+
+	Reduction languages, on the other hand, transform
+expressions into expressions, and thus the input and output types
+are the same.  It is therefore possible for expressions to
+transform themselves in useful ways, such as producing a
+specialized version of itself which is parameterized to specific
+input data.  The idea of software transforming itself seems very
+radical and is a powerful feature of THOR.
+
+
+
+\subsection{Strong Head Normalization}
+
+	Perhaps the most striking difference between THOR and other
+current functional languages is that THOR reduces expressions fully to
+strong head normal form,
+	 \footnote{This should not be confused with {\em strong normalization},
+	  which is often used to describe systems in which all expressions have
+ 	  a normal form.}
+whereas most other languages only evaluate
+expressions to weak head normal form.  Strong head normalizing 
+means that the body of an abstraction will be
+reduced even if the abstraction is not applied to an argument.
+For example, in a strong head normalizing language, the expression
+\( (\lambda x . (+ \ x \  (* \ 2 \  3))) \) will be reduced to 
+\( (\lambda x . (+ \ x \ 6)) \), whereas in a weak head normalizing
+language, the expression will be left in its original
+form.
+
+	Strong head normalization is uncommon in programming languages for several
+reasons:
+\begin{itemize}
+	\item Many language designers fail to realize it is a useful feature.
+	\item For most functional language implementation, stopping reduction
+			when weak head	normal form is reached is essential to the lazy 
+			evaluation of data structures. 
+			THOR handles lazy data structures in a way that does not
+			depend on stopping reduction when weak head normal form is reached.
+	\item Strong head normalization is not really useful unless there is a
+			mechanism for reconstructing the form of reduced expressions.  
+			Most languages do not provide such a mechanism; THOR does.  
+	\item Reducing to strong head normal form implies a language must
+			have some way to deal with name clash problems (see
+			Section~\ref{sec-protect}).  
+\end{itemize}
+
+
+\subsection{Controlled Reduction}
+
+	Each equivalence preserving transformation in THOR is
+semantically a single atomic action.  Through the THOR
+programming environment, HORSE, the user is given the opportunity
+to specify how many transformations to perform.  This allows a
+user to step through a computation and observe how an expression
+behaves, or to generate an intermediate expression which can be
+put to various uses.
+
+
+\section{HORSE}
+
+	HORSE is the programming environment for THOR.  It allows
+the user to do things like assign names to expressions, load in
+files containing expressions, and control the reduction process
+in various ways.  HORSE is described in detail in Chapter~\ref{chapter-horse}.
+
+
+\include{horse}
+\include{thor}
+\include{example}
+
+\begin{thebibliography}{1}
+
+\bibitem{berkling} Klaus Berkling. ``Head Order Reduction:  A Graph
+Reduction Scheme for the Operational Lambda Calculus,'' {\em Graph
+Reduction}, Springer-Verlag Lecture Notes In Computer Science, Vol. 279,
+pp. 26--48, 1987.
+
+\bibitem{henderson} Peter Henderson. {\em Functional Programming: 
+Application and Implementation.}  Prentice-Hall, 1980. 
+
+\bibitem{roylance} Gerald Roylance.  ``Expressing Mathematical
+Subroutines Constructively,'' {\em Proceedings of the 1988 ACM Conference on
+Lisp and Functional Programming}, July 25-27 1988, Snowbird, Utah, pp. 8--13.
+
+\end{thebibliography}
+
+\end{document}
+

@@ -1,0 +1,201 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; Translation of lambda expressions into lambda-code
+;;; Mike Hilton, 1 Aug 88
+
+;;; Lambda bindings are of the form (ˆ binding-list ...)
+;;; For example I = (ˆ (x) x)
+;;;             K = (ˆ (x y) y)
+;;;             S = (ˆ (f x y) ((f x) (f y)))
+
+(defvar *primatives* '(Y))
+(defvar *unary-primitives* '())
+(defvar *binary-primitives* '(eq + - * / = < > <=))
+	  
+       
+;;; COMPILE-ˆ
+;;; Compiles a lambda expression into a list of instruction codes for the lambda processor.
+
+(defun compile-ˆ (exp)
+  (multiple-value-bind (ignore code)
+      (compile-ˆ-1 (curry exp) nil 0 nil)
+    (reverse code)))
+
+(defun compile-ˆ-1 (exp bindings address code)
+  (cond ((null exp)
+	 (values address code))
+	((atom exp)
+	 (values address
+		 (multiple-value-bind (inst operand)
+		     (instruction-type exp bindings)
+		   (push (list 'HEAD inst operand) code))))
+	((and (listp exp) (eq (first exp) 'ˆ))
+	 (dolist (x (second exp)) (push x bindings))
+	 (push (list 'BINDING 'MULTI (length (second exp))) code)
+	 (compile-ˆ-1 (cddr exp) bindings (1+ address) code))
+	((atom (cdr exp))
+	 (multiple-value-bind (inst operand)
+	     (instruction-type (cdr exp) bindings)
+	   (push (list 'AP inst operand) code))
+	 (compile-ˆ-1 (car exp) bindings (1+ address) code))
+	(t
+	 (let ((ap (list 'AP 'PTR nil)))
+	   (push ap code)
+	   (multiple-value-bind (new-address new-code)
+	     (compile-ˆ-1 (car exp) bindings (1+ address) code)
+	     (setf (third ap) (1+ (- new-address address)))
+	     (compile-ˆ-1 (cdr exp) bindings (1+ new-address) new-code))))))
+
+
+;;; INSTRUCTION-TYPE
+;;; Takes a atom and determines what its instruction type is.
+
+(defun instruction-type (x bindings)
+  (cond ((symbolp x)
+	 (cond ((member x bindings)
+		(values 'VAR (- (length bindings) (length (member x bindings)))))
+	       ((member x *primatives*)
+		(values 'PRIM0 x))
+	       ((member x *unary-primitives*)
+		(values 'PRIM1 x))
+	       ((member x *binary-primitives*)
+		(values 'PRIM2 x))
+	       (t
+		(values 'SYM x))))
+	((integerp x)
+	 (values 'INT x))
+	((floatp x)
+	 (values 'FLOAT x))))
+
+;;; CURRY
+;;; Puts an expression into curried form.
+
+(defun curry (exp)
+  (cond ((null exp) nil)
+	((atom exp) exp)
+	((and (listp exp) (eq 'ˆ (first exp)))
+	 (cons 'ˆ (cons (second exp) (curry (cddr exp)))))
+	((and (listp exp) (eq 'mˆ (first exp)))
+	 (cons 'mˆ (cons (second exp) (curry (cddr exp)))))
+	((and (listp exp) (eq 'pˆ (first exp)))
+	 (cons 'pˆ (cons (second exp) (curry (cddr exp)))))
+	((= 1 (length exp))
+	 (curry (first exp)))
+	((= 2 (length exp))
+	 (cons (curry (first exp))
+	       (curry (second exp))))
+	(t
+	 (curry (cons (list (first exp) (second exp))
+		      (rest (rest exp)))))))
+
+
+;;; LOAD-ˆ
+;;; Loads a sequence of instruction codes into the memory of the lambda processor starting
+;;; at location ADDR. Returns the last address used.
+
+(defun load-ˆ (sequence addr memory)
+  (if (null sequence)
+      addr
+    (let* ((code (first sequence))
+	   (flag (first code))
+	   (type (second code))
+	   (operand (if (eq type 'PTR) (+ addr (third code)) (third code))))
+      (mem-write memory addr flag type operand)
+      (load-ˆ (rest sequence) (1+ addr) memory))))
+
+
+
+
+;;; DECOMPILE-ˆ
+;;; Decompiles the expression graph whose root is at location ADDR in the memory 
+;;; of the lambda processor.
+
+(defun decompile-ˆ (addr memory)
+  (uncurry
+  (decompile-ˆ-1 addr memory nil nil)))
+
+(defun decompile-ˆ-1 (addr memory b1 b2)
+  (let ((el (element memory addr)))
+    (case (type el)
+      ((INT FLOAT SYM PRIM0 PRIM1 PRIM2)
+       (if (eq (flag el) 'HEAD)
+	   (operand el)
+	 (cons (decompile-ˆ-1 (1+ addr) memory nil b2)
+	       (operand el))))
+      (NAMED
+	(let ((vars nil))
+	  (loop
+	    (when (not (eq (type el) 'NAMED)) (return (values)))
+	    (let ((name (gen-name (operand el) b1)))
+	      (push name vars)
+	      (push (operand el) b1)
+	      (push name b2)
+	      (incf addr)
+	      (setq el (element memory addr))))
+	  (list 'ˆ (reverse vars)
+		(decompile-ˆ-1 addr memory b1 b2))))
+      ((MULTI PROT)
+	(let ((vars nil))
+	  (dotimes (i (operand el))
+	    (let ((name (intern (string (gensym)))))
+	      (push name vars)
+	      (push name b1)
+	      (push name b2)))
+	  (list (if (eq (type el) 'MULTI) 'ˆ 'pˆ)
+		(reverse vars)
+		(decompile-ˆ-1 (1+ addr) memory b1 b2))))
+      (VAR
+	(if (eq (flag el) 'HEAD)
+	    (gen-var (operand el) b2)
+	  (cons (decompile-ˆ-1 (1+ addr) memory nil b2)
+		(gen-var (operand el) b2))))
+      (PTR
+	(cons (decompile-ˆ-1 (1+ addr) memory nil b2)
+	      (decompile-ˆ-1 (operand el) memory nil b2)))
+      )))
+
+(defun gen-name (sym stack)
+  (labels ((gen (sym string stack)
+	   (cond ((null stack) string)
+		 ((eq (car stack) sym)
+		  (gen sym (string-append "+" string) (cdr stack)))
+		 (t (gen sym string (cdr stack))))))
+    (intern (gen sym (string sym) stack))))
+
+
+
+(defun gen-var (x stack)
+  (labels ((gen (sym string stack depth)
+	   (cond ((zerop depth) string)
+		 ((eq (car stack) sym)
+		  (gen sym (string-append string "!") (cdr stack) (1- depth)))
+		 (t (gen sym string (cdr stack) (1- depth))))))
+    (let ((sym (nth x stack)))
+      (intern (gen sym (string sym) stack x)))))
+
+
+
+;;; UNCURRY
+;;; Removes some of the unnecessary parens in a curried expression.
+
+;;; DOES NOT WORK PERFECTLY, (LAMBDA PROBLEM)
+
+(defun uncurry (exp)
+  (cond ((null exp) nil)
+	((atom exp) exp)
+	((eq (car exp) 'ˆ)
+	 (list 'ˆ (second exp) (uncurry (third exp))))
+	((eq (car exp) 'mˆ)
+	 (list 'mˆ (second exp) (uncurry (third exp))))
+	((eq (car exp) 'pˆ)
+	 (list 'ˆ (second exp) (uncurry (third exp))))
+	((and (atom (car exp)) (atom (cdr exp))) (list (car exp) (cdr exp)))
+	((atom (cdr exp))
+	 (list (uncurry (car exp))
+	        (cdr exp)))
+	(t
+	 (list (uncurry (car exp))
+	       (uncurry (cdr exp))))))
+
+
+

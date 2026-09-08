@@ -1,0 +1,585 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; Window interface for the lambda processor simulator
+;;; Mike Hilton, 15 Aug 1988
+
+(defflavor lambda-monitor
+	((speed :fast)
+	 (exposed nil)
+	 p-graph
+	 r-graph
+	 env
+	 regs
+	 mem
+	 stack)
+	(tv:bordered-constraint-frame-with-shared-io-buffer
+	 tv:stream-mixin)
+  :readable-instance-variables
+  :writable-instance-variables
+  (:default-init-plist
+   :panes '((problem code-window :name "Problem Graph")
+	    (result code-window :name "Result Graph")
+	    (env environment-window :name "Environment")
+	    (registers register-window :name "Register Contents")
+	    (reducer reduction-listener)
+	    (stack stack-window :name "Stack")
+	    (memory memory-window :blinker-p nil)
+	    (menu tv:command-menu-pane
+		  :columns 1
+		  :item-list
+		  (("ON" :value :monitor-on :documentation "Turn monitor facility ON")
+		   ("OFF" :value :monitor-off :documentation "Turn monitor facility OFF")
+		   ("STEP" :value :step :documentation "Enable single stepping mode")
+		   ("FAST" :value :fast :documentation "Run simulator as fast as possible")
+		   ("SLOW" :value :slow :documentation "Run simulator pausing between cycles")
+		   ("UNDO" :value :undo :documentation "Go back one cycle")
+		   ("LISTENER" :value :listener :documentation "Switch to listener interface")
+		   ))
+	    (small-menu tv:command-menu-pane :rows 1 :item-list
+			(("SWITCH TO GRAPHIC INTERFACE" :value :graphic
+			  :documentation "Switch over to graphic interface window")))
+	    )
+   :configurations '((graphic
+		       (:layout
+			 (graphic :column top-row memory-row bottom-row memory)
+			 (top-row :row registers stack)
+			 (memory-row :row problem result env)
+			 (bottom-row :row reducer menu))
+		       (:sizes
+			 (graphic (memory 30)
+				  :then (top-row 12 :lines registers)
+				  :then (memory-row 20 :lines problem)
+				  :then (bottom-row :even))
+			 (bottom-row (menu :ask :pane-size)
+				     :then (reducer :even))
+			 (top-row (registers .75) (stack .25))
+			 (memory-row (problem .25) (result .25) (env .50))))
+		     (listener
+		       (:layout
+			 (listener :column small-menu reducer memory))
+		       (:sizes
+			 (listener (small-menu :ask :pane-size)
+				   :then (memory 30)
+				   :then (reducer :even)))))
+   :configuration 'listener
+   :selected-pane 'reducer
+   ))
+
+(defmethod (:init lambda-monitor :after) (&rest ignore)
+  (setq p-graph (send self :get-pane 'problem)
+	r-graph (send self :get-pane 'result)
+	env (send self :get-pane 'env)
+	stack (send self :get-pane 'stack)
+	regs (send self :get-pane 'registers)
+	mem (send self :get-pane 'memory)))
+
+(defmethod (:expose lambda-monitor :after) (&rest ignore)
+  (setq exposed t))
+
+(defmethod (:deexpose lambda-monitor :before) (&rest ignore)
+  (setq exposed nil))
+
+(defmethod (:who-line-documentation-string reduction-listener) ()
+  (if *monitor*
+      (format nil "Lambda Monitor is ON, in ~A mode" (lambda-monitor-speed lambda-window))
+    "Lambda Monitor is OFF"))
+
+;;; CLEAR-PANES
+
+(defmethod (clear-panes lambda-monitor) ()
+  (send p-graph :set-items 0)
+  (send r-graph :set-items 0)
+  (send env :set-items 0)
+  (send stack :set-items 0)
+  (clear mem))
+
+;;; SET-SPEED
+
+(defmethod (set-speed lambda-monitor) (val) (setq speed val))
+
+;;; MONITORED-REDUCER
+
+(defmethod (monitored-reducer lambda-monitor) ()
+  (let ((mem-size (memory-array-size *mem*)))
+    (display p-graph (value problem) (value result))
+    (display r-graph (1+ (value result)) nil)
+    (display env (value environment) mem-size)
+    (display stack)
+    (clear mem)
+    (setq *new-state* nil)
+    (setq *states* nil)
+    (loop
+      (unmodify p-graph)
+      (unmodify r-graph)
+      (unmodify env)
+      (unmodify stack)
+      (when (null (cycle)) (return (values)))
+      (push (nreverse *new-state*) *states*)
+      (interpret-state self (car *states*))
+      (setq *new-state* nil)
+      (when *monitor* (send (send self :get-pane 'registers) :refresh))
+      (set-usage mem
+		 (/ (value rgar) (float mem-size))
+		 (/ (value environment) (float mem-size)))
+      (check-speed self)
+      )))
+
+(advise cycle :after monitor nil
+  (when (and (not *monitor*) (lambda-monitor-exposed lambda-window))
+    (let ((mem-size (memory-array-size *mem*)))
+      (set-usage (lambda-monitor-mem lambda-window)
+		 (/ (value rgar) (float mem-size))
+		 (/ (value environment) (float mem-size))))))
+
+;;; CHECK-SPEED
+
+(defmethod (check-speed lambda-monitor) ()
+  (case speed
+    (:fast t)
+    (:slow (sleep 3))
+    (:step
+      (loop
+	(let ((input (send self :any-tyi)))
+	  (if (and (listp input) (eq (first input) :menu))
+	      (menu-input self input nil)
+	    (return (values)))))))
+  (when (neq speed :step)
+    (let ((input (send self :any-tyi-no-hang)))
+      (when input
+	(if (and (listp input) (eq (first input) :menu))
+	    (menu-input self input nil)
+	  (send self :any-tyi))))))
+
+
+(defmethod (menu-input lambda-monitor) (input &optional (all nil))
+  (case (send (fourth input) :execute (second input))
+    (:monitor-on
+      (if all (setq *monitor* t)))
+    (:monitor-off
+      (setq *monitor* nil)
+      (clear-panes self))
+    (:undo (undo-state self))
+    (:fast (setq speed :fast))
+    (:slow (setq speed :slow))
+    (:step (setq speed :step))
+    (:graphic
+      (send self :set-configuration 'graphic))
+    (:listener
+      (setq *monitor* nil)
+      (send self :set-configuration 'listener))))
+
+;;; INTERPRET-STATE
+;;; Graph the results of a state change.
+
+(defmethod (interpret-state lambda-monitor) (state)
+  (dolist (x state)
+    (case (first x)
+      (MEMORY-WRITE
+	(if (>= (second x) (value environment))
+	    (modify-bold env (second x))
+	  (modify p-graph (second x) 'write)
+	  (modify r-graph (second x) 'write)))
+      (MEMORY-READ
+	(if (>= (second x) (value environment))
+	    (modify-bold env (second x))
+	  (modify p-graph (second x) 'read)
+	  (modify r-graph (second x) 'read)))
+      (INC-REGISTER
+	(when (eq (second x) 'RGAR)
+	  (dotimes (i (third x))
+	    (send r-graph :append-item nil))
+	  (send r-graph :put-last-item-in-window)))
+      (DEC-REGISTER
+	(when (eq (second x) 'RGAR)
+	  (dotimes (i (third x))
+	    (let ((items (send r-graph :number-of-items)))
+	      (when (= 0 items)
+		(send r-graph :set-items 0)
+		(return nil))
+	      (send r-graph :delete-item (1- items))))))
+      (STACK-PUSH
+	(stack-push stack (second x)))
+      (STACK-POP
+	(stack-pop stack))
+      (ENV-PUSH
+	(if (null (flag (aref (memory-array-array *mem*) (second x))))
+	    (env-push env (second x))
+	  (env-push env (1+ (second x)))
+	  (env-push env (second x))))
+      (ENV-CUT-BACK
+	(env-cut-back env (second x)))
+      (MARKER-PUSH
+	(marker-push env (second x)))
+      (REDUCE-SUBEXPR
+	(let* ((start (second x))
+	       (end start))
+	  (loop
+	    (when (or (eq 'HEAD (flag (element *mem* end))) (< (value rgar) end))
+	      (return (values)))
+	    (incf end))
+	  (display p-graph start end)))
+      (SYMBOL-EXPANSION
+	(let* ((start (1- (get (second x) 'LPDEF)))
+	       (end start))
+	  (loop
+	    (incf end)
+	    (when (or (eq 'DEF (type (element *mem* end)))
+		      (= end (value problem)))
+	      (return (values))))
+	  (display p-graph start (1- end))))
+)))
+
+
+
+
+;;; UNDO-STATE
+;;; Reset the state of the processor to what it was one cycle ago.
+
+(defmethod (undo-state lambda-monitor) ()
+  (let ((state (reverse (first *states*))))
+    (setq *states* (rest *states*))
+    (dolist (x state)
+      (case (first x)
+	  (MEMORY-WRITE
+	    (let ((val (third x)))
+	      (mem-write *mem* (second x)
+			 (first val) (second val) (third val))))
+	  (MEMORY-READ t)
+	  (SET-DATA-REGISTER
+	    (let ((val (third x)))
+	      (set-element (eval (second x))
+			   (first val) (second val) (third val))))
+	  (INC-REGISTER
+	    (dec (eval (second x)) (third x)))
+	  (DEC-REGISTER
+	    (inc (eval (second x)) (third x)))
+	  (SET-REGISTER
+	    (set-value (eval (second x)) (third x)))
+	  (STACK-PUSH
+	    (s-pop *stack*)
+	    (stack-pop stack))
+	  (STACK-POP
+	    (s-push *stack* (second x))
+	    (stack-push stack (second x)))
+	  (ENV-PUSH
+	    (if (null (flag (aref (memory-array-array *mem*) (second x))))
+		(send env :delete-item 0)
+	      (send env :delete-item 0)
+	      (send env :delete-item 0)))
+	  (MARKER-PUSH
+	    (send env :delete-item 0))
+	  (ENV-CUT-BACK
+	    (display env (value environment) (memory-array-size *mem*)))
+	  ))
+    (setq *new-state* nil)
+    (display r-graph (1+ (value result)) (value rgar))
+    (send regs :refresh)
+    (if (eq (value mode) 'ROOT)
+	(modify r-graph (value pgar) 'bold)
+      (let ((start (value pgar))
+	    (end (value pgar)))
+	(loop
+	  (when (or (eq (type (element *mem* start)) 'DEF)
+		    (= start (value problem)))
+	    (return (values)))
+	  (decf start))
+	(loop
+	  (when (or (eq (type (element *mem* end)) 'DEF)
+		    (= end (1+ (value result))))
+	    (return (values)))
+	  (incf end))
+	(display p-graph start (1- end)))
+      (modify p-graph (value pgar) 'bold))
+    
+    
+))
+
+;;;; REGISTER WINDOW
+
+;;; The register window displays the values of each register in the
+;;; lambda processor.
+
+(defflavor register-window
+	()
+	(tv:borders-mixin
+	 tv:centered-label-mixin
+	 tv:label-mixin
+	 tv:pane-no-mouse-select-mixin
+	 tv:window)
+  (:default-init-plist
+   :label '(:top :style (:fix :bold :large))
+   :blinker-p nil))
+
+(defmethod (:refresh register-window :after) (&rest ignore)
+  (send self :clear-window)
+  (format self "~&MODE: ~A~%" mode)
+  (format self "~%pgar: ~8D   pgdr: ~20A        binding-offset: ~D"
+	  (value pgar) pgdr (value binding-offset))
+  (format self "~%rgar: ~8D   rgdr: ~20A" (value rgar) rgdr)
+  (if (boundp 'context-base)
+      (format self "          context-base: ~D" (value context-base)))
+  (format self "~% env: ~8D  envdr: ~20A                  temp: ~A~%~%"
+	  (value environment) envdr (value temp))
+  (if (boundp 'argcount) (format self "argcount: ~A  " (value argcount)))
+  (if (boundp 'inhibit) (format self "inhibit: ~A  " (value inhibit)))
+  (if (boundp 'max-var) (format self "max-var: ~A  " (value max-var)))
+  (if (boundp 'scratch) (format self "scratch: ~A  " (value scratch)))
+  (if (boundp 'primreg) (format self "~%primreg: ~A     argreg: ~A" primreg argreg))
+  (format self "~%~%problem: ~8D          reductions: ~8D"
+	  (value problem) (value reductions))
+  (format self   "~% result: ~8D            redlimit: ~8D"
+	  (value result) (value redlimit)))
+
+
+
+
+;;;; CODE WINDOWS
+
+;;; Code windows are scrollable text windows that display the graph memory area.
+
+(defflavor code-window
+	(start
+	 (modified nil))
+	(tv:borders-mixin
+	 tv:centered-label-mixin
+	 tv:label-mixin
+	 tv:margin-scrolling-with-flashy-scrolling-mixin
+	 tv:function-text-scroll-window
+	 tv:text-scroll-window
+	 tv:pane-no-mouse-select-mixin
+	 tv:window)
+  :readable-instance-variables
+  (:default-init-plist
+   :label '(:top :style (:fix :bold :large))
+   :margin-scroll-regions '(:top :bottom)
+   :print-function 'code-window-print-fun))
+
+
+(defun code-window-print-fun (ignore ignore window number)
+  (let* ((addr (+ (code-window-start window) number))
+	 (modifier (assoc addr (code-window-modified window)))
+	 (item (element *mem* addr)))
+    (if (null modifier)
+	(format window "~6D:  ~A" addr item)
+      (case (cdr modifier)
+	(bold (with-character-face (:bold window)
+		(format window "~6D:  ~A" addr item)))
+	(write (with-character-face (:bold window)
+		 (format window "~6D:  ~A <- w" addr item)))
+	(read (with-character-face (:bold window)
+		(format window "~6D:  ~A <- r" addr item)))))))
+ 
+;;; DISPLAY code-window
+;;; Forces the code-window to show the contents of the address range (FROM, TO).
+
+(defmethod (display code-window) (from to)
+  (setq start from
+	modified nil)
+  (send self :set-print-function-arg 'normal)
+  (send self :set-items 0)
+  (when (and from to)
+    (dotimes (i (1+ (- to from)))
+      (send self :append-item nil)  )))
+
+
+;;; MODIFY code-window
+;;; Updates the code-window's information on the contents of memory location
+;;; ADDRESS, and writes it in bold print with an arrow.
+
+(defmethod (modify code-window) (address reason)
+  (when (<= start address (+ start (send self :number-of-items)))
+    (push (cons address reason) modified)
+    (send self :replace-item (- address start) nil)))
+    
+
+;;; UNMODIFY code-window
+
+(defmethod (unmodify code-window) ()
+  (dolist (x (prog1 modified (setq modified nil)))
+    (send self :replace-item (- (car x) start) nil)))
+
+
+
+
+;;;; ENVIRONMENT WINDOWS
+
+;;; Environment windows are scrollable windows that display the contents of the 
+;;; environment memory of the lambda processor.
+
+(defflavor environment-window
+	(start
+	 (modified nil))
+	(tv:borders-mixin
+	 tv:centered-label-mixin
+	 tv:label-mixin
+	 tv:margin-scrolling-with-flashy-scrolling-mixin
+	 tv:function-text-scroll-window
+	 tv:text-scroll-window
+	 tv:pane-no-mouse-select-mixin
+	 tv:window)
+  :readable-instance-variables
+  (:default-init-plist
+   :label '(:top :style (:fix :bold :large))
+   :margin-scroll-regions '(:top :bottom)
+   :print-function 'environment-window-print-fun))
+
+(defun environment-window-print-fun (item ignore window ignore)
+  (let* ((modifier (assoc item (environment-window-modified window)))
+	 (face (if modifier (cdr modifier) :roman)))
+    (with-character-face (face window)
+      (let ((el (element *mem* item)))
+	(format window "~6D:  ~A" item el)))))
+	   
+
+;;; DISPLAY environment-window
+;;; Forces the environment-window to show the contents of the address range (FROM, TO).
+
+(defmethod (display environment-window) (from to)
+  (setq from (min from (memory-array-size *mem*))
+	to  (min to (1- (memory-array-size *mem*))))
+  (setq start from
+	modified nil)
+  (send self :set-items 0)
+  (loop
+    (when (>= from (1+ to)) (return (values)))
+    (send self :append-item from)
+    (incf from 1)))
+
+
+;;; ENV-PUSH
+
+(defmethod (env-push environment-window) (addr)
+  (send self :insert-item 0 addr))
+
+;;; ENV-CUT-BACK
+
+(defmethod (env-cut-back environment-window) (addr)
+  (when (< 0 (send self :number-of-items))
+    (loop
+      (when (or (>= 0 (send self :number-of-items))
+		 (<= addr (send self :item-value 0)))
+	(return (values)))
+      (send self :delete-item 0))))
+
+;;; MARKER-PUSH
+
+(defmethod (marker-push environment-window) (addr)
+  (send self :insert-item 0 addr))
+
+
+;;; MODIFY-BOLD environment-window
+;;; Updates the environment-window's information on the contents of memory location
+;;; ADDRESS, and writes it in bold print with an arrow.
+
+(defmethod (modify-bold environment-window) (address)
+  (push (cons address :bold) modified)  
+  (dotimes (i (send self :number-of-items))
+   (when (or (eql address (send self :item-value i))
+	     (and (eq (type (element *mem* (send self :item-value i))) 'BASE)
+		  (= address (1+ (send self :item-value i)))
+		  (decf address)
+		  (pop modified)
+		  (push (cons address :bold) modified)))
+     (send self :replace-item i address)
+     (return (values)))))
+
+;;; UNMODIFY environment-window
+;;; Updates the environment-window's information on the contents of memory location
+;;; ADDRESS.
+
+(defmethod (unmodify environment-window) ()
+  (let ((mods modified))
+    (setq modified nil)
+    (dotimes (i (send self :number-of-items))
+      (let ((val (send self :item-value i)))
+	(when (assoc val mods)
+	  (send self :replace-item i val))))))
+
+
+
+;;;; STACK WINDOW
+
+(defflavor stack-window
+	((modified 0))
+	(tv:borders-mixin
+	 tv:centered-label-mixin
+	 tv:label-mixin
+	 tv:margin-scrolling-with-flashy-scrolling-mixin
+	 tv:function-text-scroll-window
+	 tv:text-scroll-window
+	 tv:pane-no-mouse-select-mixin
+	 tv:window)
+  :readable-instance-variables
+  (:default-init-plist
+   :label '(:top :style (:fix :bold :large))
+   :margin-scroll-regions '(:top :bottom)
+   :print-function 'stack-window-print-fun))
+
+(defun stack-window-print-fun (item ignore window number)
+  (if (< number (stack-window-modified window))
+      (with-character-face (:bold window) (format window "  ~A" item))
+    (format window "  ~A" item)))
+
+(defmethod (display stack-window) ()
+  (setq modified 0)
+  (send self :set-items 0)
+  (dolist (x (stack-list *stack*))
+    (send self :append-item x))
+  (send self :scroll-to 0 :absolute))
+
+(defmethod (stack-push stack-window) (item)
+  (incf modified)
+  (send self :insert-item 0 item))
+
+(defmethod (stack-pop stack-window) ()
+  (if (> modified 0) (decf modified))
+  (send self :delete-item 0))
+
+(defmethod (unmodify stack-window) ()
+  (let ((mods modified))
+    (setq modified 0)
+    (dotimes (i mods)
+      (send self :replace-item i (send self :item-value i)))))
+
+
+
+
+;;;; MEMORY USAGE WINDOW
+
+(defflavor memory-window
+	((high 0)
+	 (low 0))
+	(tv:pane-no-mouse-select-mixin
+	 tv:window)
+  :readable-instance-variables
+  :writable-instance-variables)
+
+(defmethod (set-usage memory-window) (lo-% hi-%)
+  (let ((lo-x (round (* lo-% (send self :width))))
+	(hi-x (round (* hi-% (send self :width)))))
+    (if (< lo-x low)
+	(draw-bar self lo-x low :erase)
+      (draw-bar self low lo-x :draw))
+    (if (> hi-x high)
+	(draw-bar self high hi-x :erase)
+      (draw-bar self hi-x high :draw))
+    (setq high hi-x
+	  low lo-x)))
+
+(defmethod (draw-bar memory-window) (start end alu)
+  (multiple-value-bind (ignore top ignore bottom)
+      (send self :inside-edges)
+    (graphics:draw-rectangle start top end bottom :stream self :alu alu :filled t)))
+
+
+(defmethod (clear memory-window) ()
+  (setq low (value result) high (memory-array-size *mem*))
+  (send self :refresh))
+
+
+(defvar lambda-window (tv:make-window 'lambda-monitor))
+
+(tv:add-select-key #\ˆ lambda-window "Lambda Processor Monitor" 'lambda-monitor)
+
+(compile-flavor-methods memory-window lambda-monitor code-window register-window
+			environment-window stack-window)

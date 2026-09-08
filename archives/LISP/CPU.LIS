@@ -1,0 +1,497 @@
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: USER; Base: 10 -*-
+
+;;; Micro-Simulator for lambda-processor
+;;; Mike Hilton, 17 Oct 1988
+
+;;; Version 1
+;;; BASIS: Version 4 of full simulator
+
+;;; This simulator is to be used for development of a micro-code version on
+;;; the AMD29300 evaluation board system.  The processor only handles four
+;;; instruction types: EP, MULTI, PTR, and VAR.
+
+(defvar *mem-size* 1000)
+
+(defvar *mem* (make-instance 'memory-array :size *mem-size*) "main memory unit")
+(defvar *stack* (make-instance 'stack) "stack memory unit")
+
+(defvar mcycles 0 "count of the microcycles used in reduction")
+
+
+
+(defvar environment (make-instance 'address-register :name 'environment)
+  "top of the environment")
+(defvar envdr (make-instance 'data-register :name 'envdr)
+  "used in lookup of variables")
+(defvar pgar (make-instance 'address-register :name 'pgar)
+  "problem-graph address register")
+(defvar pgdr (make-instance 'data-register :name 'pgdr)
+  "problem-graph data register")
+(defvar rgar (make-instance 'address-register :name 'rgar)
+  "result-graph address register")
+(defvar rgdr (make-instance 'data-register :name 'rgdr)
+  "result-graph data register")
+
+(defvar argcount (make-instance 'register :name 'argcount)
+  "counts the number of arguments in this spine")
+(defvar binding-offset (make-instance 'register :name 'binding-offset)
+  "binding offset")
+(defvar mode (make-instance 'register :name 'mode)
+  "mode flag: HEAD if walking to head, ROOT if walking to root")
+(defvar problem (make-instance 'register :name 'problem)
+  "start of problem graph address space")
+(defvar redlimit (make-instance 'register :name 'redlimit)
+  "number of reductions allowed")
+(defvar reductions (make-instance 'register :name 'reductions)
+  "count of reductions performed")
+(defvar result (make-instance 'register :name 'result)
+  "start of result graph address space")
+(defvar scratch (make-instance 'register :name 'scratch)
+  "temporary used for miscellaneous things")
+(defvar temp (make-instance 'register :name 'temp)
+  "temporary used for miscellaneous things")
+
+
+;;; REDUCER
+;;; The control sequencer for the lambda processor.  
+
+(defun reducer ()
+  (incf mcycles 5)				; for start and stop instructions
+  (loop
+    (if (null (cycle)) (return (values)))))
+
+;;; CYCLE
+;;; Performs a single cycle in the reduction loop.  Note that this is NOT the same
+;;; as one memory cycle (although sometimes close).
+
+(defun cycle ()
+  (if (and (eq (value mode) 'ROOT) (= (value pgar) (value result)))
+      ;; finished reducing expression
+      nil
+    (if (>= (value rgar) (value environment))
+	(error "Memory size of simulator exceeded"))
+    (mread *mem* pgar pgdr)
+    (if (eq (value mode) 'HEAD)
+	(reducer-head-mode)
+      (reducer-root-mode))
+    t))
+
+
+;;; REDUCER-HEAD-MODE
+;;; No special global conditions to check for when walking down the head.
+;;; Just execute the instruction held in the PGDR.
+
+(defun reducer-head-mode ()
+  (incf mcycles 1)
+  (dispatch-instruction pgdr))
+
+
+;;; REDUCER-ROOT-MODE
+;;; There are one global conditions to check for when walking to the root:
+;;; 1) Completion of reducing an operand, which is signalled by finding
+;;;    a head instruction in the PGDR.
+
+(defun reducer-root-mode ()
+  (incf mcycles 2)
+  ;;; CONDITION 1:  completion of reducing an operand
+  (cond ((eq (flag pgdr) 'HEAD)
+	 (set-value temp (s-pop *stack*))	; TEMP <- return address
+	 (incf mcycles 2)
+	 ;; Store the results of the reduction, held in RGDR, in the return address.
+	 (cond ((eq (flag rgdr) 'HEAD)
+		(incf mcycles 4)
+		;; Result is an atomic variable
+		(set-flag rgdr 'AP)	; make RGDR an application
+		(mwrite *mem* temp rgdr)	; store result in return address
+		(dec rgar))			; pop result off the result graph
+	       (t
+		(incf mcycles 3)
+		;; Result is an expression
+		(set-element rgdr 'AP 'PTR (1+ (value pgar)))	; create a pointer to result
+		(mwrite *mem* temp rgdr)))	; store pointer in return address
+
+	 ;; Prepare to read next instruction
+	 (set-value pgar (1- (value temp))))
+	(t
+	 (incf mcycles 3)
+	 ;;; Execute instruction
+	 (dispatch-instruction pgdr))))
+
+	     
+;;; DISPATCH-INSTRUCTION
+;;; Decodes the instruction in REG and calls the correct function which
+;;; implements the instruction.
+
+(defun dispatch-instruction (reg)
+  (cond ((eq (flag reg) 'HEAD)
+	 (apply (get (type reg) 'HEAD-ACTION) nil))
+	((eq (value mode) 'HEAD)
+	 (apply (get (type reg) 'AP-HEAD-MODE) nil))
+	((eq (value mode) 'ROOT)
+	 (apply (get (type reg) 'AP-ROOT-MODE) nil))
+	((error "Unknown instruction dispatch, mode: ~A, reg: ~A" mode reg))))
+
+
+;;; LOOKUP
+;;; Look up the value of a variable in the environment, returning the variable's
+;;; value block address.
+
+(defun lookup (index)
+  (set-value scratch index)			; SCRATCH <- index
+  (transfer environment temp)			; TEMP <- address of environment top
+  (incf mcycles 2)
+  (loop
+    (incf mcycles 1)
+    (mread *mem* temp envdr)			; ENVDR <- environment entry
+    (cond ((= (value temp) (memory-array-size *mem*))
+	   (error "Lookup exceeded memory size"))
+	  ((eq (type envdr) 'MARKER)		; context jump
+	   (incf mcycles 3)
+	   (set-value temp (operand envdr)))	; TEMP <- new context
+	  ((zerop (value scratch))		; found the indexed entry
+	   (incf mcycles 2)
+	   (return (values)))
+	  ((eq (type envdr) 'PTR)		; skip over closure, 2 elements
+	   (incf mcycles 4)
+	   (inc temp 2)
+	   (dec scratch))
+	  (t					; skip over single element entry
+	   (incf mcycles 2)
+	   (inc temp 1)
+	   (dec scratch)))))
+
+
+
+;;; PUSH-ENVIRONMENT
+;;; Pushes a "value block" onto the environment stack.
+
+(defun push-environment (type operand)
+  (dec environment)
+  (if (neq type 'PTR)
+      (mem-write *mem* environment nil type operand)	; single element entry
+    (mem-write *mem* environment t 'ENV (s-pop *stack*))
+    (dec environment)
+    (mem-write *mem* environment t type operand)))	; closure
+
+
+  
+;;; PUSH-MARKER
+;;; Pushes a "marker" element onto the environment stack.
+
+(defun push-marker (value)
+  (when (not (= value (value environment)))
+    (dec environment)
+    (mem-write *mem* environment nil 'MARKER value)))
+
+
+;;; CUT-BACK-ENV
+;;; Dummy used for graphical interface, serves no other purose.
+
+(defun cut-back-env (addr) addr)
+
+
+
+
+;;;; MACHINE INSTRUCTIONS
+
+
+;;; ENVIRONMENT POINTERS
+;;; EP's point to entries in the environment.  An EP is created whenever a
+;;; a variable is dereferenced to a closure or an EP.
+
+;;; An EP should never be found when walking to the head.
+
+(defun (EP ap-head-mode) ()
+  (error "EP discovered in ap-head-mode, addr = ~A" pgar))
+
+
+;;; EP must have been read from the environment by a head variable.
+;;; BEFORE:
+;;;  PGDR: <AP EP address of var in environment>
+;;; AFTER:
+;;;  TEMP: address of var in environment
+;;;  PGDR: <HEAD (type var) (operand var)>
+
+(defun (EP head-action) ()
+  (incf mcycles 4)
+  (set-value temp (operand pgdr))		; TEMP <- address of var in environment
+  (mread *mem* temp pgdr)			; PGDR <- var value
+  (set-flag pgdr 'HEAD)				; make it a head instruction
+  (dispatch-instruction pgdr))			; execute the instruction
+
+
+;;; This EP came from sometime in the past.  It must now be reduced
+;;; BEFORE
+;;;  PGAR: EP address
+;;;  STACK: <environment> S
+;;; AFTER pointer version
+;;;  STACK: <return address> S
+;;;  ENV:  <MARKER top of old context> E
+;;;  ARGCOUNT: 0
+;;;  PGDR: var value
+;;;  TEMP: address of var in environment
+;;;  PGAR: address of subgraph
+;;; AFTER atomic version
+;;;  STACK: S
+;;;  TEMP: address of var in environment
+;;;  PGDR: AP var value
+;;;  RGDR: AP var value
+;;;  PGAR: pgar + 1
+
+(defun (EP ap-root-mode) ()
+  (set-value environment (s-pop *stack*))	; cut back environment to old size
+  (cut-back-env (value environment))		; dummy for graphical interface
+  (set-value temp (operand pgdr))		; TEMP <- address of var in environment
+  (mread *mem* temp pgdr)			; PGDR <- var value
+  (incf mcycles 3)
+  (cond ((eq (type pgdr) 'PTR)
+	 (incf mcycles 9)
+	 ;;; Begin walking down the spine
+	 (s-push *stack* (value pgar))		; push return address
+	 (set-value pgar (operand pgdr))	; PGAR <- address of subgraph
+	 (mread *mem* (+ 1 (value temp)) pgdr)	; old environment
+	 (push-marker (operand pgdr))		; push top of old context
+	 (set-value mode 'HEAD)			; change mode to walk down
+	 (reset argcount))			; ARGCOUNT <- 0
+	(t
+	 ;;; EP's value is atomic, just write it in place
+	 (incf mcycles 3)
+	 (set-flag pgdr 'AP)			; make the value an application
+	 (mwrite *mem* pgar pgdr)		; write value in place
+	 (inert-instruction_root-mode))))	; walk up
+
+
+
+;;; MULTI
+;;; multiple unnamed lambdas
+
+;;; Lambdas shouldn never be in the head position.
+
+(defun (MULTI head-action) ()
+  (error "MULTI Lambda in the head of an expression, pgar = ~A" pgar))
+
+
+;;; If there are arguments applied to the lambdas and there are reductions
+;;; left, then perform beta-reduction by placing the argument into the
+;;; environment.  Otherwise, push unbound variable markers into the environment.
+
+(defun (MULTI ap-head-mode) ()
+  (incf mcycles 2)
+  (cond ((eq (type rgdr) 'MULTI)		; combine the arg counts
+	 (incf mcycles 6)
+	 (set-operand rgdr (+ (operand pgdr) (operand rgdr)))
+	 (mwrite *mem* rgar rgdr)		; write out combined argcounts
+	 (dotimes (i (operand pgdr))
+	   (incf mcycles 7)
+	   (push-ubv))	; push unbound variables to env
+	 (inc pgar))
+	((or (zerop (value argcount))		; no arguments
+	     (= (value reductions) (value redlimit)))	; no reductions left
+	 (incf mcycles 5)
+	 (dotimes (i (operand pgdr))
+	   (incf mcycles 7)
+	   (push-ubv))	; push unbound variables to env
+	 (inert-instruction_head-mode))
+	(t
+	 (binding-push)				; push an argument into the environment
+	 (incf mcycles 2)
+	 (set-operand pgdr (1- (operand pgdr)))	; reduce lambda count by one
+	 (if (zerop (operand pgdr))		; if no more lambdas
+	     (inc pgar)				;    move on to next instruction
+	   (dispatch-instruction pgdr)))))	; else, repeat MULTI instruction
+
+
+(defun (MULTI ap-root-mode) ()
+  (incf mcycles 1)
+  (dec binding-offset (operand pgdr))
+  (inert-instruction_root-mode))
+
+
+;;; PUSH-UBV
+;;; Push an unbound variable marker into the environment.
+
+(defun push-ubv ()
+  (if (< 0 (value argcount)) (dec argcount))
+  (inc binding-offset)
+  (push-environment 'UBV (value binding-offset)))
+
+;;; BINDING-PUSH
+;;; Push an argument into the environment.  The argument is found on the top
+;;; of the result stack.
+
+(defun binding-push ()
+  (inc reductions)
+  (if (< 0 (value argcount)) (dec argcount))
+  (incf mcycles 2)
+  (cond ((eq (type rgdr) 'VAR)
+	 (push-environment 'UBV (- (value binding-offset) (operand rgdr)))
+	 (incf mcycles 5))
+	((eq (type rgdr) 'PTR) 
+	 (push-environment 'PTR (operand rgdr))
+	 (incf mcycles 9))
+	((eq (type rgdr) 'EP)
+	 (s-pop *stack*)
+	 (push-environment 'EP (operand rgdr))
+	 (incf mcycles 3))
+	(t
+	 (error "Unknown type in binding-push: ~A" rgdr)))
+  (dec rgar)					; pop operand off result graph
+  (mread *mem* rgar rgdr)			; read previous operand
+  (incf mcycles 2)
+  )
+
+
+
+
+
+;;; PTR
+
+;;; PTR must be the result of a variable in the head.
+;;; Begin walking down the new subgraph.
+
+(defun (PTR head-action) ()
+  (incf mcycles 6)
+  (set-value pgar (operand pgdr))		; PGAR <- address of subgraph
+  (mread *mem* (+ 1 (value temp)) envdr)	; ENVDR <- top of old context
+  (push-marker (operand envdr)))		; push top of old context
+
+
+;;; Push binding context information onto stack.
+;;; AFTER
+;;;  STACK: <environment> S
+
+(defun (PTR ap-head-mode) ()
+  (incf mcycles 5)
+  (inc argcount)				
+  (s-push *stack* (value environment))
+  (inert-instruction_head-mode))
+
+
+;;; Begin reducing the subexpression pointed to by the operand.  Push the "return"
+;;; address onto the stack and begin walking down the subexpression.
+;;; BEFORE
+;;;  STACK: <environment> S
+;;; AFTER
+;;;  STACK: <return address> S
+
+(defun (PTR ap-root-mode) ()
+  (incf mcycles 4)
+  (set-value environment (s-pop *stack*))	; cut back environment to old size
+  (cut-back-env (value environment))		; dummy for graphical interface
+  (s-push *stack* (value pgar))			; return address
+  (set-value pgar (operand pgdr))		; PGAR <- address of subgraph
+  (set-value mode 'HEAD)			; change directions
+  (reset argcount))				; ARGCOUNT <- 0
+
+
+
+;;; START
+;;; initialize registers to their proper values
+
+(defun (START ap-head-mode) ()
+  (set-value argcount 0)
+  (set-value environment (memory-array-size *mem*))
+  (set-value binding-offset 0)
+  (set-value reductions 0)
+  (set-value rgdr '(AP STOP nil))
+  (incf mcycles 4)
+  (inert-instruction_head-mode))
+
+
+;;; STOP
+
+(defun (STOP ap-root-mode) () )
+
+
+
+  
+;;; VARIABLES
+
+
+;;; Dereference variable at the head.
+
+(defun (VAR head-action) ()
+  (lookup (operand pgdr))			; TEMP <- var address
+  (mread *mem* temp pgdr)			; PGDR <- var value
+  (incf mcycles 2)
+  (cond ((eq (type pgdr) 'UBV)			; adjust binding value
+	 (set-element pgdr 'HEAD 'VAR (- (value binding-offset) (operand pgdr)))
+	 (incf mcycles 3)
+	 (inert-instruction_head-action))
+	(t
+	 (set-flag pgdr 'HEAD)			; make var value a head instruction
+	 (incf mcycles 2)
+	 (dispatch-instruction pgdr))))		; execute the instruction
+
+
+;;; Dereference variable and install its value into the result graph
+
+(defun (VAR ap-head-mode) ()
+  (inc argcount)
+  (lookup (operand pgdr))			; TEMP <- var address
+  (mread *mem* temp pgdr)			; PGDR <- var value
+  (incf mcycles 2)
+  (case (type pgdr)
+    (UBV (set-element pgdr 'AP 'VAR (- (value binding-offset) (operand pgdr)))
+	 (incf mcycles 3))
+    (PTR (set-element pgdr 'AP 'EP (value temp))
+	 (s-push *stack* (value environment))
+	 (incf mcycles 5))
+    (EP	 (set-element pgdr 'AP 'EP (operand pgdr))
+	 (s-push *stack* (value environment))
+	 (incf mcycles 2))
+    (t	 (error "Unexpected type in VAR ap-head-mode: ~A" pgdr)))
+  (inert-instruction_head-mode))
+
+
+;;; No need to do anything.
+
+(defun (VAR ap-root-mode) ()
+  (incf mcycles 1)
+  (inert-instruction_root-mode))
+
+
+
+
+
+
+
+
+
+
+;;; INERT INSTRUCTION
+;;; An inert instruction doesn't do anything but copy itself into the result graph
+;;; during the walk to the head.
+	
+;;; INERT-INSTRUCTION_HEAD-MODE
+;;; Copy the instruction in the problem graph to the result graph and prepare for the next
+;;; instruction by taking one step towards the head.
+
+(defun inert-instruction_head-mode ()
+  (incf mcycles 3)
+  (transfer pgdr rgdr)
+  (inc pgar)
+  (inc rgar)
+  (mwrite *mem* rgar rgdr))
+  
+;;; INERT-INSTRUCTION_ROOT-MODE
+;;; Advance to the next instruction by taking one step towards the root.
+
+(defun inert-instruction_root-mode ()
+  (dec pgar)
+  (transfer pgdr rgdr))
+
+;;; INERT-INSTRUCTION_HEAD-ACTION
+;;; Copy the instruction in the problem graph to the result graph,
+;;; "swap" address registers and change the mode to ROOT.
+
+(defun inert-instruction_head-action ()
+  (incf mcycles 5)
+  (transfer pgdr rgdr)
+  (transfer rgar pgar)
+  (inc rgar)
+  (mwrite *mem* rgar rgdr)
+  (set-value mode 'ROOT))
+
+
+

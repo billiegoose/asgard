@@ -1,0 +1,7 @@
+(define test (lambda (x) (a (lambda (y) (and (unify x (y y)) (unify y 2)))
+	(lambda (b) b) x)))
+(define test1 (lambda (x) (a (lambda (y) (unify x (y y)))
+	(lambda (b) b) x)))
+(define test2 (lambda (z x) (a (lambda (y) (unify x (y y))) (unify x z)
+	(lambda (b) b) x)))
+

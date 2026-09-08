@@ -1,0 +1,50 @@
+(define (reducer-top-level) ()
+  (fresh-line)
+  (display "[")
+  (display (length (getprop '%reducer-history '%reducer-history)))
+  (display "]:- ")
+  (let ((problem (read)))
+    (flush-input)
+    (if (or (eof-object? problem) (eq? problem 'exit))
+        (display "[End of file read by REDUCER-TOP-LEVEL]")
+        (begin
+          (cond ((pair? problem)
+                 (case (car problem)
+                   (%C (set! problem (reducer-%c (cadr problem))))
+                   (%D (set! problem (reducer-%d (cadr problem))))
+                   (%E (set! problem (reducer-%e (cadr problem))))
+                   (LDEFINE (eval problem) 
+                            (set! problem nil)
+                            (set! focus (caddr problem))))
+                 (when problem
+                       (set! focus problem)
+                       (putprop '%reducer-history 
+                                (cons (list problem) 
+                                      (getprop '%reducer-history
+                                               '%reducer-history))
+                                '%reducer-history)
+                       (prep-reducer problem)))
+                ((or (integer? problem) (eq? problem '*))
+                 (if (integer? problem)
+                     (set! red-limit problem)
+                     (set! red-limit -1))
+                 (when (null? focus) 
+                       (prep-reducer (cadar (getprop '%reducer-history 
+                                                     '%reducer-history))))
+                 (let ((answer (red)))
+                   (write answer)
+                   (set! focus null)
+                   (putprop '%reducer-history 
+                            (cons (cons problem answer)
+                                  (cdr (getprop '%reducer-history 
+                                                '%reducer-history)))
+                            '%reducer-history)))
+                ((symbol? problem)
+                 (case problem
+                   (STEP (set! step? #T))
+                   (NOSTEP (set! step? #F))
+                   (TRACE (set! graphic-display #T))
+                   (NOTRACE (set! graphic-display #F))
+                   (else
+                     (writeln "Unknown command ignored.")))))
+          (reducer-top-level)))))

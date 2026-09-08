@@ -1,0 +1,196 @@
+;;;-*- Package: USER; Mode: Lisp; Base: 10; Syntax: Common-lisp; -*-
+
+;;; TESTS FOR LAMBDA PROCESSOR
+;;; Mike Hilton, 4 Aug 88
+
+
+;;; TEST
+;;; Reduces each expression in a test suite and collects performance statistics.
+
+(defun test (&optional (suite basic-tests))
+  (let ((tcounter 0)
+	(stats-holder *stats*)
+	(trace-holder *trace*)
+	(reds 0)
+	(total-memory-writes 0)
+	(total-memory-reads 0)
+	(total-memory-accesses 0)
+	(total-stack-writes 0)
+	(total-stack-reads 0)
+	(total-size 0)
+	(total-mcycles 0)
+	(max-stack 0)
+	(max-graph 0)
+	(max-mem 0)
+	(max-env 0))
+    (setq *stats* nil *trace* nil *monitor* nil)
+    (dolist (test suite)
+      (incf tcounter)
+      (if (not (equal (compile-ˆ (red (first test)))
+		      (compile-ˆ (cdr test))))
+		 ;(curry (red (first test))) (curry (cdr test))))
+	  (format t "~&ERROR: T~D" tcounter)
+	(format t "~&T~D ok" tcounter))
+      (setq
+	total-mcycles
+	(+ mcycles total-mcycles)
+	reds
+	(+ reds (value reductions))
+	total-size
+	(+ total-size (- (value rgar) (value problem)))
+	total-memory-writes
+	(+ total-memory-writes (memory-array-writes *mem*))
+	total-memory-reads
+	(+ total-memory-reads (memory-array-reads *mem*))
+	total-stack-writes
+	(+ total-stack-writes (stack-writes *stack*))
+	total-stack-reads
+	(+ total-stack-reads (stack-reads *stack*))
+	max-graph
+	(max max-graph (- (address-register-max rgar) (value problem)))
+	max-env
+	(max max-env (- (memory-array-size *mem*) (address-register-min environment)))
+	max-mem
+	(max max-mem (+ (- (address-register-max rgar) (value problem))
+			(- (memory-array-size *mem*) (address-register-min environment))
+			(stack-max *stack*)))
+	max-stack
+	(max max-stack (stack-max *stack*))))   
+    
+    (format t "~&~%TOTAL REDUCTIONS: ~A" reds)
+
+    (setq total-memory-accesses
+	  (+ total-memory-writes total-memory-reads total-stack-writes total-stack-reads))
+    (format t "~&~%TOTAL MEMORY ACCESSES: ~D" total-memory-accesses)
+    (format t "~&memory writes: ~5D, ~2D%"
+	    total-memory-writes (floor (* 100 (/ total-memory-writes total-memory-accesses))))
+    (format t "~&memory reads:  ~5D, ~2D%"
+	    total-memory-reads (floor (* 100 (/ total-memory-reads total-memory-accesses))))
+    (format t "~&stack writes:  ~5D, ~2D%"
+	    total-stack-writes (floor (* 100 (/ total-stack-writes total-memory-accesses))))
+    (format t "~&stack reads:   ~5D, ~2D%"
+	    total-stack-reads (floor (* 100 (/ total-stack-reads total-memory-accesses))))
+    
+    (format t "~&~%MAX MEM SIZE: ~5D" max-mem)
+    (format t "~&max graph:   ~5d" max-graph)
+    (format t "~&max environ: ~5d" max-env)
+    (format t "~&max stack:   ~5d" max-stack)
+
+    (format t "~&~%TOTAL MICROCYCLES: ~D" total-mcycles)
+
+    (format t "~%~%RATIO: ~A" (float (/ total-size total-memory-accesses)))
+    (setq *stats* stats-holder
+	  *trace* trace-holder)))
+
+
+
+ 
+(setq t1 '(ˆ (a b c d) (ˆ (a b c) a b c) a b) 
+      r1 '(ˆ (a b c d +c) a b +c)
+      t2 '((ˆ (a b) a b) (ˆ (a b) a b)) 
+      r2 '(ˆ (b +b) b +b)
+      t3 '((ˆ (a b) a) (ˆ (a b) b)) 
+      r3 '(ˆ (b a +b) +b)
+      t4 '(ˆ (a b c d) a) 
+      r4 '(ˆ (a b c d) a)
+      t5 '(((ˆ (a b c) ((a c) (b c))) (ˆ (a b) a)) (ˆ (a b) a)) 
+      r5 '(ˆ (c) c)
+      t6 '(ˆ (a b c) ((ˆ (d e f) ((((d e) f) e) b)) (ˆ (g h i) ((((g a) c) h) i))))
+      r6 '(ˆ (a b c e f) e a c f e b)
+      t7 '(ˆ (a b c) (( (ˆ (d) (d a)) (b a))  ((((ˆ (d) (d a)) (b a)) c) (ˆ (d) (d d)))))
+      r7 '(ˆ (a b c) b a a ((b a a c) (ˆ (d) d d)))
+      t8 '(ˆ (a b) ((ˆ (c) ((b c) (ˆ (d) (d a))))
+		    ((ˆ (c) ((b c) (ˆ (d) (d a)))) (ˆ (d) (d a)))))
+      r8 '(ˆ (a b) (b ((b (ˆ (d) d a)) (ˆ (d) d a))) (ˆ (d) d a))
+      t9 '(ˆ (a b) ((ˆ (c) (c (c (c a)))) ((ˆ (c d) d c) b))) 
+      r9 '(ˆ (a b) a b b b)
+      t10 '(ˆ (a b) ((ˆ (c) ((c a) c)) (ˆ (c) (c ((ˆ (d) d) b))))) 
+      r10 '(ˆ (a b) a b (ˆ (c) c b))
+      t11 '((ˆ (a) (a a)) (ˆ (a) ((ˆ (b) b) a))) 
+      r11 '(ˆ (a) a)
+      t12 '(ˆ (a b c) ((ˆ (d) (d (a d))) ((ˆ (e) e b) c)))
+      r12 '(ˆ (a b c) c b (a (c b)))
+      t13 '(ˆ (a b) ((ˆ (c) c (b c)) ((ˆ (d) ((d b) d)) a)))
+      r13 '(ˆ (a b) (a b a) (b (a b a)))
+      t14 '(ˆ (a) ((ˆ (b) ((ˆ (c) ((ˆ (d) ((d d) b)) c)) (b a))) (ˆ (e) e)))
+      r14 '(ˆ (a) (a a (ˆ (e) e)))
+      t15 '(ˆ (a b) ((ˆ (c) ((a c) (b c))) (ˆ (c) (c b))))
+      r15 '(ˆ (a b) (a (ˆ (c) c b) (b (ˆ (c) c b))))
+      t16 '(ˆ (a b) ((ˆ (c) ((ˆ (d) (d (d c))) (ˆ (e) ((b e) c)))) (ˆ (f) (f a))))
+      r16 '(ˆ (a b) (b (b (ˆ (f) f a) (ˆ (f) f a)) (ˆ (f) f a)))
+      t17 '(ˆ (a b) ((ˆ (c) ((ˆ (d) (d (d c))) (ˆ (e f) ((b e) c)))) (ˆ (f) (f a))))
+      r17 '(ˆ (a b f) (b (ˆ (f) (b (ˆ (f) f a)) (ˆ (f) f a))) (ˆ (f) f a))
+      t18 '(ˆ (a b) ((ˆ (c) ((ˆ (d) (d (d c))) (ˆ (d e) ((c e) d)))) (ˆ (c) (c a))))
+      r18 '(ˆ (a b e) (e a (ˆ (e) e a (ˆ (c) c a))))
+      t19 '(ˆ (a b c) ((ˆ (d) ((ˆ (e) ((ˆ (f) (e b)) c)) (ˆ (f) (d f)))) a))
+      r19 '(ˆ (a b c) a b)
+      t20 '(ˆ (a b) ((ˆ (c) ((c a) (c b))) (ˆ (c) ((ˆ (d) d) c))))
+      r20 '(ˆ (a b) a b)
+      t21 '((ˆ (a b c) ((a b) (a c))) (ˆ (d) ((ˆ (e) e) d)))
+      r21 '(ˆ (b c) b c)
+)
+
+
+	
+	
+(defvar basic-tests
+	(reverse
+	  (pairlis
+	  (list t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 t20 t21)
+	  (list r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21))))
+
+
+
+
+;;; Church numeral arithmetic tests
+
+(defun church-num (x)
+  (labels ((ch (n) (if (= n 0) 'b (list 'a (ch (1- n))))))
+    (append '(ˆ (a b)) (ch x))))
+
+
+(setq plusc '(ˆ (a b c d) ((a c) ((b c) d)))
+      multc '(ˆ (a b c) (a (b c)))
+      expc '(ˆ (a b) (b a))
+      two (church-num 2)
+      three (church-num 3)
+      four (church-num 4)
+      five (church-num 5)
+      seven (church-num 7)
+      )
+
+(setq
+  t22 (list (church-num 4) (church-num 3))
+  r22 (subst 'b 'a (subst '+b 'b (church-num 81)))
+  t23 (list (list plusc five) seven)
+  r23 (subst 'c 'a (subst 'd 'b (church-num 12)))
+  t24 (list (list multc five) seven)
+  r24 (subst 'c 'a (church-num 35))
+  t25 (list (list expc two) seven)
+  r25 (church-num 128)
+  t26 (list (list plusc five) five)
+  r26 (subst 'c 'a (subst 'd 'b (church-num 10)))
+  t27 (list (list multc five) five)
+  r27 (subst 'c 'a (church-num 25))
+  t28 (list (list expc four) three)
+  r28 (subst 'b 'a (subst '+b 'b (church-num 64)))
+  t29 (list (list expc three) four)
+  r29 (subst 'b 'a (subst '+b 'b (church-num 81)))
+  )
+
+
+(defvar church-num-tests
+	(pairlis
+	  (list t22 t23 t24  t26 t27 t28 t29)
+	  (list r22 r23 r24  r26 r27 r28 r29)))
+
+(setq tt1 t1 tt2 t22 tt3 t2 tt4 t3 tt5 t4 tt6 t5 tt7 t23 tt8 t24 tt9 t25 tt10 t26
+      tt11 t27 tt12 t28 tt13 t29 tt14 t6 tw1 t7 tw2 t8 tw3 t9 tw4 t10 tw5 t11
+      tw6 t12 tw7 t13 tw8 t14 tw9 t15 tw10 t16 tw11 t17 tw12 t18 hz1 t19 lev1 t20
+      lev2 t21
+)
+
+
+
+
+

@@ -1,0 +1,313 @@
+\chapter{The Head Order Reduction System}
+\label{chapter-horse}
+
+	This chapter describes HORSE, the programming environment for THOR.
+The name HORSE is taken from the strategy used to implement THOR, which
+is the head order graph reduction method of Berkling \cite{berkling}.  
+HORSE provides
+facilities for associating names with expressions, defining structures,
+loading files of expressions, and controlling the reduction of expressions.
+
+	In the sections that follow, {\tt any commands that should be typed on the
+computer will be in this typeface}, and {\sc the responses of the computer
+will be in this typeface}.
+
+
+\section{Running HORSE}
+
+	HORSE currently runs on IBM PC's and SUN workstations.  To invoke the
+HORSE system, simply type {\tt horse} at the system level prompt.  When
+HORSE is up and running, it will print a banner message which gives the
+current version number and some memory size information, and then print the
+HORSE system prompt, which is:
+\begin{quote}
+	{\sc horse>}
+\end{quote}
+The {\tt horse} command can be optionally followed by the names of files to
+be automatically loaded into the programming environment.  For example,
+the command
+\begin{quote}
+	{\sc \%}{\tt horse comp.lam funs.lam}
+\end{quote}
+will cause the files `comp.lam' and `funs.lam' to be loaded when HORSE
+is brought up.  Note that there are different filename and search path
+conventions on different computers, and it may be necessary to supply
+full directory names for some files.
+
+
+\section{A few words about input}
+
+	HORSE itself is case insensitive;  everything that is read in is
+converted to upper-case.  This can cause problems when dealing with files
+on operating systems that are case sensitive.
+
+	The semicolon character is used to mark the beginning of a comment in
+HORSE and THOR.  Any text after the semicolon but before a newline
+is ignored.
+
+	The reduction process can (sometimes) be halted by typing a
+control-C, which will get you back to the HORSE prompt.  On UNIX systems,
+the HORSE process can be suspended by typing the usual control-Z when
+at the HORSE prompt.
+
+	An input editor is provided to help ease the keyboard entry of
+expressions; it is described in detail in Section~\ref{sec-edit}.
+
+
+
+\section{Defining Forms}
+\label{sec-defining}
+
+	There are three special defining forms in HORSE; two of them allow you
+to associate an expression with a symbol, and the third assists in
+defining structured data objects.
+
+\subsection{{\tt Define}}
+
+	The {\tt define} special form allows you to associate an expression
+with a symbol. It has the syntax
+\begin{quote}
+	{\tt (define {\sl symbol  expr})}
+\end{quote}
+When a {\tt define} form is seen by horse, it associates {\sl expr} 
+with {\sl symbol}, so that {\sl symbol} now reduces to
+{\sl expr}.  Any previous association {\sl symbol} may have had is
+forgotten.  For example,
+\begin{quote}
+	{\sc horse>}{\tt (define add2 (lambda (x) (+ x 2)))}
+\end{quote}
+defines an expression, {\tt add2}, which adds two to its argument.
+
+	It is possible to redefine the built-in primitives of HORSE,
+although this is not recommended.
+When you redefine a primitive, a warning message is printed on the
+screen.  If you accidentally redefine a primitive, the only thing you can
+do to get the original primitive back is to exit the system, correct any
+files if necessary, and reload.
+
+\subsection{{\tt Rdefine}}
+
+	The {\tt rdefine} special form is similar to the {\tt define} special
+form, except that the expression is reduced before it is associated with
+the symbol.  It has the syntax
+\begin{quote}
+	{\tt (rdefine {\sl symbol  expr})}
+\end{quote}
+The {\tt rdefine} form is extremely useful as a software engineering
+tool.  An extended example of THOR/HORSE's unique abilities in this
+regard is given in Chapter~\ref{chapter-examples}.
+
+
+\subsection{{\tt Defstruct}}
+\label{sec-defstruct}
+	
+	The {\tt defstruct} special form is used to define new kinds of 
+compound data objects, called structures.    {\tt Defstruct} has
+the syntax
+\begin{quote}
+	{\tt(defstruct {\sl tag ${\mbox {\sl element}}^*$})}
+\end{quote}
+where {\sl tag} is the type of the structure, and 
+${\mbox {\sl element}}^*$ is zero or more names that identify particular
+elements
+within the structure.  (The term `type' is used rather loosely here,
+because THOR is an untyped language.)  
+
+	When it sees this form, HORSE defines an expression for creating 
+a structure instance of type {\sl tag}, which is associated with the
+symbol {\tt make-{\sl tag}}.  HORSE also defines expressions for 
+selecting a structure's
+elements, which are associated with the symbols {\tt{\sl tag}-{\sl
+element}}.  For example, the form
+\begin{quote}
+	{\tt (defstruct tree label branches)}
+\end{quote}
+defines a structure named {\tt tree}, which has two elements, {\tt
+label} and {\tt branches}.  The structure creating expression is
+associated with the symbol {\tt make-tree}, and a tree's elements may be
+accessed with {\tt tree-label} and {\tt tree-branches}.
+
+	
+
+\section{Commands}
+
+	There are only a handful of HORSE commands, each of which will be
+presented in alphabetical order.    Many of these are {\em toggle
+commands\/} that set the value of certain binary switches which control how
+HORSE and THOR behave.  Toggle commands can take an optional argument, which must be
+either {\tt on} or {\tt off}.  If a toggle command is entered without an
+argument, it's current switch setting is printed.
+\begin{quote}
+{\bf All horse commands should be preceded
+by a comma on the command line.}
+\end{quote}
+
+\subsection{{\tt EXIT}}
+
+	The {\tt exit} command terminates execution of HORSE and returns the user
+to the host system.
+
+\subsection{{\tt FORCE}}
+
+	The {\tt force} command toggles whether compound data objects are reduced
+lazily or eagerly.
+
+
+\subsection{{\tt LOAD}}
+
+	The {\tt load} command is used to read files into the HORSE
+environment.  This command takes a single argument, which is the name of
+the file.  Be aware that some file systems (UNIX in particular) are case
+sensitive, and HORSE is not.  If you make sure that your file names
+are either all upper case letters or all lower case letters, you
+won't have any trouble.
+
+\subsection{{\tt LOG}}
+
+	The {\tt log} command lets you make a log file which records everything
+that is printed on the screen during a HORSE session.  Logging
+is started with the command {\tt log {\sl filename}}, where {\sl
+filename} will be the name of the log file, and is stopped with the
+command {\tt log end}.  Needless to say, don't try to name your log file
+{\tt end}, or you won't get very far.
+
+
+\subsection{{\tt STATS}}
+
+	The {\tt stats} command toggles the printing of execution statistics
+after an expression is reduced.
+
+\subsection{{\tt STEP}}
+
+	The {\tt step} command toggles whether HORSE should fully reduce an
+expression or wait for the user to specify how many reductions to
+perform.  When the step switch is on, the user has control over how many
+reductions HORSE can perform on the {\em focus expression}.  When a new
+expression is entered at the HORSE prompt, it always becomes the focus
+expression.  (Note that this is only true of expressions, not defining
+forms or commands.)  The focus expression may be reduced by specifying the allowable
+reductions at the HORSE prompt.  This is done by entering a comma
+followed by an integer.  The focus expression may be completely reduced
+by entering two consecutive commas.  The reduced expression now
+becomes the focus expression.
+
+	An example of how stepping works is useful.  First, HORSE will be put
+into step mode:
+\begin{quote}
+{\samepage
+	{\sc horse>}{\tt ,step on}\\
+	{\sc step enabled}
+}
+\end{quote}
+Now we can step through a computation by
+specifying the maximum number of reductions that may be performed on 
+an expression at one time:
+\pagebreak
+\begin{quote}
+{\samepage
+	{\sc horse>}{\tt (+ 1 (+ 2 3))}\\
+	{\sc horse>}{\tt ,1}\\
+	{\sc (+ 1 5)}\\
+	{\sc 1 reductions this step.}\\
+	{\sc 1 reductions, total.}
+}
+\end{quote}
+When  (+ 1 (+ 2 3)) was entered at the prompt, it became the focus
+expression.  On the next line, HORSE is told to reduce this expression at
+most once, yielding the expression (+ 1 5), which now becomes the
+focus expression.  HORSE was kind enough to tell us the number of
+reductions that were performed during this step and the total number of
+reductions that have been performed on this expression since it was
+first entered at the prompt.  Continuing:
+\begin{quote}
+{\samepage
+	{\sc horse>}{\tt ,1}\\
+	{\sc 6}\\
+	{\sc 1 reductions this step.}\\
+	{\sc 2 reductions, total.}
+}
+\end{quote}
+You can completely reduce the focus expression by using the
+double comma, as in this example:
+\begin{quote}
+{\samepage
+	{\sc horse>}{\tt ((lambda (x) (if (< x 0) (minus x) x)) -18)}\\
+	{\sc horse>}{\tt ,1}\\
+	{\sc (if (< -18 0) (minus -18) -18)}\\
+	{\sc 1 reductions this step.}\\
+	{\sc 1 reductions, total.}\\
+	{\sc horse>}{\tt ,,}\\
+	{\sc 18}\\
+	{\sc 3 reductions this step.}\\
+	{\sc 4 reductions, total.}
+}
+\end{quote}
+
+	In reality, HORSE is always in step mode, but the number of
+reductions it allows when the user turns off step mode is very large.
+This number is not infinity, however, and it is possible to exhaust all
+of these reductions and still not be in normal form.  If this is the
+case, you should just enter the double comma command to continue  (you
+don't need to put HORSE in step mode for it to understand the double comma).
+
+\section{The Input Editor}
+\label{sec-edit}
+
+	HORSE is equipped with an input editor that helps you to see the
+structure of your expressions, lets you make minor changes without
+too many hassles, and maintains an input and output history which may be
+retrieved. 
+
+\subsection{Fence Matching}
+	To help keep track of parens, brackets, and braces,
+the input editor highlights matching fence pairs as they are
+entered.  If a matching fence is not found, the editor beeps.
+The editor will not let you enter an expression with mismatched or
+unmatched fence characters. 
+
+
+\subsection{Editing Commands}
+
+	The following is a description of the editing keystroke commands and their
+functions.   Most of the keystrokes are modeled
+after the Emacs command that performs the same function.
+Not all of the keystrokes indicated
+may be available on all systems. 
+
+\subsubsection{Cursor Movement Commands}
+\begin{tabbing}
+CTRL-F, Right-arrow\ \   \=move cursor right one character\\
+CTRL-Right-arrow \>move cursor to beginning of word to the right\\
+CTRL-B, Left-arrow \>move cursor left one character\\
+CTRL-Left-arrow \>move cursor to beginning of word to the left\\
+CTRL-P, Up-arrow \>move cursor one line upwards, or beginning of line\\
+CTRL-N, Down-arrow \>move cursor one line downwards, or end of line\\
+CTRL-A, Home \>move cursor to beginning of line\\
+CTRL-E, End \>move cursor to end of line
+\end{tabbing}
+
+\subsubsection{Deletion Commands}
+\begin{tabbing}
+CTRL-D, Delete\ \    \=delete the character under the cursor\\
+Backspace \>delete the character to the left of cursor\\
+CTRL-K \>delete all characters from cursor to end of line
+\end{tabbing}
+
+\subsection{History Commands}
+
+	The input and output histories maintain a record of recent input
+and output expressions and definitions.  (Note that commands are not kept.)
+These histories
+are kept in circular buffers of finite length, so only the most recent
+expressions are kept.  The contents of a buffer may be inserted at the
+current cursor position using the following keystrokes:
+\begin{quote}
+\begin{tabbing}
+CTRL-Y    \=yanks a string from the input history buffer\\
+CTRL-R \>yanks a string from the output history buffer
+\end{tabbing}
+\end{quote}
+The contents of a history may be cycled through by repeating the
+command keystroke;  when the end of the history is reached, an empty
+string is inserted at the cursor.
+

@@ -1,0 +1,107 @@
+This directory contains a version of HORSE that uses lambda expressions
+for lists and structures, curses for I/O, and works on UNIX machines, too.
+
+16 Oct
+Output logging added.
+Debug output supression added.
+Bugs with letrec corrected.  Binding offset was not maintained correctly;
+  also, incorrect env pointer was loaded when expanding a REC instruction.
+Output history added.
+
+17 Oct
+Fixed bug in parser.  When LET, LET*, or LETREC was in the head position,
+  any non-atomic args were not parsed.
+Added file name and line number to parser error reporting.
+Changed reductions, red_limit, total_reductions to be unsigned longs so
+  that more reductions can occur before reductions == red_limit.
+
+18 Oct
+Fixed bug in parser. YYVAL.INTVAL declaration changed from int to long.
+  The parser was incorrectly reading in large fixnum values.
+Bug with letrec corrected.  When a REC is being expanded, the env value
+  should be pushed on the stack *after* all ubv's have been pushed into
+  the env.
+
+1 Nov
+Working on a new EQUAL predicate.
+Improved the user screen output while in SUPRESS mode.
+
+6 Nov
+New EQUAL predicate completed.
+Fixed IF primitive so that the cut back is from primitive's address, and
+  not WS.  This makes sure IF's memory management works even if its 
+  conditional's memory management doesn't.
+Changed outstring stuff to check for CTRL-C user interrupt on IBM.
+Changed AND and OR primitives to evaluate all their arguments, if
+  necessary, to try and come up with a boolean answer.  Any non-boolean
+  args are carried along.  Previously, evaluation stopped when a non-boolean
+  arg was found.
+
+
+7 Nov
+Begin adding unification, which requires lots of basic changes to HORSE:
+Add a UNIFY and UNIFY* instruction.
+A reset-list is added, to keep track of unification bindings so they
+	can be undone if necessary.
+IP's (invisible pointers) are used to link value cells bound together 
+	by unification. (This makes it necessary to modify LOOKUP to chase
+	down IP's).
+LAMBDA in problem mode will push a pointer to its env entry if it is unbound, 
+	and in result mode will check to see if a value has been assigned via
+	unification.  If it has, the LAMBDA will dissappear by turning into
+	a no-op.
+UBV's in the graph are now called  EP's (environment pointers), and they
+	point to the value cell.  This meant changes to UBV, VAR, LAMBDA, and
+	EQUAL.
+Changed MAIN so that when reducing an old focus expression, the input
+	expression comes from parsing the textual output of the previous
+	reduction result.  This is instead of copying and shifting the graph.
+	This change was neccessary to overcome binding offset problems caused
+	by lambdas that dissappeared during unification.  How can you tell
+	which unbound variables know to be decremented without re-traversing
+	the graph?  You can't, so I am letting the printer & parser do the work.
+AND primitive changed to reset reset-list if its value is FALSE.
+A binding mechanism must be added to AND and OR to preserve unified values
+	if the AND or OR runs out of reductions before it completes.
+OR primitive changed to reset reset-list if there is no answer of TRUE.
+NOT primitive changed to reset reset-list if changing true to false.
+
+
+14 Nov
+A problem arising from unification:  it is no longer permissible to simply
+cut back the environment after a JOIN.  For just functional programming,
+it's OK to do this because all bindings are done through beta reductions and 
+we know the environment at any given point will not need to expand.  With 
+unification bindings, however, we don't know if new closures will be made
+for old variables.  Therefore, we risk loosing new variable bindings for
+closures that were stuck on top of freespace.
+My tenetative solution is to make UBV's 3 words long, so that closures will
+fit in them.
+
+
+18 Nov
+Modified printer to wrap body of LET, LAMBDA, LET* and LETREC's in a pair
+	of parens, so that printed expression could be parsed correctly.
+Added the primitives FLOOR, CEILING, and EXPT.
+
+
+21 Nov
+Because unification requires that reduced subgraphs be kept around for
+later use, these graphs are copied over into a HEAP area above the 
+environment.  This is strictly a kludge.  The COPY_GRAPH procedure will
+be used; it needed to be recovered from archived versions of HORSE.
+
+The primitives AND should reset the heap pointer to its original value
+upon failure.
+
+
+5 Dec
+Rewriting UNIFY and UNIFY* so that UNIFY becomes a PRIM_2.  This helps
+	consistency, which I really need right now.
+LAMBDA was changed back so that UBV's only take one memory space.  If a 
+	closure needs to be constructed, it can be done in the HEAP area.
+
+6 Dec
+Trying to figure out how to handle existential variables that need their
+	scope broadened.  Have modified OCCURS to mark those variables needing
+	to be lifted and to keep track of how far they need to be moved.

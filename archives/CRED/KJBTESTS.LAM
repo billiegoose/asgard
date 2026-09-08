@@ -1,0 +1,27 @@
+(define T1 (lambda (a b c d) (lambda (a b c) a b c) a b))
+(define t2 ((lambda (a b) a b) (lambda (a b) a b)))
+(define t3 ((lambda (a b) a) (lambda (a b) b)))
+(define t4 (lambda (a b c d) a))
+(define t5 (((lambda (a b c) ((a c) (b c))) (lambda (a b) a)) (lambda (a b) a)))
+(define t6 (lambda (a b c) ((lambda (d e f) d e f e b) (lambda (g h i) g a c h i))))
+(define t7 (lambda (a b c) (((lambda (d) d a) (b a))  ((((lambda (d) d a) (b a)) c) (lambda (d) d d)))))
+(define t8 (lambda (a b) ((lambda (c) (b c) (lambda (d) d a)) ((lambda (c) (b c) (lambda (d) d a)) (lambda (d) d a)))))
+(define t9 (lambda (a b) ((lambda (c) (c (c (c a)))) ((lambda (c d) d c) b))))
+(define t10 (lambda (a b) ((lambda (c) c a c) (lambda (c) c ((lambda (d) d) b)))))
+(define t11 ((lambda (a) a a) (lambda (a) (lambda (b) b) a)))
+(define t12 (lambda (a b c) (lambda (d) d (a d)) ((lambda (e) e b) c)))
+(define t13 (lambda (a b) (lambda (c) c (b c)) ((lambda (d) d b d) a)))
+(define t14 (lambda (a) (lambda (b) ((lambda (c) (lambda (d) d d b) c) (b a))) (lambda (e) e)))
+(define t15 (lambda (a b) (lambda (c) (a c) (b c)) (lambda (c) c b)))
+(define t16 (lambda (a b) (lambda (c) (lambda (d) d (d c)) (lambda (e) b e c)) (lambda (f) f a)))
+(define t17 (lambda (a b) (lambda (c) (lambda (d) (d (d c))) (lambda (e f) b e c)) (lambda (f) f a)))
+(define t18 (lambda (a b) (lambda (c) (lambda (d) (d (d c))) (lambda (d e) c e d)) (lambda (c) c a)))
+(define t19 (lambda (a b c) (lambda (d) (lambda (e) (lambda (f) e b) c) (lambda (f) d f)) a))
+(define t20 (lambda (a b) (lambda (c) (c a) (c b)) (lambda (c) (lambda (d) d) c)))
+(define t21 ((lambda (a b c) (a b) (a c)) (lambda (d) (lambda (e) e) d)))
+
+ 
+
+
+
+
