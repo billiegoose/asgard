@@ -143,6 +143,17 @@ flag "--no-upload" help="regenerate the local cast without uploading or updating
 '''
 run = 'uv run python tools/videos/generate.py "${usage_video?}" ${usage_no_upload:+--no-upload}'
 
+[tasks.benchmark]
+description = "Run all canonical benchmarks and update benchmarks.md"
+usage = """
+flag "--warmups <n>" help="Python warmup samples per backend" default="1"
+flag "--python-iterations <n>" help="Python measured samples per backend" default="5"
+flag "--breakout-iterations <n>" help="Breakout samples per backend" default="3"
+flag "--quantum <n>" help="THOR/RED2 contraction quantum" default="5000000"
+flag "--cycle-limit <n>" help="faithful RED2 cycle limit" default="2000000"
+"""
+run = 'uv run python tools/benchmark.py --warmups "${usage_warmups}" --python-iterations "${usage_python_iterations}" --breakout-iterations "${usage_breakout_iterations}" --quantum "${usage_quantum}" --cycle-limit "${usage_cycle_limit}"'
+
 [tasks.benchmark-breakout]
 description = "Benchmark deterministic Breakout across THOR, RED2, Rust, and WASM backends"
 usage = 'flag "--iterations <n>" help="samples per backend" default="3"'

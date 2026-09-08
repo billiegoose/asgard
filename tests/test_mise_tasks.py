@@ -338,27 +338,22 @@ def test_mise_hdl_prints_placeholder() -> None:
     assert result.stderr == ""
 
 
-def test_benchmark_python_task_forwards_all_public_options() -> None:
+def test_canonical_benchmark_task_updates_single_report() -> None:
     text = Path(".mise.toml").read_text()
-    assert "[tasks.benchmark-python]" in text
-    assert 'default="all"' in text
-    assert 'choices "all" "tak" "list" "struct" "game"' in text
-    assert '--benchmark "${usage_benchmark}"' in text
+    assert "[tasks.benchmark]" in text
+    assert "Run all canonical benchmarks and update benchmarks.md" in text
+    assert 'default="1"' in text
+    assert '--python-iterations "${usage_python_iterations}"' in text
+    assert '--breakout-iterations "${usage_breakout_iterations}"' in text
     assert '--warmups "${usage_warmups}"' in text
-    assert '--iterations "${usage_iterations}"' in text
     assert '--quantum "${usage_quantum}"' in text
     assert '--cycle-limit "${usage_cycle_limit}"' in text
+    assert "uv run python tools/benchmark.py" in text
 
 
-def test_breakout_benchmark_task_stanza_is_unchanged() -> None:
+def test_lower_level_benchmark_tasks_remain_available() -> None:
     text = Path(".mise.toml").read_text()
-    expected = (
-        "[tasks.benchmark-breakout]\n"
-        'description = "Benchmark deterministic Breakout across THOR, RED2, Rust, '
-        'and WASM backends"\n'
-        "usage = 'flag \"--iterations <n>\" help=\"samples per backend\" "
-        "default=\"3\"'\n"
-        "run = 'uv run python tools/videos/benchmark_breakout.py --iterations "
-        "\"${usage_iterations}\"'\n"
-    )
-    assert expected in text
+    assert "[tasks.benchmark-python]" in text
+    assert "[tasks.benchmark-breakout]" in text
+    assert "tools/benchmark_python_engines.py" in text
+    assert "tools/videos/benchmark_breakout.py" in text

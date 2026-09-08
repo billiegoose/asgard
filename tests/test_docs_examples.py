@@ -200,8 +200,8 @@ def test_examples_readme_embeds_latest_recordings() -> None:
     assert wasm_embed in readme
 
 
-def test_python_engine_benchmark_doc_describes_workloads_and_checksums() -> None:
-    text = Path("docs/python-engine-benchmarks.md").read_text()
+def test_canonical_benchmark_doc_describes_workloads_and_checksums() -> None:
+    text = Path("benchmarks.md").read_text()
     for name, expected in (
         ("tak", "15"),
         ("list", "300"),
@@ -212,12 +212,13 @@ def test_python_engine_benchmark_doc_describes_workloads_and_checksums() -> None
         assert f"`{expected}`" in text
     assert "Recursive application" in text
     assert "PAIR/list allocation" in text
-    assert "user-defined `STRUCT` allocation" in text
+    assert "user-defined STRUCT allocation" in text
     assert "Appendix-A GAME" in text
 
 
-def test_python_engine_benchmark_doc_states_methodology_contract() -> None:
-    text = Path("docs/python-engine-benchmarks.md").read_text()
+def test_canonical_benchmark_doc_states_methodology_contract() -> None:
+    text = Path("benchmarks.md").read_text()
+    assert "mise run benchmark" in text
     assert "untimed parity preflight" in text
     assert "backend-specific setup happen outside the timed region" in text
     assert "translated before timing" in text
@@ -228,7 +229,16 @@ def test_python_engine_benchmark_doc_states_methodology_contract() -> None:
         in text
     )
     assert "Warmups" in text and "excluded from statistics" in text
-    assert "median measured time" in text
-    assert "no successful partial CSV" in text
-    assert "benchmark-breakout" in text
+    assert "Median measured time" in text
+    assert "not directly comparable instruction counts" in text
+    assert "End-to-end Breakout backend benchmark" in text
     assert "subprocesses" in text
+    assert "temporary `q = 0` states" in text
+    assert "Default-capacity acceptance checks" in text
+    assert "benchmark-python" in text
+    assert "benchmark-breakout" in text
+
+
+def test_superseded_benchmark_docs_are_removed() -> None:
+    assert not Path("docs/python-engine-benchmarks.md").exists()
+    assert not Path("docs/breakout-benchmarks.md").exists()
