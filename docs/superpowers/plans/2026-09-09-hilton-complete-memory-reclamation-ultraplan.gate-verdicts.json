@@ -1,0 +1,187 @@
+{
+  "tasks": {
+    "1": {
+      "hash": "68d847c29122021bbb89e84b479533ce86f526a03b1d0dcc8cb62491832cb63c",
+      "verdict": "pass",
+      "reason": "No issues found: the proposed checks cover M1\u2013M3, including a validated higher saved environment path, and the single-word and three-word reservation cases are satisfiable."
+    },
+    "2": {
+      "hash": "110ff85a761823805fa231c8af7c3fc0cdef87406fa907259139be4c3d2a84c8",
+      "verdict": "pass",
+      "reason": "No issues found."
+    },
+    "3": {
+      "hash": "b32d1a0597e476643197abcbd729c128ad6a050e52f158ad1c23cd5420d48011",
+      "verdict": "pass",
+      "reason": "No missing decisive evidence: legs (a)\u2013(c) cover M1\u2013M3 at the machine layer, and the stated concrete constraints are jointly satisfiable."
+    },
+    "4": {
+      "hash": "76afa31ce1571fe816b8e2bc212b73ab3e0f258c912491df68947778a5b05ae5",
+      "verdict": "pass",
+      "reason": "The exam covers M1 reclamation, M2 live-data preservation including satisfiable q=0 residuals, and M3 bounded workspace reuse without forbidden calls; no decisive evidence is missing."
+    },
+    "5": {
+      "hash": "630802b4138eaf3c58cbf10e908e140d4bc472e350a4da12af6074bf5d7acbc8",
+      "verdict": "pass",
+      "reason": "The proposed exam covers M1\u2013M3 at the machine layer with satisfiable concrete conditions; no decisive evidence is missing."
+    },
+    "6": {
+      "hash": "720f03b31fcd31e840ec6bdd30b0e77737dfc25fcbcc88f8318d8045699ddd16",
+      "verdict": "pass",
+      "reason": "No issues found."
+    },
+    "7": {
+      "hash": "0043667455559abb134e6555b7165482d43efc6c466266f8f1722c887ec60330",
+      "verdict": "pass",
+      "reason": "No missing decisive evidence: legs (a)\u2013(c) cover M1\u2013M3 at the graph, lifetime, and public-residual layers, and q=0 and the other concrete conditions are satisfiable."
+    },
+    "8": {
+      "hash": "a0a54ee68551472843420fd6e791511765efceaad5c48e30002975ddf6b1c47f",
+      "verdict": "pass",
+      "reason": "The proposed exam covers M1\u2013M3, including sharing, pointer ownership, exact recharge boundaries, reclaimed-address reuse, and atomic failures, with no contradictory concrete literals."
+    },
+    "9": {
+      "hash": "13e7a6a7528a4c4a508496cdf95f8c00af1f5ceff4d8fa4922a326147738475d",
+      "verdict": "pass",
+      "reason": "No issues found."
+    },
+    "10": {
+      "hash": "fa37258325211c568ef5b507ac6254441d116262af01fae46f3051dcd0f68545",
+      "verdict": "pass",
+      "reason": "No issues found."
+    },
+    "11": {
+      "hash": "c95a6d38e1125c771fda6d4a76b06018d71161e1e8c99b66486e4f3abeceee3a",
+      "verdict": "pass",
+      "reason": "The satisfiable exam covers M1\u2019s integrated checks and required cases and M2\u2019s baseline preservation and failure gates, including explicit exactly-once counts and ordering."
+    }
+  },
+  "tally": {
+    "dispatched": 17,
+    "rejected": 6,
+    "round_1": 11,
+    "round_2": 6
+  },
+  "history": [
+    {
+      "round": 1,
+      "verdicts": [
+        {
+          "task": "1",
+          "hash": "93e613ea3a2eb8bf5b6a702b9834d0e26b89ba6b1d10226305bf02d9debfdcc3",
+          "verdict": "fail",
+          "reason": "M3 lacks decisive evidence that the higher env names a valid saved path, so its collision and headroom checks can pass without proving that clause."
+        },
+        {
+          "task": "2",
+          "hash": "b58494fd3837fca286229fca51585a4fcfc8bc40db11d99a23c0d3190a129196",
+          "verdict": "fail",
+          "reason": "M1 lacks decisive evidence that every committed named case executes archived bodies through run_case\u2019s headless C adapter and returns normalized semantic results, sharing relations, and both ws/fs boundary events; M2 and M3 are covered."
+        },
+        {
+          "task": "3",
+          "hash": "b32d1a0597e476643197abcbd729c128ad6a050e52f158ad1c23cd5420d48011",
+          "verdict": "pass",
+          "reason": "No missing decisive evidence: legs (a)\u2013(c) cover M1\u2013M3 at the machine layer, and the stated concrete constraints are jointly satisfiable."
+        },
+        {
+          "task": "4",
+          "hash": "76afa31ce1571fe816b8e2bc212b73ab3e0f258c912491df68947778a5b05ae5",
+          "verdict": "pass",
+          "reason": "The exam covers M1 reclamation, M2 live-data preservation including satisfiable q=0 residuals, and M3 bounded workspace reuse without forbidden calls; no decisive evidence is missing."
+        },
+        {
+          "task": "5",
+          "hash": "630802b4138eaf3c58cbf10e908e140d4bc472e350a4da12af6074bf5d7acbc8",
+          "verdict": "pass",
+          "reason": "The proposed exam covers M1\u2013M3 at the machine layer with satisfiable concrete conditions; no decisive evidence is missing."
+        },
+        {
+          "task": "6",
+          "hash": "bca3f94cd843b2b0b1f115910fcf2448861775e45b14c5a935f3992d34d276b9",
+          "verdict": "fail",
+          "reason": "The exam lacks decisive assertions that construction reclaims only dead spines (M2) and that recursive fixtures preserve q-prefixes and final results under poison-and-reuse (M3)."
+        },
+        {
+          "task": "7",
+          "hash": "0043667455559abb134e6555b7165482d43efc6c466266f8f1722c887ec60330",
+          "verdict": "pass",
+          "reason": "No missing decisive evidence: legs (a)\u2013(c) cover M1\u2013M3 at the graph, lifetime, and public-residual layers, and q=0 and the other concrete conditions are satisfiable."
+        },
+        {
+          "task": "8",
+          "hash": "aa91109a57f7cfb450d31ec4d9af939e6942ba7d477c6ab3a8214d18b0338ac4",
+          "verdict": "fail",
+          "reason": "M2 lacks decisive evidence that recharge resets fsp and makes reclaimed workspace reusable; initialized free_space and semantic parity alone do not establish this."
+        },
+        {
+          "task": "9",
+          "hash": "d9304e3cd9440ce9f5a6f65c59c8e4ee6bb4c40959f0c3718d8b2107592bd369",
+          "verdict": "fail",
+          "reason": "M3 lacks decisive evidence that diagnostics require explicit opt-in: absence of accumulated default events does not exclude diagnostics emitted by default."
+        },
+        {
+          "task": "10",
+          "hash": "fa37258325211c568ef5b507ac6254441d116262af01fae46f3051dcd0f68545",
+          "verdict": "pass",
+          "reason": "No issues found."
+        },
+        {
+          "task": "11",
+          "hash": "c77846f02cd117e1ce2f8ea48042c1d5d4aee8727fdf578cff243d2755beaadb",
+          "verdict": "fail",
+          "reason": "M1 is covered, but M2 lacks an explicit exactly-once acceptance gate: effects can be duplicated or omitted without violating effect order."
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "verdicts": [
+        {
+          "task": "1",
+          "hash": "68d847c29122021bbb89e84b479533ce86f526a03b1d0dcc8cb62491832cb63c",
+          "verdict": "pass",
+          "reason": "No issues found: the proposed checks cover M1\u2013M3, including a validated higher saved environment path, and the single-word and three-word reservation cases are satisfiable."
+        },
+        {
+          "task": "2",
+          "hash": "110ff85a761823805fa231c8af7c3fc0cdef87406fa907259139be4c3d2a84c8",
+          "verdict": "pass",
+          "reason": "No issues found."
+        },
+        {
+          "task": "6",
+          "hash": "720f03b31fcd31e840ec6bdd30b0e77737dfc25fcbcc88f8318d8045699ddd16",
+          "verdict": "pass",
+          "reason": "No issues found."
+        },
+        {
+          "task": "8",
+          "hash": "a0a54ee68551472843420fd6e791511765efceaad5c48e30002975ddf6b1c47f",
+          "verdict": "pass",
+          "reason": "The proposed exam covers M1\u2013M3, including sharing, pointer ownership, exact recharge boundaries, reclaimed-address reuse, and atomic failures, with no contradictory concrete literals."
+        },
+        {
+          "task": "9",
+          "hash": "13e7a6a7528a4c4a508496cdf95f8c00af1f5ceff4d8fa4922a326147738475d",
+          "verdict": "pass",
+          "reason": "No issues found."
+        },
+        {
+          "task": "11",
+          "hash": "c95a6d38e1125c771fda6d4a76b06018d71161e1e8c99b66486e4f3abeceee3a",
+          "verdict": "pass",
+          "reason": "The satisfiable exam covers M1\u2019s integrated checks and required cases and M2\u2019s baseline preservation and failure gates, including explicit exactly-once counts and ordering."
+        }
+      ],
+      "run_ids": [
+        "ff103dbc-7737-4355-9aad-6403327d3757",
+        "5e42547b-cd71-4e16-aad7-4466cfe98970",
+        "e3879b0a-1c8b-4710-a63f-411a48896072",
+        "a00448df-bdb4-4ae8-87d1-2761a7a95210",
+        "1e144bc9-19d0-447e-b9e2-26ab54c9fa90",
+        "185d132f-5050-4150-b27d-643e0e20d0ac"
+      ]
+    }
+  ]
+}
