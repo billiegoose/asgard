@@ -473,3 +473,53 @@ def test_red2_io_uses_one_faithful_machine_for_entire_program(
     assert to_source(result) == "1700000000789"
     assert b"".join(host.writes) == b"AB"
     assert machine_loads == 1
+
+
+@pytest.mark.parametrize("gap,expected", [(4096, "checkpoint"), (4097, "refresh")])
+def test_host_headroom_uses_free_space_with_valid_higher_saved_env(
+    monkeypatch: pytest.MonkeyPatch,
+    gap: int,
+    expected: str,
+) -> None:
+    from red2_engine.mured import MuredMachine, MuredOpcode, Word
+
+    original_resume = MuredMachine.resume_host_call
+    original_checkpoint = MuredMachine.checkpoint_quantum
+    original_refresh = MuredMachine.refresh_quantum
+    decisions: list[str] = []
+    machines: list[MuredMachine] = []
+
+    def resume(machine: MuredMachine, word: Word) -> Any:
+        result = original_resume(machine, word)
+        state = machine.state
+        state.free_space = state.fsp + gap
+        state.env = 8188
+        state.memory[8188] = Word(MuredOpcode.PNP, 8190, False)
+        state.memory[8190] = Word(MuredOpcode.INT, 73, False)
+        state.memory[8191] = Word(MuredOpcode.PNP, 8192, False)
+        # A genuine saved path, not an out-of-arena env used to fake headroom.
+        machine._validate_state()
+        binding = machine.lookup(0)
+        assert binding == 8190
+        assert state.memory[binding] == Word(MuredOpcode.INT, 73, False)
+        assert state.memory[8191] == Word(MuredOpcode.PNP, len(state.memory), False)
+        assert state.env - state.fsp > 4096
+        machines.append(machine)
+        return result
+
+    def checkpoint(machine: MuredMachine, quantum: int) -> Any:
+        decisions.append("checkpoint")
+        return original_checkpoint(machine, quantum)
+
+    def refresh(machine: MuredMachine, quantum: int) -> Any:
+        decisions.append("refresh")
+        return original_refresh(machine, quantum)
+
+    monkeypatch.setattr(MuredMachine, "resume_host_call", resume)
+    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", checkpoint)
+    monkeypatch.setattr(MuredMachine, "refresh_quantum", refresh)
+    result, host = run("(UART-TX 65)", memory_words=8192)
+    assert result == "NIL"
+    assert host.writes == [b"A"]
+    assert len(machines) == 1
+    assert decisions == [expected]

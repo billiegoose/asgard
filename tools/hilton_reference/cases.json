@@ -1,0 +1,1041 @@
+[
+  {
+    "id": "atomic-child-return",
+    "technique": "environment-return",
+    "expected_result": {
+      "type": "INT",
+      "value": 42
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "jump_subgraph",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "make_closure",
+        "ws": 13,
+        "fs": 198
+      },
+      {
+        "at": "push_marker",
+        "ws": 13,
+        "fs": 196
+      },
+      {
+        "at": "inst_join",
+        "ws": 10,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "RED.C:jump_subgraph",
+      "RED.C:make_closure",
+      "RED.C:push_marker",
+      "RED.C:inst_join"
+    ],
+    "derivation": "Saved fs=200. Two closure words take 198..199. env remains 200, so marker plus slot take 196..197. Atomic HEAD destination 10 replaces JOIN12/INT13 and restores precisely 200.",
+    "expected_repairs": []
+  },
+  {
+    "id": "closure-sharing",
+    "technique": "closure-sharing",
+    "expected_result": {
+      "destination": 42,
+      "cell": 42,
+      "second_use": 42
+    },
+    "expected_aliases": [
+      {
+        "nodes": [
+          10,
+          11,
+          190
+        ],
+        "relation": "shared-value"
+      }
+    ],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "parent",
+        "ws": 13,
+        "fs": 180
+      },
+      {
+        "at": "jump_subgraph",
+        "ws": 13,
+        "fs": 180
+      },
+      {
+        "at": "make_closure",
+        "ws": 13,
+        "fs": 178
+      },
+      {
+        "at": "inst_join",
+        "ws": 11,
+        "fs": 180
+      },
+      {
+        "at": "inst_closure",
+        "ws": 11,
+        "fs": 180
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_join",
+      "RED.C:inst_closure"
+    ],
+    "derivation": "Older closure 190 is outside child [178,180). JOIN updates that cell and destination10, drops two tail words; second CLOSURE11 reads the updated cell without entering code30.",
+    "expected_repairs": []
+  },
+  {
+    "id": "join-pointer-live",
+    "technique": "atomic-join",
+    "expected_result": {
+      "nodes": [
+        {
+          "offset": 10,
+          "class": 2,
+          "type": 2,
+          "operand": 30
+        }
+      ]
+    },
+    "expected_aliases": [
+      {
+        "nodes": [
+          10,
+          13
+        ],
+        "target": 30
+      }
+    ],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "jump_subgraph",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "inst_join",
+        "ws": 13,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_join"
+    ],
+    "derivation": "HEAD PTR30 is atomic by class but its graph is live: JOIN must preserve ws13, publishing the same pointer in destination10. Atomic scalar contraction is separately covered by atomic-child-return.",
+    "expected_repairs": []
+  },
+  {
+    "id": "lambda-consume",
+    "technique": "lambda-suffix",
+    "expected_result": {
+      "type": "INT",
+      "value": 42
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 11,
+        "fs": 200
+      },
+      {
+        "at": "inst_lambda",
+        "ws": 10,
+        "fs": 199
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_lambda",
+      "RED.C:push_marker"
+    ],
+    "derivation": "One scalar argument is copied into env199 and consumes precisely descriptor11; no marker is needed since env==fs.",
+    "expected_repairs": []
+  },
+  {
+    "id": "rup-contract",
+    "technique": "rup-suffix",
+    "expected_result": {
+      "argcount": 0,
+      "contexts": [
+        190,
+        190
+      ],
+      "recstarts": [
+        30,
+        30
+      ]
+    },
+    "expected_aliases": [
+      {
+        "nodes": [
+          181,
+          184
+        ],
+        "target": 190
+      },
+      {
+        "nodes": [
+          182,
+          185
+        ],
+        "target": 30
+      }
+    ],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 12,
+        "fs": 200
+      },
+      {
+        "at": "parent",
+        "ws": 12,
+        "fs": 180
+      },
+      {
+        "at": "inst_rup",
+        "ws": 10,
+        "fs": 180
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_rup"
+    ],
+    "derivation": "RUP32 count2 removes two descriptors and sets both REC closure contexts to190 and recstart=32-2=30, without allocating environments.",
+    "expected_repairs": []
+  },
+  {
+    "id": "primitive-add",
+    "technique": "primitive-suffix",
+    "expected_result": {
+      "type": "INT",
+      "value": 42
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 13,
+        "fs": 200
+      },
+      {
+        "at": "prim_add",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "ARITH.C:prim_add",
+      "ARITH.C:binary_arithmetic"
+    ],
+    "derivation": "40+2 overwrites arg2 at11; argument12 and primitive13 are dead, fs unchanged.",
+    "expected_repairs": []
+  },
+  {
+    "id": "if-true",
+    "technique": "if-discard",
+    "expected_result": {
+      "selected": 30,
+      "value": 7,
+      "stack": 0,
+      "aux": 9999
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "prim_if",
+        "ws": 10,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_if"
+    ],
+    "derivation": "IF14 discards test13 and both descriptors12/11, restores selected PTR context, discards other context, and resumes selected code without demanding the other branch.",
+    "expected_repairs": []
+  },
+  {
+    "id": "if-false",
+    "technique": "if-discard",
+    "expected_result": {
+      "selected": 40,
+      "value": 9,
+      "stack": 0,
+      "aux": 9999
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "prim_if",
+        "ws": 10,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_if"
+    ],
+    "derivation": "IF14 discards test13 and both descriptors12/11, restores selected PTR context, discards other context, and resumes selected code without demanding the other branch.",
+    "expected_repairs": []
+  },
+  {
+    "id": "and-discard",
+    "technique": "and-discard",
+    "expected_result": {
+      "value": false,
+      "stack": 0,
+      "discarded_types": [
+        29,
+        29
+      ]
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "prim_and",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_and",
+      "PRIMS.C:make_result"
+    ],
+    "derivation": "Decisive Boolean13 discards two saved contexts for PTR12/11. make_result overwrites11 and ws=11. Invalid NOOP targets30/40 must remain untouched.",
+    "expected_repairs": []
+  },
+  {
+    "id": "or-discard",
+    "technique": "or-discard",
+    "expected_result": {
+      "value": true,
+      "stack": 0,
+      "discarded_types": [
+        29,
+        29
+      ]
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "prim_or",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_or",
+      "PRIMS.C:make_result"
+    ],
+    "derivation": "Decisive Boolean13 discards two saved contexts for PTR12/11. make_result overwrites11 and ws=11. Invalid NOOP targets30/40 must remain untouched.",
+    "expected_repairs": []
+  },
+  {
+    "id": "y-reconstruct",
+    "technique": "y-reconstruction",
+    "expected_result": {
+      "reconstruction": {
+        "argument_class": 1,
+        "argument_type": 2,
+        "argument_target": 20,
+        "code": 30,
+        "stack": 1,
+        "saved_env": 200,
+        "mode": 1,
+        "argcount": 1
+      },
+      "recursive_graph": [
+        {
+          "offset": 20,
+          "class": 1,
+          "type": 2,
+          "operand": 30
+        },
+        {
+          "offset": 21,
+          "class": 2,
+          "type": 6,
+          "operand": "y"
+        }
+      ],
+      "function_graph": [
+        {
+          "offset": 30,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 31,
+          "class": 2,
+          "type": 4,
+          "operand": 42
+        }
+      ],
+      "resumed": {
+        "type": 4,
+        "value": 42,
+        "stack": 0,
+        "reductions": 2,
+        "binding_type": 9,
+        "closure_code": 20,
+        "closure_env": 200,
+        "binding": 196,
+        "binding_target": 198,
+        "marker_type": 13,
+        "marker_target": 200
+      },
+      "traversed_argument": {
+        "type": 4,
+        "value": 42,
+        "stack": 0,
+        "reductions": 2,
+        "limit": 2
+      }
+    },
+    "expected_aliases": [
+      {
+        "nodes": [
+          20
+        ],
+        "register": "pc",
+        "target": 30
+      }
+    ],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 11,
+        "fs": 200
+      },
+      {
+        "at": "prim_y",
+        "ws": 11,
+        "fs": 200
+      },
+      {
+        "at": "resume_f",
+        "ws": 11,
+        "fs": 196
+      },
+      {
+        "at": "traverse_argument",
+        "ws": 61,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_y",
+      "RED.C:red",
+      "RED.C:inst_lambda",
+      "RED.C:make_closure",
+      "RED.C:push_marker",
+      "RED.C:reduce",
+      "RED.C:inst_ptr",
+      "RED.C:inst_prim_0"
+    ],
+    "derivation": "Code20/21 is Y applied to PTR30; complete f30/31 is lambda x.42. PTR descriptor11 owns saved context200 on stack1. Y replaces11 with PTR20 and resumes f30, retaining stack1/context200 and ws11/fs200. Resuming f consumes that context into CL_ENV199/CL_PTR198 (code20), bridges env200 != fs198 with MARKER197->200, binds CLOSURE196->198, and returns INT42 at11 with stack0 after two total contractions (Y + lambda). The snapshotted pc alias is observed immediately after Y. Traversing published argument20 via reduce with workspace60, freespace200 and quantum2 executes PTR/Y/lambda and returns INT42 at61, stack0, reductions2; reduce restores fs200. No cyclic knot or uninitialized code is published.",
+    "expected_repairs": []
+  },
+  {
+    "id": "rec-q0",
+    "technique": "rec-reconstruction",
+    "expected_result": {
+      "nodes": [
+        {
+          "offset": 11,
+          "class": 0,
+          "type": 25,
+          "operand": 50
+        },
+        {
+          "offset": 12,
+          "class": 0,
+          "type": 27,
+          "operand": 1
+        },
+        {
+          "offset": 13,
+          "class": 2,
+          "type": 3,
+          "operand": 0
+        }
+      ],
+      "reconstruction": {
+        "pc": 12,
+        "mode": 2,
+        "stack": 1,
+        "saved_env": 198,
+        "env": 198,
+        "binding_offset": 1,
+        "marker_target": 191
+      },
+      "binding_graph": [
+        {
+          "offset": 50,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 51,
+          "class": 2,
+          "type": 4,
+          "operand": 42
+        }
+      ],
+      "returned_nodes": [
+        {
+          "offset": 11,
+          "class": 0,
+          "type": 25,
+          "operand": 15
+        },
+        {
+          "offset": 12,
+          "class": 0,
+          "type": 27,
+          "operand": 1
+        },
+        {
+          "offset": 13,
+          "class": 2,
+          "type": 3,
+          "operand": 0
+        }
+      ],
+      "returned_binding": [
+        {
+          "offset": 15,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 16,
+          "class": 2,
+          "type": 4,
+          "operand": 42
+        }
+      ],
+      "returned": {
+        "root": 11,
+        "stack": 0,
+        "env": 198,
+        "binding_offset": 0,
+        "reductions": 0,
+        "limit": 0,
+        "minimum_fs": 197
+      },
+      "traversed": {
+        "type": 4,
+        "value": 42,
+        "stack": 0,
+        "reductions": 0,
+        "limit": 1
+      }
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 10,
+        "fs": 200
+      },
+      {
+        "at": "inst_rec",
+        "ws": 13,
+        "fs": 198
+      },
+      {
+        "at": "return_residual",
+        "ws": 16,
+        "fs": 198
+      },
+      {
+        "at": "traverse_residual",
+        "ws": 61,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_rec",
+      "RED.C:inst_rec_1",
+      "RED.C:lookup",
+      "RED.C:push_marker",
+      "RED.C:red",
+      "RED.C:inst_rup",
+      "RED.C:inst_letrec",
+      "RED.C:jump_subgraph",
+      "RED.C:inst_lambda",
+      "RED.C:inst_join",
+      "RED.C:reduce",
+      "RED.C:inst_var",
+      "RED.C:init_stats",
+      "RED.C:get_stats"
+    ],
+    "derivation": "REC40 leaves workspace STOP10 intact. With no reductions, one LETREC30 plus RUP31 are copied to11/12 and VAR0 to13. lookup(190,1)=191 differs from fs200: marker199->191 and UBV198 consume two slots. RESULT/pc12 retains context198 on stack1, binding_offset1. Complete binding50/51 is lambda x.42. Archived red returns through RUP12 and LETREC11: saved context198 is popped, JOIN14 saves fs198, and lambda50 adds UBV197 (binding_offset2) and copies to15; INT42 copies to16. Lambda return and LETREC JOIN unwind binding_offset to0; JOIN restores fs198, publishes LETREC11->15 and returns via STOP10 with stack0, ws16, reductions0. The residual is letrec x=42 in x, not a recursive value computed at q=0. Archived reduce traverses this published residual at workspace60 with quantum1: LETREC binds atomic42 at199, RUP removes descriptor61, VAR0 emits42 at61 without any counted contraction; return restores fs200. Published residual observations have no repeated pointer targets. Archived bounded statistics observe minimum fs197 during the child, independently of the restored fs198 event.",
+    "expected_repairs": []
+  },
+  {
+    "id": "equal-scratch",
+    "technique": "equal-scratch",
+    "expected_result": {
+      "type": "BOOL",
+      "value": false
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 12,
+        "fs": 200
+      },
+      {
+        "at": "prim_equal",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "equal_convert",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "equal_star_split",
+        "ws": 26,
+        "fs": 200
+      },
+      {
+        "at": "red",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_equal",
+      "PRIMS.C:prim_equal_star",
+      "PRIMS.C:nodes_equal",
+      "PRIMS.C:make_result",
+      "RED.C:jump_subgraph",
+      "RED.C:red",
+      "RED.C:inst_join"
+    ],
+    "derivation": "Different application graphs (1 2) and (1 3): EQUAL reserves primitive plus count slot, EQUAL* splits to 3 AND spine words + two 4-word equal* graphs + JOIN =12 scratch words. Equal first operands and unequal heads yield false; JOIN to HEAD11 discards entire scratch suffix and restores fs200. Strict arguments are supplied in already reduced form.",
+    "expected_repairs": []
+  },
+  {
+    "id": "equal-star-wrap",
+    "technique": "equal-star-wrap",
+    "expected_result": {
+      "nodes": [
+        {
+          "offset": 11,
+          "class": 1,
+          "type": 2,
+          "operand": 18
+        },
+        {
+          "offset": 12,
+          "class": 1,
+          "type": 2,
+          "operand": 15
+        },
+        {
+          "offset": 13,
+          "class": 2,
+          "type": 6,
+          "operand": "equal"
+        },
+        {
+          "offset": 14,
+          "class": 2,
+          "type": 6,
+          "operand": "equal_star"
+        },
+        {
+          "offset": 15,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 16,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 17,
+          "class": 2,
+          "type": 3,
+          "operand": 0
+        },
+        {
+          "offset": 18,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 19,
+          "class": 0,
+          "type": 1,
+          "operand": "binder"
+        },
+        {
+          "offset": 20,
+          "class": 2,
+          "type": 3,
+          "operand": 1
+        }
+      ]
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "prim_equal_star",
+        "ws": 20,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_equal_star",
+      "PRIMS.C:wrap_lambdas"
+    ],
+    "derivation": "At q=0 the two VAR arguments each get two lambdas and a HEAD copy (3+3 words). Descriptors12/11 target15/18; count13 becomes EQUAL. No environment allocation or false Boolean answer.",
+    "expected_repairs": []
+  },
+  {
+    "id": "copy-shift",
+    "technique": "copy-shift-forwarding",
+    "expected_result": {
+      "nodes": [
+        {
+          "offset": 80,
+          "class": 1,
+          "type": 2,
+          "operand": 83
+        },
+        {
+          "offset": 81,
+          "class": 1,
+          "type": 2,
+          "operand": 83
+        },
+        {
+          "offset": 82,
+          "class": 2,
+          "type": 4,
+          "operand": 9
+        },
+        {
+          "offset": 83,
+          "class": 1,
+          "type": 4,
+          "operand": 1
+        },
+        {
+          "offset": 84,
+          "class": 2,
+          "type": 4,
+          "operand": 2
+        }
+      ]
+    },
+    "expected_aliases": [
+      {
+        "nodes": [
+          30,
+          60,
+          61
+        ],
+        "target": 63
+      },
+      {
+        "nodes": [
+          80,
+          81
+        ],
+        "target": 83
+      }
+    ],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 50,
+        "fs": 200
+      },
+      {
+        "at": "copy_graph",
+        "ws": 50,
+        "fs": 200
+      },
+      {
+        "at": "shift_memory",
+        "ws": 50,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "MAIN.C:copy_graph",
+      "MAIN.C:shift_memory"
+    ],
+    "derivation": "Three-word source spine10..12 refers twice to two-word graph30..31; copy60..64 forwards source30 once via MARKER and omits garbage40. copy returns last used64 despite its misleading comment. shift to80 adds20 to internal PTRs, returns84. Neither routine updates ws/fs.",
+    "expected_repairs": []
+  },
+  {
+    "id": "reduce-identity",
+    "technique": "reduce-reset",
+    "expected_result": {
+      "type": "INT",
+      "value": 42
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 10,
+        "fs": 200
+      },
+      {
+        "at": "reduce",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "RED.C:reduce",
+      "RED.C:red",
+      "RED.C:inst_lambda",
+      "RED.C:inst_var"
+    ],
+    "derivation": "Full archived reduction of ((lambda x x) 42): consumes argument, looks up42, returns HEAD at11, then reduce resets fs from199 to200.",
+    "expected_repairs": []
+  },
+  {
+    "id": "promote-left-pointer",
+    "technique": "equal-star-head-promotion",
+    "expected_result": {
+      "type": "BOOL",
+      "value": true
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "promote",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "retry",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_equal_star",
+      "PRIMS.C:nodes_equal",
+      "PRIMS.C:make_result"
+    ],
+    "expected_repairs": [
+      "equal-star-head-promotion"
+    ],
+    "derivation": "Exactly one operand is PTR to a HEAD integer; the other is immediate INT7. Promote only the pointer-tagged operand, preserve both boundaries, retry, then overwrite result11 with comparison. Left pointer contains7 (true); right pointer contains9 (false). Original C dereferences the immediate integer as a pointer; adapter-only per-operand guards are required."
+  },
+  {
+    "id": "promote-right-pointer",
+    "technique": "equal-star-head-promotion",
+    "expected_result": {
+      "type": "BOOL",
+      "value": false
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "promote",
+        "ws": 14,
+        "fs": 200
+      },
+      {
+        "at": "retry",
+        "ws": 11,
+        "fs": 200
+      }
+    ],
+    "required_functions": [
+      "PRIMS.C:prim_equal_star",
+      "PRIMS.C:nodes_equal",
+      "PRIMS.C:make_result"
+    ],
+    "expected_repairs": [
+      "equal-star-head-promotion"
+    ],
+    "derivation": "Exactly one operand is PTR to a HEAD integer; the other is immediate INT7. Promote only the pointer-tagged operand, preserve both boundaries, retry, then overwrite result11 with comparison. Left pointer contains7 (true); right pointer contains9 (false). Original C dereferences the immediate integer as a pointer; adapter-only per-operand guards are required."
+  },
+  {
+    "id": "ubv-equal",
+    "technique": "ubv-index-equality",
+    "expected_result": {
+      "type": "BOOL",
+      "value": true
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 10,
+        "fs": 200
+      },
+      {
+        "at": "context",
+        "ws": 10,
+        "fs": 190
+      },
+      {
+        "at": "first_variable",
+        "ws": 11,
+        "fs": 190
+      },
+      {
+        "at": "second_variable",
+        "ws": 12,
+        "fs": 190
+      },
+      {
+        "at": "prim_equal",
+        "ws": 11,
+        "fs": 190
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_var",
+      "RED.C:lookup",
+      "PRIMS.C:prim_equal",
+      "PRIMS.C:nodes_equal"
+    ],
+    "expected_repairs": [
+      "ubv-index-equality"
+    ],
+    "derivation": "One traversal binding_offset=2: environment entries contain absolute UBV labels2 and1. Archived inst_var copies index fields unchanged. The two variables select the same label2 or different labels2/1. Same labels make true in result11; different free labels must retain residual EQUAL at13, not conclude false. Original nodes_equal treats small indices as pointers. Repair compares op.index only for same-coordinate UBVs; no cross-scope identity is assumed."
+  },
+  {
+    "id": "ubv-unequal",
+    "technique": "ubv-index-equality",
+    "expected_result": {
+      "nodes": [
+        {
+          "offset": 11,
+          "class": 1,
+          "type": 12,
+          "operand": 2
+        },
+        {
+          "offset": 12,
+          "class": 1,
+          "type": 12,
+          "operand": 1
+        },
+        {
+          "offset": 13,
+          "class": 2,
+          "type": 6,
+          "operand": "equal"
+        }
+      ]
+    },
+    "expected_aliases": [],
+    "expected_events": [
+      {
+        "at": "initial",
+        "ws": 10,
+        "fs": 200
+      },
+      {
+        "at": "context",
+        "ws": 10,
+        "fs": 190
+      },
+      {
+        "at": "first_variable",
+        "ws": 11,
+        "fs": 190
+      },
+      {
+        "at": "second_variable",
+        "ws": 12,
+        "fs": 190
+      },
+      {
+        "at": "prim_equal",
+        "ws": 13,
+        "fs": 190
+      }
+    ],
+    "required_functions": [
+      "RED.C:inst_var",
+      "RED.C:lookup",
+      "PRIMS.C:prim_equal",
+      "PRIMS.C:nodes_equal"
+    ],
+    "expected_repairs": [
+      "ubv-index-equality"
+    ],
+    "derivation": "One traversal binding_offset=2: environment entries contain absolute UBV labels2 and1. Archived inst_var copies index fields unchanged. The two variables select the same label2 or different labels2/1. Same labels make true in result11; different free labels must retain residual EQUAL at13, not conclude false. Original nodes_equal treats small indices as pointers. Repair compares op.index only for same-coordinate UBVs; no cross-scope identity is assumed."
+  }
+]

@@ -90,7 +90,7 @@ def test_graph_environment_collision_guard_still_rejects_overlap() -> None:
         pc=0,
         fsp=2,
         env=3,
-        env_frontier=3,
+        free_space=3,
         c=-1,
         direction=Direction.F,
         q=1,

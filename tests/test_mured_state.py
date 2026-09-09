@@ -375,3 +375,113 @@ def test_run_until_suspend_does_not_expose_internal_if_reconstruction_q_zero() -
 
     assert stop.reason is MuredStopReason.COMPLETE
     assert to_source(machine.result_expr()) == "3"
+
+
+def test_load_initializes_independent_free_space() -> None:
+    machine = MuredMachine.load(
+        [Word(MuredOpcode.INT, 1, True)], quantum=1, memory_words=32
+    )
+    assert type(machine.state.free_space) is int
+    assert machine.state.free_space == 32
+    machine.state.env = 30
+    assert machine.state.free_space == 32
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_direct_state_initializes_free_space_once(explicit: bool) -> None:
+    from red2_engine.mured import MuredMachineState
+
+    memory = [Word(MuredOpcode.INT, 1, True)] + [None] * 31
+    if explicit:
+        state = MuredMachineState(
+            memory=memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=1,
+            env=30,
+            c=-1,
+            direction=Direction.F,
+            q=1,
+            phi=0,
+            free_space=24,
+        )
+    else:
+        state = MuredMachineState(
+            memory=memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=1,
+            env=30,
+            c=-1,
+            direction=Direction.F,
+            q=1,
+            phi=0,
+        )
+    expected = 24 if explicit else 30
+    assert type(state.free_space) is int
+    assert state.free_space == expected
+    state.env = 32
+    machine = MuredMachine(state)
+    assert state.free_space == expected
+    machine._push_graph(Word(MuredOpcode.INT, 2, True))
+    assert state.free_space == expected
+
+
+@pytest.mark.parametrize("static", [False, True])
+@pytest.mark.parametrize("halted", [False, True])
+def test_recharge_keeps_free_space_independent_of_env(
+    static: bool, halted: bool
+) -> None:
+    from thor_compile.red2 import load_faithful_machine, prepare_faithful_definitions
+    from thor_lang.parser import parse_expr
+
+    prepared = prepare_faithful_definitions(
+        {"F": parse_expr("(LAMBDA (x) (+ x 1))")} if static else {},
+        memory_words=256,
+    )
+    machine = load_faithful_machine(
+        parse_expr("7"), quantum=0, definitions=prepared, memory_words=256
+    )
+    state = machine.state
+    assert type(state.free_space) is int
+    assert state.free_space == prepared.static_start
+    state.env = 256
+    assert state.free_space == prepared.static_start
+    # A live recharge changes only quantum; a halted restart resets the arena.
+    if halted:
+        machine.run()
+    else:
+        state.free_space -= 4
+    expected = prepared.static_start if halted else prepared.static_start - 4
+    machine.recharge_quantum(10)
+    assert type(state.free_space) is int
+    assert state.free_space == expected
+    state.env = 255
+    assert state.free_space == expected
+
+
+def test_graph_append_collides_with_free_space_not_valid_higher_saved_env() -> None:
+    from copy import deepcopy
+
+    machine = MuredMachine.load(
+        [Word(MuredOpcode.INT, 1, True)],
+        quantum=1,
+        memory_words=40,
+        memory_diagnostics=True,
+    )
+    state = machine.state
+    state.free_space = 16
+    state.fsp = 15
+    state.env = 30
+    state.memory[30] = Word(MuredOpcode.PNP, 32, False)
+    state.memory[32] = Word(MuredOpcode.INT, 73, False)
+    state.memory[33] = Word(MuredOpcode.PNP, 40, False)
+    machine._validate_state()
+    binding = machine.lookup(0)
+    assert binding == 32
+    assert state.memory[binding] == Word(MuredOpcode.INT, 73, False)
+    assert state.memory[33] == Word(MuredOpcode.PNP, len(state.memory), False)
+    before = deepcopy(vars(machine))
+    with pytest.raises(GraphEnvironmentCollision):
+        machine._push_graph(Word(MuredOpcode.INT, 2, True))
+    assert vars(machine) == before

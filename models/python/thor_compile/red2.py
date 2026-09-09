@@ -393,7 +393,7 @@ def load_faithful_machine(
         machine.state.memory[address] = word
 
     machine.state.env = prepared.static_start
-    machine.state.env_frontier = prepared.static_start
+    machine.state.free_space = prepared.static_start
     machine.working_memory_limit = prepared.static_start
     machine.struct_selectors = prepared.struct_selectors
     return machine

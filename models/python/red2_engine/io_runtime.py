@@ -68,16 +68,12 @@ def run_red2_io_action(
                 raise Red2IoRuntimeError("host suspension is missing its host call")
             machine.resume_host_call(_dispatch_host_call(machine, call, host))
             if Red2RechargeEvent.HOST_DISPATCH in recharge_events:
-                frontier = (
-                    machine.state.env
-                    if machine.state.env_frontier is None
-                    else machine.state.env_frontier
-                )
+                free_space = machine.state.free_space
                 # q=0 reconstruction itself needs working room, so checkpoint
                 # before the two arenas become immediately adjacent.  The fixed
                 # reserve also makes deliberately tiny test machines checkpoint
                 # at every committed host boundary.
-                if frontier - machine.state.fsp <= HOST_CHECKPOINT_HEADROOM_WORDS:
+                if free_space - machine.state.fsp <= HOST_CHECKPOINT_HEADROOM_WORDS:
                     machine.checkpoint_quantum(quantum)
                 else:
                     machine.refresh_quantum(quantum)

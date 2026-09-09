@@ -109,7 +109,8 @@ def test_app_reverse_creates_join_with_parent_pointer() -> None:
 
     machine.step()
 
-    assert state.env == 27
+    assert state.env == state.free_space == 31
+    assert state.memory[31] == Word(MuredOpcode.PNP, 27, False)
     assert state.c == 0
     assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
     assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
@@ -199,6 +200,7 @@ def test_lambda_contracts_against_result_app_var_without_popping_control() -> No
     state.c = 0
     state.fsp = 3
     state.env = 30
+    state.free_space = 30
     state.phi = 4
     state.argcnt = 1
 
@@ -222,6 +224,7 @@ def test_lambda_contracts_against_result_ep_as_one_word_binding() -> None:
     state.c = 0
     state.fsp = 3
     state.env = 30
+    state.free_space = 30
     state.argcnt = 1
 
     machine.step()
@@ -1747,6 +1750,7 @@ def test_closure_adds_parent_path_and_jumps_to_code() -> None:
     state.memory[9] = Word(MuredOpcode.VAR, 0)
     state.pc = 20
     state.env = 20
+    state.free_space = 20
 
     machine.step()
 
@@ -1767,6 +1771,7 @@ def test_ep_result_restores_caller_path_and_activates_unshared_closure() -> None
     state.pc = 3
     state.fsp = 3
     state.env = 18
+    state.free_space = 18
     state.direction = Direction.B
 
     machine.step()
@@ -1803,6 +1808,7 @@ def test_ep_result_copies_already_shared_atom_without_reducing_again() -> None:
     state.pc = 3
     state.fsp = 3
     state.env = 18
+    state.free_space = 18
     state.direction = Direction.B
 
     machine.step()
@@ -1848,6 +1854,7 @@ def test_environment_allocation_does_not_reuse_cells_after_path_restore() -> Non
     machine = base_machine()
     state = machine.state
     state.env = 30
+    state.free_space = 30
 
     first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
     assert first == 29
@@ -1857,7 +1864,7 @@ def test_environment_allocation_does_not_reuse_cells_after_path_restore() -> Non
     second = machine._allocate_environment(Word(MuredOpcode.UBV, 2, False))
 
     assert second == 27
-    assert state.env_frontier == 27
+    assert state.free_space == 27
     assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
     assert state.memory[28] == Word(MuredOpcode.PNP, 30, False)
     assert state.memory[27] == Word(MuredOpcode.UBV, 2, False)
@@ -1868,6 +1875,7 @@ def test_environment_marker_uses_physical_frontier_without_extra_bridge() -> Non
     machine = base_machine()
     state = machine.state
     state.env = 30
+    state.free_space = 30
 
     first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
     assert first == 29
@@ -1877,7 +1885,7 @@ def test_environment_marker_uses_physical_frontier_without_extra_bridge() -> Non
 
     assert marker == 28
     assert state.env == 28
-    assert state.env_frontier == 28
+    assert state.free_space == 28
     assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
     assert state.memory[28] == Word(MuredOpcode.PNP, 26, False)
     assert state.memory[27] is None
@@ -2258,7 +2266,8 @@ def test_reverse_app_saves_active_primitive_context_before_argument_reduction() 
 
     machine.step()
 
-    assert state.env == 27
+    assert state.env == state.free_space == 31
+    assert state.memory[31] == Word(MuredOpcode.PNP, 27, False)
     assert state.c == 0
     assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
     assert state.prim is None

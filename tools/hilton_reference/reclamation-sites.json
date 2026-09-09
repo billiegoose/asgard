@@ -1,0 +1,5627 @@
+[
+  {
+    "path": "archives/DEC6/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 79,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 91,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 100,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 109,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 126,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 135,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 143,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 159,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 227,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 241,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 259,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 273,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 515,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 363,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 482,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 165,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 166,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 336,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = arg;"
+      },
+      {
+        "line": 337,
+        "text": "(++ws)->class = CONTROL; ws->type = RESET;"
+      },
+      {
+        "line": 405,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 722,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 760,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 776,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      },
+      {
+        "line": 789,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Split application or lazy-structure comparison into AND of scratch equality graphs ending at child JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 901,
+        "text": "ws = res;"
+      },
+      {
+        "line": 933,
+        "text": "ws = res;"
+      },
+      {
+        "line": 967,
+        "text": "ws = res;"
+      },
+      {
+        "line": 979,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 981,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 982,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 987,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 990,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 992,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 995,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 996,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 997,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 1001,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 1005,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 1010,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 1014,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 1017,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 1018,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 1020,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 1049,
+        "text": "ws = res;"
+      },
+      {
+        "line": 1064,
+        "text": "ws = res;"
+      },
+      {
+        "line": 1076,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 1078,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 1085,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 1086,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 1087,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 1091,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 210,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 216,
+        "text": "--ws;"
+      },
+      {
+        "line": 222,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 575,
+        "text": "node *head = ++ws;"
+      },
+      {
+        "line": 577,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = arg;"
+      },
+      {
+        "line": 578,
+        "text": "(++ws)->class = CONTROL; ws->type = RESET;"
+      },
+      {
+        "line": 611,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 454,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = arg;"
+      },
+      {
+        "line": 455,
+        "text": "(++ws)->class = CONTROL; ws->type = RESET;"
+      },
+      {
+        "line": 524,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1202,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1204,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 274,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 329,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 331,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "0.4 JOIN restores saved fs but scalar results always subtract two graph words, lacking THOR HEAD-destination reset. Embedded in excluded logic/EX_VAR/RESET heap branch.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 375,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "0.4 JOIN restores saved fs but scalar results always subtract two graph words, lacking THOR HEAD-destination reset. Embedded in excluded logic/EX_VAR/RESET heap branch.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 367,
+        "text": "if (result->type != PTR)  ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 404,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 432,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 470,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 471,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 472,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 498,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 579,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 584,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 622,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 662,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 678,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 679,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 723,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 823,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 844,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 199,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 200,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 240,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 244,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 94,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 122,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 93,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 79,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 91,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 100,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 109,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 126,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 135,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 143,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 159,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 227,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 241,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 259,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 273,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 525,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 362,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 491,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 131,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 132,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "make_result",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Overwrite result slot, discard graph suffix, resume RESULT before result slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "or-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 1111,
+        "text": "ws = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 382,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_char_int",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1067,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_charp",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1097,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 647,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Split application or lazy-structure comparison into AND of scratch equality graphs ending at child JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch",
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 835,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 837,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 838,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 843,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 846,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 848,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 851,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 852,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 853,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 857,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 861,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 866,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 870,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 873,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 874,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 876,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 927,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 929,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 936,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 937,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 938,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 942,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 206,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 212,
+        "text": "--ws;"
+      },
+      {
+        "line": 218,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_int_char",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1082,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 515,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "or-discard"
+    ],
+    "locations": [
+      {
+        "line": 478,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1048,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1050,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 254,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 296,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 298,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 346,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 336,
+        "text": "if (destination->class == HEAD) ws = destination;"
+      },
+      {
+        "line": 337,
+        "text": "else ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "parity",
+    "case_ids": [
+      "lambda-consume",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 375,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 402,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 428,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 429,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 430,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 456,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 537,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 542,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 608,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 648,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 664,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 665,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_rptr",
+    "arena": "graph",
+    "trigger": "Experimental RPTR copies descriptor without normal PTR saved-context behavior; excluded.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 563,
+        "text": "*(++ws) = *(pc++);"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "parity",
+    "case_ids": [
+      "rup-contract"
+    ],
+    "locations": [
+      {
+        "line": 690,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 790,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 811,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 180,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 181,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "lambda-consume",
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 221,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 224,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 92,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 118,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 91,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 79,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 91,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 100,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 109,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 126,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 135,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 143,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 159,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 227,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 241,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 259,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 273,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 525,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 362,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 491,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 131,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 132,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "make_result",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Overwrite result slot, discard graph suffix, resume RESULT before result slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "or-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 1110,
+        "text": "ws = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 373,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_char_int",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1066,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_charp",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1096,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 638,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "Optimized nested lazy structures emit equal_star/count directly, changing scratch footprint; also unchecked operand-pointer dereferences. Excluded.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 826,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 828,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 829,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 834,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 837,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 839,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 842,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 843,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 844,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 848,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 852,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 857,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 861,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 864,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 865,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 867,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 918,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 920,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 927,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 928,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 931,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 932,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0;"
+      },
+      {
+        "line": 936,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 941,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 206,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 212,
+        "text": "--ws;"
+      },
+      {
+        "line": 218,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_int_char",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1081,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 506,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "or-discard"
+    ],
+    "locations": [
+      {
+        "line": 469,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1047,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1049,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 254,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 296,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 298,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 346,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 336,
+        "text": "if (destination->class == HEAD) ws = destination;"
+      },
+      {
+        "line": 337,
+        "text": "else ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "parity",
+    "case_ids": [
+      "lambda-consume",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 375,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 402,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 428,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 429,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 430,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 456,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 537,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 542,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 580,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 620,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 636,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 637,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "parity",
+    "case_ids": [
+      "rup-contract"
+    ],
+    "locations": [
+      {
+        "line": 662,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 762,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 783,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 180,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 181,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "lambda-consume",
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 221,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 224,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 92,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 118,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 91,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 79,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 91,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 100,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 109,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 126,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 135,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 143,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 159,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 227,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 241,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 259,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 273,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 525,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "Non-identical sibling implementation; not used as authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 362,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 491,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 131,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 132,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "make_result",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Overwrite result slot, discard graph suffix, resume RESULT before result slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "or-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 1102,
+        "text": "ws = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 373,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_char_int",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1058,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_charp",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1088,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 638,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Split application or lazy-structure comparison into AND of scratch equality graphs ending at child JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch",
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 826,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 828,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 829,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 834,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 837,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 839,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 842,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 843,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 844,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 848,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 852,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 857,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 861,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 864,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 865,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 867,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 918,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 920,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 927,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 928,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 929,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 933,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 206,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 212,
+        "text": "--ws;"
+      },
+      {
+        "line": 218,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_int_char",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1073,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 506,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "or-discard"
+    ],
+    "locations": [
+      {
+        "line": 469,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1039,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1041,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 254,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 296,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 298,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 346,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 336,
+        "text": "if (destination->class == HEAD) ws = destination;"
+      },
+      {
+        "line": 337,
+        "text": "else ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "parity",
+    "case_ids": [
+      "lambda-consume",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 375,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 402,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 428,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 429,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 430,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 456,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 537,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 542,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 580,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 620,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 636,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 637,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "parity",
+    "case_ids": [
+      "rup-contract"
+    ],
+    "locations": [
+      {
+        "line": 662,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 762,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 783,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 180,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 181,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "lambda-consume",
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 221,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 224,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 92,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 118,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 91,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 68,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 69,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 294,
+        "text": "ws = arg;"
+      },
+      {
+        "line": 309,
+        "text": "ws = arg;"
+      },
+      {
+        "line": 317,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Build deferred structure comparisons in descending fs space (AND spine with EQUAL children), then set fs = base.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 692,
+        "text": "fs = base;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Build deferred structure comparisons in descending fs space and restart with ws = res - 1; separately contract successful/failed Boolean results with ws = res.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 694,
+        "text": "ws = res - 1;"
+      },
+      {
+        "line": 715,
+        "text": "ws = res;"
+      },
+      {
+        "line": 727,
+        "text": "ws = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 168,
+        "text": "ws -= 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 174,
+        "text": "--ws;"
+      },
+      {
+        "line": 180,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 427,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 371,
+        "text": "ws = arg;"
+      },
+      {
+        "line": 386,
+        "text": "ws = arg;"
+      },
+      {
+        "line": 394,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_pack",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 488,
+        "text": "(--fs)->head = TRUE; fs->type = SYM; fs->op.sym = tag->op.sym;"
+      },
+      {
+        "line": 489,
+        "text": "(--fs)->head = TRUE; fs->type = INT; fs->op.intval = size->op.intval;"
+      },
+      {
+        "line": 491,
+        "text": "fs -= size->op.intval;     /* allocate space for the elements */"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_pack",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 521,
+        "text": "ws = pc + 1;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/PRIMS.C",
+    "symbol": "prim_select",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 584,
+        "text": "ws = pc;             /* prepare to move forward again */"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 248,
+        "text": "(++ws)->head = FALSE; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 288,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 290,
+        "text": "case HEAD:     *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND JOIN overwrites destination and subtracts two graph words for atomic values; child frames do not save fs and JOIN does not restore it. Excluded.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 318,
+        "text": "ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 348,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 375,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 401,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 402,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 403,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 429,
+        "text": "(++ws)->head = FALSE; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 506,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 511,
+        "text": "(++ws)->head = FALSE; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 544,
+        "text": "(++ws)->head = FALSE; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 580,
+        "text": "*(++ws) = *(ptr++);\t\t/* copy the letrecs */"
+      },
+      {
+        "line": 591,
+        "text": "*(++ws) = *ptr;\t\t\t\t/* copy RUP instruction */"
+      },
+      {
+        "line": 592,
+        "text": "(++ws)->head = TRUE;\t\t\t/* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 617,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_suspend",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. On RESULT with CL_PTR, appends JOIN and restores suspension code, context and binding offset before jump_subgraph; shared values overwrite the descriptor without allocating JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 678,
+        "text": "(++ws)->head = FALSE; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 764,
+        "text": "case HEAD:     (++ws)->head = TRUE; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 782,
+        "text": "*(++ws) = *(lookup(env, pc->op.index));"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Reserve two descending environment words: context and code.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 149,
+        "text": "(--fs)->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 150,
+        "text": "(--fs)->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "make_suspend",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation, outside functional THOR authority. Reserve three descending environment words: binding offset (CL_BN), context (CL_ENV), and code (CL_PTR); return fs without changing ws.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 169,
+        "text": "(--fs)->type = CL_BN;  fs->op.intval = bn;"
+      },
+      {
+        "line": 170,
+        "text": "(--fs)->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 171,
+        "text": "(--fs)->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation; child frames omit saved fs and JOIN does not restore it; no return reset in reduce. Not the functional lifetime authority. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 215,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 218,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "Early head/SUSPEND representation, outside functional THOR authority. Initialize fs from freespace at entry only; reduce returns after red without restoring fs.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 68,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "Early head/SUSPEND representation, outside functional THOR authority. Initialize ws from workspace at entry only; reduce returns after red without restoring fs.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 67,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 80,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 92,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 101,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 110,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 127,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 136,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 144,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 160,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 228,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 242,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 260,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 274,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 526,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 363,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 492,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "representation-equivalent",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 133,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "representation-equivalent",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 134,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "make_result",
+    "arena": "graph",
+    "trigger": "Overwrite result slot, discard graph suffix, resume RESULT before result slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "or-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 1108,
+        "text": "ws = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 379,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_char_int",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1064,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_charp",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1094,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 644,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "Split application or lazy-structure comparison into AND of scratch equality graphs ending at child JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch",
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 832,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 834,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 835,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 840,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 843,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 845,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 848,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 849,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 850,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 854,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 858,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 863,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 867,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 870,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 871,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 873,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 924,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 926,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 933,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 934,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 935,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 939,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 212,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 218,
+        "text": "--ws;"
+      },
+      {
+        "line": 224,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_int_char",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 1079,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 512,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "parity",
+    "case_ids": [
+      "or-discard"
+    ],
+    "locations": [
+      {
+        "line": 475,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1045,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1047,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 255,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 297,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 299,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 347,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "Publish child: HEAD scalar resets ws to HEAD destination or removes two argument-tail words; PTR/non-atomic graph remains live. Restore saved fs unconditionally.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 337,
+        "text": "if (destination->class == HEAD) ws = destination;"
+      },
+      {
+        "line": 338,
+        "text": "else ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "parity",
+    "case_ids": [
+      "lambda-consume",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 376,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 403,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 429,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 430,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 431,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 457,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 538,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 543,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 581,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 621,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 637,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 638,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "parity",
+    "case_ids": [
+      "rup-contract"
+    ],
+    "locations": [
+      {
+        "line": 663,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 763,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "Lookup then emit environment value as a graph descriptor.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 784,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 181,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 182,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "lambda-consume",
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 222,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 225,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 93,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 119,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 92,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/ARITH.C",
+    "symbol": "binary_arithmetic",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 79,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 91,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 100,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 109,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 126,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 135,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 143,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 159,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/ARITH.C",
+    "symbol": "binary_relational",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 227,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 241,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 259,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 273,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/ARITH.C",
+    "symbol": "prim_struct_tag",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "parity",
+    "case_ids": [
+      "primitive-add"
+    ],
+    "locations": [
+      {
+        "line": 515,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/ARITH.C",
+    "symbol": "unary_arithmetic",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 363,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/ARITH.C",
+    "symbol": "unary_relational",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 482,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/MAIN.C",
+    "symbol": "main",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 165,
+        "text": "fs = high;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/MAIN.C",
+    "symbol": "main",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize arena boundaries before interactive use (lifecycle, not a reducer instruction).",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 166,
+        "text": "ws = low;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Decisive false drops remaining contexts via make_result; last atomic argument sets ws=arg; true may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 405,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Non-identical pointer arguments reserve primitive/count scratch slots before strict traversal.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 722,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 760,
+        "text": "ws = arg2;"
+      },
+      {
+        "line": 776,
+        "text": "++ws;       /* leave a space for extra equal* arg later */"
+      },
+      {
+        "line": 789,
+        "text": "ws = arg2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Split application or lazy-structure comparison into AND of scratch equality graphs ending at child JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 901,
+        "text": "ws = res;"
+      },
+      {
+        "line": 933,
+        "text": "ws = res;"
+      },
+      {
+        "line": 967,
+        "text": "ws = res;"
+      },
+      {
+        "line": 979,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 7;"
+      },
+      {
+        "line": 981,
+        "text": "(++ws)->class = APPLY; ws->type = PTR; ws->op.addr = ws + 2;"
+      },
+      {
+        "line": 982,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 987,
+        "text": "*(++ws) = *arg1;"
+      },
+      {
+        "line": 990,
+        "text": "else *(++ws) = *(arg1->op.addr);"
+      },
+      {
+        "line": 992,
+        "text": "*(++ws) = *arg2;"
+      },
+      {
+        "line": 995,
+        "text": "else *(++ws) = *(arg2->op.addr);"
+      },
+      {
+        "line": 996,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 997,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 1001,
+        "text": "*(++ws) = *(arg1->op.addr+1);"
+      },
+      {
+        "line": 1005,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 1010,
+        "text": "*(++ws) = *(arg2->op.addr+1);"
+      },
+      {
+        "line": 1014,
+        "text": "(++ws)->class = APPLY; ws->type = PTR;"
+      },
+      {
+        "line": 1017,
+        "text": "(++ws)->class = APPLY; ws->type = INT; ws->op.intval = lambdas;"
+      },
+      {
+        "line": 1018,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal_star;"
+      },
+      {
+        "line": 1020,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      },
+      {
+        "line": 1049,
+        "text": "ws = res;"
+      },
+      {
+        "line": 1064,
+        "text": "ws = res;"
+      },
+      {
+        "line": 1076,
+        "text": "ws += len1;"
+      },
+      {
+        "line": 1078,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = and;"
+      },
+      {
+        "line": 1085,
+        "text": "*(++ws) = *(++arg2); t2 = ws;"
+      },
+      {
+        "line": 1086,
+        "text": "*(++ws) = *(++arg1); t1 = ws;"
+      },
+      {
+        "line": 1087,
+        "text": "(++ws)->class = HEAD; ws->type = PRIM_0; ws->op.sym = equal;"
+      },
+      {
+        "line": 1091,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = res;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Decisive Boolean discards test/primitive/branch spine; restore selected context and drop unused context.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 210,
+        "text": "ws = primitive - 2;    /* ws now points to true branch */"
+      },
+      {
+        "line": 216,
+        "text": "--ws;"
+      },
+      {
+        "line": 222,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_not",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Successful typed primitive overwrites its result operand and resets ws to that slot; partial/inhibited invocation retains its graph.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 575,
+        "text": "node *head = ++ws;"
+      },
+      {
+        "line": 611,
+        "text": "ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Decisive true drops remaining contexts via make_result; last atomic argument sets ws=arg; false may slide spine.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 524,
+        "text": "if (atomic(arg)) ws = arg;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/PRIMS.C",
+    "symbol": "wrap_lambdas",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Publish residual equality arguments under n binders; append graph-owned lambda copies.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 1202,
+        "text": "(++ws)->class = BINDER; ws->type = LAMBDA; ws->op.sym = var;"
+      },
+      {
+        "line": 1204,
+        "text": "*(++ws) = *exp; ws->class = HEAD;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_closure",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Uncomputed closure enters a child JOIN; computed closure shares its value without re-entry.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 276,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_inert",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy argument/head to ascending working graph; no reclamation here.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 355,
+        "text": "case PROBLEM:  ++argcount; *(++ws) = *(pc++); break;"
+      },
+      {
+        "line": 357,
+        "text": "case HEADM:    *(++ws) = *pc; pc = ws-1; mode = RESULT; break;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_join",
+    "arena": "environment",
+    "trigger": "0.4 JOIN restores saved fs but scalar results always subtract two graph words, lacking THOR HEAD-destination reset. Embedded in excluded logic/EX_VAR/RESET heap branch.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 401,
+        "text": "fs = (stack--)->ptr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_join",
+    "arena": "graph",
+    "trigger": "0.4 JOIN restores saved fs but scalar results always subtract two graph words, lacking THOR HEAD-destination reset. Embedded in excluded logic/EX_VAR/RESET heap branch.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 393,
+        "text": "if (result->type != PTR)  ws -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Unbound lambda copies descriptor; beta consumes one argument descriptor after publishing to environment.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 430,
+        "text": "*(++ws) = *pc;"
+      },
+      {
+        "line": 458,
+        "text": "--ws;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 504,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 505,
+        "text": "(--fs)->type = NOOP; fs->op.addr = NULL;"
+      },
+      {
+        "line": 506,
+        "text": "(--fs)->type = NOOP; fs->op.addr = pc->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Allocate three REC metadata words for non-atomic binding; result traversal enters JOIN.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 532,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Copy pointer descriptor on entry; on return emit child JOIN after restoring saved context.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 613,
+        "text": "*(++ws) = *(pc++);"
+      },
+      {
+        "line": 618,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_rec",
+    "arena": "graph",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. RESULT entry emits JOIN for recursive closure expansion or q=0 reconstruction.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 656,
+        "text": "(++ws)->class = CONTROL; ws->type = JOIN; ws->op.addr = pc;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_rec_1",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. q=0 rebuild LETREC block, RUP and head VAR in graph, plus unbound environment paths.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 696,
+        "text": "*(++ws) = *(ptr++);     /* copy the letrecs */"
+      },
+      {
+        "line": 712,
+        "text": "*(++ws) = *ptr;            /* copy RUP instruction */"
+      },
+      {
+        "line": 713,
+        "text": "(++ws)->class = HEAD;         /* insert head var  */"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_rup",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Positive-quantum update removes n copied LETREC descriptors and updates REC metadata.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 757,
+        "text": "ws -= n;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_ubv",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Emit head variable after index correction; graph allocation, not reset.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 857,
+        "text": "case HEADM:    (++ws)->class = HEAD; ws->type = VAR;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_var",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Lookup then emit environment value as a graph descriptor.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 878,
+        "text": "(++ws)->class = pc->class;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "make_closure",
+    "arena": "environment",
+    "trigger": "Same function statements as THOR; variant is catalogued, not executed. Reserve two descending environment words: context and code.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 201,
+        "text": "(--fs)->class = HEAD; fs->type = CL_ENV; fs->op.addr = context;"
+      },
+      {
+        "line": 202,
+        "text": "(--fs)->class = HEAD; fs->type = CL_PTR; fs->op.addr = code;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "push_marker",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Bridge env != fs with environment MARKER, then reserve one binding slot.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 242,
+        "text": "(--fs)->type = MARKER;"
+      },
+      {
+        "line": 246,
+        "text": "env = --fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "reduce",
+    "arena": "environment",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 95,
+        "text": "fs = freespace;"
+      },
+      {
+        "line": 124,
+        "text": "fs = freespace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "reduce",
+    "arena": "graph",
+    "trigger": "0.4 logic branch with EX_VAR/RESET/trail/heap state; non-identical function excluded, not imported. Initialize workspace/free-space registers; restore supplied freespace after red returns.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 94,
+        "text": "ws = workspace;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Destructive source-code MARKER forwards repeated PTR targets, omitting unreachable garbage. NOT an environment path MARKER.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 470,
+        "text": "if (temp->type == MARKER)"
+      },
+      {
+        "line": 475,
+        "text": "next = copy_graph(temp, next);"
+      },
+      {
+        "line": 477,
+        "text": "temp->type = MARKER; temp->op.addr = up->op.addr;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "shift_memory",
+    "arena": "relocation",
+    "trigger": "Non-overlapping relocation rewrites PTR and LETREC graph addresses; returns last occupied cell; ws/fs unchanged.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 649,
+        "text": "long dif = begin - dest;"
+      },
+      {
+        "line": 654,
+        "text": "dest->op.addr = dest->op.addr - dif;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "rep_loop",
+    "arena": "lifecycle",
+    "trigger": "LAM_EXP/DEF replace focus; LAM_RED/RDEF copy and shift reachable graph before next invocation / definition publication. Explicit coarse lifecycle, not child-region reclamation.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 272,
+        "text": "if (focus != NONE) low = problem;"
+      },
+      {
+        "line": 316,
+        "text": "if (focus != NONE) low = problem;"
+      },
+      {
+        "line": 332,
+        "text": "low = problem;"
+      },
+      {
+        "line": 334,
+        "text": "result = copy_graph(result, ws+1);"
+      },
+      {
+        "line": 342,
+        "text": "result = shift_memory(ws+1, result, low) + 1;"
+      },
+      {
+        "line": 404,
+        "text": "if (focus != NONE) low = problem;"
+      },
+      {
+        "line": 423,
+        "text": "result = copy_graph(result, ws+1);"
+      },
+      {
+        "line": 424,
+        "text": "result = shift_memory(ws+1, result, low+2);"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/MAIN.C",
+    "symbol": "handle_command",
+    "arena": "lifecycle",
+    "trigger": "EXIT releases graph/control allocations; Python machine/object teardown rather than artificial VM instruction.",
+    "disposition": "representation-equivalent",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 504,
+        "text": "hfree((void huge *) mem);"
+      },
+      {
+        "line": 505,
+        "text": "hfree((void huge *) constack);"
+      },
+      {
+        "line": 508,
+        "text": "free(mem);"
+      },
+      {
+        "line": 509,
+        "text": "free(constack);"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "reduce",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 104,
+        "text": "stack = constack;"
+      },
+      {
+        "line": 105,
+        "text": "aux = &constack[CONTROL_SIZE-1];"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "jump_subgraph",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return"
+    ],
+    "locations": [
+      {
+        "line": 134,
+        "text": "(++stack)->ptr = fs;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_join",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "atomic-child-return",
+      "closure-sharing",
+      "join-pointer-live",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 347,
+        "text": "fs = (stack--)->ptr;"
+      },
+      {
+        "line": 349,
+        "text": "primitive = (stack--)->ptr;"
+      },
+      {
+        "line": 350,
+        "text": "prim_args = (stack--)->intval;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_lambda",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "lambda-consume",
+      "reduce-identity"
+    ],
+    "locations": [
+      {
+        "line": 386,
+        "text": "closure = make_closure(ws->op.addr, (stack--)->ptr);"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_letrec",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "rec-q0"
+    ],
+    "locations": [
+      {
+        "line": 456,
+        "text": "env = (stack--)->ptr;  /* Restore env context */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_ptr",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 542,
+        "text": "env = (stack--)->ptr;   /* Restore env context */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_if",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "if-true",
+      "if-false"
+    ],
+    "locations": [
+      {
+        "line": 179,
+        "text": "(--aux)->intval = argcount - 3;"
+      },
+      {
+        "line": 184,
+        "text": "argcount = (aux++)->intval;      /* Restore proper argcount */"
+      },
+      {
+        "line": 215,
+        "text": "env = (stack--)->ptr;   /*       restore context      */"
+      },
+      {
+        "line": 216,
+        "text": "else --stack;              /* else  throw context away   */"
+      },
+      {
+        "line": 221,
+        "text": "env = (stack--)->ptr;   /*       restore context      */"
+      },
+      {
+        "line": 222,
+        "text": "else --stack;              /* else  throw context away   */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_and",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "and-discard",
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 315,
+        "text": "(--aux)->intval = argcount - 1;"
+      },
+      {
+        "line": 322,
+        "text": "argcount = (aux++)->intval;"
+      },
+      {
+        "line": 338,
+        "text": "(--aux)->intval = argcount - 1;"
+      },
+      {
+        "line": 352,
+        "text": "if (arg->type == PTR) --stack;  /* pop off unused contxts */"
+      },
+      {
+        "line": 370,
+        "text": "(--aux)->intval = argcount - 1;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_or",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "or-discard"
+    ],
+    "locations": [
+      {
+        "line": 411,
+        "text": "(--aux)->intval = argcount - 1;"
+      },
+      {
+        "line": 418,
+        "text": "argcount = (aux++)->intval;"
+      },
+      {
+        "line": 434,
+        "text": "(--aux)->intval = argcount - 1;"
+      },
+      {
+        "line": 448,
+        "text": "if (arg->type == PTR) --stack;  /* pop off unused contxts */"
+      },
+      {
+        "line": 466,
+        "text": "(--aux)->intval = argcount - 1;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_equal",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 561,
+        "text": "(stack++)->ptr = env;"
+      },
+      {
+        "line": 629,
+        "text": "--stack;  /* pop env off stack */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch",
+      "equal-star-wrap"
+    ],
+    "locations": [
+      {
+        "line": 715,
+        "text": "if (pop_stack && arg1->type == PTR) --stack;"
+      },
+      {
+        "line": 716,
+        "text": "if (pop_stack && arg2->type == PTR) --stack;"
+      },
+      {
+        "line": 733,
+        "text": "if (pop_stack) --stack;"
+      },
+      {
+        "line": 738,
+        "text": "if (pop_stack) --stack;"
+      },
+      {
+        "line": 830,
+        "text": "if (pop_stack) stack -= 2;"
+      },
+      {
+        "line": 891,
+        "text": "if (pop_stack) stack -= 2;"
+      },
+      {
+        "line": 957,
+        "text": "if (pop_stack) stack -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "nodes_equal",
+    "arena": "control",
+    "trigger": "Saved child fs/primitive state and context/auxiliary pop/reset sites; dead control storage is reusable, independently of graph/environment boundaries.",
+    "disposition": "parity",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 1011,
+        "text": "stack -= 2;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "reduce",
+    "arena": "variant-state",
+    "trigger": "Unification existential/reset/trail/heap lifetime; excluded from functional THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 96,
+        "text": "heap = heap_space;"
+      },
+      {
+        "line": 97,
+        "text": "reset_ptr = reset_list;"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/RED.C",
+    "symbol": "inst_reset",
+    "arena": "variant-state",
+    "trigger": "Unification existential/reset/trail/heap lifetime; excluded from functional THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 690,
+        "text": "void inst_reset()"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "reduce",
+    "arena": "variant-state",
+    "trigger": "Unification existential/reset/trail/heap lifetime; excluded from functional THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 97,
+        "text": "reset_ptr = reset_list;"
+      },
+      {
+        "line": 108,
+        "text": "ex_ptr = &heap_space[HEAP_SIZE];"
+      },
+      {
+        "line": 109,
+        "text": "heap = heap_space;"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/RED.C",
+    "symbol": "inst_reset",
+    "arena": "variant-state",
+    "trigger": "Unification existential/reset/trail/heap lifetime; excluded from functional THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 724,
+        "text": "void inst_reset()"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_y",
+    "arena": "code-reuse",
+    "trigger": "Acyclic Y f reuses original code spine; non-pointer f uses one static temporary node and pushes original context.",
+    "disposition": "parity",
+    "case_ids": [
+      "y-reconstruct"
+    ],
+    "locations": [
+      {
+        "line": 277,
+        "text": "ws->type = PTR; ws->op.addr = pc - 1;     /* point arg1 to (Y f)  */"
+      },
+      {
+        "line": 281,
+        "text": "(++stack)->ptr = env;                  /* push context for (Y f) */"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "nodes_equal",
+    "arena": "sharing",
+    "trigger": "Identity of PTR code plus matching saved environments, or identical/equivalent closures, avoids duplicate equality reduction.",
+    "disposition": "parity",
+    "case_ids": [
+      "equal-scratch"
+    ],
+    "locations": [
+      {
+        "line": 1008,
+        "text": "if (((*arg1)->op.addr == (*arg2)->op.addr) &&"
+      },
+      {
+        "line": 1019,
+        "text": "case CLOSURE:  if (((*arg1)->op.addr == (*arg2)->op.addr) ||"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_join",
+    "arena": "sharing",
+    "trigger": "Atomic non-PTR child result updates older closure cell before environment return.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 331,
+        "text": "*(destination->op.addr) = *result;"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/RED.C",
+    "symbol": "inst_closure",
+    "arena": "sharing",
+    "trigger": "Previously computed closure becomes an argument value without reducing original code again.",
+    "disposition": "parity",
+    "case_ids": [
+      "closure-sharing"
+    ],
+    "locations": [
+      {
+        "line": 265,
+        "text": "*pc = *closure;"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Different historical copying/relocation function; excluded from THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 340,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/STRICT/MAIN.C",
+    "symbol": "shift_memory",
+    "arena": "relocation",
+    "trigger": "Different historical copying/relocation function; excluded from THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 491,
+        "text": "node *shift_memory(begin, end, dest)"
+      }
+    ]
+  },
+  {
+    "path": "archives/DEC6/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 445,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/WORK/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Different historical copying/relocation function; excluded from THOR authority.",
+    "disposition": "variant-out-of-scope",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 445,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 445,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/SNARL/MAIN.C",
+    "symbol": "shift_memory",
+    "arena": "relocation",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 644,
+        "text": "node *shift_memory(begin, end, dest)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 445,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/OPT/MAIN.C",
+    "symbol": "shift_memory",
+    "arena": "relocation",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 644,
+        "text": "node *shift_memory(begin, end, dest)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/MAIN.C",
+    "symbol": "copy_graph",
+    "arena": "forwarding",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 445,
+        "text": "node *copy_graph(from, to)"
+      }
+    ]
+  },
+  {
+    "path": "archives/SNARL/EXPERIME/MAIN.C",
+    "symbol": "shift_memory",
+    "arena": "relocation",
+    "trigger": "Same functional copy/shift statements as THOR; catalogued, not executed.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "copy-shift"
+    ],
+    "locations": [
+      {
+        "line": 644,
+        "text": "node *shift_memory(begin, end, dest)"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "prim_equal_star",
+    "arena": "compatibility",
+    "trigger": "Approved temporary-source repair: guard each operand head-promotion dereference by its own PTR tag; original asymmetric immediate/PTR fixtures fail under sanitizers.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "promote-left-pointer",
+      "promote-right-pointer"
+    ],
+    "locations": [
+      {
+        "line": 730,
+        "text": "if (arg1->op.addr->class == HEAD) {"
+      },
+      {
+        "line": 735,
+        "text": "if (arg2->op.addr->class == HEAD) {"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "nodes_equal",
+    "arena": "compatibility",
+    "trigger": "Approved temporary-source repair: UBV absolute indices from one traversal coordinate compare through op.index. Same-coordinate unequal free labels preserve residual EQUAL.",
+    "disposition": "representation-equivalent",
+    "case_ids": [
+      "ubv-equal",
+      "ubv-unequal"
+    ],
+    "locations": [
+      {
+        "line": 1003,
+        "text": "case UBV:      return(((*arg1)->op.addr->op.index =="
+      },
+      {
+        "line": 1004,
+        "text": "(*arg2)->op.addr->op.index));"
+      }
+    ]
+  },
+  {
+    "path": "archives/THOR/PRIMS.C",
+    "symbol": "nodes_equal",
+    "arena": "compatibility",
+    "trigger": "Approved temporary-source repair: switch fallthrough becomes fatal unsupported-tag diagnostic/exit72, not fabricated equality.",
+    "disposition": "representation-equivalent",
+    "case_ids": [],
+    "locations": [
+      {
+        "line": 1026,
+        "text": "else return(FALSE);"
+      },
+      {
+        "line": 1028,
+        "text": "}"
+      },
+      {
+        "line": 1029,
+        "text": "}"
+      }
+    ]
+  }
+]

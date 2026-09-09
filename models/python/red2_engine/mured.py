@@ -378,7 +378,7 @@ class _SavedDefinitionPath:
 @dataclass(frozen=True, slots=True)
 class _SubgraphFrame:
     env: int
-    env_frontier: int
+    free_space: int
     prim: str | None
     fire: int
 
@@ -405,7 +405,7 @@ class MuredMachineState:
     direction: Direction
     q: int
     phi: int
-    env_frontier: int | None = None
+    free_space: int = -1
     argcnt: int = 0
     prim: str | None = None
     fire: int = 0
@@ -413,6 +413,14 @@ class MuredMachineState:
     s_d: int | None = None
     halted: bool = False
     cycles: int = 0
+
+    def __post_init__(self) -> None:
+        # Legacy direct construction may omit the physical boundary. Resolve
+        # that sentinel once; subsequent logical path changes never allocate.
+        if self.free_space == -1:
+            self.free_space = self.env
+        if type(self.free_space) is not int:
+            raise InvalidAddress("free_space requires an integer address")
 
 
 class MuredMachine:
@@ -497,6 +505,7 @@ class MuredMachine:
                 pc=0,
                 fsp=stop_address,
                 env=memory_words,
+                free_space=memory_words,
                 c=-1,
                 direction=Direction.F,
                 q=quantum,
@@ -548,11 +557,7 @@ class MuredMachine:
         )
 
     def _frontier(self) -> int:
-        return (
-            self.state.env
-            if self.state.env_frontier is None
-            else self.state.env_frontier
-        )
+        return self.state.free_space
 
     def _current_opcode_name(self) -> str | None:
         try:
@@ -650,9 +655,13 @@ class MuredMachine:
     def _validate_state(self) -> None:
         state = self.state
         size = len(state.memory)
-        env_frontier = state.env if state.env_frontier is None else state.env_frontier
-        if not 0 <= state.fsp < env_frontier <= state.env <= size:
+        if (
+            type(state.free_space) is not int
+            or not 0 <= state.fsp < state.free_space <= self.working_memory_limit
+        ):
             raise GraphEnvironmentCollision("graph and environment collide")
+        if type(state.env) is not int or not 0 <= state.env <= size:
+            raise InvalidAddress(f"invalid μRED environment path: {state.env}")
         if not -1 <= state.c < len(state.control_stack):
             raise InvalidAddress(f"invalid μRED control pointer: {state.c}")
         if state.q < 0 or state.phi < 0 or state.argcnt < -1 or state.fire < 0:
@@ -664,7 +673,7 @@ class MuredMachine:
     def _push_graph(self, word: Word) -> int:
         state = self.state
         address = state.fsp + 1
-        frontier = state.env if state.env_frontier is None else state.env_frontier
+        frontier = state.free_space
         if address >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
         state.memory[address] = word
@@ -678,22 +687,20 @@ class MuredMachine:
 
     def _allocate_environment(self, word: Word) -> int:
         state = self.state
-        frontier = state.env if state.env_frontier is None else state.env_frontier
+        frontier = state.free_space
+        # Reserve the binding and any path bridge before writing either word.
+        address = frontier - 1 - (frontier != state.env)
+        if address <= state.fsp:
+            raise GraphEnvironmentCollision("graph and environment collide")
         if frontier != state.env:
             bridge = frontier - 1
-            if bridge <= state.fsp:
-                raise GraphEnvironmentCollision("graph and environment collide")
             state.memory[bridge] = Word(MuredOpcode.PNP, state.env, False)
             self._record_memory_event(
                 "ENV_ALLOC",
                 {"address": bridge, "opcode": "PNP", "words": 1},
             )
-            frontier = bridge
-        address = frontier - 1
-        if address <= state.fsp:
-            raise GraphEnvironmentCollision("graph and environment collide")
         state.memory[address] = word
-        state.env_frontier = address
+        state.free_space = address
         state.env = address
         self._record_memory_event(
             "ENV_ALLOC",
@@ -715,7 +722,7 @@ class MuredMachine:
         if address <= state.fsp:
             raise GraphEnvironmentCollision("graph and environment collide")
         state.memory[address] = Word(MuredOpcode.PNP, parent, False)
-        state.env_frontier = address
+        state.free_space = address
         state.env = address
         self._record_memory_event(
             "ENV_ALLOC",
@@ -728,22 +735,20 @@ class MuredMachine:
             raise MuredMachineError("environment block must not be empty")
         state = self.state
         frontier = self._frontier()
+        # A partial block (or marker alone) must never escape a failed reserve.
+        address = frontier - len(words) - (frontier != state.env)
+        if address <= state.fsp:
+            raise GraphEnvironmentCollision("graph and environment collide")
         if frontier != state.env:
             bridge = frontier - 1
-            if bridge <= state.fsp:
-                raise GraphEnvironmentCollision("graph and environment collide")
             state.memory[bridge] = Word(MuredOpcode.PNP, state.env, False)
             self._record_memory_event(
                 "ENV_ALLOC",
                 {"address": bridge, "opcode": "PNP", "words": 1},
             )
-            frontier = bridge
-        address = frontier - len(words)
-        if address <= state.fsp:
-            raise GraphEnvironmentCollision("graph and environment collide")
         for offset, word in enumerate(words):
             state.memory[address + offset] = word
-        state.env_frontier = address
+        state.free_space = address
         state.env = address
         self._record_memory_event(
             "ENV_ALLOC",
@@ -818,9 +823,7 @@ class MuredMachine:
 
     def _has_saved_primitive_context(self) -> bool:
         state = self.state
-        return state.c >= 0 and isinstance(
-            state.control_stack[state.c], _SavedFire
-        )
+        return state.c >= 0 and isinstance(state.control_stack[state.c], _SavedFire)
 
     def _restore_primitive_context(self) -> bool:
         if not self._has_saved_primitive_context():
@@ -837,9 +840,39 @@ class MuredMachine:
 
     def _enter_subgraph(self, parent_env: int, child_pc: int, parent_pc: int) -> None:
         state = self.state
+        if type(parent_env) is not int or not 0 <= parent_env <= len(state.memory):
+            raise InvalidAddress("subgraph parent environment requires an address")
+
+        # C returns with env == saved fs.  RED2 can arrive with a logical parent
+        # path that is not the physical frontier, so make that relationship
+        # explicit before the child region begins.  Preflight the marker, JOIN,
+        # and control frame together so a failed entry cannot leave a partial
+        # normalization behind.
+        frontier = self._frontier()
+        normalized_env = parent_env
+        needs_bridge = parent_env != frontier
+        if needs_bridge:
+            normalized_env = frontier - 1
+        join_address = state.fsp + 1
+        if normalized_env <= state.fsp or join_address >= normalized_env:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        if state.c + 1 >= len(state.control_stack):
+            raise ControlStackOverflow("μRED control stack overflow")
+
+        if needs_bridge:
+            state.memory[normalized_env] = Word(MuredOpcode.PNP, parent_env, False)
+            state.free_space = normalized_env
+            state.env = normalized_env
+            self._record_memory_event(
+                "ENV_ALLOC",
+                {"address": normalized_env, "opcode": "PNP", "words": 1},
+            )
+        else:
+            state.env = normalized_env
+
         frame = _SubgraphFrame(
-            env=parent_env,
-            env_frontier=self._frontier(),
+            env=normalized_env,
+            free_space=normalized_env,
             prim=state.prim,
             fire=state.fire,
         )
@@ -849,15 +882,13 @@ class MuredMachine:
             {
                 "parent_pc": parent_pc,
                 "child_pc": child_pc,
-                "env": parent_env,
-                "env_frontier": frame.env_frontier,
+                "parent_env": parent_env,
+                "env": frame.env,
+                "free_space": frame.free_space,
                 "prim": "" if frame.prim is None else frame.prim,
                 "fire": frame.fire,
             },
         )
-        if state.env_frontier is None:
-            state.env_frontier = frame.env_frontier
-        state.env = parent_env
         state.prim = None
         state.fire = 0
         self._push_graph(
@@ -981,9 +1012,10 @@ class MuredMachine:
                         descriptor, start, stop
                     ):
                         return True
-                    if descriptor.opcode is MuredOpcode.APP and type(
-                        descriptor.data
-                    ) is int:
+                    if (
+                        descriptor.opcode is MuredOpcode.APP
+                        and type(descriptor.data) is int
+                    ):
                         stack.append(descriptor.data)
                     if descriptor.opcode is MuredOpcode.VAR and descriptor.data == 0:
                         break
@@ -1003,6 +1035,964 @@ class MuredMachine:
                     cursor += 1
         return False
 
+    def _lookup_from_environment(self, environment: int, index: int) -> int:
+        """Resolve one lexical slot without changing the live machine registers."""
+        if type(environment) is not int or environment < 0:
+            raise InvalidAddress("environment lookup requires an address")
+        if type(index) is not int or index < 0:
+            raise InvalidAddress("environment lookup requires a non-negative index")
+        address = environment
+        remaining = index
+        seen: set[int] = set()
+        while True:
+            if address in seen:
+                raise IllegalTransition("cyclic environment path during publication")
+            seen.add(address)
+            word = self._word(address)
+            if word.opcode is MuredOpcode.PNP:
+                if type(word.data) is not int or word.data < 0:
+                    raise InvalidAddress("PNP requires an environment address")
+                address = word.data
+                continue
+            if remaining == 0:
+                return address
+            remaining -= 1
+            if word.opcode is MuredOpcode.REC:
+                address += 3
+            elif word.opcode is MuredOpcode.CLOSURE or word.closure_slot:
+                address += 2
+            else:
+                address += 1
+
+    def _materialize_closure_graph(self, closure_address: int) -> tuple[Word, ...]:
+        """Publish closure code as graph-owned words, resolving captured values."""
+        closure = self._word(closure_address)
+        if closure.opcode is not MuredOpcode.CLOSURE or type(closure.data) is not int:
+            raise MalformedClosure("publication requires an unshared CLOSURE")
+        code = self._word(closure_address + 1)
+        if code.opcode is not None or type(code.data) is not int or code.data < 0:
+            raise MalformedClosure("CLOSURE requires a following code pointer")
+        captured_environment = closure.data
+        output: list[Word | None] = []
+        visiting: set[tuple[int, int, int, bool]] = set()
+        inline_argument_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+
+        def emit_environment_value(
+            environment_address: int,
+            *,
+            head: bool,
+            bound_depth: int,
+        ) -> None:
+            seen: set[int] = set()
+            target_address = environment_address
+            while True:
+                if target_address in seen:
+                    raise IllegalTransition(
+                        "cyclic EP environment chain during publication"
+                    )
+                seen.add(target_address)
+                target = self._word(target_address)
+                if target.opcode is not MuredOpcode.EP:
+                    break
+                if type(target.data) is not int or target.data < 0:
+                    raise InvalidAddress("EP requires an environment address")
+                target_address = target.data
+            if self._is_shareable_ep_value(target):
+                output.append(Word(target.opcode, target.data, head, target.definition))
+                return
+            if target.opcode is MuredOpcode.CLOSURE:
+                nested = self._materialize_closure_graph(target_address)
+                base = len(output)
+                output.extend(
+                    self._relocate_problem_word(word, base) for word in nested
+                )
+                if output[base] is None:
+                    raise MuredMachineError("published closure graph contains a hole")
+                first = output[base]
+                assert first is not None
+                output[base] = Word(
+                    first.opcode,
+                    first.data,
+                    head,
+                    first.definition,
+                    first.closure_slot,
+                )
+                return
+            if target.opcode is MuredOpcode.UBV:
+                raise IllegalTransition(
+                    "captured UBV publication requires explicit scope relocation"
+                )
+            if target.opcode is MuredOpcode.REC:
+                raise IllegalTransition(
+                    "captured REC publication requires recursive residual handling"
+                )
+            raise IllegalTransition(
+                f"cannot publish captured environment value {target.opcode}"
+            )
+
+        def emit_graph(
+            address: int,
+            environment: int,
+            bound_depth: int,
+            *,
+            head: bool,
+        ) -> None:
+            key = (address, environment, bound_depth, head)
+            if key in visiting:
+                raise MuredMachineError("cyclic μRED graph during publication")
+            visiting.add(key)
+            try:
+                word = self._word(address)
+                if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                    not word.head and word.opcode in inline_argument_opcodes
+                ):
+                    entries: list[tuple[MuredOpcode, int, int, int | None]] = []
+                    cursor = address
+                    while True:
+                        entry = self._word(cursor)
+                        if entry.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR}:
+                            if type(entry.data) is not int or entry.data < 0:
+                                raise InvalidAddress(
+                                    "published application requires an address/index"
+                                )
+                            entries.append(
+                                (entry.opcode, entry.data, cursor, entry.definition)
+                            )
+                        elif not entry.head and entry.opcode in inline_argument_opcodes:
+                            entries.append(
+                                (entry.opcode, cursor, cursor, entry.definition)
+                            )
+                        else:
+                            break
+                        cursor += 1
+
+                    slots = len(output)
+                    output.extend([None] * len(entries))
+                    emit_graph(cursor, environment, bound_depth, head=True)
+                    for offset, (
+                        opcode,
+                        data,
+                        source,
+                        definition,
+                    ) in enumerate(entries):
+                        slot = slots + offset
+                        if opcode is MuredOpcode.APP_VAR:
+                            if data < bound_depth:
+                                output[slot] = Word(
+                                    MuredOpcode.APP_VAR, data, False, definition
+                                )
+                                continue
+                            target_address = self._lookup_from_environment(
+                                environment, data - bound_depth
+                            )
+                            target = self._word(target_address)
+                            if self._is_shareable_ep_value(target):
+                                output[slot] = Word(
+                                    target.opcode,
+                                    target.data,
+                                    False,
+                                    target.definition,
+                                )
+                                continue
+                            output_target = len(output)
+                            output[slot] = Word(
+                                MuredOpcode.APP, output_target, False, definition
+                            )
+                            emit_environment_value(
+                                target_address,
+                                head=True,
+                                bound_depth=bound_depth,
+                            )
+                            continue
+                        if opcode is MuredOpcode.APP:
+                            output_target = len(output)
+                            output[slot] = Word(
+                                MuredOpcode.APP, output_target, False, definition
+                            )
+                            emit_graph(data, environment, bound_depth, head=True)
+                            continue
+                        inline = self._word(source)
+                        output[slot] = Word(
+                            inline.opcode,
+                            inline.data,
+                            False,
+                            inline.definition,
+                            inline.closure_slot,
+                        )
+                    return
+
+                if word.opcode is MuredOpcode.LAMBDA:
+                    cursor = address
+                    lambdas: list[Word] = []
+                    while self._word(cursor).opcode is MuredOpcode.LAMBDA:
+                        lambda_word = self._word(cursor)
+                        lambdas.append(lambda_word)
+                        output.append(
+                            Word(
+                                MuredOpcode.LAMBDA,
+                                lambda_word.data,
+                                False,
+                                lambda_word.definition,
+                            )
+                        )
+                        cursor += 1
+                    emit_graph(
+                        cursor,
+                        environment,
+                        bound_depth + len(lambdas),
+                        head=head,
+                    )
+                    return
+
+                if word.opcode is MuredOpcode.VAR:
+                    if type(word.data) is not int or word.data < 0:
+                        raise InvalidAddress("published VAR requires a De Bruijn index")
+                    if word.data < bound_depth:
+                        output.append(
+                            Word(MuredOpcode.VAR, word.data, head, word.definition)
+                        )
+                        return
+                    target_address = self._lookup_from_environment(
+                        environment, word.data - bound_depth
+                    )
+                    emit_environment_value(
+                        target_address,
+                        head=head,
+                        bound_depth=bound_depth,
+                    )
+                    return
+
+                if word.opcode is MuredOpcode.EP:
+                    if type(word.data) is not int or word.data < 0:
+                        raise InvalidAddress(
+                            "published EP requires an environment address"
+                        )
+                    emit_environment_value(
+                        word.data,
+                        head=head,
+                        bound_depth=bound_depth,
+                    )
+                    return
+
+                if word.opcode in inline_argument_opcodes:
+                    output.append(Word(word.opcode, word.data, head, word.definition))
+                    return
+
+                raise IllegalTransition(
+                    f"cannot materialize closure result opcode {word.opcode}"
+                )
+            finally:
+                visiting.remove(key)
+
+        emit_graph(code.data, captured_environment, 0, head=True)
+        if not output or any(word is None for word in output):
+            raise MuredMachineError("published closure graph contains a hole")
+        return tuple(word for word in output if word is not None)
+
+    def _publish_child_result(
+        self,
+        frame: _SubgraphFrame,
+        result_address: int,
+    ) -> int:
+        """Eliminate result references into the child environment before return."""
+        state = self.state
+        current_frontier = self._frontier()
+        if type(frame.free_space) is not int or not (
+            0 <= current_frontier <= frame.free_space <= self.working_memory_limit
+        ):
+            raise IllegalTransition("malformed subgraph publication boundary")
+        if not 0 <= result_address <= state.fsp:
+            raise InvalidAddress("child result is outside the live graph")
+
+        interval_start = current_frontier
+        interval_stop = frame.free_space
+        published_roots: dict[int, int] = {}
+        published_closures: dict[int, int] = {}
+        published_recursive: dict[int, int] = {}
+        visiting: set[int] = set()
+        inline_argument_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+
+        def chase_environment_value(address: int) -> tuple[int, Word]:
+            seen: set[int] = set()
+            target_address = address
+            while True:
+                if target_address in seen:
+                    raise IllegalTransition(
+                        "cyclic EP environment chain during publication"
+                    )
+                seen.add(target_address)
+                target = self._word(target_address)
+                if target.opcode is not MuredOpcode.EP:
+                    return target_address, target
+                if type(target.data) is not int or target.data < 0:
+                    raise InvalidAddress("published EP requires an environment address")
+                target_address = target.data
+
+        def publish_closure(closure_address: int) -> int:
+            existing = published_closures.get(closure_address)
+            if existing is not None:
+                return existing
+            words = self._materialize_closure_graph(closure_address)
+            destination = state.fsp + 1
+            self._write_problem(destination, words)
+            published_closures[closure_address] = destination
+            published_roots[destination] = destination
+            return destination
+
+        def publish_recursive_residual(rec_address: int) -> int:
+            existing = published_recursive.get(rec_address)
+            if existing is not None:
+                return existing
+            _binding_address, context, block_address = self._rec_fields(rec_address)
+
+            source_blocks: list[Word] = []
+            cursor = block_address
+            while self._word(cursor).opcode is MuredOpcode.RBLOCK:
+                block = self._word(cursor)
+                if type(block.data) is not int or block.data < 0:
+                    raise InvalidAddress(
+                        "REC residual RBLOCK requires a binding address"
+                    )
+                source_blocks.append(block)
+                cursor += 1
+            count = len(source_blocks)
+            if count == 0:
+                raise IllegalTransition("REC residual requires at least one RBLOCK")
+            rup = self._word(cursor)
+            if rup.opcode is not MuredOpcode.RUP or rup.data != count:
+                raise IllegalTransition(
+                    "REC residual requires matching RUP binding count"
+                )
+
+            selected_delta = rec_address - context
+            if selected_delta < 0 or selected_delta % 3 != 0:
+                raise InvalidAddress("REC residual is outside its recursive context")
+            selected_index = selected_delta // 3
+            if selected_index >= count:
+                raise InvalidAddress("REC residual binding index is outside BLOCK")
+
+            # Hilton RECONSTRUCT copies only the RBLOCK descriptors.  The binding
+            # graphs remain graph-owned and are traversed in a replacement lexical
+            # context where this REC block is represented by ordinary variables.
+            # Publication makes that replacement explicit in any already-forced EPs
+            # so the copied residual no longer depends on the dying environment.
+            rewriting: set[tuple[int, int]] = set()
+
+            def recursive_index(target_address: int) -> int | None:
+                target = self._word(target_address)
+                if target.opcode is not MuredOpcode.REC:
+                    return None
+                _binding, target_context, target_block = self._rec_fields(
+                    target_address
+                )
+                if target_context != context or target_block != block_address:
+                    return None
+                delta = target_address - context
+                if delta < 0 or delta % 3 != 0:
+                    raise InvalidAddress("REC is outside its recursive context")
+                index = delta // 3
+                if index >= count:
+                    raise InvalidAddress("REC binding index is outside BLOCK")
+                return index
+
+            def rewrite_recursive_references(address: int, bound_depth: int) -> None:
+                key = (address, bound_depth)
+                if key in rewriting:
+                    return
+                rewriting.add(key)
+                try:
+                    word = self._word(address)
+                    if word.opcode is MuredOpcode.EP:
+                        if type(word.data) is not int or word.data < 0:
+                            raise InvalidAddress(
+                                "published EP requires an environment address"
+                            )
+                        target_address, _target = chase_environment_value(word.data)
+                        index = recursive_index(target_address)
+                        if index is not None:
+                            opcode = (
+                                MuredOpcode.VAR if word.head else MuredOpcode.APP_VAR
+                            )
+                            state.memory[address] = Word(
+                                opcode,
+                                index + bound_depth,
+                                word.head,
+                                word.definition,
+                            )
+                        return
+
+                    if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                        not word.head and word.opcode in inline_argument_opcodes
+                    ):
+                        cursor2 = address
+                        while True:
+                            entry = self._word(cursor2)
+                            if entry.opcode is MuredOpcode.APP:
+                                if type(entry.data) is not int or entry.data < 0:
+                                    raise InvalidAddress(
+                                        "published APP requires a graph address"
+                                    )
+                                rewrite_recursive_references(entry.data, bound_depth)
+                            elif entry.opcode is MuredOpcode.EP and not entry.head:
+                                rewrite_recursive_references(cursor2, bound_depth)
+                            elif entry.opcode is MuredOpcode.APP_VAR or (
+                                not entry.head
+                                and entry.opcode in inline_argument_opcodes
+                            ):
+                                pass
+                            else:
+                                rewrite_recursive_references(cursor2, bound_depth)
+                                break
+                            cursor2 += 1
+                        return
+
+                    if word.opcode is MuredOpcode.RBLOCK:
+                        cursor2 = address
+                        nested_blocks: list[Word] = []
+                        while self._word(cursor2).opcode is MuredOpcode.RBLOCK:
+                            nested = self._word(cursor2)
+                            if type(nested.data) is not int or nested.data < 0:
+                                raise InvalidAddress(
+                                    "published RBLOCK requires a binding address"
+                                )
+                            nested_blocks.append(nested)
+                            cursor2 += 1
+                        nested_rup = self._word(cursor2)
+                        if (
+                            nested_rup.opcode is not MuredOpcode.RUP
+                            or nested_rup.data != len(nested_blocks)
+                        ):
+                            raise MuredMachineError(
+                                "published LETREC requires matching RUP"
+                            )
+                        nested_depth = bound_depth + len(nested_blocks)
+                        for nested in nested_blocks:
+                            assert type(nested.data) is int
+                            rewrite_recursive_references(nested.data + 1, nested_depth)
+                        rewrite_recursive_references(cursor2 + 1, nested_depth)
+                        return
+
+                    if word.opcode is MuredOpcode.STRUCT:
+                        cursor2 = address + 1
+                        while True:
+                            descriptor = self._word(cursor2)
+                            if descriptor.opcode is MuredOpcode.APP:
+                                if (
+                                    type(descriptor.data) is not int
+                                    or descriptor.data < 0
+                                ):
+                                    raise InvalidAddress(
+                                        "published STRUCT APP requires an address"
+                                    )
+                                rewrite_recursive_references(
+                                    descriptor.data, bound_depth + 1
+                                )
+                            elif descriptor.opcode is MuredOpcode.EP:
+                                rewrite_recursive_references(cursor2, bound_depth + 1)
+                            elif descriptor.opcode is MuredOpcode.APP_VAR or (
+                                not descriptor.head
+                                and descriptor.opcode in inline_argument_opcodes
+                            ):
+                                pass
+                            else:
+                                if (
+                                    descriptor.opcode is not MuredOpcode.VAR
+                                    or descriptor.data != 0
+                                ):
+                                    raise MuredMachineError(
+                                        "published STRUCT requires trailing VAR 0"
+                                    )
+                                break
+                            cursor2 += 1
+                        return
+
+                    if word.opcode is MuredOpcode.LAMBDA:
+                        cursor2 = address
+                        depth = bound_depth
+                        while self._word(cursor2).opcode is MuredOpcode.LAMBDA:
+                            depth += 1
+                            cursor2 += 1
+                        rewrite_recursive_references(cursor2, depth)
+                finally:
+                    rewriting.remove(key)
+
+            for block in source_blocks:
+                assert type(block.data) is int
+                name = self._word(block.data)
+                if name.opcode is not MuredOpcode.SYM or type(name.data) is not str:
+                    raise MuredMachineError(
+                        "REC residual RBLOCK binding requires leading SYM name"
+                    )
+                rewrite_recursive_references(block.data + 1, 0)
+                binding = publish_graph(block.data + 1)
+                if binding != block.data + 1:
+                    raise IllegalTransition(
+                        "published recursive binding root cannot move"
+                    )
+
+            destination = state.fsp + 1
+            words = [
+                Word(MuredOpcode.RBLOCK, block.data, False, block.definition)
+                for block in source_blocks
+            ]
+            words.extend(
+                [
+                    Word(MuredOpcode.RUP, count, False),
+                    Word(MuredOpcode.VAR, selected_index, True),
+                ]
+            )
+            last_address = destination + len(words) - 1
+            if last_address >= self._frontier():
+                raise GraphEnvironmentCollision("graph and environment collide")
+            state.memory[destination : last_address + 1] = words
+            state.fsp = last_address
+            published_recursive[rec_address] = destination
+            published_roots[destination] = destination
+            return destination
+
+        def publish_ep(address: int, *, embedded: bool) -> int:
+            descriptor = self._word(address)
+            if descriptor.opcode is not MuredOpcode.EP:
+                raise IllegalTransition("publication EP helper requires EP")
+            if type(descriptor.data) is not int or descriptor.data < 0:
+                raise InvalidAddress("published EP requires an environment address")
+            target_address, target = chase_environment_value(descriptor.data)
+            if not self._environment_address_in_interval(
+                target_address,
+                interval_start,
+                interval_stop,
+            ):
+                return address
+            if self._is_shareable_ep_value(target):
+                state.memory[address] = Word(
+                    target.opcode,
+                    target.data,
+                    descriptor.head,
+                    target.definition,
+                )
+                return address
+            if target.opcode is MuredOpcode.UBV:
+                if type(target.data) is not int:
+                    raise InvalidAddress("UBV requires a binder depth")
+                index = state.phi - target.data
+                if index < 0:
+                    raise IllegalTransition(
+                        "published UBV is outside the current lexical scope"
+                    )
+                opcode = MuredOpcode.APP_VAR if embedded else MuredOpcode.VAR
+                state.memory[address] = Word(
+                    opcode,
+                    index,
+                    descriptor.head,
+                    descriptor.definition,
+                )
+                return address
+            if target.opcode is MuredOpcode.CLOSURE:
+                return publish_closure(target_address)
+            if target.opcode is MuredOpcode.REC:
+                return publish_recursive_residual(target_address)
+            raise IllegalTransition(
+                f"child result publication cannot retain {target.opcode}"
+            )
+
+        def publish_embedded_descriptor(address: int) -> None:
+            descriptor = self._word(address)
+            if descriptor.opcode is MuredOpcode.EP:
+                published = publish_ep(address, embedded=True)
+                if published != address:
+                    state.memory[address] = Word(
+                        MuredOpcode.APP,
+                        published,
+                        descriptor.head,
+                        descriptor.definition,
+                    )
+                return
+            if descriptor.opcode is MuredOpcode.APP:
+                if type(descriptor.data) is not int or descriptor.data < 0:
+                    raise InvalidAddress("published APP requires a graph address")
+                published = publish_graph(descriptor.data)
+                if published != descriptor.data:
+                    state.memory[address] = Word(
+                        MuredOpcode.APP,
+                        published,
+                        descriptor.head,
+                        descriptor.definition,
+                    )
+
+        def publish_graph(address: int) -> int:
+            existing = published_roots.get(address)
+            if existing is not None:
+                return existing
+            if address in visiting:
+                raise MuredMachineError("cyclic μRED graph during publication")
+            visiting.add(address)
+            try:
+                word = self._word(address)
+                if word.opcode is MuredOpcode.EP:
+                    published = publish_ep(address, embedded=False)
+                    published_roots[address] = published
+                    return published
+
+                if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                    not word.head and word.opcode in inline_argument_opcodes
+                ):
+                    cursor = address
+                    while True:
+                        entry = self._word(cursor)
+                        if entry.opcode is MuredOpcode.APP:
+                            publish_embedded_descriptor(cursor)
+                        elif entry.opcode is MuredOpcode.APP_VAR or (
+                            not entry.head and entry.opcode in inline_argument_opcodes
+                        ):
+                            pass
+                        else:
+                            break
+                        cursor += 1
+                    operator = publish_graph(cursor)
+                    if operator != cursor:
+                        raise IllegalTransition(
+                            "published application operator cannot move"
+                        )
+                    published_roots[address] = address
+                    return address
+
+                if word.opcode is MuredOpcode.RBLOCK:
+                    cursor = address
+                    blocks: list[int] = []
+                    while self._word(cursor).opcode is MuredOpcode.RBLOCK:
+                        block = self._word(cursor)
+                        if type(block.data) is not int or block.data < 0:
+                            raise InvalidAddress(
+                                "published RBLOCK requires a binding address"
+                            )
+                        blocks.append(cursor)
+                        binding = publish_graph(block.data + 1)
+                        if binding != block.data + 1:
+                            raise IllegalTransition(
+                                "published LETREC binding root cannot move"
+                            )
+                        cursor += 1
+                    rup = self._word(cursor)
+                    if rup.opcode is not MuredOpcode.RUP or rup.data != len(blocks):
+                        raise MuredMachineError(
+                            "published LETREC requires matching RUP"
+                        )
+                    body = publish_graph(cursor + 1)
+                    if body != cursor + 1:
+                        raise IllegalTransition(
+                            "published LETREC body root cannot move"
+                        )
+                    published_roots[address] = address
+                    return address
+
+                if word.opcode is MuredOpcode.STRUCT:
+                    cursor = address + 1
+                    while True:
+                        descriptor = self._word(cursor)
+                        if descriptor.opcode in {
+                            MuredOpcode.APP,
+                            MuredOpcode.EP,
+                        }:
+                            publish_embedded_descriptor(cursor)
+                        elif descriptor.opcode is MuredOpcode.APP_VAR or (
+                            not descriptor.head
+                            and descriptor.opcode in inline_argument_opcodes
+                        ):
+                            pass
+                        else:
+                            break
+                        cursor += 1
+                    selector = self._word(cursor)
+                    if selector.opcode is not MuredOpcode.VAR or selector.data != 0:
+                        raise MuredMachineError(
+                            "published STRUCT requires trailing VAR 0"
+                        )
+                    published_roots[address] = address
+                    return address
+
+                if word.opcode is MuredOpcode.LAMBDA:
+                    cursor = address
+                    while self._word(cursor).opcode is MuredOpcode.LAMBDA:
+                        cursor += 1
+                    body = publish_graph(cursor)
+                    if body != cursor:
+                        raise IllegalTransition(
+                            "published lambda body root cannot move"
+                        )
+                    published_roots[address] = address
+                    return address
+
+                published_roots[address] = address
+                return address
+            finally:
+                visiting.remove(address)
+
+        return publish_graph(result_address)
+
+    def _audit_typed_subgraph_return_roots(
+        self,
+        frame: _SubgraphFrame,
+        result_address: int,
+        parent_address: int,
+    ) -> None:
+        """Diagnose reachable references into a child region before reuse."""
+        if not self._memory_diagnostics_enabled:
+            return
+        self._validate_typed_subgraph_return(frame)
+        state = self.state
+        start = self._frontier()
+        stop = frame.free_space
+        graph_seen: set[int] = set()
+        environment_seen: set[int] = set()
+        inline_argument_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+
+        def dangling(kind: str, address: int) -> None:
+            raise IllegalTransition(
+                f"live {kind} references reclaimed environment address {address}"
+            )
+
+        def require_address(kind: str, value: object) -> int:
+            if type(value) is not int or value < 0:
+                raise InvalidAddress(f"{kind} requires an address")
+            return value
+
+        def visit_definition(word: Word) -> None:
+            if word.definition is not None:
+                visit_graph(require_address("definition", word.definition))
+
+        def visit_environment(address: int) -> None:
+            if start <= address < stop:
+                dangling("environment root", address)
+            if address >= self.working_memory_limit:
+                return
+            if address < 0:
+                raise InvalidAddress("environment root requires an address")
+            cursor = address
+            while cursor < self.working_memory_limit:
+                if start <= cursor < stop:
+                    dangling("environment path", cursor)
+                if cursor in environment_seen:
+                    return
+                environment_seen.add(cursor)
+                word = self._word(cursor)
+                visit_definition(word)
+                if word.opcode is MuredOpcode.PNP:
+                    visit_environment(require_address("PNP", word.data))
+                    return
+                if word.opcode is MuredOpcode.EP:
+                    visit_environment(require_address("EP", word.data))
+                elif word.opcode is MuredOpcode.RECP:
+                    visit_environment(require_address("RECP", word.data))
+                if word.opcode is MuredOpcode.REC:
+                    visit_graph(require_address("REC binding", word.data))
+                    context = self._word(cursor + 1)
+                    block = self._word(cursor + 2)
+                    visit_environment(require_address("REC context", context.data))
+                    visit_graph(require_address("REC block", block.data))
+                    environment_seen.update({cursor + 1, cursor + 2})
+                    cursor += 3
+                    continue
+                if word.opcode is MuredOpcode.CLOSURE or word.closure_slot:
+                    if word.opcode is MuredOpcode.CLOSURE:
+                        visit_environment(require_address("CLOSURE", word.data))
+                    payload = self._word(cursor + 1)
+                    if payload.opcode is not None:
+                        raise MalformedClosure(
+                            "CLOSURE requires an untagged following code pointer"
+                        )
+                    visit_graph(require_address("CLOSURE code", payload.data))
+                    environment_seen.add(cursor + 1)
+                    cursor += 2
+                    continue
+                cursor += 1
+
+        def visit_graph(address: int) -> None:
+            if start <= address < stop:
+                dangling("graph root", address)
+            if not 0 <= address < len(state.memory):
+                raise InvalidAddress("graph root requires an address")
+            if address in graph_seen:
+                return
+            graph_seen.add(address)
+            word = self._word(address)
+            visit_definition(word)
+            if word.opcode is MuredOpcode.EP:
+                visit_environment(require_address("EP", word.data))
+                return
+            if word.opcode is MuredOpcode.RECP:
+                visit_environment(require_address("RECP", word.data))
+                return
+            if word.opcode is MuredOpcode.CLOSURE:
+                visit_environment(require_address("CLOSURE", word.data))
+                payload = self._word(address + 1)
+                if payload.opcode is not None:
+                    raise MalformedClosure(
+                        "CLOSURE requires an untagged following code pointer"
+                    )
+                visit_graph(require_address("CLOSURE code", payload.data))
+                return
+            if word.opcode is MuredOpcode.PNP:
+                visit_environment(require_address("PNP", word.data))
+                return
+            if word.opcode is MuredOpcode.REC:
+                visit_graph(require_address("REC binding", word.data))
+                context = self._word(address + 1)
+                block = self._word(address + 2)
+                visit_environment(require_address("REC context", context.data))
+                visit_graph(require_address("REC block", block.data))
+                return
+            if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                not word.head and word.opcode in inline_argument_opcodes
+            ):
+                cursor = address
+                while cursor < len(state.memory):
+                    entry = self._word(cursor)
+                    visit_definition(entry)
+                    if entry.opcode is MuredOpcode.APP:
+                        visit_graph(require_address("APP", entry.data))
+                    elif entry.opcode is MuredOpcode.EP:
+                        visit_environment(require_address("EP", entry.data))
+                    if entry.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                        not entry.head
+                        and entry.opcode in inline_argument_opcodes | {MuredOpcode.EP}
+                    ):
+                        cursor += 1
+                        continue
+                    if entry.opcode is not MuredOpcode.JOIN:
+                        visit_graph(cursor)
+                    return
+                raise InvalidAddress("application graph has no operator")
+            if word.opcode is MuredOpcode.RBLOCK:
+                cursor = address
+                count = 0
+                while self._word(cursor).opcode is MuredOpcode.RBLOCK:
+                    block = self._word(cursor)
+                    visit_definition(block)
+                    binding = require_address("RBLOCK", block.data)
+                    visit_graph(binding + 1)
+                    count += 1
+                    cursor += 1
+                rup = self._word(cursor)
+                if rup.opcode is not MuredOpcode.RUP or rup.data != count:
+                    raise MuredMachineError("audit LETREC requires matching RUP")
+                visit_graph(cursor + 1)
+                return
+            if word.opcode is MuredOpcode.STRUCT:
+                cursor = address + 1
+                while cursor < len(state.memory):
+                    descriptor = self._word(cursor)
+                    visit_definition(descriptor)
+                    if descriptor.opcode is MuredOpcode.APP:
+                        visit_graph(require_address("STRUCT APP", descriptor.data))
+                    elif descriptor.opcode is MuredOpcode.EP:
+                        visit_environment(require_address("STRUCT EP", descriptor.data))
+                    if descriptor.opcode in {
+                        MuredOpcode.APP,
+                        MuredOpcode.APP_VAR,
+                        MuredOpcode.EP,
+                    } or (
+                        not descriptor.head
+                        and descriptor.opcode in inline_argument_opcodes
+                    ):
+                        cursor += 1
+                        continue
+                    if descriptor.opcode is not MuredOpcode.VAR or descriptor.data != 0:
+                        raise MuredMachineError("audit STRUCT requires trailing VAR 0")
+                    return
+                raise InvalidAddress("STRUCT graph has no selector")
+            if word.opcode is MuredOpcode.LAMBDA:
+                cursor = address
+                while self._word(cursor).opcode is MuredOpcode.LAMBDA:
+                    visit_definition(self._word(cursor))
+                    cursor += 1
+                visit_graph(cursor)
+
+        visit_graph(result_address)
+        visit_graph(parent_address)
+        for index in range(state.c + 1):
+            entry = state.control_stack[index]
+            if type(entry) is int:
+                visit_environment(entry)
+            elif isinstance(entry, _SavedDefinitionPath):
+                visit_environment(entry.value)
+            elif isinstance(entry, _SubgraphFrame):
+                visit_environment(entry.env)
+        for address in range(self.working_memory_limit, len(state.memory)):
+            static_word = state.memory[address]
+            if static_word is not None and static_word.opcode is not None:
+                visit_graph(address)
+        if self.pending_host_call is not None:
+            argument = self.pending_host_call.argument_address
+            if argument is not None:
+                visit_graph(argument)
+
+    def _validate_typed_subgraph_return(self, frame: _SubgraphFrame) -> None:
+        state = self.state
+        current_frontier = self._frontier()
+        if type(frame.free_space) is not int or not (
+            0 <= current_frontier <= frame.free_space <= self.working_memory_limit
+        ):
+            raise IllegalTransition("malformed subgraph return boundary")
+        if type(frame.env) is not int or not 0 <= frame.env <= len(state.memory):
+            raise InvalidAddress("saved environment requires an address")
+        if self._environment_address_in_interval(
+            frame.env,
+            current_frontier,
+            frame.free_space,
+        ):
+            raise IllegalTransition(
+                "saved environment lies inside reclaimed subgraph region"
+            )
+
+    def _restore_typed_subgraph_region(self, frame: _SubgraphFrame) -> bool:
+        """Return one machine-generated child region exactly, without root scans."""
+        self._validate_typed_subgraph_return(frame)
+        state = self.state
+        current_frontier = self._frontier()
+        saved_frontier = frame.free_space
+        if current_frontier == saved_frontier:
+            state.env = frame.env
+            return False
+        if self._poison_reclaimed_environment:
+            for address in range(current_frontier, saved_frontier):
+                state.memory[address] = None
+        state.free_space = saved_frontier
+        state.env = frame.env
+        self._frontier_restores += 1
+        self._record_memory_event(
+            "ENV_RECLAIM",
+            {
+                "from": current_frontier,
+                "to": saved_frontier,
+                "words": saved_frontier - current_frontier,
+            },
+        )
+        return True
+
     def _restore_environment_region(
         self,
         frame: _SubgraphFrame | None,
@@ -1012,7 +2002,7 @@ class MuredMachine:
             return False
         state = self.state
         current_frontier = self._frontier()
-        saved_frontier = frame.env_frontier
+        saved_frontier = frame.free_space
         if current_frontier > saved_frontier:
             raise IllegalTransition("subgraph frontier moved above saved frontier")
         if current_frontier == saved_frontier:
@@ -1035,7 +2025,7 @@ class MuredMachine:
         if self._poison_reclaimed_environment:
             for address in range(current_frontier, saved_frontier):
                 state.memory[address] = None
-        state.env_frontier = saved_frontier
+        state.free_space = saved_frontier
         state.env = frame.env
         self._frontier_restores += 1
         self._record_memory_event(
@@ -1119,7 +2109,6 @@ class MuredMachine:
             MuredOpcode.RECP,
         }:
             raise IllegalTransition("JOIN parent must be APP, EP, RBLOCK, or RECP")
-        tail = self._word(state.s_a)
         self._discard_completed_definition_paths()
         saved_primitive = word.definition == 1
         frame = self._pop_subgraph_frame(saved_primitive)
@@ -1131,6 +2120,11 @@ class MuredMachine:
             raise IllegalTransition(
                 "JOIN primitive context marker has no saved context"
             )
+        if frame is not None:
+            self._validate_typed_subgraph_return(frame)
+            state.s_a = self._publish_child_result(frame, state.s_a)
+            self._audit_typed_subgraph_return_roots(frame, state.s_a, word.data)
+        tail = self._word(state.s_a)
         single_word = state.fsp == state.s_a
         shareable_atomic = single_word and self._is_shareable_ep_value(tail)
         if parent.opcode is MuredOpcode.EP and shareable_atomic:
@@ -1161,9 +2155,7 @@ class MuredMachine:
                 parent.definition,
             )
             if state.q == 0:
-                previous = (
-                    state.memory[word.data - 1] if word.data > 0 else None
-                )
+                previous = state.memory[word.data - 1] if word.data > 0 else None
                 if previous is None or previous.opcode is not MuredOpcode.RBLOCK:
                     binding_count = 1
                     cursor = word.data + 1
@@ -1198,7 +2190,9 @@ class MuredMachine:
             state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
 
         result_address = word.data if word.data <= state.fsp else None
-        restored_frontier = self._restore_environment_region(frame, result_address)
+        restored_frontier = (
+            self._restore_typed_subgraph_region(frame) if frame is not None else False
+        )
         self._record_memory_event(
             "JOIN_RETURN",
             {
@@ -1298,9 +2292,7 @@ class MuredMachine:
             )
             if state.fire > 0:
                 if state.prim is None:
-                    raise IllegalTransition(
-                        "active primitive countdown requires prim"
-                    )
+                    raise IllegalTransition("active primitive countdown requires prim")
                 state.fire -= 1
                 if state.fire == 0:
                     state.pc = parent_ep
@@ -1319,11 +2311,7 @@ class MuredMachine:
             state.pc -= 1
             return
         result_head = self._word(state.fsp)
-        if (
-            state.q == 0
-            or state.argcnt == 0
-            or result_head.opcode is MuredOpcode.STOP
-        ):
+        if state.q == 0 or state.argcnt == 0 or result_head.opcode is MuredOpcode.STOP:
             self._copy_result(word)
             state.argcnt = 0
             state.phi += 1
@@ -1595,9 +2583,7 @@ class MuredMachine:
             state = self.state
             if state.fire > 0:
                 if state.prim is None:
-                    raise IllegalTransition(
-                        "active primitive countdown requires prim"
-                    )
+                    raise IllegalTransition("active primitive countdown requires prim")
                 state.fire -= 1
                 if state.fire == 0:
                     self._fire_primitive()
@@ -1653,9 +2639,7 @@ class MuredMachine:
             # must leave the enclosing primitive context active.
             if state.fire > 0:
                 if state.prim is None:
-                    raise IllegalTransition(
-                        "active primitive countdown requires prim"
-                    )
+                    raise IllegalTransition("active primitive countdown requires prim")
                 state.fire -= 1
                 if state.fire == 0:
                     self._fire_primitive()
@@ -1689,9 +2673,7 @@ class MuredMachine:
         if redex.opcode is MuredOpcode.UBV:
             if type(redex.data) is not int or redex.data < 0:
                 raise InvalidAddress("UBV requires a binder depth")
-            self._copy_result(
-                Word(MuredOpcode.APP_VAR, state.phi - redex.data, False)
-            )
+            self._copy_result(Word(MuredOpcode.APP_VAR, state.phi - redex.data, False))
             return
         if redex.opcode is MuredOpcode.CLOSURE:
             if type(redex.data) is not int or redex.data < 0:
@@ -1721,9 +2703,7 @@ class MuredMachine:
             MuredOpcode.PRIM_1,
             MuredOpcode.PRIM_2,
         }:
-            self._copy_result(
-                Word(redex.opcode, redex.data, False, redex.definition)
-            )
+            self._copy_result(Word(redex.opcode, redex.data, False, redex.definition))
             return
         raise IllegalTransition("APP_VAR encountered malformed redex-store value")
 
@@ -1736,9 +2716,7 @@ class MuredMachine:
         # arguments.  APP is the Python μRED spelling of PTR; an EP branch
         # therefore consumes a control-stack path just like an APP branch.
         path_opcodes = {MuredOpcode.APP, MuredOpcode.EP}
-        true_path = (
-            self._pop_control() if true_branch.opcode in path_opcodes else None
-        )
+        true_path = self._pop_control() if true_branch.opcode in path_opcodes else None
         false_path = (
             self._pop_control() if false_branch.opcode in path_opcodes else None
         )
@@ -1917,7 +2895,7 @@ class MuredMachine:
         if left_root is not None:
             next_root += 1
 
-        frontier = state.env if state.env_frontier is None else state.env_frontier
+        frontier = state.free_space
         last_address = max(old_fsp, base + 3, next_root - 1)
         if last_address >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
@@ -2036,8 +3014,7 @@ class MuredMachine:
             )
             if value is not None and source_address is not None:
                 if value.opcode is MuredOpcode.APP or (
-                    value.opcode is MuredOpcode.SYM
-                    and value.definition is not None
+                    value.opcode is MuredOpcode.SYM and value.definition is not None
                 ):
                     parent_address = state.pc
                     parent = self._word(parent_address)
@@ -2177,11 +3154,7 @@ class MuredMachine:
                 )
             cursor += 1
 
-        frontier = (
-            self.state.env
-            if self.state.env_frontier is None
-            else self.state.env_frontier
-        )
+        frontier = self.state.free_space
         last_address = destination + len(words) - 1
         if last_address >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
@@ -2261,8 +3234,7 @@ class MuredMachine:
             return None
 
         both_int = (
-            left_word.opcode is MuredOpcode.INT
-            and right_word.opcode is MuredOpcode.INT
+            left_word.opcode is MuredOpcode.INT and right_word.opcode is MuredOpcode.INT
         )
         if primitive == "+":
             value = left + right
@@ -2383,7 +3355,7 @@ class MuredMachine:
 
         self._push_control(state.env)
         scratch = state.fsp + 1
-        frontier = state.env if state.env_frontier is None else state.env_frontier
+        frontier = state.free_space
         if scratch >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
         state.memory[scratch] = Word(
@@ -2421,12 +3393,7 @@ class MuredMachine:
             ):
                 state.prim = word.data
                 state.fire = 1
-            elif (
-                word.head
-                and word.data == "IF"
-                and state.argcnt >= 3
-                and state.q > 0
-            ):
+            elif word.head and word.data == "IF" and state.argcnt >= 3 and state.q > 0:
                 state.prim = "IF"
                 state.fire = 1
             arity = 0
@@ -2436,12 +3403,7 @@ class MuredMachine:
             arity = 2
         else:
             raise IllegalTransition("_prim requires a primitive opcode")
-        if (
-            arity > 0
-            and word.head
-            and state.argcnt >= arity
-            and state.q > 0
-        ):
+        if arity > 0 and word.head and state.argcnt >= arity and state.q > 0:
             state.prim = word.data
             state.fire = arity
         self._copy_result(word)
@@ -2456,9 +3418,7 @@ class MuredMachine:
             raise IllegalTransition("UBV requires forward execution")
         if not isinstance(word.data, int):
             raise InvalidAddress("UBV requires a binder depth")
-        self._copy_result(
-            Word(MuredOpcode.VAR, self.state.phi - word.data, True)
-        )
+        self._copy_result(Word(MuredOpcode.VAR, self.state.phi - word.data, True))
         self.state.pc = self.state.fsp - 1
         self.state.direction = Direction.B
 
@@ -2518,9 +3478,7 @@ class MuredMachine:
             # PGDR, marks that register HEAD, and executes the detached value.
             # Do not execute the environment cell in place: the following word
             # is another binding/marker, not part of the executable graph.
-            self._copy_result(
-                Word(redex.opcode, redex.data, True, redex.definition)
-            )
+            self._copy_result(Word(redex.opcode, redex.data, True, redex.definition))
             self.state.pc = self.state.fsp - 1
             self.state.direction = Direction.B
             return
@@ -2577,10 +3535,7 @@ class MuredMachine:
                             entries.append(
                                 (entry.opcode, entry.data, cursor, entry.definition)
                             )
-                        elif (
-                            not entry.head
-                            and entry.opcode in inline_argument_opcodes
-                        ):
+                        elif not entry.head and entry.opcode in inline_argument_opcodes:
                             entries.append(
                                 (entry.opcode, cursor, cursor, entry.definition)
                             )
@@ -2632,9 +3587,8 @@ class MuredMachine:
                                 "result RBLOCK requires a binding address"
                             )
                         name = source_word(block.data)
-                        if (
-                            name.opcode is not MuredOpcode.SYM
-                            or not isinstance(name.data, str)
+                        if name.opcode is not MuredOpcode.SYM or not isinstance(
+                            name.data, str
                         ):
                             raise MuredMachineError(
                                 "result RBLOCK binding requires leading SYM name"
@@ -2793,7 +3747,7 @@ class MuredMachine:
         if not words:
             raise MuredMachineError("μRED value graph must not be empty")
         state = self.state
-        frontier = state.env if state.env_frontier is None else state.env_frontier
+        frontier = state.free_space
         last_address = destination + len(words) - 1
         if last_address >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
@@ -2953,7 +3907,7 @@ class MuredMachine:
         self._host_checkpoints += 1
         self._record_memory_event(
             "CHECKPOINT",
-            {"quantum": quantum, "fsp": state.fsp, "env_frontier": self._frontier()},
+            {"quantum": quantum, "fsp": state.fsp, "free_space": self._frontier()},
         )
         state.q = 0
         while not state.halted:
@@ -2996,7 +3950,7 @@ class MuredMachine:
         state.pc = 0
         state.fsp = stop_address
         state.env = self.working_memory_limit
-        state.env_frontier = self.working_memory_limit
+        state.free_space = self.working_memory_limit
         state.c = -1
         state.direction = Direction.F
         state.q = quantum
@@ -3026,9 +3980,7 @@ class MuredMachine:
             if self.state.q == 0 and not self._has_saved_quantum():
                 return MuredRunResult(MuredStopReason.QUANTUM_EXHAUSTED)
             if self.state.cycles >= cycle_limit:
-                raise CycleLimitExceeded(
-                    f"μRED cycle limit reached: {cycle_limit}"
-                )
+                raise CycleLimitExceeded(f"μRED cycle limit reached: {cycle_limit}")
             self.step()
 
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
@@ -3036,9 +3988,7 @@ class MuredMachine:
             raise ValueError("cycle_limit must be non-negative")
         while not self.state.halted and self.pending_host_call is None:
             if self.state.cycles >= cycle_limit:
-                raise CycleLimitExceeded(
-                    f"μRED cycle limit reached: {cycle_limit}"
-                )
+                raise CycleLimitExceeded(f"μRED cycle limit reached: {cycle_limit}")
             self.step()
         return self.state
 
@@ -3172,11 +4122,7 @@ class MuredMachine:
             arguments: list[Expr] = []
             for opcode, argument_data in reversed(argument_entries):
                 if opcode is MuredOpcode.APP_VAR:
-                    name = (
-                        scope[argument_data]
-                        if argument_data < len(scope)
-                        else None
-                    )
+                    name = scope[argument_data] if argument_data < len(scope) else None
                     arguments.append(
                         Var(self._decompile_var_index(argument_data, scope), name)
                     )
@@ -3294,8 +4240,7 @@ class MuredMachine:
                         )
                     field_entries.append((field_word.opcode, field_word.data))
                 elif (
-                    not field_word.head
-                    and field_word.opcode in inline_argument_opcodes
+                    not field_word.head and field_word.opcode in inline_argument_opcodes
                 ):
                     field_entries.append((field_word.opcode, cursor))
                 else:
@@ -3382,9 +4327,7 @@ class MuredMachine:
                 if lambda_word.opcode is not MuredOpcode.LAMBDA:
                     break
                 if not isinstance(lambda_word.data, str):
-                    raise MuredMachineError(
-                        "result LAMBDA requires a parameter name"
-                    )
+                    raise MuredMachineError("result LAMBDA requires a parameter name")
                 parameters.append(lambda_word.data)
                 lambda_path = lambda_path | {cursor}
                 cursor += 1
@@ -3402,9 +4345,7 @@ class MuredMachine:
 
         if word.opcode is MuredOpcode.FLOAT:
             if type(word.data) is not float:
-                raise MuredMachineError(
-                    "result FLOAT requires a floating-point value"
-                )
+                raise MuredMachineError("result FLOAT requires a floating-point value")
             return Float(word.data), address + 1
 
         if word.opcode is MuredOpcode.CHAR:
@@ -3433,9 +4374,7 @@ class MuredMachine:
         if word.opcode is MuredOpcode.EP:
             return self._decompile_ep_value(word, scope, path), address + 1
 
-        raise MuredMachineError(
-            f"{word.opcode} is not valid in a μRED result graph"
-        )
+        raise MuredMachineError(f"{word.opcode} is not valid in a μRED result graph")
 
     def _word(self, address: int) -> Word:
         if not 0 <= address < len(self.state.memory):
