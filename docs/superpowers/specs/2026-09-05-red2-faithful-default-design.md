@@ -52,9 +52,9 @@ Visible ordinary definitions are compiled as relocated static μRED graphs. Matc
 
 The Chapter 4 `env` register is the current environment-path tip, not a reliable physical allocation high-water mark: restoring a path may move `env` upward while cells allocated below it remain live.
 
-The implementation therefore tracks `env_frontier`, a monotonically downward host-side allocation frontier. When allocating below a restored `env`, it inserts a `PNP` bridge back to the restored path before placing the new environment object. Graph growth is checked against `env_frontier`, preventing live environment cells from being reused after a path restoration.
+The implementation therefore tracks `env_frontier`, the host-side physical `fs` boundary. Allocation moves it downward inside a region; typed child-subgraph frames let `JOIN` restore it upward when the child result has been published safely. When allocating below a restored logical `env`, the allocator inserts a `PNP` bridge back to the restored path before placing the new environment object. Graph growth is checked against `env_frontier`, preventing live environment cells from being reused after a path restoration.
 
-This is bookkeeping for the shared immutable environment region; it is not presented as an additional thesis execution register.
+This is bookkeeping for the shared environment/free-space boundary; it is not presented as an additional thesis execution register.
 
 ## Primitive/structure additions needed for integrated programs
 

@@ -110,7 +110,8 @@ def test_app_reverse_creates_join_with_parent_pointer() -> None:
     machine.step()
 
     assert state.env == 27
-    assert state.c == -1
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
     assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
     assert state.fsp == 4
     assert state.pc == 9
@@ -1773,7 +1774,8 @@ def test_ep_result_restores_caller_path_and_activates_unshared_closure() -> None
     assert state.env == 17
     assert state.memory[17] == Word(MuredOpcode.PNP, 24, False)
     assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
-    assert state.c == -1
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
     assert state.pc == 20
     assert state.direction is Direction.F
 
@@ -2257,7 +2259,8 @@ def test_reverse_app_saves_active_primitive_context_before_argument_reduction() 
     machine.step()
 
     assert state.env == 27
-    assert state.c >= 1
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
     assert state.prim is None
     assert state.fire == 0
     assert state.memory[4] == Word(MuredOpcode.JOIN, 3, False, 1)

@@ -248,15 +248,6 @@ def test_recharging_quantum_preserves_static_faithful_definitions() -> None:
     [
         ("(IO-RETURN [1 2])", "[1 2]"),
         ("(IO-RETURN (LAMBDA (x) x))", "(LAMBDA (x) x)"),
-        (
-            "(IO-BIND (IO-RETURN [1 2]) (LAMBDA (xs) (IO-RETURN xs)))",
-            "[1 2]",
-        ),
-        (
-            "(IO-BIND (IO-RETURN (LAMBDA (x) x)) "
-            "(LAMBDA (f) (IO-RETURN (f 9))))",
-            "9",
-        ),
         ("(IO-THEN (IO-RETURN 1) (IO-RETURN 2))", "2"),
     ],
 )
@@ -281,9 +272,8 @@ def test_native_io_combinators_reduce_inside_one_mured_machine(
     assert to_source(machine.result_expr()) == expected
 
 
-def test_io_bind_reserved_value_graph_preserves_captured_environment() -> None:
+def test_io_bind_structured_value_is_out_of_scope_for_current_host_io() -> None:
     from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
 
     machine = MuredMachine.from_expr(
         parse_expr(
@@ -297,11 +287,8 @@ def test_io_bind_reserved_value_graph_preserves_captured_environment() -> None:
         control_words=128,
     )
 
-    machine.run(cycle_limit=100_000)
-
-    assert to_source(machine.result_expr()) == "42"
-    assert machine.state.env_frontier is not None
-    assert machine.state.env_frontier < len(machine.state.memory)
+    with pytest.raises(IllegalTransition, match="IO-BIND supports only atomic"):
+        machine.run(cycle_limit=100_000)
 
 
 def test_clock_host_primitive_suspends_and_resumes_same_machine() -> None:

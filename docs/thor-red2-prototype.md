@@ -23,7 +23,7 @@ The μRED core currently includes:
 - strict `CONS` construction of lazy `PAIR` graphs plus native `CAR`/`CDR` projection;
 - canonical generated `StructDef` accessors lowered by the faithful loader to native unary structure selectors, including lazy application-valued fields and preservation of explicit user overrides;
 - `LETREC` compilation/execution through `RBLOCK`, `RUP`, `REC`, `RECP`, and q=0 reconstruction;
-- a separate physical `env_frontier` allocation watermark plus `PNP` bridges so restoring an environment path cannot cause live cells below it to be reused.
+- a separate physical `env_frontier`/`fs` boundary plus typed subgraph frames, `JOIN` frontier restoration for proven-safe child results, and `PNP` bridges for logical path splicing when `env` is not physically adjacent.
 
 See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations, [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary, and [`superpowers/specs/2026-09-02-red2-final-conformance-design.md`](superpowers/specs/2026-09-02-red2-final-conformance-design.md) for the completed Task 12 supported/unsupported conformance declaration.
 
@@ -37,7 +37,7 @@ Effectful Python RED2 programs also stay on one persistent `MuredMachine`. The m
 
 The IO scheduler treats the contraction quantum as a responsiveness/watchdog budget. By default, every successful host dispatch resets the quantum to the configured amount. Genuine external quantum exhaustion is surfaced as an error unless `quantum-exhausted` is explicitly enabled as a recharge event; the lower-level machine suspension is therefore suitable for a future interactive wait/kill policy.
 
-User-facing faithful loaders default to 1,048,576 graph/environment words and 8,192 control entries. Environment allocation is currently monotonic: there is no graph/environment garbage collector yet, so sufficiently long-running programs can still exhaust the finite arena even when each individual reduction is small.
+User-facing faithful loaders default to 1,048,576 graph/environment words and 8,192 control entries. There is still no tracing graph/environment garbage collector; reclamation comes from RED2-known lifetime boundaries. Bounded recursive workloads now reuse proven-safe child environment regions incrementally, while q=0 checkpoint/recharge remains a coarse fallback for residual-world compaction when host-dispatch headroom is low.
 
 ## Bytecode and Rust/WASM boundary
 

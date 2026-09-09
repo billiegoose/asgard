@@ -345,6 +345,8 @@ def load_faithful_machine(
     definitions: Mapping[str, Expr] | FaithfulDefinitionCache | None = None,
     memory_words: int = 1_048_576,
     control_words: int = 8_192,
+    memory_diagnostics: bool = False,
+    poison_reclaimed_environment: bool = False,
 ) -> MuredMachine:
     """Load one expression plus visible top-level definitions into μRED memory."""
     from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
@@ -367,6 +369,8 @@ def load_faithful_machine(
         quantum=quantum,
         memory_words=memory_words,
         control_words=control_words,
+        memory_diagnostics=memory_diagnostics,
+        poison_reclaimed_environment=poison_reclaimed_environment,
     )
     root_stop = len(root_words)
     if prepared.static_start <= root_stop:

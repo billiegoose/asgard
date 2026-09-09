@@ -335,3 +335,12 @@ The first architecture regression proves the present RED2 IO runner creates **ni
 The current faithful machine also treats q=0 as a bounded-reduction reconstruction path which eventually reaches backward STOP and sets `state.halted = True`. This existing behavior is useful for Chapter 3/4 contraction-prefix snapshots, but `halted` currently conflates "this bounded quantum has reconstructed a prefix" with "the program is permanently complete." The redesign must preserve bounded-prefix observability while adding a supported same-machine recharge/resume operation.
 
 The current primitive machinery already has the important mechanism needed for host IO: strict primitive arguments are reduced in the machine, primitive context is preserved across graph traversal, and `_fire_primitive()` owns the redex update. Host-dispatched primitives should extend that firing boundary rather than introduce another AST evaluator.
+
+## Post-memory-reclamation reconciliation note
+
+The single-machine IO invariant remains current: one program run owns one
+`MuredMachine`, and host dispatch resumes that machine. After the 2026-09-08
+memory work, host-dispatch q=0 checkpointing should be read as a coarse
+low-headroom fallback. Normal bounded loops are expected to rely first on RED2
+APP/JOIN graph rewinds and `env_frontier`/`fs` child-region restoration, with
+`PNP`/`MARKER` nodes serving only as logical environment-path splices.
