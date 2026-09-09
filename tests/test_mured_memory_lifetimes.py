@@ -719,8 +719,9 @@ def test_typed_join_publishes_before_exact_return_without_scan_helper() -> None:
 
     machine.step()
 
-    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 41, False)
     assert state.memory[5] == Word(MuredOpcode.INT, 41, True)
+    assert state.fsp == 3
     assert state.free_space == 32
     assert state.env == 32
     assert state.pc == 2
@@ -1095,3 +1096,56 @@ def test_publish_child_shared_recursive_aliases_keep_one_residual_root() -> None
     assert to_source(after_reuse) == to_source(before_reuse)
     assert state.memory[2] == Word(MuredOpcode.APP, residual, False)
     assert state.memory[3] == Word(MuredOpcode.APP, residual, False)
+
+
+@pytest.mark.parametrize("repetitions", [1, 8, 64])
+def test_repeated_atomic_join_reuses_fixed_workspace_without_relinearization(
+    repetitions: int,
+) -> None:
+    machine = MuredMachine.load(
+        [Word(MuredOpcode.INT, 0, True)],
+        quantum=10,
+        memory_words=32,
+        control_words=8,
+        memory_diagnostics=True,
+    )
+    state = machine.state
+
+    def forbidden(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError(
+            "fixed local contraction must not checkpoint, recharge, or relinearize"
+        )
+
+    machine.checkpoint_quantum = forbidden  # type: ignore[method-assign]
+    machine.recharge_quantum = forbidden  # type: ignore[method-assign]
+    machine._relinearize_graph = forbidden  # type: ignore[method-assign]
+    machine._relinearize_result_graph = forbidden  # type: ignore[method-assign]
+
+    for value in range(repetitions):
+        # Reuse the same APPLY/JOIN/result workspace on every contraction.  Hilton
+        # inst_join's APPLY case drops exactly the JOIN/result suffix (5 -> 3),
+        # leaving the preceding live spine untouched for immediate reuse.
+        state.memory[2] = Word(MuredOpcode.INT, 777, False)
+        state.memory[3] = Word(MuredOpcode.APP, 9, False)
+        state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+        state.memory[5] = Word(MuredOpcode.INT, value, True)
+        state.pc = 4
+        state.fsp = 5
+        state.direction = Direction.B
+        assert (state.pc, state.fsp) == (4, 5)
+
+        machine.step()
+
+        assert state.memory[2] == Word(MuredOpcode.INT, 777, False)
+        assert state.memory[3] == Word(MuredOpcode.INT, value, False)
+        assert state.fsp == 3
+        assert state.pc == 2
+
+    rewinds = [
+        (event.data["from"], event.data["to"])
+        for event in machine.memory_events()
+        if event.name == "GRAPH_REWIND"
+    ]
+    assert rewinds == [(5, 3)] * repetitions
+    assert machine.memory_snapshot().graph_rewinds == repetitions
+    assert not any(event.name == "CHECKPOINT" for event in machine.memory_events())

@@ -2126,7 +2126,9 @@ class MuredMachine:
             self._audit_typed_subgraph_return_roots(frame, state.s_a, word.data)
         tail = self._word(state.s_a)
         single_word = state.fsp == state.s_a
-        shareable_atomic = single_word and self._is_shareable_ep_value(tail)
+        shareable_atomic = (
+            single_word and tail.head and self._is_shareable_ep_value(tail)
+        )
         if parent.opcode is MuredOpcode.EP and shareable_atomic:
             if type(parent.data) is not int or parent.data < 0:
                 raise InvalidAddress("EP requires an environment address")
@@ -2173,12 +2175,49 @@ class MuredMachine:
                         raise IllegalTransition("RBLOCK reverse underflows phi")
         elif parent.opcode is MuredOpcode.RECP:
             state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
-        elif tail.opcode is MuredOpcode.VAR and single_word:
+        elif tail.head and tail.opcode is MuredOpcode.VAR and single_word:
             if type(tail.data) is not int or tail.data < 0:
                 raise InvalidAddress("result VAR requires a De Bruijn index")
-            state.memory[word.data] = Word(MuredOpcode.APP_VAR, tail.data, False)
-            state.fsp -= 2
-        elif saved_primitive and single_word:
+            state.memory[word.data] = Word(
+                MuredOpcode.VAR if parent.head else MuredOpcode.APP_VAR,
+                tail.data,
+                parent.head,
+            )
+            if parent.head:
+                state.fsp = word.data
+            else:
+                state.fsp -= 2
+        elif single_word and tail.head and tail.opcode is MuredOpcode.APP:
+            # Hilton inst_join copies a HEAD PTR directly into the destination,
+            # preserving the destination class, but does not reclaim the result
+            # slot because the pointed-to graph may still occupy the live suffix.
+            if type(tail.data) is not int or tail.data < 0:
+                raise InvalidAddress("result APP requires a graph address")
+            state.memory[word.data] = Word(
+                MuredOpcode.APP,
+                tail.data,
+                parent.head,
+                tail.definition,
+            )
+        elif shareable_atomic:
+            # Hilton inst_join compacts a HEAD non-PTR result into its parent.
+            # A HEAD destination owns everything above it; an APPLY destination
+            # drops only the JOIN/result suffix because earlier spine words live.
+            state.memory[word.data] = Word(
+                tail.opcode,
+                tail.data,
+                parent.head,
+                tail.definition,
+            )
+            if parent.head:
+                state.fsp = word.data
+            else:
+                state.fsp -= 2
+        elif saved_primitive and single_word and tail.opcode is not MuredOpcode.APP:
+            # Strict primitives consume any single-word non-PTR value, including
+            # primitive and defined-symbol values that are not scalar EP-shareable
+            # atoms.  APP is Python's graph-pointer representation and must retain
+            # its target graph instead of being compacted away.
             state.memory[word.data] = Word(
                 tail.opcode,
                 tail.data,
@@ -2187,6 +2226,7 @@ class MuredMachine:
             )
             state.fsp -= 2
         else:
+            # Pointer/multiword results remain graph-owned.
             state.memory[word.data] = Word(MuredOpcode.APP, state.s_a, False)
 
         result_address = word.data if word.data <= state.fsp else None
@@ -2222,6 +2262,22 @@ class MuredMachine:
         if word.opcode in {MuredOpcode.INT, MuredOpcode.FLOAT, MuredOpcode.CHAR}:
             return True
         return word.opcode is MuredOpcode.SYM and word.definition is None
+
+    @staticmethod
+    def _is_linear_application_prefix(word: Word) -> bool:
+        return word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+            not word.head
+            and word.opcode
+            in {
+                MuredOpcode.INT,
+                MuredOpcode.FLOAT,
+                MuredOpcode.CHAR,
+                MuredOpcode.SYM,
+                MuredOpcode.PRIM_0,
+                MuredOpcode.PRIM_1,
+                MuredOpcode.PRIM_2,
+            }
+        )
 
     @staticmethod
     def _is_supported_io_bind_value(word: Word) -> bool:
@@ -3013,7 +3069,7 @@ class MuredMachine:
                 field_offset=field_offset,
             )
             if value is not None and source_address is not None:
-                if value.opcode is MuredOpcode.APP or (
+                if self._is_linear_application_prefix(value) or (
                     value.opcode is MuredOpcode.SYM and value.definition is not None
                 ):
                     parent_address = state.pc
@@ -3115,7 +3171,33 @@ class MuredMachine:
             return value, descriptor.data
         if descriptor.opcode is MuredOpcode.APP_VAR:
             return None, None
-        raise IllegalTransition(f"{tag} field requires APP or APP_VAR descriptor")
+        if not descriptor.head and descriptor.opcode in {
+            MuredOpcode.EP,
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }:
+            # JOIN can compact a reduced field directly into the STRUCT spine.
+            # Read that APPLY-class descriptor as the completed field value, not
+            # as the start of an application whose following STRUCT slots belong
+            # to the same structure.
+            return (
+                Word(
+                    descriptor.opcode,
+                    descriptor.data,
+                    True,
+                    descriptor.definition,
+                    descriptor.closure_slot,
+                ),
+                root_address + field_offset,
+            )
+        raise IllegalTransition(
+            f"{tag} field requires APP, APP_VAR, or inline atomic descriptor"
+        )
 
     def _copy_struct_value_to_result(
         self,
@@ -3316,11 +3398,12 @@ class MuredMachine:
         if type(word.data) is not int or word.data < 0:
             raise InvalidAddress("strict argument APP requires a graph address")
         root = self._word(word.data)
-        return root.opcode in {
-            MuredOpcode.APP,
-            MuredOpcode.APP_VAR,
-            MuredOpcode.VAR,
-        }
+        # A compacted application may start with an immediate APPLY-class
+        # descriptor rather than an APP pointer.  Self-delimiting graph roots
+        # such as LAMBDA and STRUCT are closed values even when reached through APP.
+        if self._is_linear_application_prefix(root):
+            return True
+        return root.opcode is MuredOpcode.VAR
 
     @classmethod
     def _constant_word_key(cls, word: Word) -> tuple[str, int | float | str] | None:

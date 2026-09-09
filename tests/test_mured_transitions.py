@@ -1647,7 +1647,7 @@ def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
     state = machine.state
     state.memory[3] = Word(MuredOpcode.APP, 9)
     state.memory[4] = Word(MuredOpcode.JOIN, 3)
-    state.memory[5] = Word(MuredOpcode.VAR, 0)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, True)
     state.pc = 4
     state.fsp = 5
     state.direction = Direction.B
@@ -1962,12 +1962,15 @@ def test_head_binary_primitive_stays_unprimed_without_arity_or_quantum(
         argcnt=argcnt,
     )
     state.memory[0] = Word(MuredOpcode.PRIM_2, "+", True)
+    state.memory[1] = Word(MuredOpcode.INT, 77, False)
     state.memory[2] = Word(MuredOpcode.STOP)
     machine = MuredMachine(state)
 
     machine.step()
 
+    assert state.memory[1] == Word(MuredOpcode.INT, 77, False)
     assert state.memory[3] == Word(MuredOpcode.PRIM_2, "+", True)
+    assert state.fsp == 3
     assert state.argcnt == argcnt + 1
     assert state.prim is None
     assert state.fire == 0
@@ -2690,3 +2693,113 @@ def test_primitive_rejects_malformed_name() -> None:
         match="PRIM requires a non-empty primitive name",
     ):
         MuredMachine(state).step()
+
+
+def test_join_head_atomic_result_rewinds_to_destination_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, True)
+    state.memory[2] = Word(MuredOpcode.INT, 777, False)
+    state.memory[3] = Word(MuredOpcode.INT, 888, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 1
+    assert state.pc == 0
+
+
+def test_join_apply_atomic_result_drops_only_join_result_suffix_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, False)
+    state.memory[2] = Word(MuredOpcode.INT, 777, False)
+    state.memory[3] = Word(MuredOpcode.INT, 888, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.INT, 42, False)
+    assert state.memory[2] == Word(MuredOpcode.INT, 777, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 888, False)
+    assert state.fsp == 3
+    assert state.pc == 0
+
+
+def test_join_head_pointer_result_retains_live_graph_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, True)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.APP, 20, True)
+    state.memory[20] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.APP, 20, True)
+    assert state.memory[5] == Word(MuredOpcode.APP, 20, True)
+    assert state.memory[20] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 5
+    assert state.pc == 0
+
+
+def test_struct_selector_reads_compacted_inline_atomic_field_as_value() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="CAR",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 8, False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "CAR", True)
+    state.memory[8] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[9] = Word(MuredOpcode.INT, 99, False)
+    state.memory[10] = Word(MuredOpcode.INT, 42, False)
+    state.memory[11] = Word(MuredOpcode.VAR, 0, True)
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.memory[9] == Word(MuredOpcode.INT, 99, False)
+    assert state.memory[10] == Word(MuredOpcode.INT, 42, False)
+    assert state.memory[11] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+
+
+def test_join_nonhead_var_result_remains_pointer_backed_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, False)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, False)
+    assert state.fsp == 5
+    assert state.pc == 2
