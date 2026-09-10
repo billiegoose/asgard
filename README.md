@@ -13,7 +13,10 @@ traceability notes and known omissions. See
 [`docs/thor-primitives.md`](docs/thor-primitives.md) for the current primitive
 surface and candidate future additions. See
 [`docs/red2-bytecode.md`](docs/red2-bytecode.md) for the serializable `.red2`
-bytecode format.
+bytecode format. See
+[`docs/red2-incremental-memory-reclamation.md`](docs/red2-incremental-memory-reclamation.md)
+for the current source-to-runtime account of RED2 graph/environment reclamation,
+coarse residual reconstruction, and the executable Hilton C reference evidence.
 
 ## Local Setup
 
@@ -51,6 +54,13 @@ uv run red2 --expr "(+ 2 3)" --stack-size-in-bytes 1048576 --heap-size-in-bytes 
 ```
 
 The THOR interpreter currently rejects explicit resource-limit flags because its values live in Python-managed memory rather than a modeled VM heap.
+
+Python RED2 models graph/result storage growing upward through `fsp` and environment
+storage growing downward through `free_space`; logical `env` is a separate lookup
+path. Ordinary contractions reclaim known-dead graph suffixes and proven-safe child
+environment regions incrementally. Host checkpoints/quantum recharge are a separate
+coarse residual-reconstruction mechanism and preserve the same machine and
+exactly-once host-effect ordering.
 
 Use `mise run` as the canonical command surface for source-file examples and
 project checks:

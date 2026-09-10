@@ -6,11 +6,33 @@
 
 ## Environment allocation bookkeeping
 
-The machine's `env` register is the current environment-path tip. Restoring a previously saved path may therefore move `env` upward even though cells allocated below that address are still live. Treating `env` itself as the physical allocation frontier allowed later bindings to overwrite captured closures.
+The current Python state separates three concepts that the archive also keeps distinct:
 
-The Python implementation tracks a separate physical `env_frontier`, matching the archived `fs` role rather than using `env` as an allocator. Within a live region the frontier moves downward on allocation; when a typed child-subgraph frame returns through `JOIN`, proven-safe temporary regions restore that saved frontier and make those addresses reusable. If a new environment object must be allocated while `env` points above the current frontier, the allocator first inserts a `PNP` bridge from the new lower region back to the restored path, then allocates below it. Graph growth checks `env_frontier`, not merely the current `env`.
+- `env` is the logical environment-path tip used by lookup;
+- `free_space` is the physical descending environment/free-space boundary corresponding to archived `fs`;
+- `fsp` is the ascending graph/result boundary corresponding to archived `ws`.
 
-`env_frontier` is host bookkeeping for RED2's physical free-space boundary. It is not claimed as an additional thesis execution register and does not change variable lookup semantics; the inserted `PNP` nodes preserve the logical environment path. Long-running IO still has a scheduler-visible safety boundary: after a committed host effect, a machine with low graph/environment headroom can be driven through RED2's existing q=0 bounded-result reconstruction and the same `MuredMachine` is recharged from that result graph. This resets the residual working region without replaying the effect or introducing a second evaluator. Roomy machines take the cheaper live `refresh_quantum` path instead, so checkpointing is a fallback rather than the ordinary allocator for bounded loops.
+Restoring a previously saved logical path can move `env` independently of the physical allocation boundary. New non-adjacent physical segments use `PNP` to splice back to that path, corresponding to the archived environment `MARKER` role.
+
+Typed child-subgraph frames save `env`, `free_space`, primitive identity, and primitive countdown. On child return, the result is published first; if no surviving graph/environment reference names the candidate child interval, the saved `free_space` is restored and those environment addresses become reusable. Tests can poison returned cells to catch stale ownership. If ownership cannot be proven safe, the region is not blindly reclaimed.
+
+`free_space` is explicit implementation state for the archived physical `fs` role; it is not claimed as an extra thesis execution register. Earlier project revisions called this physical boundary `env_frontier`; current `MuredMachineState` does not have that field.
+
+Graph lifetime is independent. Instruction-specific contraction rewinds `fsp` where RED2 knows a suffix is dead; this includes JOIN result tails, primitive contraction, lazy branch discard, recursive/RUP publication paths, structure projection, and equality scratch. Environment PNP/MARKER splicing and graph copy-forwarding are separate mechanisms.
+
+Long-running IO also has a scheduler-visible coarse safety boundary. After a committed host effect, a low-headroom machine may run through q=0 bounded-result reconstruction and restart the same `MuredMachine` from a relinearized residual. Roomy machines use `refresh_quantum()` instead. Scheduler statistics distinguish host refreshes, host checkpoints, and quantum-exhaustion recharges; tests require one machine identity and exactly-once ordered effects across all of them.
+
+## Residual ownership and EP values
+
+A direct `EP` is an environment alias, not independently owned graph storage. Before a child environment interval is returned, a surviving EP into that interval must be shared/materialized into a longer-lived owner. Residual relinearization deliberately rejects raw working-arena EP escapes rather than keeping reclaimed environment memory alive behind the caller's back.
+
+Atomic `IO-BIND` values use the same ownership model and do not reserve persistent problem graphs in the upper environment arena. Structured host return values remain outside the current IO contract and fail explicitly.
+
+## Structural equality reconciliation
+
+The faithful path implements the functional THOR structural-equality surface, including application/structure recursion, lambda wrapping, shared closure identity, and Hilton's free/UBV distinctions. Equality uses bounded graph/control scratch that is returned or reused by the same lifetime machinery as other contractions.
+
+The executable C reference applies only narrowly logged compatibility repairs around archived equality hazards: per-operand PTR guards for head promotion, direct UBV-index comparison, and an explicit unsupported-tag failure instead of switch fallthrough. Tests record which repairs were exercised and demonstrate the original hazardous cases under sanitizers; the archived source files themselves remain unchanged.
 
 ## Frontend integration bookkeeping
 

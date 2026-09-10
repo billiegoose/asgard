@@ -16,16 +16,16 @@ The μRED core currently includes:
 - passive integer, float, character, symbol, and structure data;
 - static top-level definition graphs and recursive/cross-definition `SYM` execution;
 - Chapter 4 primitive registers (`argcnt`, `prim`, `fire`) and strict-argument save/restore through APP/JOIN;
-- selected strict numeric operations, comparisons, type predicates, `NULL?`, `NOT`, constant equality, and `EQUAL?` for supported atomic constants;
+- selected strict numeric operations, comparisons, type predicates, `NULL?`, `NOT`, constant equality, and the functional THOR structural `EQUAL?` surface including applications, lambdas, lazy structures, closure sharing, and q=0 residuals;
 - non-strict `Y` graph rewriting and mixed-strictness `IF`;
 - source `AND`/`OR` lowering to lazy `IF` chains when those names are not shadowed;
 - lazy `STRUCT` execution;
 - strict `CONS` construction of lazy `PAIR` graphs plus native `CAR`/`CDR` projection;
 - canonical generated `StructDef` accessors lowered by the faithful loader to native unary structure selectors, including lazy application-valued fields and preservation of explicit user overrides;
 - `LETREC` compilation/execution through `RBLOCK`, `RUP`, `REC`, `RECP`, and q=0 reconstruction;
-- a separate physical `env_frontier`/`fs` boundary plus typed subgraph frames, `JOIN` frontier restoration for proven-safe child results, and `PNP` bridges for logical path splicing when `env` is not physically adjacent.
+- a physical `free_space`/archived-`fs` boundary distinct from logical `env`, plus typed subgraph frames, publication-before-`JOIN` region return for proven-safe child results, and `PNP` bridges for logical path splicing when `env` is not physically adjacent.
 
-See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations, [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary, and [`superpowers/specs/2026-09-02-red2-final-conformance-design.md`](superpowers/specs/2026-09-02-red2-final-conformance-design.md) for the completed Task 12 supported/unsupported conformance declaration.
+See [`mured-thesis-notes.md`](mured-thesis-notes.md) for implementation reconciliations, [`red2-incremental-memory-reclamation.md`](red2-incremental-memory-reclamation.md) for the current source-to-runtime memory-lifetime account, [`superpowers/specs/2026-09-05-red2-faithful-default-design.md`](superpowers/specs/2026-09-05-red2-faithful-default-design.md) for the faithful-default migration boundary, and [`superpowers/specs/2026-09-02-red2-final-conformance-design.md`](superpowers/specs/2026-09-02-red2-final-conformance-design.md) for the completed Task 12 supported/unsupported conformance declaration.
 
 ## Program and CLI integration
 
@@ -37,7 +37,7 @@ Effectful Python RED2 programs also stay on one persistent `MuredMachine`. The m
 
 The IO scheduler treats the contraction quantum as a responsiveness/watchdog budget. By default, every successful host dispatch resets the quantum to the configured amount. Genuine external quantum exhaustion is surfaced as an error unless `quantum-exhausted` is explicitly enabled as a recharge event; the lower-level machine suspension is therefore suitable for a future interactive wait/kill policy.
 
-User-facing faithful loaders default to 1,048,576 graph/environment words and 8,192 control entries. There is still no tracing graph/environment garbage collector; reclamation comes from RED2-known lifetime boundaries. Bounded recursive workloads now reuse proven-safe child environment regions incrementally, while q=0 checkpoint/recharge remains a coarse fallback for residual-world compaction when host-dispatch headroom is low.
+User-facing faithful loaders default to 1,048,576 shared graph/environment words and 8,192 control entries. Public RED2 CLI paths also accept byte-accounted stack/heap limits and translate them to the machine's internal word-count capacities. There is no tracing graph/environment garbage collector: ordinary reclamation comes from RED2-known graph contraction and proven-safe environment-region return. q=0 checkpoint/recharge is a separate coarse residual-world compactor for explicit quantum reconstruction or low host-dispatch headroom, not evidence for local lifetime reuse.
 
 ## Bytecode and Rust/WASM boundary
 
@@ -58,9 +58,9 @@ Python binary tests check deterministic encoding and codec/bundle round trips; t
 ## Known omissions and boundaries
 
 - The Python machine should not yet be read as a claim of exhaustive RED2/Chapter 4 primitive coverage.
-- Recursive/general structural `EQUAL?` is not implemented; the current faithful path handles supported atomic constants.
+- Structural `EQUAL?` follows the functional THOR surface exercised by the executable reference corpus; this is not a claim that every equality implementation in STRICT/DEC6/WORK/SNARL variants is imported.
 - `AND`/`OR` are source-level lazy `IF` lowering rather than dedicated faithful primitive transitions; the tested boolean/short-circuit surface is supported, while broader partial/non-boolean semantics are not claimed.
-- The faithful resource model is word-count based internally; byte-accounted public stack/heap controls have not been reintroduced.
+- The faithful runtime remains word-count based internally even when public CLI stack/heap limits are specified in bytes.
 - Appendix A GAME is gated at the repository's bounded benchmark scenario rather than as an unlimited search-performance claim.
 - FPGA synthesis/vendor automation remains outside the default test milestone.
 
