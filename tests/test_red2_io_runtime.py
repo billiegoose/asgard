@@ -683,3 +683,128 @@ def test_memory_diagnostics_are_lazy_and_sink_is_opt_in(
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
+
+
+def test_named_and_y_clock_recursion_expose_scheduler_memory_pressure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Observe recursive environment growth and scheduler compaction directly."""
+    import red2_engine.io_runtime as runtime
+    from red2_engine.mured import MuredMachine
+
+    named_source = """
+    DOT == 46
+    SECOND-MS == 1000
+    loop ==
+      (LAMBDA (last)
+        (IO-BIND (CLOCK)
+          (LAMBDA (now)
+            (if (>= (- now last) SECOND-MS)
+                (IO-THEN (UART-TX DOT) (loop now))
+                (loop last)))))
+    (IO-BIND (CLOCK)
+      (LAMBDA (start)
+        (loop start)))
+    """
+    y_source = """
+    DOT == 46
+    SECOND-MS == 1000
+    loop ==
+      (Y
+        (LAMBDA (self)
+          (LAMBDA (last)
+            (IO-BIND (CLOCK)
+              (LAMBDA (now)
+                (if (>= (- now last) SECOND-MS)
+                    (IO-THEN (UART-TX DOT) (self now))
+                    (self last)))))))
+    (IO-BIND (CLOCK)
+      (LAMBDA (start)
+        (loop start)))
+    """
+
+    class ProbeStopError(Exception):
+        pass
+
+    @dataclass
+    class ProbeHost:
+        clock_limit: int
+        clocks: int = 0
+        now: int = 0
+        writes: list[bytes] = field(default_factory=list)
+
+        def uart_rx(self) -> int | None:
+            return None
+
+        def uart_tx(self, data: bytes) -> None:
+            self.writes.append(data)
+
+        def clock_ms(self) -> int:
+            self.clocks += 1
+            if self.clocks > self.clock_limit:
+                raise ProbeStopError
+            self.now += 1000
+            return self.now
+
+    def observe(source: str, clock_limit: int) -> tuple[
+        list[tuple[int, int, int, int, int, int]],
+        list[tuple[int, int, int, int, int, int]],
+    ]:
+        action, definitions = prepare(source)
+        original_refresh = MuredMachine.refresh_quantum
+        original_checkpoint = MuredMachine.checkpoint_quantum
+        refreshes: list[tuple[int, int, int, int, int, int]] = []
+        checkpoints: list[tuple[int, int, int, int, int, int]] = []
+
+        def sample(
+            machine: MuredMachine,
+            quantum: int,
+        ) -> tuple[int, int, int, int, int, int]:
+            state = machine.state
+            return (
+                state.cycles,
+                quantum,
+                state.fsp,
+                state.free_space,
+                state.env,
+                state.c,
+            )
+
+        def refresh(machine: MuredMachine, quantum: int) -> Any:
+            refreshes.append(sample(machine, quantum))
+            return original_refresh(machine, quantum)
+
+        def checkpoint(machine: MuredMachine, quantum: int) -> Any:
+            checkpoints.append(sample(machine, quantum))
+            return original_checkpoint(machine, quantum)
+
+        with monkeypatch.context() as patch:
+            patch.setattr(MuredMachine, "refresh_quantum", refresh)
+            patch.setattr(MuredMachine, "checkpoint_quantum", checkpoint)
+            patch.setattr(runtime, "HOST_CHECKPOINT_HEADROOM_WORDS", 128)
+            with pytest.raises(ProbeStopError):
+                run_red2_io_action(
+                    action,
+                    definitions=definitions,
+                    quantum=100_000,
+                    host=ProbeHost(clock_limit),
+                    memory_words=512,
+                )
+        return refreshes, checkpoints
+
+    named_refreshes, named_checkpoints = observe(named_source, 300)
+    y_refreshes, y_checkpoints = observe(y_source, 1200)
+
+    # Both source-level recursion forms retain environments as recursive call depth
+    # grows. Scheduler-visible host boundaries make that pressure directly observable:
+    # free_space descends until the coarse checkpoint path is needed.
+    assert named_checkpoints
+    assert y_checkpoints
+    assert min(sample[3] for sample in named_refreshes) < named_refreshes[0][3]
+    assert min(sample[3] for sample in y_refreshes) < y_refreshes[0][3]
+    assert all(sample[1] == 100_000 for sample in named_checkpoints + y_checkpoints)
+
+    # Y's separate lifetime guarantee is intentionally narrower: prim_y performs an
+    # acyclic (Y f) -> (f (Y f)) reconstruction with bounded per-unfold scratch. It
+    # does not promise constant space for a program whose recursive call depth grows.
+    assert len(y_refreshes) > len(named_refreshes)

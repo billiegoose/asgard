@@ -217,3 +217,28 @@ Within the functional THOR memory-lifetime surface audited by the reference corp
 - opt-in diagnostics that do not change default arena behavior.
 
 This does not claim exhaustive semantics for every historical RED/STRICT/DEC6/WORK/SNARL variant, numeric C address identity, identical quantum scheduling, a tracing collector, or constant memory for programs whose live result/environment state itself grows.
+
+## Y recursion: bounded unfold scratch is not constant-space recursion
+
+A scheduler-level regression comparing the two recursive clock-loop forms makes an
+important limitation explicit. Both implicit recursion through a named definition and
+explicit recursion through `Y` consume environment space as recursive call depth grows.
+With the current faithful representation, `free_space` descends until the scheduler's
+coarse checkpoint path is required for both forms.
+
+This does not contradict the Task 5 Y lifetime claim. Hilton's Rule 25 is the acyclic
+rewrite `(Y e) -> e (Y e)`: the recursive variable is bound to the entire recursive
+expression. `PRIMS.C:prim_y` reuses the function code and requires only bounded scratch
+for each individual unfold; it does not implement tail-call elimination or a cyclic
+knot whose environment can be reused forever. The ultraplan therefore deliberately
+states that it makes no constant-space assertion for Y programs whose call depth or
+output grows.
+
+A direct finite-depth probe makes the distinction visible. Named recursion retained
+roughly two environment words per recursive level in the probe, while the equivalent
+Y form retained roughly five. Those numbers are implementation-shape observations,
+not language guarantees; the invariant worth preserving is that recursive depth may
+increase retained environment for both forms, while the *local Y reconstruction
+scratch* remains bounded. `tests/test_red2_io_runtime.py` records the scheduler-visible
+behavior through `refresh_quantum()` / `checkpoint_quantum()` and `free_space`, while
+the lower-level Y lifetime tests continue to cover bounded per-unfold scratch.
