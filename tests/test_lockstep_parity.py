@@ -45,6 +45,27 @@ def test_compare_prefixes_reports_partial_fibonacci_shape_mismatch() -> None:
     assert result.snapshots[75].red2 == "8"
 
 
+def test_lazy_control_corpus_preserves_expected_contraction_prefixes() -> None:
+    cases = [
+        ("(IF TRUE (+ 1 2) (BAD BAD))", (), "3"),
+        ("(IF FALSE (BAD BAD) (+ 4 5))", (), "9"),
+        # RED2 lowers AND/OR to IF before execution, so q=0 exposes that
+        # compile-time representation difference.  From the first contraction
+        # onward the Chapter 3 prefix oracle and RED2 agree.
+        ("(AND FALSE (BAD BAD))", ((0, 0),), "FALSE"),
+        ("(OR TRUE (BAD BAD))", ((0, 0),), "TRUE"),
+        ("(Y (LAMBDA (self) 7))", (), "7"),
+    ]
+
+    for source, mismatch_ranges, expected in cases:
+        result = compare_prefixes(source, max_quantum=20)
+
+        assert result.mismatch_ranges == mismatch_ranges, source
+        assert result.final_snapshot is not None
+        assert result.final_snapshot.thor == expected
+        assert result.final_snapshot.red2 == expected
+
+
 def test_format_mismatch_report_includes_ranges_and_reconvergence() -> None:
     result = compare_prefixes(FIBONACCI_SOURCE, max_quantum=75)
 

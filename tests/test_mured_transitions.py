@@ -1,8 +1,10 @@
 import pytest
 
 from red2_engine.mured import (
+    ControlStackOverflow,
     ControlStackUnderflow,
     Direction,
+    GraphEnvironmentCollision,
     IllegalTransition,
     InvalidAddress,
     MuredMachine,
@@ -2193,6 +2195,118 @@ def test_head_y_rewrites_non_app_argument_with_temporary_head_copy() -> None:
     assert (state.direction, state.pc) == (Direction.F, 4)
 
 
+def test_y_immediate_unfold_uses_one_reusable_scratch_word_outside_live_graph() -> None:
+    state = MuredMachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True, 9)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    machine = MuredMachine(state)
+    boundaries: set[tuple[int, int, int]] = set()
+
+    for iteration in range(32):
+        state.pc = 1
+        state.fsp = 3
+        state.c = -1
+        state.q = 4
+        state.argcnt = 1
+        state.direction = Direction.F
+        state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
+        state.memory[4] = None
+        for index in range(len(state.control_stack)):
+            state.control_stack[index] = None
+
+        machine._y(state.memory[1])
+
+        scratch = state.fsp + 1
+        boundaries.add((state.fsp, scratch, state.c))
+        assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+        assert state.memory[scratch] == Word(MuredOpcode.SYM, "F", True, 9)
+        assert state.memory[3].data == 0
+        assert state.memory[3].data != scratch
+
+        # The temporary headed copy is not part of the live graph.  Reusing its
+        # cell cannot retarget the recursive argument, which points back to the
+        # original (Y f) problem code at address zero.
+        state.memory[scratch] = Word(MuredOpcode.INT, iteration, True)
+        assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+        assert state.memory[0] == Word(MuredOpcode.SYM, "F", True, 9)
+
+    assert boundaries == {(3, 4, 0)}
+
+
+def test_y_immediate_scratch_collision_does_not_partially_unfold() -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=4,
+        free_space=4,
+        c=-1,
+        direction=Direction.F,
+        q=2,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    original_graph_word = state.memory[3]
+    machine = MuredMachine(state)
+
+    with pytest.raises(
+        GraphEnvironmentCollision,
+        match="graph and environment collide",
+    ):
+        machine._y(state.memory[1])
+
+    assert state.pc == 1
+    assert state.fsp == 3
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack == [None] * 4
+    assert state.memory[3] is original_graph_word
+
+
+def test_y_immediate_control_overflow_does_not_partially_unfold() -> None:
+    state = MuredMachineState(
+        memory=[None] * 10,
+        control_stack=[17],
+        pc=1,
+        fsp=3,
+        env=10,
+        c=0,
+        direction=Direction.F,
+        q=2,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    original_graph_word = state.memory[3]
+    machine = MuredMachine(state)
+
+    with pytest.raises(ControlStackOverflow, match="control stack overflow"):
+        machine._y(state.memory[1])
+
+    assert state.pc == 1
+    assert state.fsp == 3
+    assert state.q == 2
+    assert state.c == 0
+    assert state.control_stack == [17]
+    assert state.memory[3] is original_graph_word
+    assert state.memory[4] is None
+
+
 def test_head_y_rewrites_app_argument_and_follows_code_without_extra_path_push(
 ) -> None:
     state = MuredMachineState(
@@ -2489,6 +2603,156 @@ def test_if_boolean_fire_selects_one_lazy_branch_and_reclaims_spine(
     assert state.direction is Direction.F
     assert state.prim is None
     assert state.fire == 0
+
+
+def test_if_selected_app_survives_immediate_reuse_of_discarded_spine() -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[9] = Word(MuredOpcode.INT, 99, True)
+    state.memory[10] = Word(MuredOpcode.INT, 42, True)
+    state.control_stack[0] = 14
+    state.control_stack[1] = 15
+    machine = MuredMachine(state)
+
+    machine._fire_primitive()
+
+    assert state.pc == 10
+    assert state.fsp == 1
+    assert state.env == 15
+    assert state.c == -1
+    for address in range(2, 6):
+        state.memory[address] = Word(MuredOpcode.SYM, f"POISON-{address}", True)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.pc == 1
+    assert state.fsp == 2
+    assert state.env == 15
+    assert state.c == -1
+
+
+@pytest.mark.parametrize(
+    ("condition", "false_branch", "true_branch"),
+    [
+        (
+            "TRUE",
+            Word(MuredOpcode.INT, 9, False),
+            Word(MuredOpcode.EP, 12, False),
+        ),
+        (
+            "FALSE",
+            Word(MuredOpcode.EP, 12, False),
+            Word(MuredOpcode.INT, 9, False),
+        ),
+    ],
+)
+def test_if_boolean_fire_selects_shared_ep_and_consumes_only_its_saved_path(
+    condition: str,
+    false_branch: Word,
+    true_branch: Word,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=24,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = false_branch
+    state.memory[3] = true_branch
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[12] = Word(MuredOpcode.INT, 42, False, closure_slot=True)
+    state.control_stack[0] = 20
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 2
+    assert state.pc == 2
+    assert state.env == 20
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.direction is Direction.B
+    assert state.prim is None
+    assert state.fire == 0
+
+
+@pytest.mark.parametrize(
+    ("condition", "false_branch", "true_branch"),
+    [
+        (
+            "TRUE",
+            Word(MuredOpcode.APP, 9, False),
+            Word(MuredOpcode.INT, 7, False),
+        ),
+        (
+            "FALSE",
+            Word(MuredOpcode.INT, 7, False),
+            Word(MuredOpcode.APP, 9, False),
+        ),
+    ],
+)
+def test_if_boolean_fire_selects_direct_value_and_discards_unselected_app_path(
+    condition: str,
+    false_branch: Word,
+    true_branch: Word,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = false_branch
+    state.memory[3] = true_branch
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[9] = Word(MuredOpcode.INT, 99, True)
+    state.control_stack[0] = 14
+
+    MuredMachine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 7, True)
+    assert state.memory[9] == Word(MuredOpcode.INT, 99, True)
+    assert state.fsp == 2
+    assert state.pc == 2
+    assert state.env == 16
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.direction is Direction.B
 
 
 def test_if_boolean_fire_with_exhausted_quantum_reconstructs() -> None:

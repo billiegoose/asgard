@@ -2823,7 +2823,6 @@ class MuredMachine:
             if selected_path is None:
                 raise IllegalTransition("IF selected APP lost its environment path")
             state.fsp = false_slot - 1
-            state.argcnt = 0
             state.env = selected_path
             state.pc = selected.data
             state.direction = Direction.F
@@ -2869,7 +2868,6 @@ class MuredMachine:
                 return
             if target.opcode is MuredOpcode.CLOSURE:
                 state.fsp = false_slot - 1
-                state.argcnt = 0
                 state.pc = target_address
                 state.direction = Direction.F
                 return
@@ -3425,22 +3423,27 @@ class MuredMachine:
             state.direction = Direction.B
             return
 
-        state.q -= 1
-        state.pc -= 1
-        argument = self._word(state.pc)
-        state.memory[state.fsp] = Word(MuredOpcode.APP, state.pc, False)
+        argument_address = state.pc - 1
+        argument = self._word(argument_address)
 
         if argument.opcode is MuredOpcode.APP:
             if type(argument.data) is not int or argument.data < 0:
                 raise InvalidAddress("Y APP argument requires a graph address")
+            state.q -= 1
+            state.memory[state.fsp] = Word(MuredOpcode.APP, argument_address, False)
             state.pc = argument.data
             return
 
-        self._push_control(state.env)
         scratch = state.fsp + 1
         frontier = state.free_space
         if scratch >= frontier:
             raise GraphEnvironmentCollision("graph and environment collide")
+        if state.c + 1 >= len(state.control_stack):
+            raise ControlStackOverflow("μRED control stack overflow")
+
+        state.q -= 1
+        state.memory[state.fsp] = Word(MuredOpcode.APP, argument_address, False)
+        self._push_control(state.env)
         state.memory[scratch] = Word(
             argument.opcode,
             argument.data,

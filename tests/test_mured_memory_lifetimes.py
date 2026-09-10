@@ -138,6 +138,90 @@ def test_if_does_not_evaluate_unselected_app_branch() -> None:
     assert_diagnostics(machine, {"GRAPH_REWIND"})
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("(IF TRUE ((LAMBDA (x) x) 7) (BAD BAD))", "7"),
+        ("(IF FALSE (BAD BAD) ((LAMBDA (x) x) 9))", "9"),
+        ("(AND FALSE (BAD BAD))", "FALSE"),
+        ("(OR TRUE (BAD BAD))", "TRUE"),
+        (
+            "((LAMBDA (x) (AND FALSE ((LAMBDA (z) x) (BAD BAD)))) 42)",
+            "FALSE",
+        ),
+        (
+            "((LAMBDA (x) (OR TRUE ((LAMBDA (z) x) (BAD BAD)))) 42)",
+            "TRUE",
+        ),
+    ],
+)
+def test_lazy_boolean_selection_never_demands_discarded_branch(
+    source: str,
+    expected: str,
+) -> None:
+    machine = run_expr(source, poison=True)
+
+    assert to_source(machine.result_expr()) == expected
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+    assert_diagnostics(machine, {"GRAPH_REWIND"})
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "((IF TRUE (LAMBDA (x) x) (BAD BAD)) 42)",
+        "((IF FALSE (BAD BAD) (LAMBDA (x) x)) 42)",
+        "(((LAMBDA (f) (IF TRUE f (BAD BAD))) (LAMBDA (x) x)) 42)",
+        "(((LAMBDA (f) (IF FALSE (BAD BAD) f)) (LAMBDA (x) x)) 42)",
+    ],
+)
+def test_selected_function_branch_preserves_outer_application(source: str) -> None:
+    machine = run_expr(source, poison=True)
+
+    assert to_source(machine.result_expr()) == "42"
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+    assert_diagnostics(machine, {"GRAPH_REWIND"})
+
+
+def test_selected_captured_function_survives_environment_reuse_after_if() -> None:
+    machine = run_expr(
+        "(((LAMBDA (f) (IF TRUE f (LAMBDA (x) DOES-NOT-RUN))) "
+        "(LAMBDA (x) x)) 42)",
+        poison=True,
+    )
+
+    assert to_source(machine.result_expr()) == "42"
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+    assert_diagnostics(machine, {"GRAPH_REWIND"})
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "(IF TRUE ((LAMBDA (x) x) 7) ((LAMBDA (x) x) 9))",
+        "(IF MAYBE ((LAMBDA (x) x) 7) ((LAMBDA (x) x) 9))",
+    ],
+)
+def test_zero_quantum_if_residual_retains_both_lazy_branches(source: str) -> None:
+    machine = run_expr(source, quantum=0)
+
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+
+
+def test_nested_stuck_lazy_contexts_balance_saved_quantum_and_control_stack() -> None:
+    source = "(IF MAYBE (IF LEFT 1 2) (IF RIGHT 3 4))"
+    machine = run_expr(source, quantum=20)
+
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+
+
 def test_io_then_and_io_bind_recursion_record_io_events() -> None:
     source = """
     loop ==
