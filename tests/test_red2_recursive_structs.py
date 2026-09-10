@@ -70,6 +70,82 @@ def test_recursive_user_struct_completes_in_default_faithful_memory(
     assert to_source(machine.result_expr()) == expected
 
 
+def test_recursive_user_struct_depth_four_prefixes_survive_reclaim_poisoning() -> None:
+    source = _recursive_struct_source(4)
+    thor_expr, thor_definitions = _prepare(source, model="thor")
+    red2_expr, red2_definitions = _prepare(source, model="red2")
+    thor_matching_prefixes = {0, 1, 2, 3, 4, 8}
+
+    for quantum in (0, 1, 2, 3, 4, 8, 16, 64, 512, 5_000_000):
+        ordinary = load_faithful_machine(
+            red2_expr,
+            quantum=quantum,
+            definitions=red2_definitions,
+            memory_words=65_536,
+            control_words=2_048,
+        )
+        poisoned = load_faithful_machine(
+            red2_expr,
+            quantum=quantum,
+            definitions=red2_definitions,
+            memory_words=65_536,
+            control_words=2_048,
+            memory_diagnostics=True,
+            poison_reclaimed_environment=True,
+        )
+
+        ordinary.run(cycle_limit=2_000_000)
+        poisoned.run(cycle_limit=2_000_000)
+
+        ordinary_result = to_source(ordinary.result_expr())
+        assert to_source(poisoned.result_expr()) == ordinary_result
+        assert poisoned.state.q == ordinary.state.q
+        assert poisoned.state.c == ordinary.state.c == -1
+        assert poisoned._saved_quantum_depth == ordinary._saved_quantum_depth == 0
+
+        if quantum in thor_matching_prefixes:
+            expected = reduce_expr(
+                thor_expr,
+                quantum=quantum,
+                definitions=thor_definitions,
+            )
+            assert ordinary_result == to_source(expected.expr)
+            assert ordinary.state.q == expected.remaining
+
+    expected_final = reduce_expr(
+        thor_expr,
+        quantum=5_000_000,
+        definitions=thor_definitions,
+    )
+    assert to_source(expected_final.expr) == "10"
+    assert to_source(poisoned.result_expr()) == "10"
+
+    events = list(poisoned.memory_events())
+    reused_then_captured = False
+    for reclaim_index, reclaim in enumerate(events):
+        if reclaim.name != "ENV_RECLAIM":
+            continue
+        low = int(reclaim.data["from"])
+        high = int(reclaim.data["to"])
+        for alloc_index in range(reclaim_index + 1, len(events)):
+            allocation = events[alloc_index]
+            if allocation.name != "ENV_ALLOC" or "address" not in allocation.data:
+                continue
+            address = int(allocation.data["address"])
+            words = int(allocation.data.get("words", 1))
+            if not (address < high and address + words > low):
+                continue
+            if any(
+                later.name == "SUBGRAPH_ENTER" and later.opcode == "ep"
+                for later in events[alloc_index + 1 :]
+            ):
+                reused_then_captured = True
+                break
+        if reused_then_captured:
+            break
+    assert reused_then_captured
+
+
 def test_recursive_user_struct_depth_four_matches_thor() -> None:
     expr, definitions = _prepare(_recursive_struct_source(4), model="thor")
 

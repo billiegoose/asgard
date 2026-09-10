@@ -11,6 +11,7 @@ from red2_engine.mured import (
     MuredMachineState,
     MuredOpcode,
     Word,
+    _SubgraphFrame,
     compile_lambda,
 )
 from thor_lang.parser import parse_expr
@@ -94,6 +95,20 @@ def test_app_var_forward_rejects_bool_payload() -> None:
         InvalidAddress, match="APP_VAR requires a non-negative variable index"
     ):
         machine.step()
+
+
+def test_machine_generated_join_rejects_missing_typed_frame() -> None:
+    machine = base_machine()
+    machine._enter_subgraph(32, 0, 0)
+    frame = machine.state.control_stack[machine.state.c]
+    assert isinstance(frame, _SubgraphFrame)
+
+    machine.state.control_stack[machine.state.c] = 32
+    with pytest.raises(
+        IllegalTransition,
+        match="machine-generated JOIN requires its typed subgraph frame",
+    ):
+        machine._push_subgraph_join(frame, 0)
 
 
 def test_app_reverse_creates_join_with_parent_pointer() -> None:
@@ -517,6 +532,97 @@ def test_rblock_and_rup_construct_two_binding_context_in_physical_order() -> Non
     assert state.q == 4
 
 
+def test_rup_positive_quantum_preserves_python_graph_boundary_and_outer_marker(
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 48,
+        control_stack=[None] * 12,
+        pc=0,
+        fsp=8,
+        env=46,
+        free_space=42,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 1, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.INT, 2, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    state.memory[46] = Word(MuredOpcode.INT, 99, False)
+    machine = MuredMachine(state)
+
+    machine.step()
+    machine.step()
+    assert state.env == 35
+    assert state.memory[35] == Word(MuredOpcode.REC, 7, False)
+    assert state.memory[38] == Word(MuredOpcode.REC, 5, False)
+    assert state.memory[41] == Word(MuredOpcode.PNP, 46, False)
+    before_fsp = state.fsp
+
+    machine.step()
+
+    # Hilton C drops two copied LETREC descriptors here. Python never copied
+    # them, so faithful equivalent reclamation leaves the graph frontier alone.
+    assert state.fsp == before_fsp == 8
+    assert state.memory[0] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[1] == Word(MuredOpcode.RBLOCK, 6, False)
+    assert state.memory[36] == Word(None, 35, False)
+    assert state.memory[37] == Word(None, 0, False)
+    assert state.memory[39] == Word(None, 35, False)
+    assert state.memory[40] == Word(None, 0, False)
+
+    machine._reconstruct(35)
+    assert state.memory[34] == Word(MuredOpcode.PNP, 41, False)
+    assert state.memory[41] == Word(MuredOpcode.PNP, 46, False)
+    assert state.memory[9] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[10] == Word(MuredOpcode.RBLOCK, 6, False)
+    assert state.memory[11] == Word(MuredOpcode.RUP, 2, False)
+    assert state.memory[12] == Word(MuredOpcode.VAR, 0, True)
+
+
+def test_rup_positive_quantum_rejects_rec_block_binding_mismatch() -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 6,
+        pc=2,
+        fsp=8,
+        env=26,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 1, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.INT, 2, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    state.memory[26] = Word(MuredOpcode.REC, 5, False)
+    state.memory[27] = Word(None)
+    state.memory[28] = Word(None)
+    state.memory[29] = Word(MuredOpcode.REC, 7, False)
+    state.memory[30] = Word(None)
+    state.memory[31] = Word(None)
+    machine = MuredMachine(state)
+
+    with pytest.raises(
+        IllegalTransition,
+        match="RUP REC binding does not match RBLOCK",
+    ):
+        machine.step()
+
+
 def test_rup_at_zero_quantum_pushes_one_path_per_binding() -> None:
     state = MuredMachineState(
         memory=[None] * 20,
@@ -687,12 +793,15 @@ def test_reverse_recp_at_zero_quantum_joins_reconstructed_letrec_argument() -> N
         direction=Direction.B,
         q=0,
         phi=0,
+        prim="CAR",
+        fire=2,
     )
     state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
     state.memory[1] = Word(MuredOpcode.RUP, 1, False)
     state.memory[2] = Word(MuredOpcode.VAR, 0, True)
     state.memory[4] = Word(MuredOpcode.SYM, "x", False)
     state.memory[5] = Word(MuredOpcode.INT, 7, True)
+    state.memory[9] = Word(MuredOpcode.STOP)
     state.memory[10] = Word(MuredOpcode.RECP, 28, False)
     state.memory[28] = Word(MuredOpcode.REC, 5, False)
     state.memory[29] = Word(None, 28, False)
@@ -701,13 +810,38 @@ def test_reverse_recp_at_zero_quantum_joins_reconstructed_letrec_argument() -> N
 
     machine.step()
 
-    assert state.memory[11] == Word(MuredOpcode.JOIN, 10, False)
+    assert state.memory[11] == Word(MuredOpcode.JOIN, 10, False, 1)
     assert state.memory[12] == Word(MuredOpcode.RBLOCK, 4, False)
     assert state.memory[13] == Word(MuredOpcode.RUP, 1, False)
     assert state.memory[14] == Word(MuredOpcode.VAR, 0, True)
+    frame = state.control_stack[0]
+    assert isinstance(frame, _SubgraphFrame)
+    assert frame.env == 28
+    assert frame.free_space == 28
+    assert frame.prim == "CAR"
+    assert frame.fire == 2
+    assert state.control_stack[1] == 26
+    assert state.c == 1
+    assert state.free_space == 26
+    assert state.prim is None
+    assert state.fire == 0
     assert state.direction is Direction.B
     assert state.pc == 13
     assert state.q == 0
+
+    for _ in range(6):
+        machine.step()
+    assert state.pc == 11
+    assert type(state.control_stack[state.c]).__name__ == "_SubgraphFrame"
+
+    machine.step()
+
+    assert state.memory[10].opcode is MuredOpcode.APP
+    assert state.free_space == 28
+    assert state.env == 28
+    assert state.c == -1
+    assert state.prim == "CAR"
+    assert state.fire == 1
 
 
 def test_head_recp_at_zero_quantum_reconstructs_letrec_wrapper() -> None:

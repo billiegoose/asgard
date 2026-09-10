@@ -17,7 +17,7 @@ from red2_engine.mured import (
     _SubgraphFrame,
 )
 from thor_compile.red2 import load_faithful_machine
-from thor_lang.ast import Definition, Expr, StructDef
+from thor_lang.ast import Definition, Expr, StructDef, StructLit
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_expr, parse_program
 from thor_lang.pretty import to_source
@@ -1233,3 +1233,183 @@ def test_repeated_atomic_join_reuses_fixed_workspace_without_relinearization(
     assert rewinds == [(5, 3)] * repetitions
     assert machine.memory_snapshot().graph_rewinds == repetitions
     assert not any(event.name == "CHECKPOINT" for event in machine.memory_events())
+
+
+@pytest.mark.parametrize(
+    ("source", "expected", "selector_rewind"),
+    [
+        (
+            """
+            pair |= left right
+            p == (make-pair 7 (BAD BAD))
+            (pair-left p)
+            """,
+            "7",
+            (13, 4),
+        ),
+        (
+            """
+            pair |= left right
+            p == (make-pair ((lambda (x) x) 7) (BAD BAD))
+            (pair-left p)
+            """,
+            "7",
+            (19, 4),
+        ),
+        (
+            """
+            pair |= left right
+            inner == (make-pair 42 (BAD BAD))
+            p == (make-pair inner (BAD BAD))
+            (pair-left (pair-left p))
+            """,
+            "42",
+            (28, 6),
+        ),
+        (
+            """
+            pair |= left right
+            id == (lambda (x) x)
+            p == (make-pair id (BAD BAD))
+            ((pair-left p) 42)
+            """,
+            "42",
+            (21, 6),
+        ),
+        (
+            """
+            pair |= left right
+            p == (make-pair (BAD BAD) (lambda (x) x))
+            ((pair-right p) 35)
+            """,
+            "35",
+            (22, 6),
+        ),
+    ],
+)
+def test_lazy_struct_selected_field_shapes_survive_selector_reclaim_and_reuse(
+    source: str,
+    expected: str,
+    selector_rewind: tuple[int, int],
+) -> None:
+    expr, definitions = prepare(source)
+    machine = load_faithful_machine(
+        expr,
+        quantum=500,
+        definitions=definitions,
+        memory_words=512,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+
+    machine.run(cycle_limit=200_000)
+
+    assert to_source(machine.result_expr()) == expected
+    assert machine.state.c == -1
+    assert machine._saved_quantum_depth == 0
+    events = list(machine.memory_events())
+    rewinds = [
+        (event.data["from"], event.data["to"])
+        for event in events
+        if event.name == "GRAPH_REWIND"
+    ]
+    assert selector_rewind in rewinds
+
+    reused_reclaim = False
+    for index, event in enumerate(events):
+        if event.name != "ENV_RECLAIM":
+            continue
+        low = int(event.data["from"])
+        high = int(event.data["to"])
+        for later in events[index + 1 :]:
+            if later.name != "ENV_ALLOC" or "address" not in later.data:
+                continue
+            address = int(later.data["address"])
+            words = int(later.data.get("words", 1))
+            if address < high and address + words > low:
+                reused_reclaim = True
+                break
+        if reused_reclaim:
+            break
+    assert reused_reclaim
+
+
+def test_lazy_struct_construction_reuses_only_dead_suffix_and_preserves_fields(
+) -> None:
+    source = """
+    pair |= left right
+    (make-pair ((lambda (x) x) 7) (lambda (x) x))
+    """
+    expr, definitions = prepare(source)
+    machine = load_faithful_machine(
+        expr,
+        quantum=500,
+        definitions=definitions,
+        memory_words=512,
+        control_words=128,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+    state = machine.state
+
+    # The first lazy field finishes by compacting a two-word JOIN/result suffix.
+    # Poison that exact dead suffix immediately. Later ordinary construction must
+    # be free to reuse it without corrupting the earlier retained field graph.
+    poisoned_suffix: tuple[int, int] | None = None
+    seen_events = 0
+    while not state.halted:
+        machine.step()
+        events = machine.memory_events()
+        for event in events[seen_events:]:
+            if (
+                event.name == "GRAPH_REWIND"
+                and event.data["from"] == 19
+                and event.data["to"] == 17
+            ):
+                poisoned_suffix = (18, 19)
+                for address in range(18, 20):
+                    state.memory[address] = Word(
+                        MuredOpcode.INT,
+                        -9000 - address,
+                        False,
+                    )
+        seen_events = len(events)
+
+    assert poisoned_suffix == (18, 19)
+    assert state.fsp >= 19
+    assert state.memory[18] != Word(MuredOpcode.INT, -9018, False)
+    assert state.memory[19] != Word(MuredOpcode.INT, -9019, False)
+
+    result = machine.result_expr()
+    assert isinstance(result, StructLit)
+    assert to_source(result) == "{pair ((LAMBDA (x) x) 7) (LAMBDA (x) x)}"
+
+    # The copied STRUCT spine aliases two detached field graphs. The left field
+    # survived from before the poisoned suffix; the right field was safely built
+    # into graph space that normal construction subsequently reused.
+    root = state.pc
+    assert state.memory[root] == Word(MuredOpcode.STRUCT, "pair", False)
+    right_descriptor = state.memory[root + 1]
+    left_descriptor = state.memory[root + 2]
+    assert right_descriptor is not None and right_descriptor.opcode is MuredOpcode.APP
+    assert left_descriptor is not None and left_descriptor.opcode is MuredOpcode.APP
+    assert right_descriptor.data == 19
+    assert left_descriptor.data == 15
+
+    left_machine = MuredMachine.from_expr(
+        result.fields[0],
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+    left_machine.run(cycle_limit=20_000)
+    assert to_source(left_machine.result_expr()) == "7"
+
+    right_machine = MuredMachine.from_expr(
+        parse_expr(f"({to_source(result.fields[1])} 35)"),
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+    right_machine.run(cycle_limit=20_000)
+    assert to_source(right_machine.result_expr()) == "35"

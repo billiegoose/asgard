@@ -891,7 +891,19 @@ class MuredMachine:
         )
         state.prim = None
         state.fire = 0
-        self._push_graph(
+        self._push_subgraph_join(frame, parent_pc)
+        state.argcnt = 0
+        state.pc = child_pc
+        state.direction = Direction.F
+
+    def _push_subgraph_join(self, frame: _SubgraphFrame, parent_pc: int) -> int:
+        """Emit a machine-generated JOIN only while its typed frame is live."""
+        state = self.state
+        if state.c < 0 or state.control_stack[state.c] is not frame:
+            raise IllegalTransition(
+                "machine-generated JOIN requires its typed subgraph frame"
+            )
+        return self._push_graph(
             Word(
                 MuredOpcode.JOIN,
                 parent_pc,
@@ -899,9 +911,6 @@ class MuredMachine:
                 1 if frame.fire > 0 else None,
             )
         )
-        state.argcnt = 0
-        state.pc = child_pc
-        state.direction = Direction.F
 
     def _pop_subgraph_frame(self, saved_primitive: bool) -> _SubgraphFrame | None:
         if self.state.c < 0:
@@ -2514,14 +2523,32 @@ class MuredMachine:
         if state.q > 0:
             address = state.env
             block_address = state.pc - count
-            for _ in range(count):
+            if block_address < 0:
+                raise InvalidAddress("RUP binding block starts before the graph")
+            for index in range(count):
                 rec = self._word(address)
                 if rec.opcode is not MuredOpcode.REC:
                     raise IllegalTransition(
                         "RUP requires contiguous REC environment data"
                     )
-                self._word(address + 1)
-                self._word(address + 2)
+                context_slot = self._word(address + 1)
+                block_slot = self._word(address + 2)
+                if context_slot.opcode is not None or block_slot.opcode is not None:
+                    raise IllegalTransition("RUP requires REC metadata slots")
+
+                # RBLOCKs are encountered left-to-right but their three-word REC
+                # entries are allocated downward, so the top environment entry
+                # corresponds to the last RBLOCK immediately preceding this RUP.
+                source = self._word(block_address + count - 1 - index)
+                if source.opcode is not MuredOpcode.RBLOCK:
+                    raise IllegalTransition(
+                        "RUP requires a contiguous RBLOCK graph block"
+                    )
+                if type(source.data) is not int or source.data < 0:
+                    raise InvalidAddress("RBLOCK requires a binding graph address")
+                if rec.data != source.data + 1:
+                    raise IllegalTransition("RUP REC binding does not match RBLOCK")
+
                 state.memory[address + 1] = Word(None, state.env, False)
                 state.memory[address + 2] = Word(None, block_address, False)
                 address += 3
@@ -2571,16 +2598,36 @@ class MuredMachine:
             return
 
         parent_recp = state.pc
-        saves_primitive = state.fire > 0
-        self._save_primitive_context()
-        self._push_graph(
-            Word(
-                MuredOpcode.JOIN,
-                parent_recp,
-                False,
-                1 if saves_primitive else None,
+        frontier = self._frontier()
+        normalized_env = state.env
+        needs_bridge = state.env != frontier
+        if needs_bridge:
+            normalized_env = frontier - 1
+        join_address = state.fsp + 1
+        if normalized_env <= state.fsp or join_address >= normalized_env:
+            raise GraphEnvironmentCollision("graph and environment collide")
+        if state.c + 1 >= len(state.control_stack):
+            raise ControlStackOverflow("μRED control stack overflow")
+
+        if needs_bridge:
+            state.memory[normalized_env] = Word(MuredOpcode.PNP, state.env, False)
+            state.free_space = normalized_env
+            state.env = normalized_env
+            self._record_memory_event(
+                "ENV_ALLOC",
+                {"address": normalized_env, "opcode": "PNP", "words": 1},
             )
+
+        frame = _SubgraphFrame(
+            env=normalized_env,
+            free_space=normalized_env,
+            prim=state.prim,
+            fire=state.fire,
         )
+        self._push_control_entry(frame)
+        state.prim = None
+        state.fire = 0
+        self._push_subgraph_join(frame, parent_recp)
         self._reconstruct(word.data)
 
     def _reconstruct(self, rec_address: int) -> None:
@@ -2997,6 +3044,14 @@ class MuredMachine:
                     # in the selector operand slot, so promote that descriptor
                     # over the consumed selector head before moving backward.
                     self._promote_result_value(state.pc)
+                    if root.opcode is MuredOpcode.LAMBDA and state.argcnt > 0:
+                        # The promoted field is the operator for arguments that
+                        # preceded the selector redex. Execute it with those
+                        # surviving arguments as the result stack, just like a
+                        # statically compiled lambda application.
+                        state.fsp = state.pc - 1
+                        state.direction = Direction.F
+                        return
             else:
                 state.memory[state.pc] = Word(
                     selected.opcode,
@@ -3067,8 +3122,13 @@ class MuredMachine:
                 field_offset=field_offset,
             )
             if value is not None and source_address is not None:
-                if self._is_linear_application_prefix(value) or (
-                    value.opcode is MuredOpcode.SYM and value.definition is not None
+                if (
+                    self._is_linear_application_prefix(value)
+                    or value.opcode is MuredOpcode.LAMBDA
+                    or (
+                        value.opcode is MuredOpcode.SYM
+                        and value.definition is not None
+                    )
                 ):
                     parent_address = state.pc
                     parent = self._word(parent_address)
