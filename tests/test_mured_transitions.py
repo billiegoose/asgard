@@ -836,7 +836,9 @@ def test_reverse_recp_at_zero_quantum_joins_reconstructed_letrec_argument() -> N
 
     machine.step()
 
-    assert state.memory[10].opcode is MuredOpcode.APP
+    result_word = state.memory[10]
+    assert result_word is not None
+    assert result_word.opcode is MuredOpcode.APP
     assert state.free_space == 28
     assert state.env == 28
     assert state.c == -1
@@ -2359,7 +2361,9 @@ def test_y_immediate_unfold_uses_one_reusable_scratch_word_outside_live_graph() 
         for index in range(len(state.control_stack)):
             state.control_stack[index] = None
 
-        machine._y(state.memory[1])
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
 
         scratch = state.fsp + 1
         boundaries.add((state.fsp, scratch, state.c))
@@ -2401,7 +2405,9 @@ def test_y_immediate_scratch_collision_does_not_partially_unfold() -> None:
         GraphEnvironmentCollision,
         match="graph and environment collide",
     ):
-        machine._y(state.memory[1])
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
 
     assert state.pc == 1
     assert state.fsp == 3
@@ -2430,7 +2436,9 @@ def test_y_immediate_control_overflow_does_not_partially_unfold() -> None:
     machine = MuredMachine(state)
 
     with pytest.raises(ControlStackOverflow, match="control stack overflow"):
-        machine._y(state.memory[1])
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
 
     assert state.pc == 1
     assert state.fsp == 3

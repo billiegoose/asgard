@@ -125,14 +125,18 @@ def test_recursive_user_struct_depth_four_prefixes_survive_reclaim_poisoning() -
     for reclaim_index, reclaim in enumerate(events):
         if reclaim.name != "ENV_RECLAIM":
             continue
-        low = int(reclaim.data["from"])
-        high = int(reclaim.data["to"])
+        low = reclaim.data["from"]
+        high = reclaim.data["to"]
+        assert isinstance(low, int)
+        assert isinstance(high, int)
         for alloc_index in range(reclaim_index + 1, len(events)):
             allocation = events[alloc_index]
             if allocation.name != "ENV_ALLOC" or "address" not in allocation.data:
                 continue
-            address = int(allocation.data["address"])
-            words = int(allocation.data.get("words", 1))
+            address = allocation.data["address"]
+            words = allocation.data.get("words", 1)
+            assert isinstance(address, int)
+            assert isinstance(words, int)
             if not (address < high and address + words > low):
                 continue
             if any(

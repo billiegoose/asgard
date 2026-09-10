@@ -37,7 +37,7 @@ Effectful Python RED2 programs also stay on one persistent `MuredMachine`. The m
 
 The IO scheduler treats the contraction quantum as a responsiveness/watchdog budget. By default, every successful host dispatch resets the quantum to the configured amount. Genuine external quantum exhaustion is surfaced as an error unless `quantum-exhausted` is explicitly enabled as a recharge event; the lower-level machine suspension is therefore suitable for a future interactive wait/kill policy.
 
-User-facing faithful loaders default to 1,048,576 shared graph/environment words and 8,192 control entries. Public RED2 CLI paths also accept byte-accounted stack/heap limits and translate them to the machine's internal word-count capacities. There is no tracing graph/environment garbage collector: ordinary reclamation comes from RED2-known graph contraction and proven-safe environment-region return. q=0 checkpoint/recharge is a separate coarse residual-world compactor for explicit quantum reconstruction or low host-dispatch headroom, not evidence for local lifetime reuse.
+User-facing faithful loaders default to 1,048,576 graph/environment words in one shared arena and 8,192 control entries. Public RED2 CLI paths also accept byte-accounted stack/heap limits and translate them to the machine's internal word-count capacities. There is no tracing graph/environment garbage collector: ordinary reclamation comes from RED2-known graph contraction and proven-safe environment-region return. q=0 checkpoint/recharge is a separate coarse residual-world compactor for explicit quantum reconstruction or low host-dispatch headroom, not evidence for local lifetime reuse.
 
 ## Bytecode and Rust/WASM boundary
 

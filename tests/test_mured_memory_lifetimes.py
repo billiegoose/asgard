@@ -947,12 +947,14 @@ def test_diagnostic_root_audit_rejects_transitive_live_parent_graph_reference() 
     ],
     ids=["saved-app-path", "saved-definition-path", "outer-subgraph-frame"],
 )
-def test_diagnostic_root_audit_rejects_saved_environment_roots(entry: object) -> None:
+def test_diagnostic_root_audit_rejects_saved_environment_roots(
+    entry: int | _SavedDefinitionPath | _SubgraphFrame,
+) -> None:
     machine, frame = _task3_audit_fixture()
     state = machine.state
     state.memory[40] = Word(MuredOpcode.EP, 29, False)
     state.memory[29] = Word(MuredOpcode.INT, 41, False)
-    state.control_stack[0] = entry  # type: ignore[assignment]
+    state.control_stack[0] = entry
     state.c = 0
 
     with pytest.raises(IllegalTransition, match="reclaimed environment address 29"):
@@ -1207,10 +1209,10 @@ def test_repeated_atomic_join_reuses_fixed_workspace_without_relinearization(
             "fixed local contraction must not checkpoint, recharge, or relinearize"
         )
 
-    machine.checkpoint_quantum = forbidden  # type: ignore[method-assign]
-    machine.recharge_quantum = forbidden  # type: ignore[method-assign]
-    machine._relinearize_graph = forbidden  # type: ignore[method-assign]
-    machine._relinearize_result_graph = forbidden  # type: ignore[method-assign]
+    machine.checkpoint_quantum = forbidden  # type: ignore[assignment]
+    machine.recharge_quantum = forbidden  # type: ignore[assignment]
+    machine._relinearize_graph = forbidden  # type: ignore[assignment]
+    machine._relinearize_result_graph = forbidden  # type: ignore[assignment]
 
     for value in range(repetitions):
         # Reuse the same APPLY/JOIN/result workspace on every contraction.  Hilton
@@ -1326,13 +1328,17 @@ def test_lazy_struct_selected_field_shapes_survive_selector_reclaim_and_reuse(
     for index, event in enumerate(events):
         if event.name != "ENV_RECLAIM":
             continue
-        low = int(event.data["from"])
-        high = int(event.data["to"])
+        low = event.data["from"]
+        high = event.data["to"]
+        assert isinstance(low, int)
+        assert isinstance(high, int)
         for later in events[index + 1 :]:
             if later.name != "ENV_ALLOC" or "address" not in later.data:
                 continue
-            address = int(later.data["address"])
-            words = int(later.data.get("words", 1))
+            address = later.data["address"]
+            words = later.data.get("words", 1)
+            assert isinstance(address, int)
+            assert isinstance(words, int)
             if address < high and address + words > low:
                 reused_reclaim = True
                 break
@@ -1708,10 +1714,10 @@ def test_integrated_reclamation_without_coarse_compaction() -> None:
                 "or relinearize"
             )
 
-        machine.checkpoint_quantum = forbidden  # type: ignore[method-assign]
-        machine.recharge_quantum = forbidden  # type: ignore[method-assign]
-        machine._relinearize_graph = forbidden  # type: ignore[method-assign]
-        machine._relinearize_result_graph = forbidden  # type: ignore[method-assign]
+        machine.checkpoint_quantum = forbidden  # type: ignore[assignment]
+        machine.recharge_quantum = forbidden  # type: ignore[assignment]
+        machine._relinearize_graph = forbidden  # type: ignore[assignment]
+        machine._relinearize_result_graph = forbidden  # type: ignore[assignment]
 
     for repetitions in (1, 8, 64):
         # Strict/local APPLY+JOIN contraction: the temporary JOIN/result suffix is
@@ -1792,7 +1798,9 @@ def test_integrated_reclamation_without_coarse_compaction() -> None:
             y_state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
             y_state.memory[4] = None
             y_state.control_stack[:] = [None] * len(y_state.control_stack)
-            y_machine._y(y_state.memory[1])
+            y_word = y_state.memory[1]
+            assert y_word is not None
+            y_machine._y(y_word)
             assert y_state.memory[3] == Word(MuredOpcode.APP, 0, False)
             y_state.memory[4] = Word(MuredOpcode.INT, iteration, True)
             assert y_state.memory[3] == Word(MuredOpcode.APP, 0, False)
