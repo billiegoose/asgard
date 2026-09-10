@@ -357,8 +357,10 @@ def test_io_bind_rejects_non_whitelisted_direct_values() -> None:
     state.prim = "IO-BIND"
     state.fire = 2
 
+    upper_before = (state.free_space, state.env, tuple(state.memory[32:]))
     with pytest.raises(IllegalTransition, match="IO-BIND supports only atomic"):
         machine._fire_io_sequence("IO-BIND")
+    assert (state.free_space, state.env, tuple(state.memory[32:])) == upper_before
 
 
 def test_restore_skips_when_result_lambda_body_references_child_environment() -> None:
@@ -1693,3 +1695,352 @@ def test_residual_compaction_resets_control_state_and_reuses_evacuated_workspace
     state.q = 4
     machine.run()
     assert to_source(machine.result_expr()) == "73"
+
+
+
+def test_integrated_reclamation_without_coarse_compaction() -> None:
+    """Fixed-live-state contractions reuse local storage without coarse rebuilds."""
+
+    def forbid_coarse_reclamation(machine: MuredMachine) -> None:
+        def forbidden(*_args: object, **_kwargs: object) -> None:
+            raise AssertionError(
+                "bounded local reclamation must not checkpoint, recharge, "
+                "or relinearize"
+            )
+
+        machine.checkpoint_quantum = forbidden  # type: ignore[method-assign]
+        machine.recharge_quantum = forbidden  # type: ignore[method-assign]
+        machine._relinearize_graph = forbidden  # type: ignore[method-assign]
+        machine._relinearize_result_graph = forbidden  # type: ignore[method-assign]
+
+    for repetitions in (1, 8, 64):
+        # Strict/local APPLY+JOIN contraction: the temporary JOIN/result suffix is
+        # returned to the same graph boundary on every iteration.
+        join_machine = MuredMachine.load(
+            [Word(MuredOpcode.INT, 0, True)],
+            quantum=10,
+            memory_words=32,
+            control_words=8,
+        )
+        forbid_coarse_reclamation(join_machine)
+        join_state = join_machine.state
+        join_boundaries: set[tuple[int, int, int, int]] = set()
+        for value in range(repetitions):
+            join_state.memory[2] = Word(MuredOpcode.INT, 777, False)
+            join_state.memory[3] = Word(MuredOpcode.APP, 9, False)
+            join_state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+            join_state.memory[5] = Word(MuredOpcode.INT, value, True)
+            join_state.pc = 4
+            join_state.fsp = 5
+            join_state.direction = Direction.B
+            join_machine.step()
+            assert join_state.memory[3] == Word(MuredOpcode.INT, value, False)
+            join_boundaries.add(
+                (
+                    join_state.fsp,
+                    join_state.free_space,
+                    join_state.env,
+                    join_state.c,
+                )
+            )
+        assert join_boundaries == {(3, 32, 32, -1)}
+
+        # Acyclic Y unfolding and lazy IF selection are separately re-armed at the
+        # same semantic boundary. Neither operation may accumulate graph,
+        # environment, or control storage as repetition count grows.
+        y_state = MuredMachineState(
+            memory=[None] * 12,
+            control_stack=[None] * 4,
+            pc=1,
+            fsp=3,
+            env=12,
+            free_space=12,
+            c=-1,
+            direction=Direction.F,
+            q=4,
+            phi=0,
+            argcnt=1,
+        )
+        y_state.memory[0] = Word(MuredOpcode.SYM, "F", True, 9)
+        y_state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+        y_machine = MuredMachine(y_state)
+        forbid_coarse_reclamation(y_machine)
+
+        if_state = MuredMachineState(
+            memory=[None] * 16,
+            control_stack=[None] * 4,
+            pc=3,
+            fsp=3,
+            env=16,
+            free_space=16,
+            c=-1,
+            direction=Direction.B,
+            q=4,
+            phi=0,
+            argcnt=0,
+        )
+        if_machine = MuredMachine(if_state)
+        forbid_coarse_reclamation(if_machine)
+        recursive_lazy_boundaries: set[tuple[int, ...]] = set()
+        for iteration in range(repetitions):
+            y_state.pc = 1
+            y_state.fsp = 3
+            y_state.c = -1
+            y_state.q = 4
+            y_state.argcnt = 1
+            y_state.direction = Direction.F
+            y_state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
+            y_state.memory[4] = None
+            y_state.control_stack[:] = [None] * len(y_state.control_stack)
+            y_machine._y(y_state.memory[1])
+            assert y_state.memory[3] == Word(MuredOpcode.APP, 0, False)
+            y_state.memory[4] = Word(MuredOpcode.INT, iteration, True)
+            assert y_state.memory[3] == Word(MuredOpcode.APP, 0, False)
+
+            if_state.memory[1] = Word(MuredOpcode.INT, 111, False)
+            if_state.memory[2] = Word(MuredOpcode.INT, 222, False)
+            if_state.memory[3] = Word(MuredOpcode.PRIM_0, "IF", True)
+            if_state.pc = 3
+            if_state.fsp = 3
+            if_state.c = -1
+            if_state.q = 4
+            if_state.direction = Direction.B
+            if_state.control_stack[:] = [None] * len(if_state.control_stack)
+            if_machine._select_if_branch("TRUE")
+            assert if_state.memory[1] == Word(MuredOpcode.INT, 222, True)
+
+            recursive_lazy_boundaries.add(
+                (
+                    y_state.fsp,
+                    y_state.free_space,
+                    y_state.env,
+                    y_state.c,
+                    if_state.fsp,
+                    if_state.free_space,
+                    if_state.env,
+                    if_state.c,
+                )
+            )
+        assert recursive_lazy_boundaries == {(3, 12, 12, 0, 1, 16, 16, -1)}
+
+        # Re-run a non-atomic structural equality in the same arena. Only the
+        # original problem graph is re-armed; scratch above its live FSP is left in
+        # place so each equality must overwrite/reuse the same bounded suffix.
+        equality_machine = MuredMachine.from_expr(
+            parse_expr("(EQUAL? (F 1 2) (F 1 2))"),
+            quantum=1000,
+            memory_words=256,
+            control_words=64,
+        )
+        forbid_coarse_reclamation(equality_machine)
+        equality_state = equality_machine.state
+        initial_fsp = equality_state.fsp
+        initial_words = deepcopy(equality_state.memory[: initial_fsp + 1])
+        initial_pc = equality_state.pc
+        initial_env = equality_state.env
+        initial_free_space = equality_state.free_space
+        initial_direction = equality_state.direction
+        initial_phi = equality_state.phi
+        initial_argcnt = equality_state.argcnt
+        equality_boundaries: set[tuple[int, int, int, int]] = set()
+        equality_peaks: set[int] = set()
+        for _ in range(repetitions):
+            for address, word in enumerate(initial_words):
+                equality_state.memory[address] = deepcopy(word)
+            equality_state.control_stack[:] = [None] * len(equality_state.control_stack)
+            equality_state.pc = initial_pc
+            equality_state.fsp = initial_fsp
+            equality_state.env = initial_env
+            equality_state.free_space = initial_free_space
+            equality_state.c = -1
+            equality_state.direction = initial_direction
+            equality_state.q = 1000
+            equality_state.phi = initial_phi
+            equality_state.argcnt = initial_argcnt
+            equality_state.prim = None
+            equality_state.fire = 0
+            equality_state.s_a = None
+            equality_state.s_d = None
+            equality_state.halted = False
+            equality_machine.pending_host_call = None
+
+            peak_fsp = equality_state.fsp
+            for _step in range(10_000):
+                if equality_state.halted:
+                    break
+                equality_machine.step()
+                peak_fsp = max(peak_fsp, equality_state.fsp)
+            else:
+                pytest.fail("bounded equality repetition exceeded cycle budget")
+
+            assert to_source(equality_machine.result_expr()) == "TRUE"
+            equality_peaks.add(peak_fsp - initial_fsp)
+            equality_boundaries.add(
+                (
+                    equality_state.fsp,
+                    equality_state.free_space,
+                    equality_state.env,
+                    equality_state.c,
+                )
+            )
+        assert len(equality_peaks) == 1
+        assert len(equality_boundaries) == 1
+        assert next(iter(equality_boundaries))[1:] == (
+            initial_free_space,
+            initial_env,
+            -1,
+        )
+
+        # Atomic IO-BIND itself is a bounded graph rewrite: the host value is copied
+        # into the graph continuation and never reserves an upper-arena object.
+        io_machine = MuredMachine.load(
+            [Word(MuredOpcode.INT, 0, True)],
+            quantum=10,
+            memory_words=32,
+            control_words=8,
+            memory_diagnostics=True,
+        )
+        forbid_coarse_reclamation(io_machine)
+        io_state = io_machine.state
+        io_boundaries: set[tuple[int, int, int, int]] = set()
+        for value in range(repetitions):
+            io_state.memory[2] = Word(MuredOpcode.APP, 8, False)
+            io_state.memory[3] = Word(MuredOpcode.INT, value, True)
+            io_state.memory[8] = Word(MuredOpcode.LAMBDA, "x", False)
+            io_state.memory[9] = Word(MuredOpcode.VAR, 0, True)
+            io_state.control_stack[:] = [None] * len(io_state.control_stack)
+            io_state.control_stack[0] = 32
+            io_state.c = 0
+            io_state.pc = 3
+            io_state.fsp = 3
+            io_state.env = 32
+            io_state.free_space = 32
+            io_state.q = 10
+            io_state.argcnt = 0
+            io_state.direction = Direction.B
+            io_machine._fire_io_sequence("IO-BIND")
+            assert io_state.memory[2] == Word(MuredOpcode.INT, value, False)
+            io_boundaries.add(
+                (io_state.fsp, io_state.free_space, io_state.env, io_state.c)
+            )
+        assert io_boundaries == {(2, 32, 32, -1)}
+        io_events = [
+            event for event in io_machine.memory_events() if event.name == "IO_BIND"
+        ]
+        assert len(io_events) == repetitions
+        assert all(
+            event.data.get("reserved_upper_arena") is False for event in io_events
+        )
+
+    # One finite program combines nested strict arguments, closure capture, lazy
+    # branch selection, and atomic IO-BIND. It needs only cheap scheduler refresh.
+    source = """
+    ((LAMBDA (captured)
+       (IF TRUE
+           (IO-BIND (CLOCK)
+             (LAMBDA (now)
+               (IO-RETURN (+ (+ captured 1) (+ now 2)))))
+           (IO-RETURN (BAD BAD))))
+     40)
+    """
+    action, definitions = prepare(source)
+    combined = load_faithful_machine(
+        action,
+        quantum=1000,
+        definitions=definitions,
+        memory_words=512,
+        control_words=128,
+    )
+    forbid_coarse_reclamation(combined)
+    host_calls = 0
+    while True:
+        stop = combined.run_until_suspend(cycle_limit=combined.state.cycles + 10_000)
+        if stop.reason is MuredStopReason.HOST_CALL:
+            assert stop.host_call is not None
+            assert stop.host_call.name == "CLOCK"
+            host_calls += 1
+            combined.resume_host_call(Word(MuredOpcode.INT, 123))
+            combined.refresh_quantum(1000)
+            continue
+        assert stop.reason is MuredStopReason.COMPLETE
+        break
+    assert host_calls == 1
+    assert to_source(combined.result_expr()) == "166"
+    assert combined.state.c == -1
+
+
+
+def test_growing_retained_output_survives_reclaim_and_resume() -> None:
+    """Live output may grow, but explicit residual reclamation preserves it exactly."""
+    live_sizes: list[tuple[int, int]] = []
+    for count in (1, 8, 32):
+        source = "[" + " ".join(str(value) for value in range(count)) + "]"
+        machine = MuredMachine.from_expr(
+            parse_expr(source),
+            quantum=0,
+            memory_words=1024,
+            control_words=128,
+        )
+        machine.run(cycle_limit=100_000)
+        assert machine.state.halted
+        assert to_source(machine.result_expr()) == source
+        before_fsp = machine.state.fsp
+
+        machine.recharge_quantum(0)
+
+        assert machine.state.halted is False
+        assert machine.state.free_space == machine.working_memory_limit
+        compacted_fsp = machine.state.fsp
+        machine.run(cycle_limit=100_000)
+        assert to_source(machine.result_expr()) == source
+        live_sizes.append((before_fsp, compacted_fsp))
+
+    # This is the growing-live-data control, not a constant-memory claim.
+    assert live_sizes[0][0] < live_sizes[1][0] < live_sizes[2][0]
+    assert live_sizes[0][1] < live_sizes[1][1] < live_sizes[2][1]
+
+
+def test_direct_ep_alias_publishes_before_reclaim_and_survives_recharge() -> None:
+    """A supported EP chain is graph-owned before its environment can be reused."""
+    machine = MuredMachine.load(
+        [Word(MuredOpcode.INT, 0, True)],
+        quantum=10,
+        memory_words=64,
+        control_words=8,
+        poison_reclaimed_environment=True,
+    )
+    state = machine.state
+    state.memory[2] = Word(MuredOpcode.EP, 29, True)
+    state.memory[29] = Word(MuredOpcode.EP, 30, False)
+    state.memory[30] = Word(MuredOpcode.INT, 41, False)
+    state.fsp = 2
+    state.env = 28
+    state.free_space = 28
+    frame = _SubgraphFrame(env=64, free_space=32, prim=None, fire=0)
+
+    published = machine._publish_child_result(frame, 2)
+    assert published == 2
+    assert state.memory[2] == Word(MuredOpcode.INT, 41, True)
+    assert machine._restore_environment_region(frame, published)
+    assert state.free_space == 32
+    assert state.env == 64
+    assert all(state.memory[address] is None for address in range(28, 32))
+
+    # Treat the published child as a completed residual, then exercise the public
+    # restart path. No EP into the reclaimed arena is allowed to survive here.
+    state.pc = published
+    state.fsp = published
+    state.c = -1
+    state.q = 0
+    state.direction = Direction.B
+    state.halted = True
+    assert to_source(machine.result_expr()) == "41"
+
+    machine.recharge_quantum(5)
+    assert state.free_space == machine.working_memory_limit
+    assert not any(
+        word is not None and word.opcode is MuredOpcode.EP
+        for word in state.memory[: state.fsp + 1]
+    )
+    machine.run(cycle_limit=1000)
+    assert to_source(machine.result_expr()) == "41"

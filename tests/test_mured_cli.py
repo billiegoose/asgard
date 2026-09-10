@@ -116,3 +116,16 @@ def test_red2_cli_clock_uses_latest_valid_value_for_io(
     captured = capsys.readouterr()
     assert captured.out == "A"
     assert captured.err == ""
+
+
+
+def test_red2_cli_default_run_emits_no_memory_diagnostics(
+    capsys: CaptureFixture[str],
+) -> None:
+    source = "((LAMBDA (x) (+ ((LAMBDA (y) y) x) 1)) 41)"
+
+    assert red2_main(["--quantum", "100", "--expr", source]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "42\n"
+    assert captured.err == ""

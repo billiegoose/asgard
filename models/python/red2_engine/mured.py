@@ -461,7 +461,9 @@ class MuredMachine:
         self._saved_quantum_depth = 0
         self._memory_diagnostics_enabled = memory_diagnostics
         self._poison_reclaimed_environment = poison_reclaimed_environment
-        self._memory_events: list[MuredMemoryEvent] = []
+        self._memory_events: list[MuredMemoryEvent] | None = (
+            [] if memory_diagnostics else None
+        )
         self._peak_graph_words = state.fsp + 1
         self._peak_environment_words = self.working_memory_limit - self._frontier()
         self._minimum_gap = self._frontier() - state.fsp
@@ -552,9 +554,13 @@ class MuredMachine:
 
     def enable_memory_diagnostics(self) -> None:
         self._memory_diagnostics_enabled = True
+        if self._memory_events is None:
+            self._memory_events = []
         self._update_memory_snapshot()
 
     def memory_events(self) -> tuple[MuredMemoryEvent, ...]:
+        if self._memory_events is None:
+            return ()
         return tuple(self._memory_events)
 
     def memory_snapshot(self) -> MuredMemorySnapshot:
@@ -590,6 +596,8 @@ class MuredMachine:
     ) -> None:
         if not self._memory_diagnostics_enabled:
             return
+        if self._memory_events is None:
+            self._memory_events = []
         self._memory_events.append(
             MuredMemoryEvent(
                 cycle=self.state.cycles,

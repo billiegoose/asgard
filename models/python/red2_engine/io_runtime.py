@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Callable, Collection, Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
 from red2_engine.mured import (
     MuredHostCall,
     MuredMachine,
+    MuredMemoryEvent,
     MuredOpcode,
     MuredStopReason,
     Word,
@@ -27,6 +29,14 @@ DEFAULT_RED2_RECHARGE_EVENTS = frozenset({Red2RechargeEvent.HOST_DISPATCH})
 HOST_CHECKPOINT_HEADROOM_WORDS = 4096
 
 
+@dataclass(slots=True)
+class Red2IoSchedulerStats:
+    host_dispatches: int = 0
+    host_refreshes: int = 0
+    host_checkpoints: int = 0
+    quantum_recharges: int = 0
+
+
 class Red2IoHost(Protocol):
     def uart_rx(self) -> int | None: ...
 
@@ -43,6 +53,9 @@ def run_red2_io_action(
     host: Red2IoHost,
     memory_words: int = 1_048_576,
     recharge_on: Collection[Red2RechargeEvent] = DEFAULT_RED2_RECHARGE_EVENTS,
+    memory_diagnostics: bool = False,
+    memory_event_sink: Callable[[MuredMemoryEvent], None] | None = None,
+    scheduler_stats: Red2IoSchedulerStats | None = None,
 ) -> Expr:
     """Run one effectful THOR/RED2 program on exactly one faithful μRED machine."""
     if quantum <= 0:
@@ -56,6 +69,7 @@ def run_red2_io_action(
         quantum=quantum,
         definitions=definitions,
         memory_words=memory_words,
+        memory_diagnostics=memory_diagnostics,
     )
 
     while True:
@@ -67,6 +81,8 @@ def run_red2_io_action(
             if call is None:
                 raise Red2IoRuntimeError("host suspension is missing its host call")
             machine.resume_host_call(_dispatch_host_call(machine, call, host))
+            if scheduler_stats is not None:
+                scheduler_stats.host_dispatches += 1
             if Red2RechargeEvent.HOST_DISPATCH in recharge_events:
                 free_space = machine.state.free_space
                 # q=0 reconstruction itself needs working room, so checkpoint
@@ -75,17 +91,26 @@ def run_red2_io_action(
                 # at every committed host boundary.
                 if free_space - machine.state.fsp <= HOST_CHECKPOINT_HEADROOM_WORDS:
                     machine.checkpoint_quantum(quantum)
+                    if scheduler_stats is not None:
+                        scheduler_stats.host_checkpoints += 1
                 else:
                     machine.refresh_quantum(quantum)
+                    if scheduler_stats is not None:
+                        scheduler_stats.host_refreshes += 1
             continue
         if stop.reason is MuredStopReason.QUANTUM_EXHAUSTED:
             if Red2RechargeEvent.QUANTUM_EXHAUSTED in recharge_events:
                 machine.recharge_quantum(quantum)
+                if scheduler_stats is not None:
+                    scheduler_stats.quantum_recharges += 1
                 continue
             raise Red2IoRuntimeError(
                 "RED2 IO quantum exhausted before the next host dispatch"
             )
         if stop.reason is MuredStopReason.COMPLETE:
+            if memory_diagnostics and memory_event_sink is not None:
+                for event in machine.memory_events():
+                    memory_event_sink(event)
             return machine.result_expr()
         raise Red2IoRuntimeError(f"unknown faithful RED2 stop reason: {stop.reason}")
 

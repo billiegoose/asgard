@@ -10,6 +10,7 @@ import pytest
 from red2_engine.io_runtime import (
     Red2IoHost,
     Red2IoRuntimeError,
+    Red2IoSchedulerStats,
     Red2RechargeEvent,
     run_red2_io_action,
 )
@@ -523,3 +524,162 @@ def test_host_headroom_uses_free_space_with_valid_higher_saved_env(
     assert host.writes == [b"A"]
     assert len(machines) == 1
     assert decisions == [expected]
+
+
+
+def test_red2_io_distinguishes_host_checkpoints_from_quantum_recharges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import thor_compile.red2 as red2_compile
+
+    @dataclass
+    class RecordingHost:
+        rx_values: list[int | None] = field(default_factory=lambda: [65])
+        clock_value: int = 1_700_000_000_789
+        writes: list[bytes] = field(default_factory=list)
+        events: list[tuple[str, object]] = field(default_factory=list)
+
+        def uart_rx(self) -> int | None:
+            value = self.rx_values.pop(0) if self.rx_values else None
+            self.events.append(("rx", value))
+            return value
+
+        def uart_tx(self, data: bytes) -> None:
+            self.events.append(("tx", data))
+            self.writes.append(data)
+
+        def clock_ms(self) -> int:
+            self.events.append(("clock", self.clock_value))
+            return self.clock_value
+
+    action, definitions = prepare(
+        "(IO-BIND (CLOCK) "
+        "(LAMBDA (now) "
+        "(IO-BIND (UART-RX) "
+        "(LAMBDA (byte) "
+        "(IO-THEN (UART-TX byte) (IO-RETURN now))))))"
+    )
+    original_load = red2_compile.load_faithful_machine
+    loaded_machines: list[object] = []
+
+    def counting_load(*args: Any, **kwargs: Any) -> Any:
+        machine = original_load(*args, **kwargs)
+        loaded_machines.append(machine)
+        return machine
+
+    monkeypatch.setattr(red2_compile, "load_faithful_machine", counting_load)
+
+    checkpoint_host = RecordingHost()
+    checkpoint_stats = Red2IoSchedulerStats()
+    checkpoint_result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20,
+        host=checkpoint_host,
+        memory_words=256,
+        scheduler_stats=checkpoint_stats,
+    )
+    assert len(loaded_machines) == 1
+    assert to_source(checkpoint_result) == str(checkpoint_host.clock_value)
+    assert checkpoint_host.events == [
+        ("clock", checkpoint_host.clock_value),
+        ("rx", 65),
+        ("tx", b"A"),
+    ]
+    assert checkpoint_host.rx_values == []
+    assert checkpoint_host.writes == [b"A"]
+    assert checkpoint_stats.host_dispatches == 3
+    assert checkpoint_stats.host_checkpoints == 3
+    assert checkpoint_stats.host_refreshes == 0
+    assert checkpoint_stats.quantum_recharges == 0
+
+    loaded_machines.clear()
+    quantum_host = RecordingHost()
+    quantum_stats = Red2IoSchedulerStats()
+    quantum_result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=1,
+        host=quantum_host,
+        memory_words=8192,
+        recharge_on={Red2RechargeEvent.QUANTUM_EXHAUSTED},
+        scheduler_stats=quantum_stats,
+    )
+    assert len(loaded_machines) == 1
+    assert to_source(quantum_result) == str(quantum_host.clock_value)
+    assert quantum_host.events == [
+        ("clock", quantum_host.clock_value),
+        ("rx", 65),
+        ("tx", b"A"),
+    ]
+    assert quantum_host.rx_values == []
+    assert quantum_host.writes == [b"A"]
+    assert quantum_stats.host_dispatches == 3
+    assert quantum_stats.host_checkpoints == 0
+    assert quantum_stats.host_refreshes == 0
+    assert quantum_stats.quantum_recharges > 0
+
+
+
+def test_memory_diagnostics_are_lazy_and_sink_is_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: Any,
+) -> None:
+    import thor_compile.red2 as red2_compile
+
+    action, definitions = prepare(
+        "(IO-BIND (CLOCK) (LAMBDA (now) (IO-RETURN now)))"
+    )
+    original_load = red2_compile.load_faithful_machine
+    loaded: list[Any] = []
+
+    def capture_load(*args: Any, **kwargs: Any) -> Any:
+        machine = original_load(*args, **kwargs)
+        loaded.append(machine)
+        return machine
+
+    monkeypatch.setattr(red2_compile, "load_faithful_machine", capture_load)
+
+    for mode in (None, False):
+        sink_events: list[Any] = []
+        kwargs: dict[str, Any] = {}
+        if mode is not None:
+            kwargs["memory_diagnostics"] = mode
+        result = run_red2_io_action(
+            action,
+            definitions=definitions,
+            quantum=20,
+            host=FakeHost(),
+            memory_words=256,
+            memory_event_sink=sink_events.append,
+            **kwargs,
+        )
+        machine = loaded.pop()
+        assert to_source(result) == "1700000000789"
+        assert machine._memory_events is None
+        assert machine.memory_events() == ()
+        assert sink_events == []
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
+
+    sink_events = []
+    result = run_red2_io_action(
+        action,
+        definitions=definitions,
+        quantum=20,
+        host=FakeHost(),
+        memory_words=256,
+        memory_diagnostics=True,
+        memory_event_sink=sink_events.append,
+    )
+    machine = loaded.pop()
+    assert to_source(result) == "1700000000789"
+    assert machine._memory_events is not None
+    assert sink_events
+    names = {event.name for event in sink_events}
+    assert "IO_BIND" in names
+    assert "CHECKPOINT" in names
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
