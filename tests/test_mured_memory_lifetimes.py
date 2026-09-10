@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 import pytest
@@ -7,9 +8,13 @@ import pytest
 from red2_engine.io_runtime import Red2IoHost, Red2RechargeEvent, run_red2_io_action
 from red2_engine.mured import (
     Direction,
+    GraphEnvironmentCollision,
     IllegalTransition,
+    InvalidAddress,
     MuredHostCall,
     MuredMachine,
+    MuredMachineError,
+    MuredMachineState,
     MuredOpcode,
     MuredStopReason,
     Word,
@@ -1413,3 +1418,278 @@ def test_lazy_struct_construction_reuses_only_dead_suffix_and_preserves_fields(
     )
     right_machine.run(cycle_limit=20_000)
     assert to_source(right_machine.result_expr()) == "35"
+
+
+def test_residual_compaction_preserves_diamond_sharing_and_omits_garbage() -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=7,
+        env=32,
+        free_space=32,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[0] = Word(MuredOpcode.APP, 3, False)
+    state.memory[1] = Word(MuredOpcode.APP, 3, False)
+    state.memory[2] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[3] = Word(MuredOpcode.INT, 7, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "__POISON__", True)
+    state.memory[5] = Word(MuredOpcode.INT, 12345, True)
+    state.memory[6] = Word(MuredOpcode.APP, 5, False)
+    state.memory[7] = Word(MuredOpcode.SYM, "GARBAGE", True)
+    machine = MuredMachine(state)
+
+    machine.recharge_quantum(0)
+
+    first = state.memory[0]
+    second = state.memory[1]
+    assert first is not None and first.opcode is MuredOpcode.APP
+    assert second is not None and second.opcode is MuredOpcode.APP
+    assert first.data == second.data == 3
+    assert state.memory[3] == Word(MuredOpcode.INT, 7, True)
+    assert state.fsp == 4
+    assert state.free_space == machine.working_memory_limit == 32
+    assert all(
+        word is None or word.data not in {"__POISON__", "GARBAGE"}
+        for word in state.memory[: state.fsp + 1]
+    )
+    machine.run()
+    assert to_source(machine.result_expr()) == "(F 7 7)"
+
+
+def test_residual_compaction_preserves_shared_struct_fields() -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=7,
+        env=32,
+        free_space=32,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.APP, 5, False)
+    state.memory[2] = Word(MuredOpcode.APP, 5, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.LAMBDA, "x", False)
+    state.memory[6] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[7] = Word(MuredOpcode.SYM, "__POISON__", True)
+    machine = MuredMachine(state)
+
+    machine.recharge_quantum(0)
+
+    first = state.memory[1]
+    second = state.memory[2]
+    assert first is not None and first.opcode is MuredOpcode.APP
+    assert second is not None and second.opcode is MuredOpcode.APP
+    assert first.data == second.data == 4
+    assert state.memory[4] == Word(MuredOpcode.LAMBDA, "x", False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 6
+    machine.run()
+    assert to_source(machine.result_expr()) == "[(LAMBDA (x) x) | (LAMBDA (x) x)]"
+
+
+def test_residual_compaction_relocates_rblock_without_relocating_integer_literals(
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=10,
+        fsp=14,
+        env=32,
+        free_space=32,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[10] = Word(MuredOpcode.RBLOCK, 13, False)
+    state.memory[11] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[12] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[13] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[14] = Word(MuredOpcode.INT, 13, True)
+    machine = MuredMachine(state)
+
+    machine.recharge_quantum(0)
+
+    assert state.memory[0] == Word(MuredOpcode.RBLOCK, 3, False)
+    assert state.memory[3] == Word(MuredOpcode.SYM, "x", False)
+    assert state.memory[4] == Word(MuredOpcode.INT, 13, True)
+    assert state.fsp == 5
+    machine.run()
+    assert to_source(machine.result_expr()) == "(LETREC ((x 13)) x)"
+
+
+@pytest.mark.parametrize(
+    ("working_limit", "should_fit"),
+    [(4, True), (3, False)],
+)
+def test_residual_compaction_capacity_is_transactional(
+    working_limit: int,
+    should_fit: bool,
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=working_limit,
+        free_space=working_limit,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[0] = Word(MuredOpcode.APP, 2, False)
+    state.memory[1] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[2] = Word(MuredOpcode.INT, 1, True)
+    machine = MuredMachine(state, working_memory_limit=working_limit)
+    before = deepcopy(state)
+
+    if not should_fit:
+        with pytest.raises(GraphEnvironmentCollision):
+            machine.recharge_quantum(1)
+        assert state == before
+        return
+
+    machine.recharge_quantum(1)
+    assert state.fsp == 3
+    assert state.free_space == working_limit
+    assert state.memory[3] == Word(MuredOpcode.STOP)
+
+
+@pytest.mark.parametrize(
+    ("words", "working_limit", "error"),
+    [
+        (
+            (Word(MuredOpcode.APP, 99, False), Word(MuredOpcode.SYM, "F", True)),
+            32,
+            InvalidAddress,
+        ),
+        (
+            (
+                Word(MuredOpcode.RBLOCK, 99, False),
+                Word(MuredOpcode.RUP, 1, False),
+                Word(MuredOpcode.VAR, 0, True),
+            ),
+            32,
+            InvalidAddress,
+        ),
+        ((Word(MuredOpcode.EP, 31, True),), 32, MuredMachineError),
+        (
+            (Word(MuredOpcode.APP, 8, False), Word(MuredOpcode.SYM, "F", True)),
+            8,
+            InvalidAddress,
+        ),
+    ],
+    ids=[
+        "invalid-app",
+        "malformed-rblock",
+        "environment-escape",
+        "static-arena-escape",
+    ],
+)
+def test_residual_compaction_malformed_inputs_leave_machine_unchanged(
+    words: tuple[Word, ...],
+    working_limit: int,
+    error: type[Exception],
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 40,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=len(words) - 1,
+        env=working_limit,
+        free_space=working_limit,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[: len(words)] = words
+    if working_limit == 8:
+        state.memory[8] = Word(MuredOpcode.INT, 99, True)
+    machine = MuredMachine(state, working_memory_limit=working_limit)
+    before = deepcopy(state)
+
+    with pytest.raises(error):
+        machine.recharge_quantum(1)
+
+    assert state == before
+
+
+def test_residual_compaction_resets_control_state_and_reuses_evacuated_workspace(
+) -> None:
+    state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=12,
+        env=24,
+        free_space=24,
+        c=2,
+        direction=Direction.B,
+        q=0,
+        phi=3,
+        argcnt=4,
+        prim="OLD",
+        fire=2,
+        s_a=19,
+        s_d=1,
+        halted=True,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 42, True)
+    for address in range(1, 13):
+        state.memory[address] = Word(MuredOpcode.INT, 9000 + address, True)
+    state.control_stack[0] = 23
+    state.control_stack[1] = _SavedDefinitionPath(22)
+    state.control_stack[2] = _SubgraphFrame(
+        env=21,
+        free_space=24,
+        prim="STALE",
+        fire=1,
+    )
+    machine = MuredMachine(state, working_memory_limit=24)
+
+    machine.recharge_quantum(5)
+
+    assert state.memory[0] == Word(MuredOpcode.INT, 42, True)
+    assert state.memory[1] == Word(MuredOpcode.STOP)
+    assert state.fsp == 1
+    assert state.free_space == state.env == 24
+    assert state.c == -1
+    assert all(entry is None for entry in state.control_stack)
+    assert state.direction is Direction.F
+    assert state.phi == 0
+    assert state.argcnt == 0
+    assert state.prim is None
+    assert state.fire == 0
+    assert state.s_a is None
+    assert state.s_d is None
+    assert state.halted is False
+
+    # Addresses 2..12 held unreachable old workspace. Reuse one of them for a
+    # fresh executable continuation and prove the restarted machine can enter it.
+    state.memory[2] = Word(MuredOpcode.APP, 5, False)
+    state.memory[3] = Word(MuredOpcode.LAMBDA, "x", False)
+    state.memory[4] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.INT, 73, True)
+    state.memory[6] = Word(MuredOpcode.STOP)
+    state.pc = 2
+    state.fsp = 6
+    state.q = 4
+    machine.run()
+    assert to_source(machine.result_expr()) == "73"

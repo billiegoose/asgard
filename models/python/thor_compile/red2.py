@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
@@ -272,6 +274,26 @@ class FaithfulDefinitionCache:
     static_words: tuple[tuple[int, Word], ...]
 
 
+def _relocate_faithful_word(
+    word: Word,
+    *,
+    graph_base: int,
+    definition_addresses: Mapping[str, int],
+) -> Word:
+    """Relocate graph-owned pointers while keeping definition addresses absolute."""
+    from red2_engine.mured import MuredOpcode, Word
+
+    data = word.data
+    if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+        if not isinstance(data, int):
+            raise ValueError(f"{word.opcode} requires an address")
+        data += graph_base
+    definition = word.definition
+    if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
+        definition = definition_addresses.get(word.data)
+    return Word(word.opcode, data, word.head, definition)
+
+
 def prepare_faithful_definitions(
     definitions: Mapping[str, Expr] | None,
     *,
@@ -311,23 +333,20 @@ def prepare_faithful_definitions(
         definition_addresses[name] = cursor
         cursor += len(words) + 1
 
-    def relocate(word: Word, base: int) -> Word:
-        data = word.data
-        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
-            if not isinstance(data, int):
-                raise ValueError(f"{word.opcode} requires an address")
-            data += base
-        definition = word.definition
-        if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
-            definition = definition_addresses.get(word.data)
-        return Word(word.opcode, data, word.head, definition)
-
     static_words: list[tuple[int, Word]] = []
     cursor = static_start
     for words in compiled_definitions.values():
         base = cursor
         static_words.extend(
-            (base + offset, relocate(word, base)) for offset, word in enumerate(words)
+            (
+                base + offset,
+                _relocate_faithful_word(
+                    word,
+                    graph_base=base,
+                    definition_addresses=definition_addresses,
+                ),
+            )
+            for offset, word in enumerate(words)
         )
         static_words.append((base + len(words), Word(MuredOpcode.STOP)))
         cursor += len(words) + 1
@@ -354,7 +373,7 @@ def load_faithful_machine(
     poison_reclaimed_environment: bool = False,
 ) -> MuredMachine:
     """Load one expression plus visible top-level definitions into μRED memory."""
-    from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+    from red2_engine.mured import MuredMachine, compile_lambda
 
     prepared = (
         definitions
@@ -385,14 +404,11 @@ def load_faithful_machine(
         word = machine.state.memory[address]
         if word is None:
             raise ValueError("faithful root graph contains an uninitialized word")
-        data = word.data
-        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
-            if not isinstance(data, int):
-                raise ValueError(f"{word.opcode} requires an address")
-        definition = word.definition
-        if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
-            definition = prepared.definition_addresses.get(word.data)
-        machine.state.memory[address] = Word(word.opcode, data, word.head, definition)
+        machine.state.memory[address] = _relocate_faithful_word(
+            word,
+            graph_base=0,
+            definition_addresses=prepared.definition_addresses,
+        )
 
     for address, word in prepared.static_words:
         machine.state.memory[address] = word

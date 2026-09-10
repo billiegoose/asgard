@@ -1,6 +1,7 @@
 import pytest
 
 from red2_engine.mured import MuredMachine, MuredOpcode, Word, compile_lambda
+from thor_compile.red2 import load_faithful_machine, prepare_faithful_definitions
 from thor_lang.ast import Binding, Lambda, LetRec, StructLit, Var
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
@@ -441,3 +442,36 @@ def test_unapplied_lambda_body_does_not_supply_primitive_argument() -> None:
     assert to_source(machine.result_expr()) == "(LAMBDA (x) NOT)"
     assert machine.state.prim is None
     assert machine.state.fire == 0
+
+
+def test_recharge_preserves_static_definition_arena_and_symbol_identity() -> None:
+    definitions = {"ID": Lambda(("x",), Var(0, "x"))}
+    cache = prepare_faithful_definitions(definitions, memory_words=128)
+    machine = load_faithful_machine(
+        parse_expr("ID"),
+        quantum=0,
+        definitions=cache,
+        memory_words=128,
+        control_words=16,
+    )
+    identity = id(machine)
+    definition_address = cache.definition_addresses["ID"]
+    static_before = tuple(machine.state.memory[cache.static_start :])
+
+    machine.run()
+    for _ in range(3):
+        machine.recharge_quantum(0)
+        assert id(machine) == identity
+        assert machine.working_memory_limit == cache.static_start
+        assert machine.state.free_space == cache.static_start
+        assert machine.state.env == cache.static_start
+        assert tuple(machine.state.memory[cache.static_start :]) == static_before
+        root = machine.state.memory[0]
+        assert root == Word(MuredOpcode.SYM, "ID", True, definition_address)
+        machine.run()
+        assert to_source(machine.result_expr()) == "ID"
+
+    machine.recharge_quantum(2)
+    machine.run()
+    assert to_source(machine.result_expr()) == "(LAMBDA (x) x)"
+    assert tuple(machine.state.memory[cache.static_start :]) == static_before

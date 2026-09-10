@@ -4070,6 +4070,7 @@ class MuredMachine:
         memory = self.state.memory
         output: list[Word | None] = []
         visiting: set[tuple[int, bool]] = set()
+        forwarded_graphs: dict[int, int] = {}
 
         def source_word(address: int) -> Word:
             if not 0 <= address < len(memory):
@@ -4081,6 +4082,19 @@ class MuredMachine:
 
         def emit_atomic(word: Word, *, head: bool) -> None:
             output.append(Word(word.opcode, word.data, head, word.definition))
+
+        def emit_pointer_target(address: int) -> int:
+            if not 0 <= address < self.working_memory_limit:
+                raise InvalidAddress("result graph pointer escapes the working arena")
+            existing = forwarded_graphs.get(address)
+            if existing is not None:
+                return existing
+            if (address, True) in visiting:
+                raise MuredMachineError("cyclic μRED result graph")
+            target = len(output)
+            emit_graph(address, head=True)
+            forwarded_graphs[address] = target
+            return target
 
         def emit_graph(address: int, *, head: bool) -> None:
             key = (address, head)
@@ -4127,14 +4141,14 @@ class MuredMachine:
                                 MuredOpcode.APP_VAR, data, False, definition
                             )
                             continue
-                        target = len(output)
+                        if opcode is MuredOpcode.APP:
+                            target = emit_pointer_target(data)
+                        else:
+                            target = len(output)
+                            emit_atomic(source_word(source), head=True)
                         output[slots + offset] = Word(
                             MuredOpcode.APP, target, False, definition
                         )
-                        if opcode is MuredOpcode.APP:
-                            emit_graph(data, head=True)
-                        else:
-                            emit_atomic(source_word(source), head=True)
                     return
 
                 if word.opcode is MuredOpcode.RBLOCK:
@@ -4155,6 +4169,10 @@ class MuredMachine:
                         if not isinstance(block.data, int) or block.data < 0:
                             raise InvalidAddress(
                                 "result RBLOCK requires a binding address"
+                            )
+                        if block.data >= self.working_memory_limit:
+                            raise InvalidAddress(
+                                "result RBLOCK binding escapes the working arena"
                             )
                         name = source_word(block.data)
                         if name.opcode is not MuredOpcode.SYM or not isinstance(
@@ -4221,18 +4239,18 @@ class MuredMachine:
                                 descriptor.definition,
                             )
                             continue
-                        target = len(output)
+                        if descriptor.opcode is MuredOpcode.APP:
+                            assert isinstance(descriptor.data, int)
+                            target = emit_pointer_target(descriptor.data)
+                        else:
+                            target = len(output)
+                            emit_atomic(source_word(source_address), head=True)
                         output[slots + offset] = Word(
                             MuredOpcode.APP,
                             target,
                             False,
                             descriptor.definition,
                         )
-                        if descriptor.opcode is MuredOpcode.APP:
-                            assert isinstance(descriptor.data, int)
-                            emit_graph(descriptor.data, head=True)
-                        else:
-                            emit_atomic(source_word(source_address), head=True)
                     return
 
                 if word.opcode is MuredOpcode.LAMBDA:

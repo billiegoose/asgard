@@ -139,3 +139,35 @@ def test_y_combinator_fibonacci_still_matches() -> None:
     """
     assert run_source(source, model="thor", quantum=2000) == "8"
     assert run_source(source, model="red2", quantum=2000) == "8"
+
+
+def test_recursive_q0_residual_survives_repeated_recharge_and_finishes() -> None:
+    source = """
+    fact == (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))
+    (fact 4)
+    """
+    expr, definitions = _prepare_recursive_source(source, model="red2")
+    machine = load_faithful_machine(
+        expr,
+        quantum=0,
+        definitions=definitions,
+        memory_words=2_048,
+        control_words=512,
+    )
+    identity = id(machine)
+
+    machine.run(cycle_limit=200_000)
+    prefix = to_source(machine.result_expr())
+    for _ in range(3):
+        machine.recharge_quantum(0)
+        assert id(machine) == identity
+        assert machine.state.c == -1
+        assert machine.state.free_space == machine.working_memory_limit
+        machine.run(cycle_limit=200_000)
+        assert to_source(machine.result_expr()) == prefix
+
+    machine.recharge_quantum(500)
+    machine.run(cycle_limit=200_000)
+    assert id(machine) == identity
+    assert machine.state.c == -1
+    assert to_source(machine.result_expr()) == "24"

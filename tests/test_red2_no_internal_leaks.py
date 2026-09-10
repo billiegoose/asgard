@@ -47,3 +47,57 @@ def test_structural_equality_private_symbols_are_machine_only() -> None:
     ]
     assert live_private == []
     assert machine.state.c == -1
+
+
+def test_residual_forwarding_is_copy_local_and_leaves_no_machine_marker() -> None:
+    from red2_engine.mured import (
+        Direction,
+        MuredMachine,
+        MuredMachineState,
+        MuredOpcode,
+        Word,
+    )
+
+    state = MuredMachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=5,
+        env=24,
+        free_space=24,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        halted=True,
+    )
+    state.memory[0] = Word(MuredOpcode.APP, 3, False)
+    state.memory[1] = Word(MuredOpcode.APP, 3, False)
+    state.memory[2] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[3] = Word(MuredOpcode.INT, 7, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "__UNREACHABLE__", True)
+    state.memory[5] = Word(MuredOpcode.INT, 999, True)
+    machine = MuredMachine(state)
+    source_before = tuple(state.memory)
+
+    compact = machine._relinearize_result_graph()
+
+    # Unlike C copy_graph's temporary MARKER forwarding, Python forwarding is
+    # copy-local and must not mutate the installed source arena at all.
+    assert tuple(state.memory) == source_before
+    assert compact == (
+        Word(MuredOpcode.APP, 3, False),
+        Word(MuredOpcode.APP, 3, False),
+        Word(MuredOpcode.SYM, "F", True),
+        Word(MuredOpcode.INT, 7, True),
+    )
+
+    machine.recharge_quantum(0)
+
+    assert state.memory[0] == Word(MuredOpcode.APP, 3, False)
+    assert state.memory[1] == Word(MuredOpcode.APP, 3, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 7, True)
+    assert all(
+        word is None or word.data != "__UNREACHABLE__"
+        for word in state.memory[: state.fsp + 1]
+    )
