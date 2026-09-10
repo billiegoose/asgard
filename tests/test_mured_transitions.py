@@ -3201,3 +3201,141 @@ def test_join_nonhead_var_result_remains_pointer_backed_like_hilton() -> None:
     assert state.memory[5] == Word(MuredOpcode.VAR, 0, False)
     assert state.fsp == 5
     assert state.pc == 2
+
+def test_equality_split_uses_typed_join_and_reclaims_generated_scratch() -> None:
+    from thor_compile.red2 import load_faithful_machine
+
+    machine = load_faithful_machine(
+        parse_expr("(EQUAL? (F 1 2) (F 1 2))"),
+        quantum=1,
+        memory_words=192,
+        control_words=64,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+    machine.run()
+
+    events = machine.memory_events()
+    equality_enters = [
+        event
+        for event in events
+        if event.name == "SUBGRAPH_ENTER"
+        and event.data.get("prim") == "__EQUALITY_CONTINUE__"
+    ]
+    rewinds = [event for event in events if event.name == "GRAPH_REWIND"]
+
+    assert equality_enters
+    assert any(event.name == "JOIN_RETURN" for event in events)
+    assert rewinds
+    assert machine.state.c == -1
+    assert to_source(machine.result_expr()) == "TRUE"
+
+    peak = machine.memory_snapshot().peak_graph_words
+    before = to_source(machine.result_expr())
+    for address in range(machine.state.fsp + 1, peak):
+        machine.state.memory[address] = Word(MuredOpcode.INT, 999, True)
+    assert to_source(machine.result_expr()) == before
+
+
+def test_equality_public_q0_residual_recharges_without_private_state() -> None:
+    from red2_engine.mured import MuredStopReason
+    from thor_compile.red2 import load_faithful_machine
+
+    source = "(EQUAL? (LAMBDA (x) (F x)) (LAMBDA (y) (F y)))"
+    machine = load_faithful_machine(
+        parse_expr(source), quantum=0, memory_words=192, control_words=64
+    )
+
+    machine.run()
+    assert machine.state.halted
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.c == -1
+
+    machine.recharge_quantum(1)
+    assert machine.run_until_suspend().reason is MuredStopReason.QUANTUM_EXHAUSTED
+    assert machine.state.q == 0
+    assert machine.state.c == -1
+    assert machine.state.memory[machine.state.pc + 1] == Word(
+        MuredOpcode.SYM, "TRUE", True
+    )
+    assert not any(
+        word is not None
+        and isinstance(word.data, str)
+        and word.data.startswith("__EQUAL")
+        for word in machine.state.memory[: machine.state.fsp + 1]
+    )
+
+    machine.recharge_quantum(1)
+    assert machine.run_until_suspend().reason is MuredStopReason.COMPLETE
+    assert to_source(machine.result_expr()) == "TRUE"
+    assert machine.state.c == -1
+
+
+def test_repeated_equality_reuses_fixed_scratch_envelope() -> None:
+    from red2_engine.mured import _EqualityFrame
+    from thor_compile.red2 import load_faithful_machine
+    from thor_lang.ast import Definition, StructDef
+    from thor_lang.normalization import normalize_program
+    from thor_lang.parser import parse_program
+    from thor_lang.primitives import install_struct_definition
+
+    source = """
+    loop == (lambda (n)
+      (if (= n 0)
+          TRUE
+          (if (EQUAL? (F 1 2) (F 1 2))
+              (loop (1- n))
+              FALSE)))
+    (loop 12)
+    """
+    program = normalize_program(parse_program(source))
+    definitions = {}
+    action = None
+    for form in program.forms:
+        if isinstance(form, Definition):
+            definitions[form.name] = form.expr
+        elif isinstance(form, StructDef):
+            install_struct_definition(form.tag, form.accessors, definitions)
+        else:
+            action = form
+    assert action is not None
+
+    machine = load_faithful_machine(
+        action,
+        quantum=1000,
+        definitions=definitions,
+        memory_words=4096,
+        control_words=512,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+    scratch_deltas = []
+    active = False
+    start_fsp = -1
+    peak_fsp = -1
+
+    for _ in range(100_000):
+        state = machine.state
+        has_equality = any(
+            isinstance(entry, _EqualityFrame)
+            for entry in state.control_stack[: state.c + 1]
+        )
+        if has_equality and not active:
+            active = True
+            start_fsp = state.fsp
+            peak_fsp = state.fsp
+        elif has_equality:
+            peak_fsp = max(peak_fsp, state.fsp)
+        elif active:
+            scratch_deltas.append(peak_fsp - start_fsp)
+            active = False
+        if state.halted:
+            break
+        machine.step()
+    else:
+        pytest.fail("recursive equality probe exceeded cycle budget")
+
+    assert to_source(machine.result_expr()) == "TRUE"
+    assert len(scratch_deltas) == 12
+    assert scratch_deltas[1:] == [scratch_deltas[0]] * 11
+    assert machine.state.c == -1

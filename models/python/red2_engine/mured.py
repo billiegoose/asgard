@@ -383,6 +383,20 @@ class _SubgraphFrame:
     fire: int
 
 
+@dataclass(frozen=True, slots=True)
+class _EqualityTask:
+    left: int
+    right: int
+    lambdas: int
+    descriptor_mode: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _EqualityFrame:
+    result_pc: int
+    live_fsp: int
+
+
 _ControlEntry = (
     int
     | _SavedPrim
@@ -390,6 +404,7 @@ _ControlEntry = (
     | _SavedQuantum
     | _SavedDefinitionPath
     | _SubgraphFrame
+    | _EqualityFrame
     | None
 )
 
@@ -2849,7 +2864,9 @@ class MuredMachine:
             state.q = self._pop_saved_quantum()
             state.prim = None
 
-    def _select_if_branch(self, condition: str) -> None:
+    def _select_if_branch(
+        self, condition: str, *, consume_quantum: bool = True
+    ) -> None:
         state = self.state
         false_slot = state.pc - 2
         true_slot = state.pc - 1
@@ -2863,7 +2880,8 @@ class MuredMachine:
             selected = false_branch
             selected_path = false_path
 
-        state.q -= 1
+        if consume_quantum:
+            state.q -= 1
         if selected.opcode is MuredOpcode.APP:
             if type(selected.data) is not int or selected.data < 0:
                 raise InvalidAddress("IF selected APP requires a graph address")
@@ -3022,6 +3040,36 @@ class MuredMachine:
         state.prim = None
         state.fire = 0
 
+        if primitive == "__EQUALITY_CONTINUE__":
+            self._continue_equality()
+            return
+
+        if primitive == "__EQUAL_IF__":
+            condition = self._word(state.pc)
+            if condition.opcode is not MuredOpcode.SYM or condition.data not in {
+                "TRUE",
+                "FALSE",
+                "__EQUAL_STUCK__",
+            }:
+                raise IllegalTransition(
+                    "internal equality IF requires a tri-state condition"
+                )
+            if condition.data == "__EQUAL_STUCK__":
+                false_slot = state.pc - 2
+                false_branch = self._word(false_slot)
+                true_branch = self._word(false_slot + 1)
+                self._pop_if_branch_paths(false_branch, true_branch)
+                state.memory[false_slot] = Word(
+                    MuredOpcode.SYM,
+                    "__EQUAL_STUCK__",
+                    True,
+                )
+                state.fsp = false_slot
+                state.pc = false_slot
+                return
+            self._select_if_branch(condition.data, consume_quantum=False)
+            return
+
         if primitive == "__IF_RECONSTRUCT__":
             self._finish_if_reconstruction()
             state.pc -= 1
@@ -3086,6 +3134,10 @@ class MuredMachine:
                 self._fire_cons()
                 return
             state.pc -= 1
+            return
+
+        if primitive == "EQUAL?":
+            self._fire_equality()
             return
 
         if primitive == "IF":
@@ -3311,6 +3363,372 @@ class MuredMachine:
         # that the copied APP descriptors still reference above the destination.
         self.state.fsp = max(old_fsp, last_address)
 
+    def _active_equality_frame(self) -> _EqualityFrame:
+        for index in range(self.state.c, -1, -1):
+            entry = self.state.control_stack[index]
+            if isinstance(entry, _EqualityFrame):
+                return entry
+        raise IllegalTransition("internal equality continuation is missing")
+
+    def _equality_step(
+        self,
+        task: _EqualityTask,
+    ) -> tuple[bool | None, tuple[_EqualityTask, ...]]:
+        """Perform one Hilton EQUAL* graph decomposition step."""
+        inline_opcodes = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_0,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+
+        def application_parts(address: int) -> tuple[int, tuple[int, ...]] | None:
+            if not self._is_linear_application_prefix(self._word(address)):
+                return None
+            descriptors: list[int] = []
+            cursor = address
+            while True:
+                word = self._word(cursor)
+                if word.opcode in {MuredOpcode.APP, MuredOpcode.APP_VAR} or (
+                    not word.head and word.opcode in inline_opcodes
+                ):
+                    descriptors.append(cursor)
+                    cursor += 1
+                    continue
+                return cursor, tuple(reversed(descriptors))
+
+        def struct_parts(address: int) -> tuple[str, tuple[int, ...]] | None:
+            root = self._word(address)
+            if root.opcode is not MuredOpcode.STRUCT or type(root.data) is not str:
+                return None
+            fields: list[int] = []
+            cursor = address + 1
+            while True:
+                descriptor = self._word(cursor)
+                if descriptor.opcode in {
+                    MuredOpcode.APP,
+                    MuredOpcode.APP_VAR,
+                    MuredOpcode.EP,
+                } or (not descriptor.head and descriptor.opcode in inline_opcodes):
+                    fields.append(cursor)
+                    cursor += 1
+                    continue
+                if descriptor.opcode is not MuredOpcode.VAR or descriptor.data != 0:
+                    raise IllegalTransition("STRUCT equality requires trailing VAR 0")
+                return root.data, tuple(reversed(fields))
+
+        left = task.left
+        right = task.right
+        left_word = self._word(left)
+        right_word = self._word(right)
+        if task.descriptor_mode:
+            if left_word.opcode is MuredOpcode.APP:
+                if type(left_word.data) is not int or left_word.data < 0:
+                    raise InvalidAddress("EQUAL? APP requires a graph address")
+                left = left_word.data
+                left_word = self._word(left)
+            elif left_word.opcode is MuredOpcode.APP_VAR:
+                if type(left_word.data) is not int or left_word.data < 0:
+                    raise InvalidAddress("EQUAL? APP_VAR requires a variable index")
+                left_word = Word(MuredOpcode.VAR, left_word.data, True)
+
+            if right_word.opcode is MuredOpcode.APP:
+                if type(right_word.data) is not int or right_word.data < 0:
+                    raise InvalidAddress("EQUAL? APP requires a graph address")
+                right = right_word.data
+                right_word = self._word(right)
+            elif right_word.opcode is MuredOpcode.APP_VAR:
+                if type(right_word.data) is not int or right_word.data < 0:
+                    raise InvalidAddress("EQUAL? APP_VAR requires a variable index")
+                right_word = Word(MuredOpcode.VAR, right_word.data, True)
+
+        if left_word.opcode is MuredOpcode.UBV or right_word.opcode is MuredOpcode.UBV:
+            if (
+                left_word.opcode is MuredOpcode.UBV
+                and right_word.opcode is MuredOpcode.UBV
+                and left_word.data == right_word.data
+            ):
+                return True, ()
+            return None, ()
+
+        left_constant = self._constant_word_key(left_word)
+        right_constant = self._constant_word_key(right_word)
+        if left_constant is not None or right_constant is not None:
+            if left_constant is None or right_constant is None:
+                return False, ()
+            return left_constant == right_constant, ()
+
+        if left_word.opcode is MuredOpcode.VAR or right_word.opcode is MuredOpcode.VAR:
+            if (
+                left_word.opcode is not MuredOpcode.VAR
+                or right_word.opcode is not MuredOpcode.VAR
+            ):
+                variable = (
+                    left_word if left_word.opcode is MuredOpcode.VAR else right_word
+                )
+                if type(variable.data) is not int or variable.data < 0:
+                    raise InvalidAddress("EQUAL? VAR requires a De Bruijn index")
+                return (False, ()) if variable.data < task.lambdas else (None, ())
+            if type(left_word.data) is not int or left_word.data < 0:
+                raise InvalidAddress("EQUAL? VAR requires a De Bruijn index")
+            if type(right_word.data) is not int or right_word.data < 0:
+                raise InvalidAddress("EQUAL? VAR requires a De Bruijn index")
+            if left_word.data == right_word.data:
+                return True, ()
+            if left_word.data < task.lambdas or right_word.data < task.lambdas:
+                return False, ()
+            return None, ()
+
+        left_struct = struct_parts(left)
+        right_struct = struct_parts(right)
+        if left_struct is not None or right_struct is not None:
+            if left_struct is None or right_struct is None:
+                return False, ()
+            left_tag, left_fields = left_struct
+            right_tag, right_fields = right_struct
+            if left_tag != right_tag or len(left_fields) != len(right_fields):
+                return False, ()
+            return True, tuple(
+                _EqualityTask(left_field, right_field, task.lambdas + 1, True)
+                for left_field, right_field in zip(
+                    left_fields, right_fields, strict=True
+                )
+            )
+
+        if (
+            left_word.opcode is MuredOpcode.LAMBDA
+            or right_word.opcode is MuredOpcode.LAMBDA
+        ):
+            if (
+                left_word.opcode is not MuredOpcode.LAMBDA
+                or right_word.opcode is not MuredOpcode.LAMBDA
+            ):
+                return False, ()
+            left_body = left
+            right_body = right
+            depth = task.lambdas
+            while (
+                self._word(left_body).opcode is MuredOpcode.LAMBDA
+                and self._word(right_body).opcode is MuredOpcode.LAMBDA
+            ):
+                left_body += 1
+                right_body += 1
+                depth += 1
+            if (
+                self._word(left_body).opcode is MuredOpcode.LAMBDA
+                or self._word(right_body).opcode is MuredOpcode.LAMBDA
+            ):
+                return False, ()
+            return True, (_EqualityTask(left_body, right_body, depth, False),)
+
+        left_application = application_parts(left)
+        right_application = application_parts(right)
+        if left_application is not None or right_application is not None:
+            if left_application is None or right_application is None:
+                return False, ()
+            left_operator, left_arguments = left_application
+            right_operator, right_arguments = right_application
+            if len(left_arguments) != len(right_arguments):
+                return False, ()
+            return True, (
+                _EqualityTask(left_operator, right_operator, task.lambdas, False),
+                *(
+                    _EqualityTask(left_argument, right_argument, task.lambdas, True)
+                    for left_argument, right_argument in zip(
+                        left_arguments, right_arguments, strict=True
+                    )
+                ),
+            )
+
+        if (
+            left_word.opcode is MuredOpcode.CLOSURE
+            or right_word.opcode is MuredOpcode.CLOSURE
+        ):
+            if (
+                left_word.opcode is not MuredOpcode.CLOSURE
+                or right_word.opcode is not MuredOpcode.CLOSURE
+            ):
+                return False, ()
+            left_code = self._word(left + 1)
+            right_code = self._word(right + 1)
+            if left_code.opcode is not None or right_code.opcode is not None:
+                raise MalformedClosure("CLOSURE equality requires code pointers")
+            return (
+                left_word.data == right_word.data and left_code.data == right_code.data,
+                (),
+            )
+
+        if left_word.opcode is MuredOpcode.EP or right_word.opcode is MuredOpcode.EP:
+            if (
+                left_word.opcode is right_word.opcode
+                and left_word.data == right_word.data
+            ):
+                return True, ()
+            return None, ()
+
+        if left_word.opcode is not right_word.opcode:
+            return False, ()
+        raise IllegalTransition(f"unsupported EQUAL? node opcode: {left_word.opcode}")
+
+    def _append_equality_task_graph(self, task: _EqualityTask) -> int:
+        root = self.state.fsp + 1
+        self._push_graph(Word(MuredOpcode.INT, task.left, False))
+        self._push_graph(Word(MuredOpcode.INT, task.right, False))
+        self._push_graph(Word(MuredOpcode.INT, task.lambdas, False))
+        self._push_graph(Word(MuredOpcode.INT, int(task.descriptor_mode), False))
+        self._push_graph(Word(MuredOpcode.PRIM_0, "__EQUAL_STAR__", True))
+        return root
+
+    def _append_equality_conjunction(self, children: tuple[_EqualityTask, ...]) -> int:
+        if not children:
+            raise IllegalTransition("internal equality conjunction requires children")
+        child_roots = tuple(
+            self._append_equality_task_graph(child) for child in children
+        )
+        true_root = self._push_graph(Word(MuredOpcode.SYM, "TRUE", True))
+        false_root = self._push_graph(Word(MuredOpcode.SYM, "FALSE", True))
+        branch_root = true_root
+        for child_root in reversed(child_roots):
+            root = self.state.fsp + 1
+            self._push_graph(Word(MuredOpcode.APP, false_root, False))
+            self._push_graph(Word(MuredOpcode.APP, branch_root, False))
+            self._push_graph(Word(MuredOpcode.APP, child_root, False))
+            self._push_graph(Word(MuredOpcode.PRIM_0, "__EQUAL_IF__", True))
+            branch_root = root
+        return branch_root
+
+    def _launch_equality_child(
+        self, frame: _EqualityFrame, task: _EqualityTask
+    ) -> None:
+        state = self.state
+        task_root = self._append_equality_task_graph(task)
+        parent = self._push_graph(Word(MuredOpcode.APP, task_root, False))
+        state.prim = "__EQUALITY_CONTINUE__"
+        state.fire = 1
+        self._enter_subgraph(state.env, task_root, parent)
+
+    def _run_equality_child(self) -> None:
+        state = self.state
+        primitive_pc = state.pc
+        task_root = primitive_pc - 4
+        if task_root < 0:
+            raise IllegalTransition("internal equality task is truncated")
+        left_word = self._word(task_root)
+        right_word = self._word(task_root + 1)
+        lambdas_word = self._word(task_root + 2)
+        descriptor_mode_word = self._word(task_root + 3)
+        metadata = (left_word, right_word, lambdas_word, descriptor_mode_word)
+        if any(word.opcode is not MuredOpcode.INT for word in metadata):
+            raise IllegalTransition("internal equality task metadata is malformed")
+        if (
+            type(left_word.data) is not int
+            or type(right_word.data) is not int
+            or type(lambdas_word.data) is not int
+            or type(descriptor_mode_word.data) is not int
+        ):
+            raise IllegalTransition("internal equality task metadata is malformed")
+        left = left_word.data
+        right = right_word.data
+        lambdas = lambdas_word.data
+        descriptor_mode = descriptor_mode_word.data
+        if left < 0 or right < 0 or lambdas < 0 or descriptor_mode not in {0, 1}:
+            raise IllegalTransition("internal equality task metadata is invalid")
+        if state.argcnt != 4:
+            raise IllegalTransition(
+                "internal equality task requires four metadata words"
+            )
+
+        result, children = self._equality_step(
+            _EqualityTask(left, right, lambdas, bool(descriptor_mode))
+        )
+
+        join_address = state.fsp - 4
+        join = self._word(join_address)
+        if join.opcode is not MuredOpcode.JOIN:
+            raise IllegalTransition("internal equality task lost its JOIN")
+        state.argcnt = 0
+
+        if result and children:
+            state.fsp = join_address - 1
+            root = self._append_equality_conjunction(children)
+            self._push_graph(join)
+            state.pc = root
+            state.direction = Direction.F
+            return
+
+        state.fsp = join_address
+        if result is None:
+            answer = Word(MuredOpcode.SYM, "__EQUAL_STUCK__", True)
+        else:
+            value = self._bool_word(result)
+            answer = Word(value.opcode, value.data, True, value.definition)
+        self._copy_result(answer)
+        state.pc = join_address
+        state.direction = Direction.B
+
+    def _finish_equality(self, frame: _EqualityFrame, result: bool | None) -> None:
+        state = self.state
+        if state.c < 0 or state.control_stack[state.c] is not frame:
+            raise IllegalTransition("internal equality frame is not current")
+        self._pop_control_entry()
+        state.q = self._pop_saved_quantum()
+        if result is None:
+            state.fsp = frame.live_fsp
+        else:
+            answer = self._bool_word(result)
+            state.memory[frame.result_pc] = Word(
+                answer.opcode,
+                answer.data,
+                True,
+                answer.definition,
+            )
+            state.fsp = frame.result_pc
+        state.pc = frame.result_pc - 1
+
+    def _continue_equality(self) -> None:
+        state = self.state
+        frame = self._active_equality_frame()
+        child_result = self._word(state.pc)
+        if child_result.opcode is not MuredOpcode.SYM or child_result.data not in {
+            "TRUE",
+            "FALSE",
+            "__EQUAL_STUCK__",
+        }:
+            raise IllegalTransition(
+                "internal equality child did not return a tri-state value"
+            )
+        if child_result.data == "__EQUAL_STUCK__":
+            self._finish_equality(frame, None)
+            return
+        self._finish_equality(frame, child_result.data == "TRUE")
+
+    def _fire_equality(self) -> None:
+        state = self.state
+        if state.q == 0:
+            state.pc -= 1
+            return
+        left_constant = self._constant_word_key(self._word(state.pc + 1))
+        right_constant = self._constant_word_key(self._word(state.pc))
+        if left_constant is not None and right_constant is not None:
+            answer = self._bool_word(left_constant == right_constant)
+            state.memory[state.pc] = Word(answer.opcode, answer.data, True)
+            state.fsp = state.pc
+            state.q -= 1
+            state.pc -= 1
+            return
+
+        state.q -= 1
+        self._push_saved_quantum(state.q)
+        frame = _EqualityFrame(result_pc=state.pc, live_fsp=state.fsp)
+        self._push_control_entry(frame)
+        self._launch_equality_child(
+            frame,
+            _EqualityTask(state.pc + 1, state.pc, 0, True),
+        )
+
     def _apply_unary_primitive(self, primitive: str, operand: Word) -> Word | None:
         value = self._number_word_value(operand)
         if primitive == "1-":
@@ -3361,7 +3779,7 @@ class MuredMachine:
         left_word: Word,
         right_word: Word,
     ) -> Word | None:
-        if primitive in {"=", "EQUAL?"}:
+        if primitive == "=":
             left_constant = self._constant_word_key(left_word)
             right_constant = self._constant_word_key(right_word)
             if left_constant is None or right_constant is None:
@@ -3520,6 +3938,12 @@ class MuredMachine:
             state.pc -= 1
             return
         if word.opcode is MuredOpcode.PRIM_0:
+            if word.head and word.data == "__EQUAL_STAR__":
+                self._run_equality_child()
+                return
+            if word.head and word.data == "__EQUAL_IF__" and state.argcnt >= 3:
+                state.prim = "__EQUAL_IF__"
+                state.fire = 1
             if word.head and word.data == "Y":
                 self._y(word)
                 return

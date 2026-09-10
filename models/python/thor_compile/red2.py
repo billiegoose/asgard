@@ -73,6 +73,11 @@ def _generated_struct_selector(
     return tag, len(accessors) - accessors.index(accessor)
 
 
+# Private EQUAL* / comparison-control symbols are generated only by MuredMachine.
+# Serialized/compiler-visible RED2 remains the historical public EQUAL? primitive.
+_PUBLIC_STRUCTURAL_EQUALITY = "EQUAL?"
+
+
 _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "TRUE": 0,
     "FALSE": 0,
@@ -86,7 +91,7 @@ _STRICT_PRIMITIVE_ARITY: dict[str, int] = {
     "<=": 2,
     ">=": 2,
     "=": 2,
-    "EQUAL?": 2,
+    _PUBLIC_STRUCTURAL_EQUALITY: 2,
     "1-": 1,
     "INTEGER?": 1,
     "FLOAT?": 1,

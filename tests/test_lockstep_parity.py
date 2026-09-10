@@ -77,3 +77,18 @@ def test_format_mismatch_report_includes_ranges_and_reconvergence() -> None:
     assert "parity reconverged at quantum 9" in report
     assert "parity mismatch at quantum 14" in report
     assert "parity did not reconverge by quantum 75" in report
+
+
+def test_structural_equality_preserves_public_contraction_prefixes() -> None:
+    sources = [
+        "(EQUAL? (F 1) (F 1))",
+        "(EQUAL? (F 1) (F 2))",
+        "(EQUAL? (F 1 2) (F 1 2))",
+        "(EQUAL? (F 1 2) (F 1 3))",
+        "(EQUAL? (LAMBDA (x) (F x)) (LAMBDA (y) (F y)))",
+    ]
+
+    for source in sources:
+        result = compare_prefixes(source, max_quantum=5)
+        assert result.mismatch_ranges == (), source
+        assert all(snapshot.matches for snapshot in result.snapshots), source
