@@ -6,7 +6,7 @@ Historical source inspection suggests that Hilton's systems already had a recogn
 
 The key architectural conclusion is:
 
-> The host should compile/load/manage programs and service external effects. The FPGA should own RED2 architectural state and reduction. Host calls should suspend the live machine and resume it in-place rather than reconstructing execution from a residual graph.
+> The host should compile/load/manage programs and service external effects. The FPGA should own RED2 architectural state and reduction. `HOST_CALL` is a true live-machine suspension. `QUANTUM_EXHAUSTED`, by contrast, is a semantic bounded-reduction boundary: once q reaches zero, RED2 finishes its ordinary q=0 traversal/reconstruction pass to `STOP` and exposes a stable residual graph.
 
 This document records the historical findings and a proposed Asgard hardware/software boundary.
 
@@ -219,11 +219,48 @@ Instructions compare `reductions` to `red-limit`; when the budget is exhausted, 
 
 This allows the historical system to return a valid residual graph and later restart from that graph without preserving all architectural state.
 
-That design is suitable for an interactive symbolic reducer, but is not the ideal interface for an actual hardware processor.
+This is also the semantic model Asgard now follows for bounded reduction.
 
 ---
 
-## Asgard improves the boundary by moving it down to live machine state
+## Resolved: q is the RED2 semantic reduction budget
+
+The historical sources and the Python implementation now agree on the meaning of q. `q`, reduction budget, reduction limit, and fuel are the same semantic concept: they count RED2 contractions/reductions, **not** instruction dispatches, traversal steps, memory cycles, or FPGA clocks.
+
+The important subtlety is the stop boundary. Reaching q=0 does not itself suspend RED2. Instead:
+
+```text
+run with q=N
+    |
+    | N semantic reductions consume q
+    v
+q reaches 0
+    |
+    | reductions inhibited
+    | ordinary RED2 traversal/reconstruction continues
+    v
+STOP
+    |
+    v
+QUANTUM_EXHAUSTED(stable residual graph)
+```
+
+In other words:
+
+```text
+Hilton RED(P, N)
+    ==
+Asgard RED2 with q=N
+    + complete the q=0 residualization pass
+```
+
+`QUANTUM_EXHAUSTED` therefore means **the reduction budget was consumed and RED2 has completed the q=0 residualization pass**. It does not mean "q just became zero."
+
+This is now implemented by Python `MuredMachine.run_until_suspend()`: after externally visible q reaches zero, the machine continues q=0 execution until `STOP`, returns `QUANTUM_EXHAUSTED`, and leaves a halted bounded residual that can be recharged and continued.
+
+---
+
+## Asgard keeps one machine for continuation as an implementation advantage
 
 Hilton's historical systems expose approximately:
 
@@ -231,19 +268,23 @@ Hilton's historical systems expose approximately:
 REDUCE(graph, reduction_budget) -> graph
 ```
 
-Asgard's evolving interface is closer to:
+Asgard's interface is closer to:
 
 ```text
-RUN(machine_state, execution_budget)
+RUN(machine_state, reduction_budget)
     -> COMPLETE
-     | QUANTUM_EXHAUSTED(machine_state)
-     | HOST_CALL(machine_state, operation)
+     | QUANTUM_EXHAUSTED(stable_residual)
+     | HOST_CALL(live_machine_state, operation)
      | FAULT(machine_state, reason)
 ```
 
-This is much more natural for FPGA hardware.
+There are deliberately **two different kinds of boundary** here.
 
-The machine remains alive across suspension. Its graph, environment, stacks, registers, and traversal state do not need to be reconstructed from a residual expression.
+At `HOST_CALL`, execution is genuinely suspended in-place. The graph, environment, stacks, registers, and traversal state remain live while the host services the effect.
+
+At `QUANTUM_EXHAUSTED`, RED2 has already reconstructed a stable residual and reached `STOP`. Semantically, execution could be continued exactly as HORSE did: serialize/copy that residual, initialize a fresh reducer invocation, and reduce it again with a fresh budget.
+
+Asgard instead relinearizes/reloads the bounded residual inside the **same `MuredMachine` object** when `recharge_quantum()` is called. Keeping one logical execution in one machine is valuable because it avoids a costly host round-trip and serialize/recompile/reconstruct cycle, especially for an FPGA. It is an implementation/performance property, however, **not a RED2 semantic invariant**.
 
 ---
 
@@ -308,7 +349,7 @@ READ_STATE()
 
 `STEP` may exist as a debugger convenience, but does not need to be part of the fundamental execution model if `RUN(quantum)` already provides bounded progress.
 
-The exact meanings of `quantum` and the stop boundary still need to be specified carefully. The important property is that quantum exhaustion should suspend the existing machine rather than convert live execution into a residual graph and restart it later.
+Here `quantum` is specifically the RED2 semantic reduction budget. `RUN(quantum)` must not return merely because q becomes zero; hardware must continue the non-reducing q=0 traversal/reconstruction until `STOP`, then report `QUANTUM_EXHAUSTED` with the stable bounded residual available. A hardware implementation may optimize continuation so this residual never needs to cross the host boundary.
 
 ---
 
@@ -386,11 +427,11 @@ RESUME_HOST_CALL(value)
 
 The host must not evaluate the continuation, traverse the graph on behalf of RED2, or create a second evaluator.
 
-This directly preserves the current single-machine invariant:
+This preserves the important live-state rule for effects:
 
-> One THOR run -> one RED2 machine.
+> A `HOST_CALL` belongs to the currently executing RED2 machine and resumes that same live machine state.
 
-That invariant is not merely a Python-runtime cleanup. It appears to be an excellent prototype of the eventual FPGA/software boundary.
+The broader "one THOR run -> one `MuredMachine`" behavior remains desirable for performance and maps well to FPGA execution, but should not be mistaken for a semantic requirement of RED2. Quantum boundaries are stable residual-graph boundaries; host-call boundaries are live suspension boundaries.
 
 ---
 
@@ -406,7 +447,10 @@ There is a useful historical progression:
   reduce(graph, workspace, freespace, budget) -> graph
 
 2026 Asgard:
-  run_until_suspend(machine) -> stop reason
+  run_until_suspend(machine)
+    -> COMPLETE
+     | QUANTUM_EXHAUSTED after q=0 residualization
+     | HOST_CALL with live machine state
 
 future FPGA:
   command/MMIO interface -> RED2 processor -> interrupt/host call
@@ -440,8 +484,9 @@ This prevents an early board-specific wire protocol from accidentally becoming t
 
 ## Open questions / TODO
 
-- [ ] Define the exact architectural state that must survive `QUANTUM_EXHAUSTED`.
-- [ ] Decide whether `quantum` counts RED2 semantic transitions, instruction dispatches, reductions, memory cycles, or another unit.
+- [x] Define the semantic boundary of `QUANTUM_EXHAUSTED`: q reaches zero, reductions are inhibited, RED2 completes its ordinary q=0 traversal/reconstruction to `STOP`, and a stable bounded residual is exposed. Live mid-traversal state is not semantically required to survive this boundary.
+- [x] Define `quantum`: q counts RED2 semantic reductions/contractions, matching Hilton's reduction limit/fuel concept. It does not count instruction dispatches, traversal steps, memory cycles, or FPGA clocks.
+- [ ] Specify the hardware continuation optimization after `QUANTUM_EXHAUSTED`: ideally restart/recharge the bounded residual entirely on-FPGA without transferring or decompiling it through the host.
 - [ ] Define the precise suspension point for `HOST_CALL`.
 - [ ] Specify what data is carried by a host-call request.
 - [ ] Specify how a host-call result is written back into machine state.
@@ -459,9 +504,9 @@ This prevents an early board-specific wire protocol from accidentally becoming t
 
 The historical archive supports the host/reducer architecture rather than arguing against it.
 
-Hilton's systems already separated a user/compiler environment from a graph reducer, and HORSE exposed an impressively small reducer interface. But both historical implementations use residual graphs as their resumable boundary.
+Hilton's systems already separated a user/compiler environment from a graph reducer, and HORSE exposed an impressively small reducer interface. The historical implementations use residual graphs as their bounded-reduction continuation boundary. Asgard now deliberately preserves that RED2 semantic behavior while avoiding unnecessary host-side reconstruction.
 
-Asgard's live-machine suspension model is a more appropriate abstraction for real hardware:
+The resulting hardware model has asymmetric stop boundaries:
 
 ```text
 compile/load on host
@@ -471,11 +516,17 @@ run RED2 in hardware
         |
         +--> COMPLETE
         |
-        +--> QUANTUM_EXHAUSTED -- resume same machine
+        +--> q reaches 0
+        |       |
+        |       +-- continue q=0 traversal/reconstruction
+        |       v
+        |      STOP
+        |       |
+        +--> QUANTUM_EXHAUSTED -- stable residual; recharge/restart efficiently
         |
-        +--> HOST_CALL --------- service externally, resume same machine
+        +--> HOST_CALL --------- live suspension; service externally and resume
         |
         +--> FAULT
 ```
 
-That should be treated as the provisional architectural direction for a RED2 FPGA implementation.
+This gives us a cleaner FPGA target than the earlier "suspend immediately at q=0" idea. Semantic conformance follows Hilton's bounded reducer, while the implementation is free to keep the residual and restart machinery entirely inside the FPGA rather than performing HORSE's expensive host-visible copy/rebuild cycle.
