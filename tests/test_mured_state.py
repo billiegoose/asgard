@@ -93,7 +93,7 @@ def test_step_rejects_empty_primitive_register_name() -> None:
     assert machine.state.cycles == 0
 
 
-def test_live_quantum_suspension_recharges_same_machine_without_reconstruction(
+def test_quantum_suspension_finishes_q0_residualization_before_recharge(
 ) -> None:
     from red2_engine.mured import MuredStopReason
     from thor_lang.parser import parse_expr
@@ -115,8 +115,9 @@ def test_live_quantum_suspension_recharges_same_machine_without_reconstruction(
         if stop.reason is MuredStopReason.COMPLETE:
             break
         assert stop.reason is MuredStopReason.QUANTUM_EXHAUSTED
-        assert machine.state.halted is False
+        assert machine.state.halted is True
         assert machine.state.q == 0
+        assert machine.state.c == -1
         suspensions += 1
         machine.recharge_quantum(1)
 
@@ -141,10 +142,12 @@ def test_checkpoint_quantum_reconstructs_and_restarts_same_machine() -> None:
     assert machine.state.halted is True
     assert to_source(machine.result_expr()) != "10"
 
-    # Restart the bounded prefix, make live progress, then checkpoint that
-    # partially reduced state through the ordinary q=0 reconstruction path.
+    # Restart the bounded prefix and stop manually after making live progress,
+    # so checkpoint_quantum still exercises its q=0 reconstruction path rather
+    # than receiving an already residualized quantum suspension.
     machine.recharge_quantum(2)
-    machine.run_until_suspend(cycle_limit=machine.state.cycles + 100_000)
+    while machine.state.q > 0 and not machine.state.halted:
+        machine.step()
     assert machine.state.halted is False
 
     machine.checkpoint_quantum(10)

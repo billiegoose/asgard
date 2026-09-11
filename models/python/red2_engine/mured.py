@@ -4565,19 +4565,25 @@ class MuredMachine:
         return self._saved_quantum_depth > 0
 
     def run_until_suspend(self, *, cycle_limit: int = 100_000) -> MuredRunResult:
-        """Run until completion, host suspension, or external quantum exhaustion."""
+        """Run until completion, host suspension, or bounded q=0 residualization."""
         if cycle_limit < 0:
             raise ValueError("cycle_limit must be non-negative")
+        quantum_exhausted = self.state.q == 0 and not self._has_saved_quantum()
         while True:
             if self.pending_host_call is not None:
                 return MuredRunResult(MuredStopReason.HOST_CALL, self.pending_host_call)
             if self.state.halted:
-                return MuredRunResult(MuredStopReason.COMPLETE)
-            if self.state.q == 0 and not self._has_saved_quantum():
-                return MuredRunResult(MuredStopReason.QUANTUM_EXHAUSTED)
+                reason = (
+                    MuredStopReason.QUANTUM_EXHAUSTED
+                    if quantum_exhausted
+                    else MuredStopReason.COMPLETE
+                )
+                return MuredRunResult(reason)
             if self.state.cycles >= cycle_limit:
                 raise CycleLimitExceeded(f"μRED cycle limit reached: {cycle_limit}")
             self.step()
+            if self.state.q == 0 and not self._has_saved_quantum():
+                quantum_exhausted = True
 
     def run(self, *, cycle_limit: int = 100_000) -> MuredMachineState:
         if cycle_limit < 0:

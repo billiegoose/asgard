@@ -3262,10 +3262,8 @@ def test_equality_public_q0_residual_recharges_without_private_state() -> None:
     machine.recharge_quantum(1)
     assert machine.run_until_suspend().reason is MuredStopReason.QUANTUM_EXHAUSTED
     assert machine.state.q == 0
+    assert machine.state.halted
     assert machine.state.c == -1
-    assert machine.state.memory[machine.state.pc + 1] == Word(
-        MuredOpcode.SYM, "TRUE", True
-    )
     assert not any(
         word is not None
         and isinstance(word.data, str)
