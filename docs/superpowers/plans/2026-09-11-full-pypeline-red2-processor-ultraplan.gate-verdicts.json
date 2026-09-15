@@ -1,0 +1,88 @@
+{
+  "tasks": {
+    "1": {
+      "hash": "e8b2d41a00ef4a753b93330ea95c209bbdb154f059bd17f25afa929f06914af6",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "2": {
+      "hash": "1ec2995a6eb4a54efa93fe1152f6e72544b12d521275deb4d312a0fc880dc7b4",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "3": {
+      "hash": "8c9c361d591a304aa4fb931bc2f64d3560004d3a5ccc4306f25e172921730caf",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "4": {
+      "hash": "d48f0e244d9b56f82f4811453e5a5cb8d51451ce8cac11005b1b141a01426835",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "5": {
+      "hash": "c981469eda87d0ebc0db533ca801f59cb0b2c45f82e0c27919a036e1af3cb5d7",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "6": {
+      "hash": "dc89b617ba2d1ce09abe8df5732bfb4eff77a4cc5bb7d3d6806d19464aa0f82b",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "7": {
+      "hash": "ebaf8c26ee944af03a44643bc0c7e80be26b66d3e1d69cb1f8f027b8c417475e",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "8": {
+      "hash": "8eae61d8f50de07f59e9b2e4492b0bd519856c7f899c9a5477d1cba550af2757",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "9": {
+      "hash": "cbe9660fb62668cac37f177ec49f07311d45eb9f574d39e01dd1a71ce9d2a418",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "10": {
+      "hash": "e2f682c5361fff20cc0588f631fa1e9302b2e8e9d31a6fdf975ffd68ffd643f1",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "11": {
+      "hash": "db270bc0e86ee7cd884e6791e82c510e243730bf4de9f23c39c78498d04c884e",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "12": {
+      "hash": "e1329a46b9287daec8f6851ef4e7bb04da9446aab58b2dfe1b14dc012c65d2e9",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "13": {
+      "hash": "5364ae551187f73462d60746c60b437302da85394ca7d3f7bb64b52941764fd9",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "14": {
+      "hash": "e9ff771d62f789367306eff722a13321eabccb0f3c1bb3a8f5a4c57d549ad977",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "15": {
+      "hash": "4243915044763c879d1beccb7b6493b60a9ee147c802801720b2142b67ae5f56",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    },
+    "16": {
+      "hash": "b4b44e73b5b6eb0ab3b7ac2984827467e82fcb549a84b88ac4413f872cce0053",
+      "verdict": "pass",
+      "reason": "claim/proof layer match"
+    }
+  },
+  "tally": {
+    "dispatched": 16,
+    "rejected": 0
+  }
+}
