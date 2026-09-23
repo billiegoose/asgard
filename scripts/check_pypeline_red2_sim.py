@@ -6272,6 +6272,140 @@ def check() -> None:
         result = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
         assert _packed_memory_read(result) == expected.memory[address]
 
+    # Reverse RBLOCK pops its saved caller path and enters the binding graph
+    # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
+    # semantic difference is internal argcnt=-1, encoded as hardware zero.
+    rblock_memory: list[Word | None] = [None] * 24
+    rblock_memory[4] = Word(MuredOpcode.SYM, "x", False)
+    rblock_memory[5] = Word(MuredOpcode.INT, 1, True)
+    rblock_memory[6] = Word(MuredOpcode.RBLOCK, 4, False)
+    rblock_memory[8] = Word(MuredOpcode.STOP)
+    rblock_state = MuredMachineState(
+        memory=rblock_memory,
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=8,
+        env=20,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        argcnt=1,
+    )
+    rblock_state.control_stack[0] = 20
+    rblock_machine = MuredMachine(rblock_state)
+    rblock_codec = RED2ABICodec()
+    rblock_result, rblock_expected = _run_bounded_to_same_commit(
+        rblock_machine, rblock_codec
+    )
+    assert rblock_expected.pc == 4
+    assert rblock_expected.fsp == 9
+    assert rblock_expected.env == 20
+    assert rblock_expected.free_space == 20
+    assert rblock_expected.c == 1
+    assert rblock_expected.direction == abi.DIRECTION_FORWARD
+    assert rblock_expected.argcnt == 0
+    rblock_result = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=9)
+    )
+    assert _packed_memory_read(rblock_result) == rblock_expected.memory[9]
+    rblock_result = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=0)
+    )
+    assert _packed_control_read(rblock_result) == rblock_expected.control_stack[0]
+
+    # A saved caller environment different from the current frontier inserts
+    # the same PNP normalization bridge as ordinary reverse APP entry.
+    rblock_bridge_state = MuredMachineState(
+        memory=list(rblock_memory),
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=8,
+        env=22,
+        free_space=20,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        argcnt=1,
+    )
+    rblock_bridge_state.control_stack[0] = 22
+    rblock_bridge_machine = MuredMachine(rblock_bridge_state)
+    rblock_bridge_result, rblock_bridge_expected = _run_bounded_to_same_commit(
+        rblock_bridge_machine, RED2ABICodec()
+    )
+    assert rblock_bridge_expected.pc == 4
+    assert rblock_bridge_expected.env == 19
+    assert rblock_bridge_expected.free_space == 19
+    assert rblock_bridge_expected.argcnt == 0
+    rblock_bridge_result = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=19)
+    )
+    assert (
+        _packed_memory_read(rblock_bridge_result)
+        == rblock_bridge_expected.memory[19]
+    )
+
+    # Caller-path validation is shared with APP and must fail before publishing
+    # a bridge/frame/JOIN.  Check both underflow and a wrong typed control entry.
+    rblock_empty_state = MuredMachineState(
+        memory=list(rblock_memory),
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=8,
+        env=20,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        argcnt=1,
+    )
+    rblock_empty_encoded = RED2ABICodec().encode_state(rblock_empty_state)
+    _, rblock_empty_expected, rblock_empty_fault = _run_encoded_to_same_fault(
+        rblock_empty_encoded
+    )
+    assert rblock_empty_fault == abi.FAULT_CONTROL_UNDERFLOW
+    assert rblock_empty_expected.fsp == 8
+
+    rblock_bad_codec = RED2ABICodec()
+    rblock_bad_encoded = rblock_bad_codec.encode_state(rblock_empty_state)
+    rblock_bad_encoded = _with_control_entry(
+        rblock_bad_encoded,
+        abi.pack_control_entry(abi.CONTROL_SAVED_PRIM, 13, 0, 0, 0),
+    )
+    _, rblock_bad_expected, rblock_bad_fault = _run_encoded_to_same_fault(
+        rblock_bad_encoded
+    )
+    assert rblock_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert rblock_bad_expected.fsp == 8
+
+    # Exact JOIN/frontier collision must likewise be discovered before any
+    # architectural RAM/control write from the subgraph-entry transaction.
+    rblock_collision_state = MuredMachineState(
+        memory=list(rblock_memory),
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=8,
+        env=9,
+        free_space=9,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        argcnt=1,
+    )
+    rblock_collision_state.control_stack[0] = 9
+    rblock_collision_codec = RED2ABICodec()
+    rblock_collision_encoded = rblock_collision_codec.encode_state(
+        rblock_collision_state
+    )
+    _, rblock_collision_expected, rblock_collision_fault = _run_encoded_to_same_fault(
+        rblock_collision_encoded
+    )
+    assert rblock_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert rblock_collision_expected.fsp == 8
+    assert rblock_collision_expected.c == 1
+
 
 if __name__ == "__main__":
     check()

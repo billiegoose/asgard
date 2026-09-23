@@ -387,6 +387,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     app_entry_env: Reg[uint17_t]
     app_child_pc: Reg[uint16_t]
     app_parent_pc: Reg[uint16_t]
+    app_rblock_active: Reg[uint1_t]
     app_definition_active: Reg[uint1_t]
     app_definition_pop_saved: Reg[uint1_t]
     stop_cleanup_active: Reg[uint1_t]
@@ -648,6 +649,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     opcode_is_prim2: uint1_t = fetched_opcode == MOP_PRIM_2
     opcode_is_ubv: uint1_t = fetched_opcode == MOP_UBV
     opcode_is_var: uint1_t = fetched_opcode == MOP_VAR
+    opcode_is_rblock: uint1_t = fetched_opcode == MOP_RBLOCK
     kind_is_signed: uint1_t = fetched_kind == DATA_SIGNED
     kind_is_float64: uint1_t = fetched_kind == DATA_FLOAT64
     kind_is_literal: uint1_t = fetched_kind == DATA_LITERAL_ID
@@ -1352,6 +1354,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         app_entry_env = 0
         app_child_pc = 0
         app_parent_pc = 0
+        app_rblock_active = 0
         app_definition_active = 0
         app_definition_pop_saved = 0
         stop_cleanup_active = 0
@@ -1519,6 +1522,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         app_entry_env = 0
         app_child_pc = 0
         app_parent_pc = 0
+        app_rblock_active = 0
         app_definition_active = 0
         app_definition_pop_saved = 0
         stop_cleanup_active = 0
@@ -1666,6 +1670,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             app_entry_env = 0
             app_child_pc = 0
             app_parent_pc = 0
+            app_rblock_active = 0
             app_definition_active = 0
             app_definition_pop_saved = 0
             stop_cleanup_active = 0
@@ -2200,6 +2205,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     reverse_app_q_nonzero: uint1_t = q != 0
                     reverse_app_definition_fire: uint1_t = reverse_app_definition_valid and reverse_app_q_nonzero
                     reverse_app_negative: uint1_t = fetched_word.lo[63]
+                    app_rblock_active = 0
                     if reverse_app_definition_fire:
                         # Definition contraction ignores the APP payload entirely.
                         # Inspect only the optional SAVED_DEFINITION_PATH top entry
@@ -2221,6 +2227,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         app_parent_pc = pc
                         microstate = MICRO_APP_CONTROL_READ
                 else:
+                    app_rblock_active = 0
                     env_low_range_exec: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
                     env_is_end_exec: uint1_t = env == GRAPH_WORDS
                     env_in_range_exec: uint1_t = env_low_range_exec or env_is_end_exec
@@ -2261,6 +2268,26 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         control_top = control_top + 1
                         pc = pc + 1
                         microstate = MICRO_COMMIT
+            elif opcode_is_rblock:
+                rblock_negative: uint1_t = fetched_word.lo[63]
+                if not kind_is_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif rblock_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif direction_is_reverse:
+                    # RBLOCK reverse is the same serialized subgraph-entry
+                    # transaction as reverse APP after popping its saved caller
+                    # path.  The only architectural distinction at commit is
+                    # argcnt=-1 in the Python machine, encoded here as zero.
+                    app_rblock_active = 1
+                    app_child_pc = fetched_word.lo[15:0]
+                    app_parent_pc = pc
+                    microstate = MICRO_APP_CONTROL_READ
+                else:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
             else:
                 reverse_app_var: uint1_t = opcode_is_app_var and direction_is_reverse
                 forward_app_var: uint1_t = opcode_is_app_var and direction_is_forward
@@ -2775,7 +2802,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             env = app_entry_env
             free_space = app_entry_env
             fsp = fsp + 1
-            argcnt = 1
+            if app_rblock_active:
+                argcnt = 0
+                app_rblock_active = 0
+            else:
+                argcnt = 1
             pc = app_child_pc
             direction = DIRECTION_FORWARD
             prim_id = 0
@@ -3049,6 +3080,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     app_entry_env = ep_reverse_closure_env
                     app_child_pc = ep_target[15:0]
                     app_parent_pc = pc
+                    app_rblock_active = 0
                     if ep_reverse_closure_needs_marker:
                         microstate = MICRO_APP_BRIDGE
                     else:
