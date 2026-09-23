@@ -862,22 +862,37 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         elif micro_is_lambda_app_closure:
             lambda_app_needs_bridge_req: uint1_t = free_space != env
             lambda_app_count_req: uint17_t = 2
-            if lambda_app_needs_bridge_req:
+            if app_rblock_active:
                 lambda_app_count_req = 3
+            if lambda_app_needs_bridge_req:
+                lambda_app_count_req = lambda_app_count_req + 1
             lambda_app_base_req: uint17_t = free_space - lambda_app_count_req
-            lambda_app_path_wide: uint64_t = lambda_path
             memory_req.addr = lambda_app_base_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=lambda_app_path_wide, hi=73531392)
+            if app_rblock_active:
+                rblock_binding_plus_one_req: uint64_t = fetched_word.lo + 1
+                memory_req.wr_data = red2_word_t(lo=rblock_binding_plus_one_req, hi=107085824)
+            else:
+                lambda_app_path_wide: uint64_t = lambda_path
+                memory_req.wr_data = red2_word_t(lo=lambda_app_path_wide, hi=73531392)
             memory_req.wr_en = 1
         elif micro_is_lambda_app_pointer:
             lambda_app_needs_bridge_pointer: uint1_t = free_space != env
             lambda_app_count_pointer: uint17_t = 2
-            if lambda_app_needs_bridge_pointer:
+            if app_rblock_active:
                 lambda_app_count_pointer = 3
+            if lambda_app_needs_bridge_pointer:
+                lambda_app_count_pointer = lambda_app_count_pointer + 1
             lambda_app_base_pointer: uint17_t = free_space - lambda_app_count_pointer
             lambda_app_pointer_address: uint17_t = lambda_app_base_pointer + 1
+            if app_rblock_active:
+                rblock_second_none_req: uint1_t = lambda_path != 0
+                if rblock_second_none_req:
+                    lambda_app_pointer_address = lambda_app_base_pointer + 2
             memory_req.addr = lambda_app_pointer_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = lambda_word
+            if app_rblock_active:
+                memory_req.wr_data = red2_word_t(lo=0, hi=67108864)
+            else:
+                memory_req.wr_data = lambda_word
             memory_req.wr_en = 1
         elif micro_is_app_control_read:
             app_control_address_req: uint17_t = control_top - 1
@@ -2285,9 +2300,101 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     app_child_pc = fetched_word.lo[15:0]
                     app_parent_pc = pc
                     microstate = MICRO_APP_CONTROL_READ
+                elif q != 0:
+                    # Positive-q RBLOCK allocates one three-word REC record, with
+                    # an optional PNP bridge when env is not already the frontier.
+                    # Preflight the complete allocation before the first RAM write.
+                    rblock_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                    rblock_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+                    rblock_free_end: uint1_t = free_space == GRAPH_WORDS
+                    rblock_free_valid: uint1_t = rblock_free_low or rblock_free_end
+                    rblock_layout_gap: uint17_t = free_space - fsp
+                    rblock_layout_wrapped: uint1_t = rblock_layout_gap[16]
+                    rblock_layout_nonzero: uint1_t = rblock_layout_gap != 0
+                    rblock_layout_ok: uint1_t = rblock_layout_wrapped == 0
+                    rblock_layout_ok = rblock_layout_ok and rblock_layout_nonzero
+                    rblock_env_low: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
+                    rblock_env_end: uint1_t = env == GRAPH_WORDS
+                    rblock_env_valid: uint1_t = rblock_env_low or rblock_env_end
+                    rblock_needs_bridge: uint1_t = free_space != env
+                    rblock_count: uint17_t = 3
+                    if rblock_needs_bridge:
+                        rblock_count = 4
+                    rblock_base: uint17_t = free_space - rblock_count
+                    rblock_base_gap: uint17_t = rblock_base - fsp
+                    rblock_base_wrapped: uint1_t = rblock_base_gap[16]
+                    rblock_base_nonzero: uint1_t = rblock_base_gap != 0
+                    rblock_base_after_fsp: uint1_t = rblock_base_wrapped == 0
+                    rblock_base_after_fsp = rblock_base_after_fsp and rblock_base_nonzero
+                    if not rblock_fsp_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not rblock_free_valid:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    elif not rblock_layout_ok:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    elif not rblock_env_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not rblock_base_after_fsp:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        app_rblock_active = 1
+                        # RBLOCK does not need a saved closure path, so reuse this
+                        # otherwise-idle register as the second-NONE write cursor.
+                        lambda_path = 0
+                        if rblock_needs_bridge:
+                            microstate = MICRO_LAMBDA_APP_BRIDGE
+                        else:
+                            microstate = MICRO_LAMBDA_APP_CLOSURE
                 else:
-                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                    microstate = MICRO_FAULT
+                    # q=0 copies the RBLOCK result and allocates UBV(phi+1).
+                    # Preflight both writes together so a late environment
+                    # collision cannot expose a partially copied result.
+                    rblock_zero_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                    rblock_zero_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+                    rblock_zero_free_end: uint1_t = free_space == GRAPH_WORDS
+                    rblock_zero_free_valid: uint1_t = rblock_zero_free_low or rblock_zero_free_end
+                    rblock_zero_destination: uint17_t = fsp + 1
+                    rblock_zero_push_gap: uint17_t = free_space - rblock_zero_destination
+                    rblock_zero_push_wrapped: uint1_t = rblock_zero_push_gap[16]
+                    rblock_zero_push_nonzero: uint1_t = rblock_zero_push_gap != 0
+                    rblock_zero_push_ok: uint1_t = rblock_zero_push_wrapped == 0
+                    rblock_zero_push_ok = rblock_zero_push_ok and rblock_zero_push_nonzero
+                    rblock_zero_env_low: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
+                    rblock_zero_env_end: uint1_t = env == GRAPH_WORDS
+                    rblock_zero_env_valid: uint1_t = rblock_zero_env_low or rblock_zero_env_end
+                    rblock_zero_needs_bridge: uint1_t = free_space != env
+                    rblock_zero_env_count: uint17_t = 1
+                    if rblock_zero_needs_bridge:
+                        rblock_zero_env_count = 2
+                    rblock_zero_env_base: uint17_t = free_space - rblock_zero_env_count
+                    rblock_zero_env_gap: uint17_t = rblock_zero_env_base - rblock_zero_destination
+                    rblock_zero_env_wrapped: uint1_t = rblock_zero_env_gap[16]
+                    rblock_zero_env_nonzero: uint1_t = rblock_zero_env_gap != 0
+                    rblock_zero_env_after_result: uint1_t = rblock_zero_env_wrapped == 0
+                    rblock_zero_env_after_result = rblock_zero_env_after_result and rblock_zero_env_nonzero
+                    if not rblock_zero_fsp_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not rblock_zero_free_valid:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    elif not rblock_zero_push_ok:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    elif not rblock_zero_env_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not rblock_zero_env_after_result:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        app_rblock_active = 1
+                        microstate = MICRO_LAMBDA_PUSH
             else:
                 reverse_app_var: uint1_t = opcode_is_app_var and direction_is_reverse
                 forward_app_var: uint1_t = opcode_is_app_var and direction_is_forward
@@ -2435,7 +2542,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         elif micro_is_lambda_push:
             lambda_pushed: uint17_t = fsp + 1
             fsp = lambda_pushed[15:0]
-            argcnt = 1
+            if app_rblock_active:
+                argcnt = argcnt + 1
+            else:
+                argcnt = 1
             phi = phi + 1
             microstate = MICRO_LAMBDA_ENV
         elif micro_is_lambda_env:
@@ -2490,6 +2600,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             lambda_env_finish_base: uint17_t = free_space - lambda_env_finish_count
             env = lambda_env_finish_base
             free_space = lambda_env_finish_base
+            if app_rblock_active:
+                app_rblock_active = 0
             pc = pc + 1
             microstate = MICRO_COMMIT
         elif micro_is_lambda_beta_env:
@@ -2693,18 +2805,36 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         elif micro_is_lambda_app_closure:
             microstate = MICRO_LAMBDA_APP_POINTER
         elif micro_is_lambda_app_pointer:
-            lambda_app_finish_needs_bridge: uint1_t = free_space != env
-            lambda_app_finish_count: uint17_t = 2
-            if lambda_app_finish_needs_bridge:
-                lambda_app_finish_count = 3
-            lambda_app_finish_base: uint17_t = free_space - lambda_app_finish_count
-            env = lambda_app_finish_base
-            free_space = lambda_app_finish_base
-            q = q - 1
-            fsp = fsp - 1
-            argcnt = argcnt - 1
-            pc = pc + 1
-            microstate = MICRO_COMMIT
+            if app_rblock_active:
+                rblock_none_first_done: uint1_t = lambda_path != 0
+                if not rblock_none_first_done:
+                    lambda_path = 1
+                    microstate = MICRO_LAMBDA_APP_POINTER
+                else:
+                    rblock_finish_needs_bridge: uint1_t = free_space != env
+                    rblock_finish_count: uint17_t = 3
+                    if rblock_finish_needs_bridge:
+                        rblock_finish_count = 4
+                    rblock_finish_base: uint17_t = free_space - rblock_finish_count
+                    env = rblock_finish_base
+                    free_space = rblock_finish_base
+                    lambda_path = 0
+                    app_rblock_active = 0
+                    pc = pc + 1
+                    microstate = MICRO_COMMIT
+            else:
+                lambda_app_finish_needs_bridge: uint1_t = free_space != env
+                lambda_app_finish_count: uint17_t = 2
+                if lambda_app_finish_needs_bridge:
+                    lambda_app_finish_count = 3
+                lambda_app_finish_base: uint17_t = free_space - lambda_app_finish_count
+                env = lambda_app_finish_base
+                free_space = lambda_app_finish_base
+                q = q - 1
+                fsp = fsp - 1
+                argcnt = argcnt - 1
+                pc = pc + 1
+                microstate = MICRO_COMMIT
         elif micro_is_app_control_read:
             app_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             app_top_end: uint1_t = control_top == CONTROL_WORDS

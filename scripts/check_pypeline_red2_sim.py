@@ -6272,6 +6272,129 @@ def check() -> None:
         result = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
         assert _packed_memory_read(result) == expected.memory[address]
 
+    # Forward RBLOCK with positive q allocates a three-word REC record and
+    # preserves q/fsp/argcnt.  Exercise both contiguous and bridged frontiers.
+    for rblock_env, rblock_free in ((32, 32), (28, 30)):
+        rblock_memory: list[Word | None] = [None] * 64
+        rblock_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+        rblock_memory[5] = Word(MuredOpcode.STOP)
+        if rblock_env != rblock_free:
+            rblock_memory[rblock_env] = Word(MuredOpcode.INT, 99, False)
+        rblock_machine = MuredMachine(
+            MuredMachineState(
+                memory=rblock_memory,
+                control_stack=[None] * 32,
+                pc=0,
+                fsp=5,
+                env=rblock_env,
+                c=-1,
+                direction=Direction.F,
+                q=3,
+                phi=0,
+                free_space=rblock_free,
+                argcnt=0,
+            )
+        )
+        codec = RED2ABICodec()
+        result, expected = _run_bounded_to_same_commit(rblock_machine, codec)
+        assert expected.pc == 1
+        assert expected.fsp == 5
+        assert expected.q == 3
+        assert expected.argcnt == 1
+        expected_base = 29 if rblock_env == rblock_free else 26
+        assert expected.env == expected_base
+        assert expected.free_space == expected_base
+        for address in range(expected_base, rblock_free):
+            result = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+            assert _packed_memory_read(result) == expected.memory[address]
+
+    # At q=0 RBLOCK copies itself to the result graph, increments phi, and
+    # allocates UBV(phi) without charging quantum.
+    rblock_zero_memory: list[Word | None] = [None] * 64
+    rblock_zero_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    rblock_zero_memory[5] = Word(MuredOpcode.STOP)
+    rblock_zero_machine = MuredMachine(
+        MuredMachineState(
+            memory=rblock_zero_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=5,
+            env=32,
+            c=-1,
+            direction=Direction.F,
+            q=0,
+            phi=2,
+            free_space=32,
+            argcnt=0,
+        )
+    )
+    codec = RED2ABICodec()
+    result, expected = _run_bounded_to_same_commit(rblock_zero_machine, codec)
+    assert expected.pc == 1
+    assert expected.fsp == 6
+    assert expected.env == 31
+    assert expected.free_space == 31
+    assert expected.q == 0
+    assert expected.phi == 3
+    assert expected.argcnt == 2
+    for address in (6, 31):
+        result = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address]
+
+    # Both forward paths preflight the whole transaction.  Positive-q REC
+    # allocation and q=0's trailing UBV collision must fault without an early
+    # graph/environment write becoming architecturally visible.
+    rblock_collision_memory: list[Word | None] = [None] * 64
+    rblock_collision_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    rblock_collision_memory[29] = Word(MuredOpcode.STOP)
+    rblock_collision_machine = MuredMachine(
+        MuredMachineState(
+            memory=rblock_collision_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=29,
+            env=32,
+            c=-1,
+            direction=Direction.F,
+            q=3,
+            phi=0,
+            free_space=32,
+            argcnt=0,
+        )
+    )
+    codec = RED2ABICodec()
+    collision_encoded = codec.encode_state(rblock_collision_machine.state)
+    result, expected, fault = _run_encoded_to_same_fault(collision_encoded)
+    assert fault == abi.FAULT_GRAPH_ENV_COLLISION
+    for address in (29, 30, 31):
+        result = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address]
+
+    rblock_zero_collision_memory: list[Word | None] = [None] * 64
+    rblock_zero_collision_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    rblock_zero_collision_memory[30] = Word(MuredOpcode.STOP)
+    rblock_zero_collision_machine = MuredMachine(
+        MuredMachineState(
+            memory=rblock_zero_collision_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=30,
+            env=32,
+            c=-1,
+            direction=Direction.F,
+            q=0,
+            phi=2,
+            free_space=32,
+            argcnt=0,
+        )
+    )
+    codec = RED2ABICodec()
+    zero_collision_encoded = codec.encode_state(rblock_zero_collision_machine.state)
+    result, expected, fault = _run_encoded_to_same_fault(zero_collision_encoded)
+    assert fault == abi.FAULT_GRAPH_ENV_COLLISION
+    result = sim_call(red2_processor_top, _command(CMD_NOP, address=31))
+    assert _packed_memory_read(result) == expected.memory[31]
+
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
     # semantic difference is internal argcnt=-1, encoded as hardware zero.
