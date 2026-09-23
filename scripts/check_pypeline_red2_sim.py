@@ -6691,6 +6691,193 @@ def check() -> None:
     _, _, rup_collision_fault = _run_encoded_to_same_fault(rup_collision_encoded)
     assert rup_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
 
+    # Direct RECP cases share one three-word REC validation path.  Non-head
+    # forward is passive, head forward with quantum enters the binding through
+    # a PNP environment marker, and reverse with quantum rewrites RECP to APP
+    # while saving the recursive context on the typed control stack.
+    recp_nonhead_memory: list[Word | None] = [None] * 32
+    recp_nonhead_memory[0] = Word(MuredOpcode.RECP, 20, False)
+    recp_nonhead_memory[3] = Word(MuredOpcode.STOP)
+    recp_nonhead_memory[20] = Word(MuredOpcode.REC, 8, False)
+    recp_nonhead_memory[21] = Word(None, 20, False)
+    recp_nonhead_memory[22] = Word(None, 4, False)
+    recp_nonhead_machine = MuredMachine(
+        MuredMachineState(
+            memory=recp_nonhead_memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=3,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=3,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_nonhead_expected = _run_bounded_to_same_commit(
+        recp_nonhead_machine, RED2ABICodec()
+    )
+    assert recp_nonhead_expected.pc == 1
+    assert recp_nonhead_expected.fsp == 4
+    assert recp_nonhead_expected.q == 3
+    assert recp_nonhead_expected.argcnt == 2
+    recp_read = sim_call(red2_processor_top, _command(CMD_NOP, address=4))
+    assert _packed_memory_read(recp_read) == recp_nonhead_expected.memory[4]
+
+    recp_head_memory = list(recp_nonhead_memory)
+    recp_head_memory[0] = Word(MuredOpcode.RECP, 20, True)
+    recp_head_machine = MuredMachine(
+        MuredMachineState(
+            memory=recp_head_memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=3,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=3,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_head_expected = _run_bounded_to_same_commit(
+        recp_head_machine, RED2ABICodec()
+    )
+    assert recp_head_expected.pc == 8
+    assert recp_head_expected.env == 19
+    assert recp_head_expected.free_space == 19
+    assert recp_head_expected.q == 2
+    recp_read = sim_call(red2_processor_top, _command(CMD_NOP, address=19))
+    assert _packed_memory_read(recp_read) == recp_head_expected.memory[19]
+
+    recp_reverse_memory: list[Word | None] = [None] * 32
+    recp_reverse_memory[4] = Word(MuredOpcode.RECP, 20, False)
+    recp_reverse_memory[20] = Word(MuredOpcode.REC, 8, False)
+    recp_reverse_memory[21] = Word(None, 20, False)
+    recp_reverse_memory[22] = Word(None, 4, False)
+    recp_reverse_machine = MuredMachine(
+        MuredMachineState(
+            memory=recp_reverse_memory,
+            control_stack=[None] * 8,
+            pc=4,
+            fsp=4,
+            env=20,
+            c=-1,
+            direction=Direction.B,
+            q=2,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_reverse_expected = _run_bounded_to_same_commit(
+        recp_reverse_machine, RED2ABICodec()
+    )
+    assert recp_reverse_expected.pc == 4
+    assert recp_reverse_expected.q == 1
+    assert recp_reverse_expected.c == 1
+    recp_read = sim_call(red2_processor_top, _command(CMD_NOP, address=4))
+    assert _packed_memory_read(recp_read) == recp_reverse_expected.memory[4]
+    recp_read = sim_call(red2_processor_top, _command(CMD_NOP, address=0))
+    assert _packed_control_read(recp_read) == recp_reverse_expected.control_stack[0]
+
+    # All direct RECP writes are post-validation: malformed REC/context records,
+    # graph collisions, and a full control stack fault without publishing a
+    # partial APP, PNP marker, or graph result.
+    recp_bad_memory = list(recp_head_memory)
+    recp_bad_memory[20] = Word(MuredOpcode.INT, 8, False)
+    recp_bad_state = MuredMachineState(
+        memory=recp_bad_memory,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_bad_encoded = RED2ABICodec().encode_state(recp_bad_state)
+    _, recp_bad_expected, recp_bad_fault = _run_encoded_to_same_fault(recp_bad_encoded)
+    assert recp_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert recp_bad_expected.memory[19] == 0
+
+    recp_missing_context_memory = list(recp_head_memory)
+    recp_missing_context_memory[21] = None
+    recp_missing_context_state = MuredMachineState(
+        memory=recp_missing_context_memory,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_missing_context_encoded = RED2ABICodec().encode_state(recp_missing_context_state)
+    _, _, recp_missing_context_fault = _run_encoded_to_same_fault(
+        recp_missing_context_encoded
+    )
+    assert recp_missing_context_fault == abi.FAULT_INVALID_ADDRESS
+
+    recp_collision_state = MuredMachineState(
+        memory=list(recp_head_memory),
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=19,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_collision_encoded = RED2ABICodec().encode_state(recp_collision_state)
+    _, recp_collision_expected, recp_collision_fault = _run_encoded_to_same_fault(
+        recp_collision_encoded
+    )
+    assert recp_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert recp_collision_expected.memory[19] == 0
+
+    recp_overflow_state = MuredMachineState(
+        memory=list(recp_reverse_memory),
+        control_stack=[None] * CONTROL_WORDS,
+        pc=4,
+        fsp=4,
+        env=20,
+        c=-1,
+        direction=Direction.B,
+        q=2,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_overflow_encoded = RED2ABICodec().encode_state(recp_overflow_state)
+    recp_overflow_entries = list(recp_overflow_encoded.control_stack)
+    for control_index in range(CONTROL_WORDS):
+        recp_overflow_entries[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    recp_overflow_encoded = replace(
+        recp_overflow_encoded,
+        control_stack=tuple(recp_overflow_entries),
+        c=CONTROL_WORDS,
+    )
+    _, recp_overflow_expected, recp_overflow_fault = _run_encoded_to_same_fault(
+        recp_overflow_encoded
+    )
+    assert recp_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
+    assert recp_overflow_expected.memory[4] == recp_overflow_encoded.memory[4]
+
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
     # semantic difference is internal argcnt=-1, encoded as hardware zero.
