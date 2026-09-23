@@ -9,7 +9,7 @@ withhold ``RED2_SYNTH_V1``.
 
 from typing import NamedTuple
 
-from pypeline import MAIN, Reg, hw_func, struct, uint1_t, uint2_t, uint3_t, uint4_t, uint5_t, uint6_t, uint16_t, uint17_t, uint32_t, uint64_t
+from pypeline import MAIN, Reg, hw_func, struct, uint1_t, uint2_t, uint3_t, uint4_t, uint5_t, uint6_t, uint7_t, uint16_t, uint17_t, uint32_t, uint64_t
 from ram import make_ram
 
 
@@ -202,6 +202,14 @@ MICRO_JOIN_PRIM_META_SCAN = 60
 MICRO_JOIN_SPECIAL_META_SCAN = 61
 MICRO_JOIN_SPECIAL_META_DONE = 62
 MICRO_JOIN_SCALAR_LEFT_READ = 63
+MICRO_RUP_VALIDATE_REC = 64
+MICRO_RUP_VALIDATE_CONTEXT = 65
+MICRO_RUP_VALIDATE_BLOCK = 66
+MICRO_RUP_VALIDATE_SOURCE = 67
+MICRO_RUP_WRITE_CONTEXT = 68
+MICRO_RUP_WRITE_BLOCK = 69
+MICRO_RUP_ZERO_PUSH = 70
+MICRO_RUP_ZERO_RESULT = 71
 
 
 @struct
@@ -319,7 +327,7 @@ class red2_status_t(NamedTuple):
     status: uint3_t
     red2_fault: uint3_t
     hw_fault: uint3_t
-    microstate: uint6_t
+    microstate: uint7_t
     committed: uint1_t
     pc: uint16_t
     fsp: uint16_t
@@ -375,12 +383,17 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     pending_host_argument: Reg[uint64_t]
     red2_fault: Reg[uint3_t]
     hw_fault: Reg[uint3_t]
-    microstate: Reg[uint6_t]
+    microstate: Reg[uint7_t]
     fetched_word: Reg[red2_word_t]
     lookup_word: Reg[red2_word_t]
     lookup_address: Reg[uint17_t]
     lookup_remaining: Reg[uint64_t]
     lookup_hops: Reg[uint16_t]
+    rup_count: Reg[uint16_t]
+    rup_index: Reg[uint16_t]
+    rup_block: Reg[uint16_t]
+    rup_rec_binding: Reg[uint64_t]
+    rup_rec_payload_bad: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -618,6 +631,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_join_special_meta_scan: uint1_t = microstate == MICRO_JOIN_SPECIAL_META_SCAN
     micro_is_join_special_meta_done: uint1_t = microstate == MICRO_JOIN_SPECIAL_META_DONE
     micro_is_join_scalar_left_read: uint1_t = microstate == MICRO_JOIN_SCALAR_LEFT_READ
+    micro_is_rup_validate_rec: uint1_t = microstate == MICRO_RUP_VALIDATE_REC
+    micro_is_rup_validate_context: uint1_t = microstate == MICRO_RUP_VALIDATE_CONTEXT
+    micro_is_rup_validate_block: uint1_t = microstate == MICRO_RUP_VALIDATE_BLOCK
+    micro_is_rup_validate_source: uint1_t = microstate == MICRO_RUP_VALIDATE_SOURCE
+    micro_is_rup_write_context: uint1_t = microstate == MICRO_RUP_WRITE_CONTEXT
+    micro_is_rup_write_block: uint1_t = microstate == MICRO_RUP_WRITE_BLOCK
+    micro_is_rup_zero_push: uint1_t = microstate == MICRO_RUP_ZERO_PUSH
+    micro_is_rup_zero_result: uint1_t = microstate == MICRO_RUP_ZERO_RESULT
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -650,6 +671,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     opcode_is_ubv: uint1_t = fetched_opcode == MOP_UBV
     opcode_is_var: uint1_t = fetched_opcode == MOP_VAR
     opcode_is_rblock: uint1_t = fetched_opcode == MOP_RBLOCK
+    opcode_is_rup: uint1_t = fetched_opcode == MOP_RUP
     kind_is_signed: uint1_t = fetched_kind == DATA_SIGNED
     kind_is_float64: uint1_t = fetched_kind == DATA_FLOAT64
     kind_is_literal: uint1_t = fetched_kind == DATA_LITERAL_ID
@@ -780,6 +802,61 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     lo=env, hi=0, tag_hi=CONTROL_SAVED_DEFINITION_PATH
                 )
                 control_req.wr_en = 1
+        elif micro_is_rup_validate_rec:
+            rup_req_index64: uint64_t = rup_index
+            rup_req_env64: uint64_t = env
+            rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
+            rup_req_stride64 = rup_req_stride64 + rup_req_index64
+            rup_req_rec64: uint64_t = rup_req_env64 + rup_req_stride64
+            memory_req.addr = rup_req_rec64[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_rup_validate_context:
+            rup_req_index64: uint64_t = rup_index
+            rup_req_env64: uint64_t = env
+            rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
+            rup_req_stride64 = rup_req_stride64 + rup_req_index64
+            rup_req_context64: uint64_t = rup_req_env64 + rup_req_stride64 + 1
+            memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_rup_validate_block:
+            rup_req_index64: uint64_t = rup_index
+            rup_req_env64: uint64_t = env
+            rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
+            rup_req_stride64 = rup_req_stride64 + rup_req_index64
+            rup_req_block_slot64: uint64_t = rup_req_env64 + rup_req_stride64 + 2
+            memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_rup_validate_source:
+            rup_req_source_offset: uint16_t = rup_count - 1 - rup_index
+            rup_req_source17: uint17_t = rup_block + rup_req_source_offset
+            memory_req.addr = rup_req_source17[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_rup_write_context:
+            rup_req_index64: uint64_t = rup_index
+            rup_req_env64: uint64_t = env
+            rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
+            rup_req_stride64 = rup_req_stride64 + rup_req_index64
+            rup_req_context64: uint64_t = rup_req_env64 + rup_req_stride64 + 1
+            rup_req_env_payload: uint64_t = env
+            memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=rup_req_env_payload, hi=67239936)
+            memory_req.wr_en = 1
+        elif micro_is_rup_write_block:
+            rup_req_index64: uint64_t = rup_index
+            rup_req_env64: uint64_t = env
+            rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
+            rup_req_stride64 = rup_req_stride64 + rup_req_index64
+            rup_req_block_slot64: uint64_t = rup_req_env64 + rup_req_stride64 + 2
+            rup_req_block_payload: uint64_t = rup_block
+            memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=rup_req_block_payload, hi=67239936)
+            memory_req.wr_en = 1
+        elif micro_is_rup_zero_push:
+            rup_req_env_payload: uint64_t = env
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(lo=rup_req_env_payload, hi=0, tag_hi=CONTROL_ADDRESS)
+            control_req.wr_en = 1
+        elif micro_is_rup_zero_result:
+            rup_req_result_destination: uint17_t = fsp + 1
+            memory_req.addr = rup_req_result_destination[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = fetched_word
+            memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1363,6 +1440,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         lookup_address = 0
         lookup_remaining = 0
         lookup_hops = 0
+        rup_count = 0
+        rup_index = 0
+        rup_block = 0
+        rup_rec_binding = 0
+        rup_rec_payload_bad = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1531,6 +1613,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         lookup_address = 0
         lookup_remaining = 0
         lookup_hops = 0
+        rup_count = 0
+        rup_index = 0
+        rup_block = 0
+        rup_rec_binding = 0
+        rup_rec_payload_bad = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1679,6 +1766,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             lookup_address = 0
             lookup_remaining = 0
             lookup_hops = 0
+            rup_count = 0
+            rup_index = 0
+            rup_block = 0
+            rup_rec_binding = 0
+            rup_rec_payload_bad = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -2395,6 +2487,102 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         app_rblock_active = 1
                         microstate = MICRO_LAMBDA_PUSH
+            elif opcode_is_rup:
+                rup_negative: uint1_t = fetched_word.lo[63]
+                rup_bad_kind: uint1_t = kind_is_signed == 0
+                rup_bad_payload: uint1_t = rup_bad_kind or rup_negative
+                if rup_bad_payload:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif direction_is_reverse:
+                    pc = pc - 1
+                    microstate = MICRO_COMMIT
+                elif q != 0:
+                    rup_count_upper_nonzero: uint1_t = fetched_word.lo[63:16] != 0
+                    rup_count16: uint16_t = fetched_word.lo[15:0]
+                    rup_pc17: uint17_t = pc
+                    rup_count17: uint17_t = rup_count16
+                    rup_block17: uint17_t = rup_pc17 - rup_count17
+                    rup_block_wrapped: uint1_t = rup_block17[16]
+                    rup_block_bad: uint1_t = rup_count_upper_nonzero or rup_block_wrapped
+                    if rup_block_bad:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif rup_count16 == 0:
+                        pc = pc + 1
+                        microstate = MICRO_COMMIT
+                    else:
+                        rup_count = rup_count16
+                        rup_index = 0
+                        rup_block = rup_block17[15:0]
+                        rup_rec_binding = 0
+                        rup_rec_payload_bad = 0
+                        microstate = MICRO_RUP_VALIDATE_REC
+                else:
+                    # The bounded machine performs all ADDRESS pushes before the
+                    # graph copy.  Preflight in that same fault order so direct
+                    # RAM publication remains architecturally atomic.
+                    rup_control_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+                    rup_control_end: uint1_t = control_top == CONTROL_WORDS
+                    rup_control_valid: uint1_t = rup_control_low or rup_control_end
+                    rup_count_upper_nonzero: uint1_t = fetched_word.lo[63:16] != 0
+                    rup_count16: uint16_t = fetched_word.lo[15:0]
+                    rup_control_room: uint17_t = CONTROL_WORDS - control_top
+                    rup_count17: uint17_t = rup_count16
+                    rup_control_gap: uint17_t = rup_control_room - rup_count17
+                    rup_control_wrapped: uint1_t = rup_control_gap[16]
+                    rup_control_overflow: uint1_t = rup_count_upper_nonzero or rup_control_wrapped
+                    rup_zero_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                    rup_zero_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+                    rup_zero_free_end: uint1_t = free_space == GRAPH_WORDS
+                    rup_zero_free_valid: uint1_t = rup_zero_free_low or rup_zero_free_end
+                    rup_zero_destination: uint17_t = fsp + 1
+                    rup_zero_gap: uint17_t = free_space - rup_zero_destination
+                    rup_zero_wrapped: uint1_t = rup_zero_gap[16]
+                    rup_zero_nonzero: uint1_t = rup_zero_gap != 0
+                    rup_zero_not_wrapped: uint1_t = rup_zero_wrapped == 0
+                    rup_zero_graph_ok: uint1_t = rup_zero_not_wrapped and rup_zero_nonzero
+                    if rup_count16 == 0:
+                        # Count zero performs no control operation at all.  Match
+                        # the bounded machine by validating only the graph push.
+                        if not rup_zero_fsp_valid:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        elif not rup_zero_free_valid:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        elif not rup_zero_graph_ok:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            rup_count = 0
+                            rup_index = 0
+                            rup_block = 0
+                            rup_rec_binding = 0
+                            rup_rec_payload_bad = 0
+                            microstate = MICRO_RUP_ZERO_RESULT
+                    elif not rup_control_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif rup_control_overflow:
+                        red2_fault = FAULT_CONTROL_OVERFLOW
+                        microstate = MICRO_FAULT
+                    elif not rup_zero_fsp_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not rup_zero_free_valid:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    elif not rup_zero_graph_ok:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        rup_count = rup_count16
+                        rup_index = 0
+                        rup_block = 0
+                        rup_rec_binding = 0
+                        rup_rec_payload_bad = 0
+                        microstate = MICRO_RUP_ZERO_PUSH
             else:
                 reverse_app_var: uint1_t = opcode_is_app_var and direction_is_reverse
                 forward_app_var: uint1_t = opcode_is_app_var and direction_is_forward
@@ -6956,6 +7144,119 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             env = closure_new_env
             free_space = closure_new_env
             pc = closure_target
+            microstate = MICRO_COMMIT
+        elif micro_is_rup_validate_rec:
+            rup_exec_index64: uint64_t = rup_index
+            rup_exec_env64: uint64_t = env
+            rup_exec_stride64: uint64_t = rup_exec_index64 + rup_exec_index64
+            rup_exec_stride64 = rup_exec_stride64 + rup_exec_index64
+            rup_exec_rec64: uint64_t = rup_exec_env64 + rup_exec_stride64
+            rup_exec_rec_end64: uint64_t = rup_exec_rec64 + 2
+            rup_rec_range_bad: uint1_t = rup_exec_rec64[63:GRAPH_ADDR_BITS] != 0
+            rup_rec_end_bad: uint1_t = rup_exec_rec_end64[63:GRAPH_ADDR_BITS] != 0
+            rup_rec_address_bad: uint1_t = rup_rec_range_bad or rup_rec_end_bad
+            rup_source_offset_exec: uint16_t = rup_count - 1 - rup_index
+            rup_source17_exec: uint17_t = rup_block + rup_source_offset_exec
+            rup_source_range_bad: uint1_t = rup_source17_exec[16:GRAPH_ADDR_BITS] != 0
+            rup_rec_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            rup_rec_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            rup_rec_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            rup_rec_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            rup_rec_missing: uint1_t = rup_rec_valid == 0
+            rup_rec_wrong_opcode: uint1_t = rup_rec_opcode != MOP_REC
+            rup_rec_shape_bad: uint1_t = rup_rec_missing or rup_rec_wrong_opcode
+            rup_rec_kind_bad: uint1_t = rup_rec_kind != DATA_SIGNED
+            rup_rec_payload_bad_now: uint1_t = rup_rec_kind_bad or rup_rec_negative
+            if rup_rec_address_bad:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif rup_source_range_bad:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif rup_rec_shape_bad:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                # The bounded RUP scan checks context/block/source structure
+                # before interpreting either binding payload as signed data.
+                rup_rec_binding = memory_out.p0.rd_data.lo
+                rup_rec_payload_bad = rup_rec_payload_bad_now
+                microstate = MICRO_RUP_VALIDATE_CONTEXT
+        elif micro_is_rup_validate_context:
+            rup_context_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            rup_context_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            if not rup_context_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif rup_context_opcode != MOP_NONE:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                microstate = MICRO_RUP_VALIDATE_BLOCK
+        elif micro_is_rup_validate_block:
+            rup_block_slot_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            rup_block_slot_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            if not rup_block_slot_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif rup_block_slot_opcode != MOP_NONE:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                microstate = MICRO_RUP_VALIDATE_SOURCE
+        elif micro_is_rup_validate_source:
+            rup_source_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            rup_source_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            rup_source_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            rup_source_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            rup_source_missing: uint1_t = rup_source_valid == 0
+            rup_source_wrong_opcode: uint1_t = rup_source_opcode != MOP_RBLOCK
+            rup_source_shape_bad: uint1_t = rup_source_missing or rup_source_wrong_opcode
+            rup_source_kind_bad: uint1_t = rup_source_kind != DATA_SIGNED
+            rup_source_data_bad: uint1_t = rup_source_kind_bad or rup_source_negative
+            rup_binding_data_bad: uint1_t = rup_rec_payload_bad or rup_source_data_bad
+            rup_source_plus_one: uint64_t = memory_out.p0.rd_data.lo + 1
+            if rup_source_shape_bad:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif rup_binding_data_bad:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif rup_rec_binding != rup_source_plus_one:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                rup_next_validate_index: uint16_t = rup_index + 1
+                if rup_next_validate_index == rup_count:
+                    rup_index = 0
+                    microstate = MICRO_RUP_WRITE_CONTEXT
+                else:
+                    rup_index = rup_next_validate_index
+                    microstate = MICRO_RUP_VALIDATE_REC
+        elif micro_is_rup_write_context:
+            microstate = MICRO_RUP_WRITE_BLOCK
+        elif micro_is_rup_write_block:
+            rup_next_write_index: uint16_t = rup_index + 1
+            if rup_next_write_index == rup_count:
+                rup_index = 0
+                pc = pc + 1
+                microstate = MICRO_COMMIT
+            else:
+                rup_index = rup_next_write_index
+                microstate = MICRO_RUP_WRITE_CONTEXT
+        elif micro_is_rup_zero_push:
+            control_top = control_top + 1
+            rup_next_push_index: uint16_t = rup_index + 1
+            if rup_next_push_index == rup_count:
+                rup_index = 0
+                microstate = MICRO_RUP_ZERO_RESULT
+            else:
+                rup_index = rup_next_push_index
+        elif micro_is_rup_zero_result:
+            fsp = fsp + 1
+            argcnt = argcnt + 1
+            pc = pc + 1
+            rup_index = 0
             microstate = MICRO_COMMIT
         elif micro_is_lookup_read:
             binding_valid: uint1_t = memory_out.p0.rd_data.hi[26]

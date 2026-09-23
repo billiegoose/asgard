@@ -51,6 +51,7 @@ from pypeline_red2.red2_processor import (
 )
 from pypeline_red2.red2_pypeline import (
     CMD_CLOCK,
+    CONTROL_WORDS,
     CMD_LOAD_CONTROL,
     CMD_LOAD_MEMORY,
     CMD_LOAD_LITERAL_META,
@@ -6394,6 +6395,301 @@ def check() -> None:
     assert fault == abi.FAULT_GRAPH_ENV_COLLISION
     result = sim_call(red2_processor_top, _command(CMD_NOP, address=31))
     assert _packed_memory_read(result) == expected.memory[31]
+
+    # RUP positive-q validates the complete recursive environment before
+    # publishing context/block metadata.  Cover one and two binding physical
+    # ordering exactly against the bounded processor.
+    for rup_count_case in (1, 2):
+        rup_memory: list[Word | None] = [None] * 64
+        if rup_count_case == 1:
+            rup_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+            rup_memory[1] = Word(MuredOpcode.RUP, 1, False)
+            rup_memory[5] = Word(MuredOpcode.STOP)
+            rup_memory[29] = Word(MuredOpcode.REC, 5, False)
+            rup_memory[30] = Word(None)
+            rup_memory[31] = Word(None)
+            rup_pc = 1
+            rup_fsp = 5
+            rup_env = 29
+            rup_free = 29
+            rup_probe_addresses = (30, 31)
+        else:
+            rup_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+            rup_memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+            rup_memory[2] = Word(MuredOpcode.RUP, 2, False)
+            rup_memory[8] = Word(MuredOpcode.STOP)
+            rup_memory[34] = Word(MuredOpcode.REC, 7, False)
+            rup_memory[35] = Word(None)
+            rup_memory[36] = Word(None)
+            rup_memory[37] = Word(MuredOpcode.REC, 5, False)
+            rup_memory[38] = Word(None)
+            rup_memory[39] = Word(None)
+            rup_pc = 2
+            rup_fsp = 8
+            rup_env = 34
+            rup_free = 34
+            rup_probe_addresses = (35, 36, 38, 39)
+        rup_machine = MuredMachine(
+            MuredMachineState(
+                memory=rup_memory,
+                control_stack=[None] * 32,
+                pc=rup_pc,
+                fsp=rup_fsp,
+                env=rup_env,
+                c=-1,
+                direction=Direction.F,
+                q=4,
+                phi=0,
+                free_space=rup_free,
+                argcnt=0,
+            )
+        )
+        rup_result, rup_expected = _run_bounded_to_same_commit(
+            rup_machine, RED2ABICodec()
+        )
+        assert rup_expected.pc == rup_pc + 1
+        assert rup_expected.fsp == rup_fsp
+        assert rup_expected.env == rup_env
+        assert rup_expected.free_space == rup_free
+        assert rup_expected.argcnt == 1
+        for address in rup_probe_addresses:
+            rup_read = sim_call(
+                red2_processor_top,
+                _command(CMD_NOP, address=address),
+            )
+            assert _packed_memory_read(rup_read) == rup_expected.memory[address]
+
+    # q=0 pushes one environment path per binding, then copies RUP itself.
+    rup_zero_memory: list[Word | None] = [None] * 64
+    rup_zero_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    rup_zero_memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    rup_zero_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    rup_zero_memory[8] = Word(MuredOpcode.STOP)
+    rup_zero_machine = MuredMachine(
+        MuredMachineState(
+            memory=rup_zero_memory,
+            control_stack=[None] * 32,
+            pc=2,
+            fsp=8,
+            env=31,
+            c=-1,
+            direction=Direction.F,
+            q=0,
+            phi=2,
+            free_space=31,
+            argcnt=0,
+        )
+    )
+    rup_zero_result, rup_zero_expected = _run_bounded_to_same_commit(
+        rup_zero_machine, RED2ABICodec()
+    )
+    assert rup_zero_expected.pc == 3
+    assert rup_zero_expected.fsp == 9
+    assert rup_zero_expected.c == 2
+    assert rup_zero_expected.argcnt == 2
+    for address in (0, 1):
+        control_read = sim_call(
+            red2_processor_top,
+            _command(CMD_NOP, address=address),
+        )
+        assert _packed_control_read(control_read) == rup_zero_expected.control_stack[address]
+    rup_zero_read = sim_call(
+        red2_processor_top,
+        _command(CMD_NOP, address=9),
+    )
+    assert _packed_memory_read(rup_zero_read) == rup_zero_expected.memory[9]
+
+    # Count zero performs no control operation; even a full valid control stack
+    # must succeed and only publish the RUP result.
+    rup_zero_count_memory: list[Word | None] = [None] * 64
+    rup_zero_count_memory[1] = Word(MuredOpcode.RUP, 0, False)
+    rup_zero_count_memory[6] = Word(MuredOpcode.STOP)
+    rup_zero_count_state = MuredMachineState(
+        memory=rup_zero_count_memory,
+        control_stack=[None] * 32,
+        pc=1,
+        fsp=6,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    rup_zero_count_encoded = RED2ABICodec().encode_state(rup_zero_count_state)
+    full_control = list(rup_zero_count_encoded.control_stack)
+    for control_index in range(len(full_control)):
+        full_control[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    rup_zero_count_encoded = replace(
+        rup_zero_count_encoded,
+        control_stack=tuple(full_control),
+        c=len(full_control),
+    )
+    _, rup_zero_count_expected = _run_encoded_to_same_commit(rup_zero_count_encoded)
+    assert rup_zero_count_expected.pc == 2
+    assert rup_zero_count_expected.fsp == 7
+    assert rup_zero_count_expected.c == len(full_control)
+    assert rup_zero_count_expected.argcnt == 2
+
+    # Ordinary reverse RUP only backs up pc; use pc>0 because pc=0 exposes a
+    # separate signed-vs-uint16 ABI boundary in the bounded model.
+    rup_reverse_memory: list[Word | None] = [None] * 32
+    rup_reverse_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    rup_reverse_memory[8] = Word(MuredOpcode.STOP)
+    rup_reverse_machine = MuredMachine(
+        MuredMachineState(
+            memory=rup_reverse_memory,
+            control_stack=[None] * 8,
+            pc=2,
+            fsp=8,
+            env=31,
+            c=-1,
+            direction=Direction.B,
+            q=2,
+            phi=2,
+            free_space=31,
+            argcnt=0,
+        )
+    )
+    _, rup_reverse_expected = _run_bounded_to_same_commit(
+        rup_reverse_machine, RED2ABICodec()
+    )
+    assert rup_reverse_expected.pc == 1
+
+    # Late malformed second REC must fault before either first-binding metadata
+    # write becomes architectural.
+    rup_bad_memory: list[Word | None] = [None] * 64
+    rup_bad_memory[0] = Word(MuredOpcode.RBLOCK, 10, False)
+    rup_bad_memory[1] = Word(MuredOpcode.RBLOCK, 12, False)
+    rup_bad_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    rup_bad_memory[6] = Word(MuredOpcode.STOP)
+    rup_bad_memory[20] = Word(MuredOpcode.REC, 13, False)
+    rup_bad_memory[21] = Word(None, 0, False)
+    rup_bad_memory[22] = Word(None, 0, False)
+    rup_bad_memory[23] = Word(MuredOpcode.REC, 11, False)
+    rup_bad_memory[24] = Word(MuredOpcode.INT, 99, False)
+    rup_bad_memory[25] = Word(None, 0, False)
+    rup_bad_state = MuredMachineState(
+        memory=rup_bad_memory,
+        control_stack=[None] * 8,
+        pc=2,
+        fsp=6,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    rup_bad_encoded = RED2ABICodec().encode_state(rup_bad_state)
+    _, rup_bad_expected, rup_bad_fault = _run_encoded_to_same_fault(
+        rup_bad_encoded, max_clocks=48
+    )
+    assert rup_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
+    for address in (21, 22, 24, 25):
+        bad_read = sim_call(
+            red2_processor_top,
+            _command(CMD_NOP, address=address),
+        )
+        assert _packed_memory_read(bad_read) == rup_bad_expected.memory[address]
+
+    # Fault ordering matches the bounded scan: after REC opcode/slot checks,
+    # source shape is validated before REC/source signed payload interpretation.
+    # Make the REC payload kind invalid while the source opcode is also wrong;
+    # ILLEGAL_TRANSITION from the source shape must win over INVALID_ADDRESS.
+    rup_order_memory: list[Word | None] = [None] * 64
+    rup_order_memory[0] = Word(MuredOpcode.RBLOCK, 12, False)
+    rup_order_memory[1] = Word(MuredOpcode.RUP, 1, False)
+    rup_order_memory[6] = Word(MuredOpcode.STOP)
+    rup_order_memory[20] = Word(MuredOpcode.REC, 13, False)
+    rup_order_memory[21] = Word(None, 0, False)
+    rup_order_memory[22] = Word(None, 0, False)
+    rup_order_state = MuredMachineState(
+        memory=rup_order_memory,
+        control_stack=[None] * 8,
+        pc=1,
+        fsp=6,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    rup_order_encoded = RED2ABICodec().encode_state(rup_order_state)
+    rup_order_words = list(rup_order_encoded.memory)
+    rup_order_words[20] = abi.pack_word(
+        1, abi.MOP_REC, abi.DATA_LITERAL_ID, 13, 0, 0, 0, 0
+    )
+    rup_order_words[0] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 12, 0, 0, 0, 0
+    )
+    rup_order_encoded = replace(rup_order_encoded, memory=tuple(rup_order_words))
+    _, _, rup_order_fault = _run_encoded_to_same_fault(
+        rup_order_encoded, max_clocks=32
+    )
+    assert rup_order_fault == abi.FAULT_ILLEGAL_TRANSITION
+
+    # q=0 must preflight the entire control push count before writing anything.
+    rup_overflow_memory: list[Word | None] = [None] * 64
+    rup_overflow_memory[0] = Word(MuredOpcode.RBLOCK, 10, False)
+    rup_overflow_memory[1] = Word(MuredOpcode.RBLOCK, 12, False)
+    rup_overflow_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    rup_overflow_memory[6] = Word(MuredOpcode.STOP)
+    rup_overflow_control = [None] * CONTROL_WORDS
+    rup_overflow_state = MuredMachineState(
+        memory=rup_overflow_memory,
+        control_stack=rup_overflow_control,
+        pc=2,
+        fsp=6,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    rup_overflow_encoded = RED2ABICodec().encode_state(rup_overflow_state)
+    rup_overflow_entries = list(rup_overflow_encoded.control_stack)
+    for control_index in range(CONTROL_WORDS - 1):
+        rup_overflow_entries[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    rup_overflow_encoded = replace(
+        rup_overflow_encoded,
+        control_stack=tuple(rup_overflow_entries),
+        c=CONTROL_WORDS - 1,
+    )
+    _, _, rup_overflow_fault = _run_encoded_to_same_fault(rup_overflow_encoded)
+    assert rup_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
+
+    # Graph collision is also preflighted before any q=0 control push.
+    rup_collision_memory: list[Word | None] = [None] * 64
+    rup_collision_memory[0] = Word(MuredOpcode.RBLOCK, 10, False)
+    rup_collision_memory[1] = Word(MuredOpcode.RUP, 1, False)
+    rup_collision_memory[19] = Word(MuredOpcode.STOP)
+    rup_collision_state = MuredMachineState(
+        memory=rup_collision_memory,
+        control_stack=[None] * 8,
+        pc=1,
+        fsp=19,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    rup_collision_encoded = RED2ABICodec().encode_state(rup_collision_state)
+    _, _, rup_collision_fault = _run_encoded_to_same_fault(rup_collision_encoded)
+    assert rup_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
 
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
