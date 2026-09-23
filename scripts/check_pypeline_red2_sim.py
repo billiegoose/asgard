@@ -4805,6 +4805,78 @@ def check() -> None:
         expect_fault=abi.FAULT_GRAPH_ENV_COLLISION,
     )
 
+    # Recursive application equality scans both contiguous APP-prefixes, then
+    # compares the terminal operator first and each prefix descriptor backwards.
+    app_head = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 7, 1, 0, 0, 0
+    )
+    app_target = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 9, 1, 0, 0, 0
+    )
+    app_left = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 120, 0, 0, 0, 0
+    )
+    app_right = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 130, 0, 0, 0, 0
+    )
+    equalstar_app = run_equalstar_child(
+        descriptor=0,
+        left_address_value=100,
+        right_address_value=110,
+        left_word_override=app_left,
+        right_word_override=app_right,
+        memory_overrides={
+            101: app_head, 111: app_head,
+            120: app_target, 130: app_target,
+        },
+    )
+    assert equalstar_app.pc == 41
+    assert equalstar_app.fsp == 45
+    assert equalstar_app.direction == abi.DIRECTION_FORWARD
+    assert equalstar_app.argcnt == 1
+
+    app_var = abi.pack_word(
+        1, abi.MOP_APP_VAR, abi.DATA_SIGNED, 3, 0, 0, 0, 0
+    )
+    equalstar_app_var = run_equalstar_child(
+        descriptor=0,
+        left_address_value=100,
+        right_address_value=110,
+        left_word_override=app_var,
+        right_word_override=app_var,
+        memory_overrides={101: app_head, 111: app_head},
+    )
+    assert equalstar_app_var.pc == 41
+    assert equalstar_app_var.fsp == 45
+    assert equalstar_app_var.direction == abi.DIRECTION_FORWARD
+
+    # Descriptor-mode APP_VAR is normalized to a head VAR rather than treated
+    # as an unsupported hardware case.
+    equalstar_descriptor_app_var = run_equalstar_child(
+        descriptor=1,
+        memory_overrides={10: app_var, 11: app_var},
+    )
+    assert abi.word_field(
+        equalstar_descriptor_app_var.memory[26],
+        abi.WORD_PAYLOAD_SHIFT,
+        abi.WORD_PAYLOAD_BITS,
+    ) == binary_true_id
+
+    # Whole recursive APP build preflights all child tasks and IF wrappers.
+    run_equalstar_child(
+        descriptor=0,
+        left_address_value=100,
+        right_address_value=110,
+        left_word_override=app_left,
+        right_word_override=app_right,
+        memory_overrides={
+            101: app_head, 111: app_head,
+            120: app_target, 130: app_target,
+        },
+        free_space_value=45,
+        expect_fault=abi.FAULT_GRAPH_ENV_COLLISION,
+    )
+
     # Paired LAMBDAs recurse by stripping binders, increasing the bound-variable
     # depth, then rebuilding one private child plus TRUE/FALSE/__EQUAL_IF__/JOIN.
     lambda_word = equality_child_word(abi.MOP_LAMBDA, 0)

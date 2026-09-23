@@ -439,6 +439,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     equality_child_build_join_word: Reg[red2_word_t]
     equality_child_build_root: Reg[uint16_t]
     equality_child_build_descriptor: Reg[uint1_t]
+    equality_child_build_app_mode: Reg[uint1_t]
     equality_child_build_count: Reg[uint16_t]
     equality_child_build_index: Reg[uint16_t]
     equality_child_build_cursor: Reg[uint17_t]
@@ -1098,6 +1099,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 elif equality_child_phase == 28:
                     equality_child_struct_right_cursor_req: uint64_t = equality_child_struct_right_base + equality_child_struct_right_count
                     memory_req.addr = equality_child_struct_right_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                elif equality_child_phase == 30:
+                    equality_child_app_left_cursor_req: uint64_t = equality_child_struct_left_base + equality_child_struct_left_count
+                    memory_req.addr = equality_child_app_left_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                elif equality_child_phase == 31:
+                    equality_child_app_right_cursor_req: uint64_t = equality_child_struct_right_base + equality_child_struct_right_count
+                    memory_req.addr = equality_child_app_right_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
             elif equality_launch_active:
                 equality_launch_control_limit_req: uint17_t = join_frame_index + 3
                 equality_launch_live17_req: uint17_t = equality_launch_live_fsp
@@ -1397,6 +1404,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         equality_child_build_join_word = red2_word_t(lo=0, hi=0)
         equality_child_build_root = 0
         equality_child_build_descriptor = 0
+        equality_child_build_app_mode = 0
         equality_child_build_count = 0
         equality_child_build_index = 0
         equality_child_build_cursor = 0
@@ -1563,6 +1571,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         equality_child_build_join_word = red2_word_t(lo=0, hi=0)
         equality_child_build_root = 0
         equality_child_build_descriptor = 0
+        equality_child_build_app_mode = 0
         equality_child_build_count = 0
         equality_child_build_index = 0
         equality_child_build_cursor = 0
@@ -3318,6 +3327,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_build_join_word = red2_word_t(lo=0, hi=0)
                             equality_child_build_root = 0
                             equality_child_build_descriptor = 0
+                            equality_child_build_app_mode = 0
                             equality_child_build_count = 0
                             equality_child_build_index = 0
                             equality_child_build_cursor = 0
@@ -4632,8 +4642,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_left = memory_out.p0.rd_data.lo
                             equality_child_phase = 6
                     elif equality_child_descriptor and equality_child_word_opcode == MOP_APP_VAR:
-                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                        microstate = MICRO_FAULT
+                        equality_child_left_app_var_signed: uint1_t = equality_child_word_kind == DATA_SIGNED
+                        if not equality_child_left_app_var_signed or equality_child_word_negative:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        else:
+                            equality_child_left_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=112328704)
+                            equality_child_phase = 7
                     else:
                         equality_child_left_word = memory_out.p0.rd_data
                         equality_child_phase = 7
@@ -4669,8 +4684,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_right = memory_out.p0.rd_data.lo
                             equality_child_phase = 8
                     elif equality_child_descriptor and equality_child_word_opcode == MOP_APP_VAR:
-                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                        microstate = MICRO_FAULT
+                        equality_child_right_app_var_signed: uint1_t = equality_child_word_kind == DATA_SIGNED
+                        if not equality_child_right_app_var_signed or equality_child_word_negative:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        else:
+                            equality_child_right_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=112328704)
+                            equality_child_phase = 9
                     else:
                         equality_child_right_word = memory_out.p0.rd_data
                         equality_child_phase = 9
@@ -4897,7 +4917,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             eqc_result_id = join_false_literal_id
                             eqc_result_ready = 1
                         else:
-                            eqc_result_unsupported = 1
+                            equality_child_struct_left_base = equality_child_left
+                            equality_child_struct_right_base = equality_child_right
+                            equality_child_struct_left_count = 0
+                            equality_child_struct_right_count = 0
+                            equality_child_phase = 30
                     elif eqc_any_ep:
                         eqc_both_ep: uint1_t = eqc_left_ep and eqc_right_ep
                         eqc_left_ep_signed: uint1_t = eqc_left_kind == DATA_SIGNED
@@ -5090,6 +5114,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                                 microstate = MICRO_FAULT
                             else:
                                 equality_child_build_descriptor = 0
+                                equality_child_build_app_mode = 0
                                 equality_child_build_count = 1
                                 equality_child_build_index = 0
                                 equality_child_build_cursor = equality_child_join_address
@@ -5111,8 +5136,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     if equality_child_build_more:
                         equality_child_build_index = equality_child_build_next_index
                         equality_child_build_cursor = equality_child_build_cursor + 5
-                        equality_child_left = equality_child_left - 1
-                        equality_child_right = equality_child_right - 1
+                        if equality_child_build_app_mode:
+                            equality_child_build_descriptor = 1
+                            equality_child_app_index64: uint64_t = equality_child_build_next_index
+                            equality_child_app_source_offset: uint64_t = equality_child_struct_left_count - equality_child_app_index64
+                            equality_child_left = equality_child_struct_left_base + equality_child_app_source_offset
+                            equality_child_right = equality_child_struct_right_base + equality_child_app_source_offset
+                        else:
+                            equality_child_left = equality_child_left - 1
+                            equality_child_right = equality_child_right - 1
                         equality_child_phase = 15
                     else:
                         equality_child_build_if_child_root = equality_child_build_cursor
@@ -5314,6 +5346,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_right = equality_child_struct_right_base + equality_child_struct_last_offset
                             equality_child_lambdas = equality_child_lambdas + 1
                             equality_child_build_descriptor = 1
+                            equality_child_build_app_mode = 0
                             equality_child_build_count = equality_child_struct_left_count
                             equality_child_build_index = 0
                             equality_child_build_cursor = equality_child_join_address
@@ -5321,6 +5354,129 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_build_false_root = 0
                             equality_child_build_if_child_root = 0
                             equality_child_phase = 15
+                elif equality_child_phase == 30:
+                    equality_child_app_left_cursor: uint64_t = equality_child_struct_left_base + equality_child_struct_left_count
+                    equality_child_app_left_cursor_ok: uint1_t = equality_child_app_left_cursor[63:GRAPH_ADDR_BITS] == 0
+                    if not equality_child_app_left_cursor_ok:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not equality_child_word_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        equality_child_app_left_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                        equality_child_app_left_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                        equality_child_app_left_inline: uint1_t = equality_child_app_left_opcode == MOP_INT
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_FLOAT
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_CHAR
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_SYM
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_PRIM_0
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_PRIM_1
+                        equality_child_app_left_inline = equality_child_app_left_inline or equality_child_app_left_opcode == MOP_PRIM_2
+                        equality_child_app_left_prefix: uint1_t = equality_child_app_left_opcode == MOP_APP
+                        equality_child_app_left_prefix = equality_child_app_left_prefix or equality_child_app_left_opcode == MOP_APP_VAR
+                        equality_child_app_left_nonhead_inline: uint1_t = not equality_child_app_left_head
+                        equality_child_app_left_nonhead_inline = equality_child_app_left_nonhead_inline and equality_child_app_left_inline
+                        equality_child_app_left_prefix = equality_child_app_left_prefix or equality_child_app_left_nonhead_inline
+                        if equality_child_app_left_prefix:
+                            equality_child_struct_left_count = equality_child_struct_left_count + 1
+                        else:
+                            equality_child_left = equality_child_app_left_cursor
+                            equality_child_phase = 31
+                elif equality_child_phase == 31:
+                    equality_child_app_right_cursor: uint64_t = equality_child_struct_right_base + equality_child_struct_right_count
+                    equality_child_app_right_cursor_ok: uint1_t = equality_child_app_right_cursor[63:GRAPH_ADDR_BITS] == 0
+                    if not equality_child_app_right_cursor_ok:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not equality_child_word_valid:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        equality_child_app_right_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                        equality_child_app_right_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                        equality_child_app_right_inline: uint1_t = equality_child_app_right_opcode == MOP_INT
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_FLOAT
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_CHAR
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_SYM
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_PRIM_0
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_PRIM_1
+                        equality_child_app_right_inline = equality_child_app_right_inline or equality_child_app_right_opcode == MOP_PRIM_2
+                        equality_child_app_right_prefix: uint1_t = equality_child_app_right_opcode == MOP_APP
+                        equality_child_app_right_prefix = equality_child_app_right_prefix or equality_child_app_right_opcode == MOP_APP_VAR
+                        equality_child_app_right_nonhead_inline: uint1_t = not equality_child_app_right_head
+                        equality_child_app_right_nonhead_inline = equality_child_app_right_nonhead_inline and equality_child_app_right_inline
+                        equality_child_app_right_prefix = equality_child_app_right_prefix or equality_child_app_right_nonhead_inline
+                        if equality_child_app_right_prefix:
+                            equality_child_struct_right_count = equality_child_struct_right_count + 1
+                        elif equality_child_struct_left_count != equality_child_struct_right_count:
+                            equality_child_app_false_destination17: uint17_t = equality_child_join_address + 1
+                            equality_child_app_false_ok: uint1_t = equality_child_app_false_destination17[16:GRAPH_ADDR_BITS] == 0
+                            equality_child_app_false_gap: uint17_t = free_space - equality_child_app_false_destination17
+                            equality_child_app_false_wrapped: uint1_t = equality_child_app_false_gap[16]
+                            equality_child_app_false_nonzero: uint1_t = equality_child_app_false_gap != 0
+                            equality_child_app_false_space: uint1_t = equality_child_app_false_wrapped == 0
+                            equality_child_app_false_space = equality_child_app_false_space and equality_child_app_false_nonzero
+                            if join_false_literal_id == 0:
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            elif not equality_child_app_false_ok:
+                                red2_fault = FAULT_INVALID_ADDRESS
+                                microstate = MICRO_FAULT
+                            elif not equality_child_app_false_space:
+                                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                                microstate = MICRO_FAULT
+                            else:
+                                join_publish_word = red2_word_t(lo=join_false_literal_id, hi=91619328)
+                                equality_child_phase = 10
+                        else:
+                            equality_child_right = equality_child_app_right_cursor
+                            equality_child_app_count32: uint32_t = equality_child_struct_left_count
+                            equality_child_app_count32 = equality_child_app_count32 + 1
+                            equality_child_app_span32: uint32_t = equality_child_app_count32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_span32 = equality_child_app_span32 + equality_child_app_count32
+                            equality_child_app_join32: uint32_t = equality_child_join_address
+                            equality_child_app_final32: uint32_t = equality_child_app_join32 + equality_child_app_span32
+                            equality_child_app_final32 = equality_child_app_final32 + 2
+                            equality_child_app_final_ok: uint1_t = equality_child_app_final32[31:GRAPH_ADDR_BITS] == 0
+                            equality_child_app_final17: uint17_t = equality_child_app_final32[16:0]
+                            equality_child_app_gap: uint17_t = free_space - equality_child_app_final17
+                            equality_child_app_gap_wrapped: uint1_t = equality_child_app_gap[16]
+                            equality_child_app_gap_nonzero: uint1_t = equality_child_app_gap != 0
+                            equality_child_app_space_ok: uint1_t = equality_child_app_gap_wrapped == 0
+                            equality_child_app_space_ok = equality_child_app_space_ok and equality_child_app_gap_nonzero
+                            equality_child_app_has_star: uint1_t = join_equal_star_literal_id != 0
+                            equality_child_app_has_true: uint1_t = join_true_literal_id != 0
+                            equality_child_app_has_false: uint1_t = join_false_literal_id != 0
+                            equality_child_app_has_if: uint1_t = join_equal_if_literal_id != 0
+                            equality_child_app_meta_ok: uint1_t = equality_child_app_has_star and equality_child_app_has_true
+                            equality_child_app_meta_ok = equality_child_app_meta_ok and equality_child_app_has_false
+                            equality_child_app_meta_ok = equality_child_app_meta_ok and equality_child_app_has_if
+                            if not equality_child_app_meta_ok:
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            elif not equality_child_app_final_ok:
+                                red2_fault = FAULT_INVALID_ADDRESS
+                                microstate = MICRO_FAULT
+                            elif not equality_child_app_space_ok:
+                                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                                microstate = MICRO_FAULT
+                            else:
+                                equality_child_build_descriptor = 0
+                                equality_child_build_app_mode = 1
+                                equality_child_build_count = equality_child_struct_left_count + 1
+                                equality_child_build_index = 0
+                                equality_child_build_cursor = equality_child_join_address
+                                equality_child_build_root = 0
+                                equality_child_build_false_root = 0
+                                equality_child_build_if_child_root = 0
+                                equality_child_phase = 15
                 else:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
