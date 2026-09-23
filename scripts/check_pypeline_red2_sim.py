@@ -4850,6 +4850,43 @@ def check() -> None:
     assert equalstar_app_var.fsp == 45
     assert equalstar_app_var.direction == abi.DIRECTION_FORWARD
 
+    # Unequal prefix lengths resolve FALSE before any private child graph is built.
+    app_two_left = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 121, 0, 0, 0, 0
+    )
+    equalstar_app_count_mismatch = run_equalstar_child(
+        descriptor=0,
+        left_address_value=100,
+        right_address_value=110,
+        left_word_override=app_two_left,
+        right_word_override=app_right,
+        memory_overrides={
+            101: app_left, 102: app_head,
+            111: app_head,
+            120: app_target, 121: app_target, 130: app_target,
+        },
+    )
+    assert abi.word_field(
+        equalstar_app_count_mismatch.memory[26],
+        abi.WORD_PAYLOAD_SHIFT,
+        abi.WORD_PAYLOAD_BITS,
+    ) == binary_false_id
+
+    # APP_VAR descriptor normalization is symmetric and rejects a bound-index mismatch.
+    app_var_other = abi.pack_word(
+        1, abi.MOP_APP_VAR, abi.DATA_SIGNED, 4, 0, 0, 0, 0
+    )
+    equalstar_descriptor_app_var_mismatch = run_equalstar_child(
+        descriptor=1,
+        lambdas_value=5,
+        memory_overrides={10: app_var_other, 11: app_var},
+    )
+    assert abi.word_field(
+        equalstar_descriptor_app_var_mismatch.memory[26],
+        abi.WORD_PAYLOAD_SHIFT,
+        abi.WORD_PAYLOAD_BITS,
+    ) == binary_false_id
+
     # Descriptor-mode APP_VAR is normalized to a head VAR rather than treated
     # as an unsupported hardware case.
     equalstar_descriptor_app_var = run_equalstar_child(
