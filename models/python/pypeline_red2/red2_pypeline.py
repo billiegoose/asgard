@@ -439,6 +439,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     equality_child_build_join_word: Reg[red2_word_t]
     equality_child_build_root: Reg[uint16_t]
     equality_child_build_descriptor: Reg[uint1_t]
+    equality_child_build_count: Reg[uint16_t]
+    equality_child_build_index: Reg[uint16_t]
+    equality_child_build_cursor: Reg[uint17_t]
+    equality_child_build_false_root: Reg[uint16_t]
+    equality_child_build_if_child_root: Reg[uint17_t]
     equality_child_struct_left_base: Reg[uint64_t]
     equality_child_struct_right_base: Reg[uint64_t]
     equality_child_struct_left_count: Reg[uint16_t]
@@ -1032,64 +1037,59 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 elif equality_child_phase == 14:
                     memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1 : 0]
                 elif equality_child_phase == 15:
-                    memory_req.addr = equality_child_join_address[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=equality_child_left, hi=84017152)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 16:
-                    equality_child_build_addr16: uint17_t = equality_child_join_address + 1
+                    equality_child_build_addr16: uint17_t = equality_child_build_cursor + 1
                     memory_req.addr = equality_child_build_addr16[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=equality_child_right, hi=84017152)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 17:
-                    equality_child_build_addr17: uint17_t = equality_child_join_address + 2
+                    equality_child_build_addr17: uint17_t = equality_child_build_cursor + 2
                     memory_req.addr = equality_child_build_addr17[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=equality_child_lambdas, hi=84017152)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 18:
-                    equality_child_build_addr18: uint17_t = equality_child_join_address + 3
+                    equality_child_build_addr18: uint17_t = equality_child_build_cursor + 3
                     memory_req.addr = equality_child_build_addr18[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=equality_child_build_descriptor, hi=84017152)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 19:
-                    equality_child_build_addr19: uint17_t = equality_child_join_address + 4
+                    equality_child_build_addr19: uint17_t = equality_child_build_cursor + 4
                     memory_req.addr = equality_child_build_addr19[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=join_equal_star_literal_id, hi=93716480)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 20:
-                    equality_child_build_addr20: uint17_t = equality_child_join_address + 5
-                    memory_req.addr = equality_child_build_addr20[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=join_true_literal_id, hi=91619328)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 21:
-                    equality_child_build_addr21: uint17_t = equality_child_join_address + 6
+                    equality_child_build_addr21: uint17_t = equality_child_build_cursor + 1
                     memory_req.addr = equality_child_build_addr21[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=join_false_literal_id, hi=91619328)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 22:
-                    equality_child_build_addr22: uint17_t = equality_child_join_address + 7
-                    equality_child_false_root22: uint17_t = equality_child_join_address + 6
-                    memory_req.addr = equality_child_build_addr22[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_false_root22, hi=69337088)
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.wr_data = red2_word_t(lo=equality_child_build_false_root, hi=69337088)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 23:
-                    equality_child_build_addr23: uint17_t = equality_child_join_address + 8
-                    equality_child_true_root23: uint17_t = equality_child_join_address + 5
+                    equality_child_build_addr23: uint17_t = equality_child_build_cursor + 1
                     memory_req.addr = equality_child_build_addr23[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_true_root23, hi=69337088)
+                    memory_req.wr_data = red2_word_t(lo=equality_child_build_root, hi=69337088)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 24:
-                    equality_child_build_addr24: uint17_t = equality_child_join_address + 9
+                    equality_child_build_addr24: uint17_t = equality_child_build_cursor + 2
                     memory_req.addr = equality_child_build_addr24[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_join_address, hi=69337088)
+                    memory_req.wr_data = red2_word_t(lo=equality_child_build_if_child_root, hi=69337088)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 25:
-                    equality_child_build_addr25: uint17_t = equality_child_join_address + 10
+                    equality_child_build_addr25: uint17_t = equality_child_build_cursor + 3
                     memory_req.addr = equality_child_build_addr25[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = red2_word_t(lo=join_equal_if_literal_id, hi=93716480)
                     memory_req.wr_en = 1
                 elif equality_child_phase == 26:
-                    equality_child_build_addr26: uint17_t = equality_child_join_address + 11
-                    memory_req.addr = equality_child_build_addr26[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = equality_child_build_join_word
                     memory_req.wr_en = 1
                 elif equality_child_phase == 27:
@@ -1397,6 +1397,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         equality_child_build_join_word = red2_word_t(lo=0, hi=0)
         equality_child_build_root = 0
         equality_child_build_descriptor = 0
+        equality_child_build_count = 0
+        equality_child_build_index = 0
+        equality_child_build_cursor = 0
+        equality_child_build_false_root = 0
+        equality_child_build_if_child_root = 0
         equality_child_struct_left_base = 0
         equality_child_struct_right_base = 0
         equality_child_struct_left_count = 0
@@ -1558,6 +1563,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         equality_child_build_join_word = red2_word_t(lo=0, hi=0)
         equality_child_build_root = 0
         equality_child_build_descriptor = 0
+        equality_child_build_count = 0
+        equality_child_build_index = 0
+        equality_child_build_cursor = 0
+        equality_child_build_false_root = 0
+        equality_child_build_if_child_root = 0
         equality_child_struct_left_base = 0
         equality_child_struct_right_base = 0
         equality_child_struct_left_count = 0
@@ -3308,6 +3318,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             equality_child_build_join_word = red2_word_t(lo=0, hi=0)
                             equality_child_build_root = 0
                             equality_child_build_descriptor = 0
+                            equality_child_build_count = 0
+                            equality_child_build_index = 0
+                            equality_child_build_cursor = 0
+                            equality_child_build_false_root = 0
+                            equality_child_build_if_child_root = 0
                             equality_child_struct_left_base = 0
                             equality_child_struct_right_base = 0
                             equality_child_struct_left_count = 0
@@ -5075,7 +5090,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                                 microstate = MICRO_FAULT
                             else:
                                 equality_child_build_descriptor = 0
-                                equality_child_build_root = equality_child_join_address + 7
+                                equality_child_build_count = 1
+                                equality_child_build_index = 0
+                                equality_child_build_cursor = equality_child_join_address
+                                equality_child_build_root = 0
+                                equality_child_build_false_root = 0
+                                equality_child_build_if_child_root = 0
                                 equality_child_phase = 15
                 elif equality_child_phase == 15:
                     equality_child_phase = 16
@@ -5086,10 +5106,26 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 elif equality_child_phase == 18:
                     equality_child_phase = 19
                 elif equality_child_phase == 19:
-                    equality_child_phase = 20
+                    equality_child_build_next_index: uint16_t = equality_child_build_index + 1
+                    equality_child_build_more: uint1_t = equality_child_build_next_index != equality_child_build_count
+                    if equality_child_build_more:
+                        equality_child_build_index = equality_child_build_next_index
+                        equality_child_build_cursor = equality_child_build_cursor + 5
+                        equality_child_left = equality_child_left - 1
+                        equality_child_right = equality_child_right - 1
+                        equality_child_phase = 15
+                    else:
+                        equality_child_build_if_child_root = equality_child_build_cursor
+                        equality_child_build_cursor = equality_child_build_cursor + 5
+                        equality_child_phase = 20
                 elif equality_child_phase == 20:
                     equality_child_phase = 21
                 elif equality_child_phase == 21:
+                    equality_child_build_root = equality_child_build_cursor[15:0]
+                    equality_child_build_false_root17: uint17_t = equality_child_build_cursor + 1
+                    equality_child_build_false_root = equality_child_build_false_root17[15:0]
+                    equality_child_build_index = equality_child_build_count
+                    equality_child_build_cursor = equality_child_build_cursor + 2
                     equality_child_phase = 22
                 elif equality_child_phase == 22:
                     equality_child_phase = 23
@@ -5098,11 +5134,17 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 elif equality_child_phase == 24:
                     equality_child_phase = 25
                 elif equality_child_phase == 25:
-                    equality_child_phase = 26
+                    equality_child_build_root = equality_child_build_cursor[15:0]
+                    equality_child_build_cursor = equality_child_build_cursor + 4
+                    if equality_child_build_index == 1:
+                        equality_child_phase = 26
+                    else:
+                        equality_child_build_index = equality_child_build_index - 1
+                        equality_child_build_if_child_root = equality_child_build_if_child_root - 5
+                        equality_child_phase = 22
                 elif equality_child_phase == 26:
-                    equality_child_lambda_final_fsp17: uint17_t = equality_child_join_address + 11
                     pc = equality_child_build_root
-                    fsp = equality_child_lambda_final_fsp17[15:0]
+                    fsp = equality_child_build_cursor[15:0]
                     argcnt = 1
                     direction = DIRECTION_FORWARD
                     prim_id = 0
@@ -5229,9 +5271,21 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         else:
                             join_publish_word = red2_word_t(lo=join_true_literal_id, hi=91619328)
                             equality_child_phase = 10
-                    elif equality_child_struct_left_count == 1:
-                        equality_child_struct_final17: uint17_t = equality_child_join_address + 11
-                        equality_child_struct_final_ok: uint1_t = equality_child_struct_final17[16:GRAPH_ADDR_BITS] == 0
+                    else:
+                        equality_child_struct_count32: uint32_t = equality_child_struct_left_count
+                        equality_child_struct_span32: uint32_t = equality_child_struct_count32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_span32 = equality_child_struct_span32 + equality_child_struct_count32
+                        equality_child_struct_join32: uint32_t = equality_child_join_address
+                        equality_child_struct_final32: uint32_t = equality_child_struct_join32 + equality_child_struct_span32
+                        equality_child_struct_final32 = equality_child_struct_final32 + 2
+                        equality_child_struct_final_ok: uint1_t = equality_child_struct_final32[31:GRAPH_ADDR_BITS] == 0
+                        equality_child_struct_final17: uint17_t = equality_child_struct_final32[16:0]
                         equality_child_struct_gap: uint17_t = free_space - equality_child_struct_final17
                         equality_child_struct_gap_wrapped: uint1_t = equality_child_struct_gap[16]
                         equality_child_struct_gap_nonzero: uint1_t = equality_child_struct_gap != 0
@@ -5254,15 +5308,19 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             red2_fault = FAULT_GRAPH_ENV_COLLISION
                             microstate = MICRO_FAULT
                         else:
-                            equality_child_left = equality_child_struct_left_base
-                            equality_child_right = equality_child_struct_right_base
+                            equality_child_struct_count64: uint64_t = equality_child_struct_left_count
+                            equality_child_struct_last_offset: uint64_t = equality_child_struct_count64 - 1
+                            equality_child_left = equality_child_struct_left_base + equality_child_struct_last_offset
+                            equality_child_right = equality_child_struct_right_base + equality_child_struct_last_offset
                             equality_child_lambdas = equality_child_lambdas + 1
                             equality_child_build_descriptor = 1
-                            equality_child_build_root = equality_child_join_address + 7
+                            equality_child_build_count = equality_child_struct_left_count
+                            equality_child_build_index = 0
+                            equality_child_build_cursor = equality_child_join_address
+                            equality_child_build_root = 0
+                            equality_child_build_false_root = 0
+                            equality_child_build_if_child_root = 0
                             equality_child_phase = 15
-                    else:
-                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                        microstate = MICRO_FAULT
                 else:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
