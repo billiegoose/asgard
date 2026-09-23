@@ -214,6 +214,16 @@ MICRO_RECP_VALIDATE_REC = 72
 MICRO_RECP_VALIDATE_CONTEXT = 73
 MICRO_RECP_VALIDATE_BLOCK = 74
 MICRO_RECP_ACTION = 75
+MICRO_RECP_RECON_SCAN = 76
+MICRO_RECP_RECON_PREFLIGHT = 77
+MICRO_RECP_RECON_MARKER = 78
+MICRO_RECP_RECON_UBV = 79
+MICRO_RECP_RECON_COPY_READ = 80
+MICRO_RECP_RECON_COPY_WRITE = 81
+MICRO_RECP_RECON_PATH = 82
+MICRO_RECP_RECON_RUP_READ = 83
+MICRO_RECP_RECON_RUP_WRITE = 84
+MICRO_RECP_RECON_VAR_WRITE = 85
 
 
 @struct
@@ -401,6 +411,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     recp_binding: Reg[uint64_t]
     recp_context: Reg[uint64_t]
     recp_block: Reg[uint64_t]
+    recp_count: Reg[uint16_t]
+    recp_index: Reg[uint16_t]
+    recp_selected: Reg[uint16_t]
+    recp_replacement: Reg[uint17_t]
+    recp_parent_environment: Reg[uint17_t]
+    recp_copy_word: Reg[red2_word_t]
+    recp_rup_word: Reg[red2_word_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -650,6 +667,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_recp_validate_context: uint1_t = microstate == MICRO_RECP_VALIDATE_CONTEXT
     micro_is_recp_validate_block: uint1_t = microstate == MICRO_RECP_VALIDATE_BLOCK
     micro_is_recp_action: uint1_t = microstate == MICRO_RECP_ACTION
+    micro_is_recp_recon_scan: uint1_t = microstate == MICRO_RECP_RECON_SCAN
+    micro_is_recp_recon_preflight: uint1_t = microstate == MICRO_RECP_RECON_PREFLIGHT
+    micro_is_recp_recon_marker: uint1_t = microstate == MICRO_RECP_RECON_MARKER
+    micro_is_recp_recon_ubv: uint1_t = microstate == MICRO_RECP_RECON_UBV
+    micro_is_recp_recon_copy_read: uint1_t = microstate == MICRO_RECP_RECON_COPY_READ
+    micro_is_recp_recon_copy_write: uint1_t = microstate == MICRO_RECP_RECON_COPY_WRITE
+    micro_is_recp_recon_path: uint1_t = microstate == MICRO_RECP_RECON_PATH
+    micro_is_recp_recon_rup_read: uint1_t = microstate == MICRO_RECP_RECON_RUP_READ
+    micro_is_recp_recon_rup_write: uint1_t = microstate == MICRO_RECP_RECON_RUP_WRITE
+    micro_is_recp_recon_var_write: uint1_t = microstate == MICRO_RECP_RECON_VAR_WRITE
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -902,6 +929,53 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     lo=recp_context_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
                 )
                 control_req.wr_en = 1
+        elif micro_is_recp_recon_scan:
+            recp_scan_count64_req: uint64_t = recp_count
+            recp_scan_address64_req: uint64_t = recp_block + recp_scan_count64_req
+            memory_req.addr = recp_scan_address64_req[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_recp_recon_marker:
+            recp_parent_payload_req: uint64_t = recp_parent_environment
+            recp_marker_address_req: uint17_t = free_space - 1
+            memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=recp_parent_payload_req, hi=113377280)
+            memory_req.wr_en = 1
+        elif micro_is_recp_recon_ubv:
+            recp_ubv_address_req: uint17_t = free_space - 1
+            recp_ubv_payload_req: uint64_t = phi + 1
+            memory_req.addr = recp_ubv_address_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=recp_ubv_payload_req, hi=109182976)
+            memory_req.wr_en = 1
+        elif micro_is_recp_recon_copy_read:
+            recp_copy_index64_req: uint64_t = recp_index
+            recp_copy_source64_req: uint64_t = recp_block + recp_copy_index64_req
+            memory_req.addr = recp_copy_source64_req[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_recp_recon_copy_write:
+            recp_copy_destination_req: uint17_t = fsp + 1
+            memory_req.addr = recp_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = recp_copy_word
+            memory_req.wr_en = 1
+        elif micro_is_recp_recon_path:
+            recp_replacement_payload_req: uint64_t = recp_replacement
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(
+                lo=recp_replacement_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
+            )
+            control_req.wr_en = 1
+        elif micro_is_recp_recon_rup_read:
+            recp_rup_count64_req: uint64_t = recp_count
+            recp_rup_address64_req: uint64_t = recp_block + recp_rup_count64_req
+            memory_req.addr = recp_rup_address64_req[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_recp_recon_rup_write:
+            recp_rup_destination_req: uint17_t = fsp + 1
+            memory_req.addr = recp_rup_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = recp_rup_word
+            memory_req.wr_en = 1
+        elif micro_is_recp_recon_var_write:
+            recp_var_destination_req: uint17_t = fsp + 1
+            recp_selected_payload_req: uint64_t = recp_selected
+            memory_req.addr = recp_var_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=recp_selected_payload_req, hi=112328704)
+            memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1493,6 +1567,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_binding = 0
         recp_context = 0
         recp_block = 0
+        recp_count = 0
+        recp_index = 0
+        recp_selected = 0
+        recp_replacement = 0
+        recp_parent_environment = 0
+        recp_copy_word = red2_word_t(lo=0, hi=0)
+        recp_rup_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1669,6 +1750,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_binding = 0
         recp_context = 0
         recp_block = 0
+        recp_count = 0
+        recp_index = 0
+        recp_selected = 0
+        recp_replacement = 0
+        recp_parent_environment = 0
+        recp_copy_word = red2_word_t(lo=0, hi=0)
+        recp_rup_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1825,6 +1913,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_binding = 0
             recp_context = 0
             recp_block = 0
+            recp_count = 0
+            recp_index = 0
+            recp_selected = 0
+            recp_replacement = 0
+            recp_parent_environment = 0
+            recp_copy_word = red2_word_t(lo=0, hi=0)
+            recp_rup_word = red2_word_t(lo=0, hi=0)
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -7415,10 +7510,20 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         microstate = MICRO_RECP_ACTION
                 elif q == 0:
-                    # Reconstruction is the next RECP slice.  Keep the direct
-                    # cases honest rather than approximating zero-quantum RED2.
-                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                    microstate = MICRO_FAULT
+                    if recp_forward_now:
+                        recp_count = 0
+                        recp_index = 0
+                        recp_selected = 0
+                        recp_replacement = 0
+                        recp_parent_environment = 0
+                        recp_copy_word = red2_word_t(lo=0, hi=0)
+                        recp_rup_word = red2_word_t(lo=0, hi=0)
+                        microstate = MICRO_RECP_RECON_SCAN
+                    else:
+                        # Reverse q=0 first enters a RECP-parent subgraph; that
+                        # serializer is the next slice built on this recon path.
+                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                        microstate = MICRO_FAULT
                 elif recp_forward_now:
                     recp_context_negative: uint1_t = recp_context[63]
                     recp_context_upper_nonzero: uint1_t = recp_context[62:GRAPH_ADDR_BITS] != 0
@@ -7469,6 +7574,204 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_FAULT
                     else:
                         microstate = MICRO_RECP_ACTION
+        elif micro_is_recp_recon_scan:
+            recp_scan_count64: uint64_t = recp_count
+            recp_scan_address64: uint64_t = recp_block + recp_scan_count64
+            recp_scan_address_bad: uint1_t = recp_scan_address64[63:GRAPH_ADDR_BITS] != 0
+            recp_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            recp_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            recp_scan_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            recp_scan_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            recp_scan_is_rblock: uint1_t = recp_scan_opcode == MOP_RBLOCK
+            recp_scan_is_rup: uint1_t = recp_scan_opcode == MOP_RUP
+            if recp_scan_address_bad:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not recp_scan_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif recp_scan_is_rblock:
+                recp_scan_payload_bad: uint1_t = recp_scan_kind != DATA_SIGNED
+                recp_scan_payload_bad = recp_scan_payload_bad or recp_scan_negative
+                recp_next_count: uint16_t = recp_count + 1
+                if recp_scan_payload_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_next_count[15:GRAPH_ADDR_BITS] != 0:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    recp_count = recp_next_count
+            elif recp_count == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                recp_rup_count_match: uint1_t = recp_scan_kind == DATA_SIGNED
+                recp_rup_count_match = recp_rup_count_match and recp_scan_is_rup
+                recp_rup_count_match = recp_rup_count_match and (memory_out.p0.rd_data.lo == recp_count)
+                recp_address64: uint64_t = fetched_word.lo
+                recp_context_negative_scan: uint1_t = recp_context[63]
+                recp_context_upper_scan: uint1_t = recp_context[62:GRAPH_ADDR_BITS] != 0
+                recp_selected_delta64: uint64_t = recp_address64 - recp_context
+                recp_selected_ge_context: uint1_t = red2_u64_ge(recp_address64, recp_context)
+                recp_selected_wrapped: uint1_t = recp_selected_ge_context == 0
+                recp_selected_div: red2_u64_divmod_t = red2_u64_divmod(recp_selected_delta64, 3)
+                recp_selected_remainder_bad: uint1_t = recp_selected_div.r != 0
+                recp_selected_upper_bad: uint1_t = recp_selected_div.q[63:16] != 0
+                recp_selected16: uint16_t = recp_selected_div.q[15:0]
+                recp_selected_outside: uint1_t = red2_u64_ge(recp_selected_div.q, recp_count)
+                if not recp_rup_count_match:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif recp_context_negative_scan:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_context_upper_scan:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_selected_wrapped:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_selected_remainder_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_selected_upper_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif recp_selected_outside:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    recp_selected = recp_selected16
+                    microstate = MICRO_RECP_RECON_PREFLIGHT
+        elif micro_is_recp_recon_preflight:
+            recp_count17: uint17_t = recp_count
+            recp_count64: uint64_t = recp_count
+            recp_parent64: uint64_t = recp_context + recp_count64 + recp_count64 + recp_count64
+            recp_parent_low: uint1_t = recp_parent64[63:17] == 0
+            recp_parent17: uint17_t = recp_parent64[16:0]
+            recp_parent_end: uint1_t = recp_parent17 == GRAPH_WORDS
+            recp_parent_address: uint1_t = recp_parent17[16:GRAPH_ADDR_BITS] == 0
+            recp_parent_valid: uint1_t = recp_parent_low and (recp_parent_address or recp_parent_end)
+            recp_fsp_valid_pre: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+            recp_free_low_pre: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+            recp_free_end_pre: uint1_t = free_space == GRAPH_WORDS
+            recp_free_valid_pre: uint1_t = recp_free_low_pre or recp_free_end_pre
+            recp_env_words: uint17_t = recp_count17 + 1
+            recp_env_base: uint17_t = free_space - recp_env_words
+            recp_env_gap: uint17_t = recp_env_base - fsp
+            recp_env_wrapped: uint1_t = recp_env_gap[16]
+            recp_env_nonzero: uint1_t = recp_env_gap != 0
+            recp_env_space_ok: uint1_t = recp_env_wrapped == 0
+            recp_env_space_ok = recp_env_space_ok and recp_env_nonzero
+            recp_copy_end: uint17_t = fsp + recp_count17
+            recp_copy_gap: uint17_t = recp_env_base - recp_copy_end
+            recp_copy_wrapped: uint1_t = recp_copy_gap[16]
+            recp_copy_nonzero: uint1_t = recp_copy_gap != 0
+            recp_copy_space_ok: uint1_t = recp_copy_wrapped == 0
+            recp_copy_space_ok = recp_copy_space_ok and recp_copy_nonzero
+            recp_control_low_pre: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            recp_control_end_pre: uint1_t = control_top == CONTROL_WORDS
+            recp_control_valid_pre: uint1_t = recp_control_low_pre or recp_control_end_pre
+            recp_control_room: uint17_t = CONTROL_WORDS - control_top
+            recp_control_gap: uint17_t = recp_control_room - recp_count17
+            recp_control_wrapped: uint1_t = recp_control_gap[16]
+            recp_control_room_ok: uint1_t = recp_control_wrapped == 0
+            recp_finish_end: uint17_t = recp_copy_end + 2
+            recp_finish_gap: uint17_t = recp_env_base - recp_finish_end
+            recp_finish_wrapped: uint1_t = recp_finish_gap[16]
+            recp_finish_nonzero: uint1_t = recp_finish_gap != 0
+            recp_finish_space_ok: uint1_t = recp_finish_wrapped == 0
+            recp_finish_space_ok = recp_finish_space_ok and recp_finish_nonzero
+            if not recp_fsp_valid_pre:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not recp_free_valid_pre:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            elif not recp_parent_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not recp_env_space_ok:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            elif not recp_copy_space_ok:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            elif not recp_control_valid_pre:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not recp_control_room_ok:
+                red2_fault = FAULT_CONTROL_OVERFLOW
+                microstate = MICRO_FAULT
+            elif not recp_finish_space_ok:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            else:
+                recp_parent_environment = recp_parent17
+                recp_index = 0
+                microstate = MICRO_RECP_RECON_MARKER
+        elif micro_is_recp_recon_marker:
+            recp_marker_new_env: uint17_t = free_space - 1
+            env = recp_marker_new_env
+            free_space = recp_marker_new_env
+            recp_index = 0
+            microstate = MICRO_RECP_RECON_UBV
+        elif micro_is_recp_recon_ubv:
+            recp_ubv_new_env: uint17_t = free_space - 1
+            phi = phi + 1
+            env = recp_ubv_new_env
+            free_space = recp_ubv_new_env
+            recp_next_ubv_index: uint16_t = recp_index + 1
+            if recp_next_ubv_index == recp_count:
+                recp_replacement = recp_ubv_new_env
+                recp_index = 0
+                microstate = MICRO_RECP_RECON_COPY_READ
+            else:
+                recp_index = recp_next_ubv_index
+        elif micro_is_recp_recon_copy_read:
+            recp_copy_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            recp_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            if not recp_copy_valid:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif recp_copy_opcode != MOP_RBLOCK:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                recp_copy_word = memory_out.p0.rd_data
+                microstate = MICRO_RECP_RECON_COPY_WRITE
+        elif micro_is_recp_recon_copy_write:
+            fsp = fsp + 1
+            argcnt = argcnt + 1
+            recp_next_copy_index: uint16_t = recp_index + 1
+            if recp_next_copy_index == recp_count:
+                recp_index = 0
+                microstate = MICRO_RECP_RECON_PATH
+            else:
+                recp_index = recp_next_copy_index
+                microstate = MICRO_RECP_RECON_COPY_READ
+        elif micro_is_recp_recon_path:
+            control_top = control_top + 1
+            recp_next_path_index: uint16_t = recp_index + 1
+            if recp_next_path_index == recp_count:
+                recp_index = 0
+                microstate = MICRO_RECP_RECON_RUP_READ
+            else:
+                recp_index = recp_next_path_index
+        elif micro_is_recp_recon_rup_read:
+            recp_rup_word = memory_out.p0.rd_data
+            microstate = MICRO_RECP_RECON_RUP_WRITE
+        elif micro_is_recp_recon_rup_write:
+            fsp = fsp + 1
+            argcnt = argcnt + 1
+            microstate = MICRO_RECP_RECON_VAR_WRITE
+        elif micro_is_recp_recon_var_write:
+            pc = fsp
+            fsp = fsp + 1
+            argcnt = argcnt + 1
+            direction = DIRECTION_REVERSE
+            microstate = MICRO_COMMIT
         elif micro_is_recp_action:
             recp_action_forward: uint1_t = direction == DIRECTION_FORWARD
             if recp_action_forward:

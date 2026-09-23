@@ -6784,6 +6784,98 @@ def check() -> None:
     recp_read = sim_call(red2_processor_top, _command(CMD_NOP, address=0))
     assert _packed_control_read(recp_read) == recp_reverse_expected.control_stack[0]
 
+    # Head RECP at q=0 reconstructs the recursive wrapper: parent PNP marker,
+    # one UBV per binding, copied RBLOCKs, replacement paths, matching RUP, and
+    # a head VAR selecting this REC's index.  Publication ends in reverse mode.
+    recp_zero_memory: list[Word | None] = [None] * 40
+    recp_zero_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    recp_zero_memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    recp_zero_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    recp_zero_memory[3] = Word(MuredOpcode.VAR, 1, True)
+    recp_zero_memory[4] = Word(MuredOpcode.SYM, "x", False)
+    recp_zero_memory[5] = Word(MuredOpcode.VAR, 0, True)
+    recp_zero_memory[6] = Word(MuredOpcode.SYM, "y", False)
+    recp_zero_memory[7] = Word(MuredOpcode.VAR, 1, True)
+    recp_zero_memory[8] = Word(MuredOpcode.RECP, 31, True)
+    recp_zero_memory[12] = Word(MuredOpcode.STOP)
+    recp_zero_memory[28] = Word(MuredOpcode.REC, 7, False)
+    recp_zero_memory[29] = Word(None, 28, False)
+    recp_zero_memory[30] = Word(None, 0, False)
+    recp_zero_memory[31] = Word(MuredOpcode.REC, 5, False)
+    recp_zero_memory[32] = Word(None, 28, False)
+    recp_zero_memory[33] = Word(None, 0, False)
+    recp_zero_machine = MuredMachine(
+        MuredMachineState(
+            memory=recp_zero_memory,
+            control_stack=[None] * 10,
+            pc=8,
+            fsp=12,
+            env=28,
+            c=-1,
+            direction=Direction.F,
+            q=0,
+            phi=0,
+            free_space=28,
+            argcnt=0,
+        )
+    )
+    _, recp_zero_expected = _run_bounded_to_same_commit(
+        recp_zero_machine, RED2ABICodec()
+    )
+    assert recp_zero_expected.pc == 15
+    assert recp_zero_expected.fsp == 16
+    assert recp_zero_expected.env == 25
+    assert recp_zero_expected.free_space == 25
+    assert recp_zero_expected.direction == abi.DIRECTION_REVERSE
+    assert recp_zero_expected.q == 0
+    assert recp_zero_expected.phi == 2
+    for address in (13, 14, 15, 16, 25, 26, 27):
+        recp_zero_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(recp_zero_read) == recp_zero_expected.memory[address]
+    for address in (0, 1):
+        recp_zero_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=address)
+        )
+        assert _packed_control_read(recp_zero_read) == recp_zero_expected.control_stack[address]
+
+    # Fault precedence follows the reconstruction phases.  With fsp=21 the
+    # marker/UBVs and both RBLOCK copies fit, while the final RUP+VAR do not.
+    # If only one control slot remains, CONTROL_OVERFLOW must therefore win
+    # before the later graph collision, and no reconstruction writes may land.
+    recp_zero_precedence_state = MuredMachineState(
+        memory=list(recp_zero_memory),
+        control_stack=[None] * CONTROL_WORDS,
+        pc=8,
+        fsp=21,
+        env=28,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        free_space=28,
+        argcnt=0,
+    )
+    recp_zero_precedence_encoded = RED2ABICodec().encode_state(
+        recp_zero_precedence_state
+    )
+    recp_zero_precedence_control = list(recp_zero_precedence_encoded.control_stack)
+    for control_index in range(CONTROL_WORDS - 1):
+        recp_zero_precedence_control[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    recp_zero_precedence_encoded = replace(
+        recp_zero_precedence_encoded,
+        control_stack=tuple(recp_zero_precedence_control),
+        c=CONTROL_WORDS - 1,
+    )
+    _, recp_zero_precedence_expected, recp_zero_precedence_fault = (
+        _run_encoded_to_same_fault(recp_zero_precedence_encoded)
+    )
+    assert recp_zero_precedence_fault == abi.FAULT_CONTROL_OVERFLOW
+    assert recp_zero_precedence_expected == recp_zero_precedence_encoded
+
     # All direct RECP writes are post-validation: malformed REC/context records,
     # graph collisions, and a full control stack fault without publishing a
     # partial APP, PNP marker, or graph result.
