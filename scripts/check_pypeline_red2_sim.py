@@ -306,14 +306,16 @@ def _with_control_entry(encoded, entry: int, *, index: int = 0):
     return replace(encoded, control_stack=tuple(control_stack), c=index + 1)
 
 
-def _run_encoded_to_same_commit(encoded) -> tuple[object, object]:
+def _run_encoded_to_same_commit(
+    encoded, *, max_clocks: int = 32
+) -> tuple[object, object]:
     processor = Red2Processor(encoded)
     _load_hardware(encoded)
     assert processor.run_to_commit(), "Python RED2 oracle failed to reach a commit"
     expected = processor.checkpoint()
 
     result = None
-    for _ in range(32):
+    for _ in range(max_clocks):
         result = sim_call(red2_processor_top, _command(CMD_CLOCK))
         assert int(result.status) != STATUS_FAULT, (
             f"hardware faulted before commit: red2={int(result.red2_fault)} "
@@ -3164,7 +3166,13 @@ def check() -> None:
     # q==0 suppresses primitive dispatch even when the restored countdown is 1.
     # The JOIN still publishes normally, then clears prim/fire.
     saved_fire_one_qzero = replace(saved_primitive_join_encoded(77, 1), q=0)
-    result, expected = _run_encoded_to_same_commit(saved_fire_one_qzero)
+    # q==0 fire==1 now performs the bounded literal-metadata scan needed to
+    # distinguish the private selector-result continuation from ordinary
+    # exhausted primitives.  With 64 metadata slots this path commits in 72
+    # native clocks, so give this regression an explicit bounded allowance.
+    result, expected = _run_encoded_to_same_commit(
+        saved_fire_one_qzero, max_clocks=96
+    )
     assert expected.q == 0
     assert expected.prim_id == 0 and expected.fire == 0
     assert int(result.q) == 0
@@ -7811,7 +7819,9 @@ def check() -> None:
     # Returning __STRUCT_SELECTOR_RESULT__ on an atomic value is a zero-charge
     # continuation: ordinary JOIN publication writes the selected value at the
     # parent, then the private primitive clears without consuming more quantum.
-    def run_selector_result_atomic_case(selected_word: Word) -> object:
+    def run_selector_result_atomic_case(
+        selected_word: Word, *, q_value: int = 5
+    ) -> object:
         result_memory: list[Word | None] = [None] * 32
         result_control: list[object | None] = [None] * 8
         result_memory[3] = Word(MuredOpcode.APP, 5, False)
@@ -7832,7 +7842,7 @@ def check() -> None:
             free_space=28,
             c=0,
             direction=Direction.B,
-            q=5,
+            q=q_value,
             phi=0,
             argcnt=0,
         )
@@ -7861,7 +7871,7 @@ def check() -> None:
             raise AssertionError("selector-result atomic failed to reach bounded commit")
         assert result is not None
         _assert_scalar_checkpoint(result, result_expected)
-        assert result_expected.q == 5
+        assert result_expected.q == q_value
         assert result_expected.pc == 2
         assert result_expected.fsp == 3
         for result_address in range(3, 6):
@@ -7883,6 +7893,13 @@ def check() -> None:
     assert selector_result_int_expected.memory[3] == RED2ABICodec().encode_word(
         Word(MuredOpcode.INT, 7, True)
     )
+    selector_result_int_q0_expected = run_selector_result_atomic_case(
+        Word(MuredOpcode.INT, 7, True), q_value=0
+    )
+    assert selector_result_int_q0_expected.q == 0
+    assert selector_result_int_q0_expected.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 7, True)
+    )
     # PRIM_1 is deliberately included: generic single-word JOIN publication did
     # not previously accept primitive literals, while selector-result must clone
     # every supported inline non-APP value exactly as the bounded oracle does.
@@ -7890,6 +7907,146 @@ def check() -> None:
         Word(MuredOpcode.PRIM_1, "CAR", True)
     )
     assert selector_result_prim_expected.q == 5
+
+    # A returned STRUCT is the discriminating selector-result continuation:
+    # ordinary JOIN would leave APP(result_root), while the private continuation
+    # immediately copies the structure over the consumed selector parent.  This
+    # cleanup runs at q==0 as well as q>0 and never charges quantum itself.
+    def run_selector_result_struct_case(*, q_value: int) -> object:
+        struct_result_memory: list[Word | None] = [None] * 32
+        struct_result_control: list[object | None] = [None] * 8
+        struct_result_memory[3] = Word(MuredOpcode.APP, 5, False)
+        struct_result_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+        struct_result_memory[5] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        struct_result_memory[6] = Word(MuredOpcode.INT, 1, False)
+        struct_result_memory[7] = Word(MuredOpcode.INT, 2, False)
+        struct_result_memory[8] = Word(MuredOpcode.VAR, 0, True)
+        struct_result_control[0] = _SubgraphFrame(
+            env=32,
+            free_space=32,
+            prim="__STRUCT_SELECTOR_RESULT__",
+            fire=1,
+        )
+        struct_result_state = MuredMachineState(
+            memory=struct_result_memory,
+            control_stack=struct_result_control,
+            pc=4,
+            fsp=8,
+            env=28,
+            free_space=28,
+            c=0,
+            direction=Direction.B,
+            q=q_value,
+            phi=0,
+            argcnt=0,
+        )
+        struct_result_codec = RED2ABICodec()
+        struct_result_encoded = struct_result_codec.encode_state(struct_result_state)
+        struct_result_id = struct_result_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+        struct_result_oracle = Red2Processor(
+            struct_result_encoded,
+            struct_selector_result_literal_id=struct_result_id,
+        )
+        assert struct_result_oracle.run_to_commit()
+        struct_result_expected = struct_result_oracle.checkpoint()
+
+        _load_hardware(struct_result_encoded)
+        _load_literal_meta(
+            42,
+            struct_result_id,
+            struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+        )
+        result = None
+        for _ in range(160):
+            result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"selector-result STRUCT hardware faulted before commit: "
+                f"red2={int(result.red2_fault)} hw={int(result.hw_fault)} "
+                f"micro={int(result.microstate)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError("selector-result STRUCT failed to reach bounded commit")
+        assert result is not None
+        _assert_scalar_checkpoint(result, struct_result_expected)
+        assert struct_result_expected.q == q_value
+        assert struct_result_expected.pc == 2
+        assert struct_result_expected.fsp == 8
+        assert struct_result_expected.s_a == 6
+        for result_address in range(3, 9):
+            result_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=result_address)
+            )
+            assert (
+                _packed_memory_read(result_read)
+                == struct_result_expected.memory[result_address]
+            ), f"selector-result STRUCT memory mismatch at {result_address}"
+        result_control_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=0)
+        )
+        assert (
+            _packed_control_read(result_control_read)
+            == struct_result_expected.control_stack[0]
+        )
+        return struct_result_expected
+
+    selector_result_struct_q5 = run_selector_result_struct_case(q_value=5)
+    selector_result_struct_q0 = run_selector_result_struct_case(q_value=0)
+    assert selector_result_struct_q5.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.STRUCT, "PAIR", False)
+    )
+    assert selector_result_struct_q0.memory[3] == selector_result_struct_q5.memory[3]
+
+    # The q==0 metadata lookup above must be narrowly structural.  An unknown
+    # saved primitive remains exhausted reconstruction rather than becoming a
+    # semantic firing merely because metadata is now consulted at the boundary.
+    unknown_result_memory: list[Word | None] = [None] * 32
+    unknown_result_control: list[object | None] = [None] * 8
+    unknown_result_memory[3] = Word(MuredOpcode.APP, 5, False)
+    unknown_result_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    unknown_result_memory[5] = Word(MuredOpcode.INT, 7, True)
+    unknown_result_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="UNKNOWN_PRIVATE",
+        fire=1,
+    )
+    unknown_result_state = MuredMachineState(
+        memory=unknown_result_memory,
+        control_stack=unknown_result_control,
+        pc=4,
+        fsp=5,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=0,
+    )
+    unknown_result_encoded = RED2ABICodec().encode_state(unknown_result_state)
+    unknown_result_oracle = Red2Processor(unknown_result_encoded)
+    assert unknown_result_oracle.run_to_commit()
+    unknown_result_expected = unknown_result_oracle.checkpoint()
+    _load_hardware(unknown_result_encoded)
+    unknown_result = None
+    for _ in range(160):
+        unknown_result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+        assert int(unknown_result.status) != STATUS_FAULT, (
+            f"q0 unknown saved primitive faulted: red2={int(unknown_result.red2_fault)} "
+            f"hw={int(unknown_result.hw_fault)} micro={int(unknown_result.microstate)}"
+        )
+        if int(unknown_result.committed):
+            break
+    else:
+        raise AssertionError("q0 unknown saved primitive failed to reach bounded commit")
+    assert unknown_result is not None
+    _assert_scalar_checkpoint(unknown_result, unknown_result_expected)
+    unknown_parent_read = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=3)
+    )
+    assert _packed_memory_read(unknown_parent_read) == unknown_result_expected.memory[3]
 
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
@@ -8091,7 +8248,15 @@ def check() -> None:
             assert _packed_control_read(frame_read) == encoded.control_stack[0]
             return expected
 
-        _, expected = _run_encoded_to_same_commit(encoded)
+        join_clock_budget = 32
+        if saved_primitive and frame_fire == 1 and q == 0:
+            # Exhausted fire==1 JOINs scan semantic metadata so the private
+            # selector-result continuation can still be recognized.  RBLOCK adds
+            # its own phi bookkeeping around that bounded 64-slot scan.
+            join_clock_budget = 96
+        _, expected = _run_encoded_to_same_commit(
+            encoded, max_clocks=join_clock_budget
+        )
         parent_read = sim_call(
             red2_processor_top, _command(CMD_NOP, address=parent_address)
         )

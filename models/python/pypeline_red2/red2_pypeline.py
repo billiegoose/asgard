@@ -3449,7 +3449,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     free_space = join_frame_free_space
                     s_a = join_published_root + 1
                     join_needs_ep_cache = 0
-                    struct_selector_contract = 1
+                    if struct_selector_result_active:
+                        # Private selector-result cleanup is zero-charge; leave the
+                        # active flag for JOIN_CONTROL_CLEAR to clear prim/fire.
+                        struct_selector_contract = 0
+                    else:
+                        struct_selector_contract = 1
                     join_control_clear_index = control_top
                     microstate = MICRO_JOIN_CONTROL_CLEAR
                 else:
@@ -3470,7 +3475,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     free_space = join_frame_free_space
                     s_a = join_published_root + 1
                     join_needs_ep_cache = 0
-                    struct_selector_contract = 1
+                    if struct_selector_result_active:
+                        # Private selector-result cleanup is zero-charge; leave the
+                        # active flag for JOIN_CONTROL_CLEAR to clear prim/fire.
+                        struct_selector_contract = 0
+                    else:
+                        struct_selector_contract = 1
                     join_control_clear_index = control_top
                     microstate = MICRO_JOIN_CONTROL_CLEAR
                 else:
@@ -4665,10 +4675,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_frame_fire = join_frame_fire_lane
                 # Cursor is encoded as frame_index+1 while reading cursor-1.
                 join_frame_index = join_control_clear_index - 1
-                if join_saved_primitive and join_saved_frame_fire_one and join_saved_q_nonzero:
-                    # Resolve semantic metadata before any JOIN publication.
-                    # This preserves architectural failure atomicity for unknown
-                    # primitive ids and unsupported primitive classes.
+                if join_saved_primitive and join_saved_frame_fire_one:
+                    # Resolve semantic identity before publication.  At exhausted
+                    # quantum ordinary primitives remain passive, but the private
+                    # __STRUCT_SELECTOR_RESULT__ continuation is structural cleanup
+                    # and must still run.  The metadata scan below recognizes only
+                    # that role at q==0 and otherwise falls back to reconstruction.
                     join_prim_meta_cursor = 0
                     join_prim_scalar_op = SCALAR_OP_NONE
                     microstate = MICRO_JOIN_PRIM_META_SCAN
@@ -5242,11 +5254,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_symbol_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_supported_binary_bool
                     if join_meta_is_struct_selector_result:
-                        # __STRUCT_SELECTOR_RESULT__ fires after the selected child
-                        # has returned.  Publication itself stays in the ordinary
-                        # JOIN pipeline; this flag only changes the supported tail
-                        # class and zero-charge restoration semantics.
+                        # __STRUCT_SELECTOR_RESULT__ is a private structural
+                        # continuation, not a user contraction.  It runs even at
+                        # q==0 and never consumes additional quantum.
                         struct_selector_result_active = 1
+                        microstate = MICRO_JOIN_TAIL_READ
+                    elif q == 0 and not direct_scalar_active and not ep_scalar_active:
+                        # At a saved JOIN boundary every other fire==1 primitive is
+                        # suppressed at exhausted quantum.  Direct/EP scalar firing
+                        # has its own q==0 handling below and must not be routed into
+                        # JOIN tail processing without a live JOIN frame.
                         microstate = MICRO_JOIN_TAIL_READ
                     elif join_meta_is_struct_selector:
                         join_selector_tag_missing: uint1_t = join_meta_struct_tag_id == 0
@@ -5371,8 +5388,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
                 elif join_meta_last:
-                    red2_fault = FAULT_ILLEGAL_TRANSITION
-                    microstate = MICRO_FAULT
+                    if q == 0 and not direct_scalar_active and not ep_scalar_active:
+                        # Unknown/private-unrecognized saved JOIN continuations are
+                        # passive when the semantic budget is exhausted.  Direct/EP
+                        # firing keeps its established unknown-id fault behavior.
+                        microstate = MICRO_JOIN_TAIL_READ
+                    else:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
                 else:
                     join_prim_meta_cursor = join_prim_meta_cursor + 1
         elif micro_is_join_special_meta_scan:
@@ -5526,7 +5549,24 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             elif struct_selector_result_active:
                 selector_result_atomic_ok: uint1_t = join_single_word and join_tail_head
                 selector_result_atomic_ok = selector_result_atomic_ok and join_tail_inline
-                if not selector_result_atomic_ok:
+                if join_tail_is_struct:
+                    # JOIN has returned the selected child as APP(result_root).
+                    # The private continuation immediately copies a STRUCT value
+                    # over the consumed selector parent, overlap-safely and with
+                    # zero additional quantum charge.
+                    struct_selector_source = join_result_address
+                    struct_selector_copy_cursor = join_result_address + 1
+                    struct_selector_copy_count = 0
+                    struct_selector_copy_index = 0
+                    struct_selector_copy_destination = join_parent_address
+                    struct_selector_copy_old_fsp = fsp
+                    struct_selector_copy_backward = 0
+                    struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_STRUCT_SELECTOR_COPY_SCAN
+                elif not selector_result_atomic_ok:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
                 else:
