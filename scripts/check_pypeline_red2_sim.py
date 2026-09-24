@@ -57,6 +57,7 @@ from pypeline_red2.red2_pypeline import (
     CMD_LOAD_LITERAL_META,
     CMD_LOAD_STATE,
     CMD_NOP,
+    CMD_RESET,
     FAULT_GRAPH_ENV_COLLISION,
     FAULT_INVALID_ADDRESS,
     HW_FAULT_ADDRESS_RANGE,
@@ -8099,6 +8100,204 @@ def check() -> None:
     )
     assert selector_result_lambda_symbol.pc == 3
     assert selector_result_lambda_symbol.fsp == 2
+
+    # Generic selector-result promotion must relinearize an APP problem into
+    # fresh relative scratch before publication. Two descriptors that share one
+    # target must continue sharing that single materialized target after relocation.
+    app_shared_memory: list[Word | None] = [None] * 32
+    app_shared_control: list[object | None] = [None] * 8
+    app_shared_memory[3] = Word(MuredOpcode.APP, 5, False)
+    app_shared_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    app_shared_memory[5] = Word(MuredOpcode.APP, 9, False)
+    app_shared_memory[6] = Word(MuredOpcode.APP, 9, False)
+    app_shared_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
+    app_shared_memory[9] = Word(MuredOpcode.INT, 7, True)
+    app_shared_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="__STRUCT_SELECTOR_RESULT__",
+        fire=1,
+    )
+    app_shared_state = MuredMachineState(
+        memory=app_shared_memory,
+        control_stack=app_shared_control,
+        pc=4,
+        fsp=9,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=0,
+    )
+    app_shared_codec = RED2ABICodec()
+    app_shared_encoded = app_shared_codec.encode_state(app_shared_state)
+    app_shared_result_id = app_shared_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+    app_shared_oracle = Red2Processor(
+        app_shared_encoded,
+        struct_selector_result_literal_id=app_shared_result_id,
+    )
+    assert app_shared_oracle.run_to_commit(), app_shared_oracle.fault
+    app_shared_expected = app_shared_oracle.checkpoint()
+    assert app_shared_expected.pc == 2
+    assert app_shared_expected.fsp == 6
+    assert app_shared_expected.q == 0
+    assert app_shared_expected.memory[3] == app_shared_codec.encode_word(
+        Word(MuredOpcode.APP, 6, False)
+    )
+    assert app_shared_expected.memory[4] == app_shared_codec.encode_word(
+        Word(MuredOpcode.APP, 6, False)
+    )
+    assert app_shared_expected.memory[5] == app_shared_codec.encode_word(
+        Word(MuredOpcode.PRIM_2, "CONS", True)
+    )
+    assert app_shared_expected.memory[6] == app_shared_codec.encode_word(
+        Word(MuredOpcode.INT, 7, True)
+    )
+
+    _load_hardware(app_shared_encoded)
+    _load_literal_meta(
+        42,
+        app_shared_result_id,
+        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+    )
+    app_shared_result = None
+    for _ in range(512):
+        app_shared_result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+        if int(app_shared_result.status) == STATUS_FAULT:
+            raise AssertionError(
+                "selector-result APP/shared hardware faulted: "
+                f"red2={int(app_shared_result.red2_fault)} "
+                f"hw={int(app_shared_result.hw_fault)} "
+                f"micro={int(app_shared_result.microstate)}"
+            )
+        if int(app_shared_result.committed):
+            break
+    else:
+        raise AssertionError("selector-result APP/shared failed to reach bounded commit")
+    assert app_shared_result is not None
+    _assert_scalar_checkpoint(app_shared_result, app_shared_expected)
+    for address in range(3, 10):
+        app_shared_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=address)
+        )
+        assert (
+            _packed_memory_read(app_shared_read)
+            == app_shared_expected.memory[address]
+        ), f"selector-result APP/shared memory mismatch at {address}"
+    app_shared_control_read = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=0)
+    )
+    assert (
+        _packed_control_read(app_shared_control_read)
+        == app_shared_expected.control_stack[0]
+    )
+
+    # Forwarding scratch survives an architectural CMD_RESET, so a second generic
+    # promotion at the same source addresses must ignore rows from the previous
+    # generation. Changing only the shared target value makes a stale hit visible:
+    # without the generation tag, old materialized INT 7 would leak into this run.
+    app_shared_second_memory: list[Word | None] = [None] * 32
+    app_shared_second_control: list[object | None] = [None] * 8
+    app_shared_second_memory[3] = Word(MuredOpcode.APP, 5, False)
+    app_shared_second_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    app_shared_second_memory[5] = Word(MuredOpcode.APP, 9, False)
+    app_shared_second_memory[6] = Word(MuredOpcode.APP, 9, False)
+    app_shared_second_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
+    app_shared_second_memory[9] = Word(MuredOpcode.INT, 11, True)
+    app_shared_second_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="__STRUCT_SELECTOR_RESULT__",
+        fire=1,
+    )
+    app_shared_second_state = MuredMachineState(
+        memory=app_shared_second_memory,
+        control_stack=app_shared_second_control,
+        pc=4,
+        fsp=9,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=0,
+    )
+    app_shared_second_codec = RED2ABICodec()
+    app_shared_second_encoded = app_shared_second_codec.encode_state(
+        app_shared_second_state
+    )
+    app_shared_second_result_id = app_shared_second_codec.literal_id(
+        "__STRUCT_SELECTOR_RESULT__"
+    )
+    app_shared_second_oracle = Red2Processor(
+        app_shared_second_encoded,
+        struct_selector_result_literal_id=app_shared_second_result_id,
+    )
+    assert app_shared_second_oracle.run_to_commit(), app_shared_second_oracle.fault
+    app_shared_second_expected = app_shared_second_oracle.checkpoint()
+    assert app_shared_second_expected.memory[6] == app_shared_second_codec.encode_word(
+        Word(MuredOpcode.INT, 11, True)
+    )
+
+    # Deliberately do not call _load_hardware(): sim_reset() would clear internal
+    # scratch and make this incapable of detecting stale forwarding state.
+    sim_call(red2_processor_top, _command(CMD_RESET))
+    for index, packed in enumerate(app_shared_second_encoded.memory):
+        sim_call(
+            red2_processor_top,
+            _command(CMD_LOAD_MEMORY, address=index, word=_word_struct(packed)),
+        )
+    for index, packed in enumerate(app_shared_second_encoded.control_stack):
+        if packed:
+            sim_call(
+                red2_processor_top,
+                _command(
+                    CMD_LOAD_CONTROL,
+                    address=index,
+                    control=_control_struct(packed),
+                ),
+            )
+    sim_call(
+        red2_processor_top,
+        _command(CMD_LOAD_STATE, state=_state_struct(app_shared_second_encoded)),
+    )
+    _load_literal_meta(
+        42,
+        app_shared_second_result_id,
+        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+    )
+    app_shared_second_result = None
+    for _ in range(192):
+        app_shared_second_result = sim_call(
+            red2_processor_top, _command(CMD_CLOCK)
+        )
+        assert int(app_shared_second_result.status) != STATUS_FAULT, (
+            "second selector-result APP/shared hardware faulted: "
+            f"red2={int(app_shared_second_result.red2_fault)} "
+            f"hw={int(app_shared_second_result.hw_fault)} "
+            f"micro={int(app_shared_second_result.microstate)}"
+        )
+        if int(app_shared_second_result.committed):
+            break
+    else:
+        raise AssertionError(
+            "second selector-result APP/shared failed to reach bounded commit"
+        )
+    assert app_shared_second_result is not None
+    _assert_scalar_checkpoint(
+        app_shared_second_result, app_shared_second_expected
+    )
+    for address in range(3, 10):
+        app_shared_second_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=address)
+        )
+        assert (
+            _packed_memory_read(app_shared_second_read)
+            == app_shared_second_expected.memory[address]
+        ), f"second selector-result APP/shared memory mismatch at {address}"
 
     # Promotion validates the entire narrow lambda problem before its first write.
     # A composite body still belongs to generic relinearization, so hardware must

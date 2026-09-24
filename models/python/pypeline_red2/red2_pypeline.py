@@ -258,6 +258,14 @@ MICRO_JOIN_STRUCT_REWRITE_WRITE = 110
 MICRO_STRUCT_SELECTOR_PROMOTE_SCAN = 111
 MICRO_STRUCT_SELECTOR_PROMOTE_READ = 112
 MICRO_STRUCT_SELECTOR_PROMOTE_WRITE = 113
+MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC = 114
+MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ = 115
+MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE = 116
+
+PROMOTE_TASK_NONE = 0
+PROMOTE_TASK_POINTER_DONE = 5
+PROMOTE_TASK_APP_SCAN = 6
+PROMOTE_TASK_APP_PROCESS = 7
 
 
 @struct
@@ -266,6 +274,19 @@ class red2_word_t(NamedTuple):
 
     lo: uint64_t
     hi: uint64_t
+
+
+@struct
+class red2_promote_mat_t(NamedTuple):
+    word: red2_word_t
+    valid: uint1_t
+
+
+@struct
+class red2_promote_forward_t(NamedTuple):
+    state: uint2_t
+    target: uint17_t
+    generation: uint32_t
 
 
 @struct
@@ -410,6 +431,12 @@ control_ram, control_ram_out_t = make_ram(
 literal_meta_ram, literal_meta_ram_out_t = make_ram(
     red2_literal_meta_t, LITERAL_META_WORDS, ports=("rw",), read_latency=0
 )
+promote_mat_ram, promote_mat_ram_out_t = make_ram(
+    red2_promote_mat_t, GRAPH_WORDS, ports=("r", "w", "w"), read_latency=0
+)
+promote_forward_ram, promote_forward_ram_out_t = make_ram(
+    red2_promote_forward_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+)
 
 
 @MAIN(25.0)
@@ -477,6 +504,20 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     struct_selector_launch_active: Reg[uint1_t]
     struct_selector_result_active: Reg[uint1_t]
     struct_selector_result_resume_forward: Reg[uint1_t]
+    # Internal scratch epoch deliberately survives architectural reset/load.
+    # Every generic promotion increments it, invalidating prior forwarding rows
+    # without an O(GRAPH_WORDS) clear pass.
+    promote_generation: Reg[uint32_t]
+    promote_task_kind: Reg[uint5_t]
+    promote_task_a: Reg[uint17_t]
+    promote_task_b: Reg[uint17_t]
+    promote_task_c: Reg[uint17_t]
+    promote_task_d: Reg[uint17_t]
+    promote_mat_count: Reg[uint17_t]
+    promote_pub_value: Reg[uint17_t]
+    promote_write_index: Reg[uint17_t]
+    promote_write_word: Reg[red2_word_t]
+    promote_validate_active: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -655,6 +696,26 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     literal_meta_req.wr_en = 0
     literal_meta_req.valid = 1
 
+    promote_mat_read_req: promote_mat_ram.p0_in_t
+    promote_mat_read_req.addr = promote_write_index[GRAPH_ADDR_BITS - 1 : 0]
+    promote_mat_read_req.valid = 1
+    promote_mat_write1_req: promote_mat_ram.p1_in_t
+    promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+    promote_mat_write1_req.wr_data = red2_promote_mat_t(word=red2_word_t(lo=0, hi=0), valid=0)
+    promote_mat_write1_req.wr_en = 0
+    promote_mat_write1_req.valid = 1
+    promote_mat_write2_req: promote_mat_ram.p2_in_t
+    promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+    promote_mat_write2_req.wr_data = red2_promote_mat_t(word=red2_word_t(lo=0, hi=0), valid=0)
+    promote_mat_write2_req.wr_en = 0
+    promote_mat_write2_req.valid = 1
+
+    promote_forward_req: promote_forward_ram.p0_in_t
+    promote_forward_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
+    promote_forward_req.wr_data = red2_promote_forward_t(state=0, target=0, generation=0)
+    promote_forward_req.wr_en = 0
+    promote_forward_req.valid = 1
+
     memory_address_in_range: uint1_t = command.address[15:GRAPH_ADDR_BITS] == 0
     control_address_in_range: uint1_t = command.address[15:CONTROL_ADDR_BITS] == 0
     literal_meta_address_in_range: uint1_t = command.address[15:LITERAL_META_ADDR_BITS] == 0
@@ -776,6 +837,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_promote_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_SCAN
     micro_is_struct_selector_promote_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_READ
     micro_is_struct_selector_promote_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_WRITE
+    micro_is_struct_selector_promote_generic: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC
+    micro_is_struct_selector_promote_generic_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ
+    micro_is_struct_selector_promote_generic_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE
+    promote_task_is_none: uint1_t = promote_task_kind == PROMOTE_TASK_NONE
+    promote_task_is_pointer_done: uint1_t = promote_task_kind == PROMOTE_TASK_POINTER_DONE
+    promote_task_is_app_scan: uint1_t = promote_task_kind == PROMOTE_TASK_APP_SCAN
+    promote_task_is_app_process: uint1_t = promote_task_kind == PROMOTE_TASK_APP_PROCESS
     micro_is_join_rblock_phi_scan: uint1_t = microstate == MICRO_JOIN_RBLOCK_PHI_SCAN
     micro_is_join_struct_preflight_scan: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
     micro_is_join_struct_preflight_target: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_TARGET
@@ -1174,6 +1242,19 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.wr_data = red2_word_t(
                 lo=struct_selector_copy_word.lo, hi=selector_promote_hi_req
             )
+            memory_req.wr_en = 1
+        elif micro_is_struct_selector_promote_generic:
+            if promote_task_is_app_scan:
+                memory_req.addr = promote_task_a[GRAPH_ADDR_BITS - 1 : 0]
+            elif promote_task_is_app_process:
+                promote_app_process_source_req: uint17_t = promote_task_a + promote_task_d
+                memory_req.addr = promote_app_process_source_req[GRAPH_ADDR_BITS - 1 : 0]
+            elif promote_task_is_pointer_done:
+                memory_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_promote_generic_write:
+            promote_publish_destination_req: uint17_t = struct_selector_copy_destination + promote_write_index
+            memory_req.addr = promote_publish_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = promote_write_word
             memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
@@ -1768,6 +1849,144 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     control_out = control_ram(control_req)
     literal_meta_out = literal_meta_ram(literal_meta_req)
 
+    # The flat generic APP promoter reads architectural graph RAM first, then
+    # drives forwarding/materialization scratch. No architectural write is
+    # enabled until the later validated publication phase.
+    if command_is_clock and micro_is_struct_selector_promote_generic:
+        if promote_task_is_app_process:
+            promote_req_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            promote_req_is_app: uint1_t = promote_req_opcode == MOP_APP
+            if promote_req_is_app:
+                promote_forward_req.addr = memory_out.p0.rd_data.lo[GRAPH_ADDR_BITS - 1 : 0]
+        elif promote_task_is_pointer_done:
+            promote_forward_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
+            promote_pointer_word_valid_req: uint1_t = memory_out.p0.rd_data.hi[26]
+            promote_pointer_opcode_req: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            promote_pointer_is_int_req: uint1_t = promote_pointer_opcode_req == MOP_INT
+            promote_pointer_is_float_req: uint1_t = promote_pointer_opcode_req == MOP_FLOAT
+            promote_pointer_is_char_req: uint1_t = promote_pointer_opcode_req == MOP_CHAR
+            promote_pointer_is_sym_req: uint1_t = promote_pointer_opcode_req == MOP_SYM
+            promote_pointer_is_prim0_req: uint1_t = promote_pointer_opcode_req == MOP_PRIM_0
+            promote_pointer_is_prim1_req: uint1_t = promote_pointer_opcode_req == MOP_PRIM_1
+            promote_pointer_is_prim2_req: uint1_t = promote_pointer_opcode_req == MOP_PRIM_2
+            promote_pointer_is_var_req: uint1_t = promote_pointer_opcode_req == MOP_VAR
+            promote_pointer_atomic_req: uint1_t = promote_pointer_is_int_req or promote_pointer_is_float_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_char_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_sym_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_prim0_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_prim1_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_prim2_req
+            promote_pointer_atomic_req = promote_pointer_atomic_req or promote_pointer_is_var_req
+            promote_pointer_mat_capacity_req: uint1_t = promote_mat_count[16:GRAPH_ADDR_BITS] == 0
+            if promote_pointer_word_valid_req and promote_pointer_atomic_req and promote_pointer_mat_capacity_req:
+                promote_forward_req.wr_data = red2_promote_forward_t(
+                    state=2, target=promote_mat_count, generation=promote_generation
+                )
+                promote_forward_req.wr_en = 1
+
+    promote_forward_out = promote_forward_ram(promote_forward_req)
+
+    if command_is_clock and micro_is_struct_selector_promote_generic:
+        promote_req_valid2: uint1_t = memory_out.p0.rd_data.hi[26]
+        promote_req_opcode2: uint5_t = memory_out.p0.rd_data.hi[25:21]
+        promote_req_head2: uint1_t = memory_out.p0.rd_data.hi[20]
+        promote_req_kind2: uint2_t = memory_out.p0.rd_data.hi[18:17]
+        promote_req_is_app2: uint1_t = promote_req_opcode2 == MOP_APP
+        promote_req_is_app_var2: uint1_t = promote_req_opcode2 == MOP_APP_VAR
+        promote_req_is_int2: uint1_t = promote_req_opcode2 == MOP_INT
+        promote_req_is_float2: uint1_t = promote_req_opcode2 == MOP_FLOAT
+        promote_req_is_char2: uint1_t = promote_req_opcode2 == MOP_CHAR
+        promote_req_is_sym2: uint1_t = promote_req_opcode2 == MOP_SYM
+        promote_req_is_prim0_2: uint1_t = promote_req_opcode2 == MOP_PRIM_0
+        promote_req_is_prim1_2: uint1_t = promote_req_opcode2 == MOP_PRIM_1
+        promote_req_is_prim2_2: uint1_t = promote_req_opcode2 == MOP_PRIM_2
+        promote_req_is_var2: uint1_t = promote_req_opcode2 == MOP_VAR
+        promote_req_inline2: uint1_t = promote_req_is_int2 or promote_req_is_float2
+        promote_req_inline2 = promote_req_inline2 or promote_req_is_char2
+        promote_req_inline2 = promote_req_inline2 or promote_req_is_sym2
+        promote_req_inline2 = promote_req_inline2 or promote_req_is_prim0_2
+        promote_req_inline2 = promote_req_inline2 or promote_req_is_prim1_2
+        promote_req_inline2 = promote_req_inline2 or promote_req_is_prim2_2
+        promote_req_atomic2: uint1_t = promote_req_inline2 or promote_req_is_var2
+        promote_req_nonhead_inline2: uint1_t = promote_req_inline2 and not promote_req_head2
+        promote_req_prefix2: uint1_t = promote_req_is_app2 or promote_req_is_app_var2
+        promote_req_prefix2 = promote_req_prefix2 or promote_req_nonhead_inline2
+        promote_mat_capacity2: uint1_t = promote_mat_count[16:GRAPH_ADDR_BITS] == 0
+
+        if promote_task_is_app_scan and promote_req_valid2:
+            if promote_req_prefix2 and promote_mat_capacity2:
+                promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=0, hi=0), valid=0
+                )
+                promote_mat_write1_req.wr_en = 1
+            elif promote_req_atomic2 and promote_mat_capacity2:
+                promote_operator_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_operator_hi_req),
+                    valid=1,
+                )
+                promote_mat_write1_req.wr_en = 1
+        elif promote_task_is_app_process and promote_req_valid2:
+            promote_process_slot_req: uint17_t = promote_task_b + promote_task_d
+            if promote_req_is_app_var2:
+                promote_app_var_hi_req: uint64_t = 71434240 | (memory_out.p0.rd_data.hi & 131071)
+                promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_app_var_hi_req),
+                    valid=1,
+                )
+                promote_mat_write1_req.wr_en = 1
+            elif promote_req_is_app2:
+                promote_forward_state_hit_req: uint1_t = promote_forward_out.p0.rd_data.state == 2
+                promote_forward_generation_hit_req: uint1_t = promote_forward_out.p0.rd_data.generation == promote_generation
+                promote_forward_hit_req: uint1_t = promote_forward_state_hit_req and promote_forward_generation_hit_req
+                if promote_forward_hit_req:
+                    promote_app_hit_hi_req: uint64_t = 69337088 | (memory_out.p0.rd_data.hi & 131071)
+                    promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                    promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                        word=red2_word_t(lo=promote_forward_out.p0.rd_data.target, hi=promote_app_hit_hi_req),
+                        valid=1,
+                    )
+                    promote_mat_write1_req.wr_en = 1
+            elif promote_req_nonhead_inline2 and promote_mat_capacity2:
+                promote_inline_desc_hi_req: uint64_t = 69337088 | (memory_out.p0.rd_data.hi & 131071)
+                promote_inline_value_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=promote_mat_count, hi=promote_inline_desc_hi_req),
+                    valid=1,
+                )
+                promote_mat_write1_req.wr_en = 1
+                promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write2_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_inline_value_hi_req),
+                    valid=1,
+                )
+                promote_mat_write2_req.wr_en = 1
+        elif promote_task_is_pointer_done and promote_req_valid2:
+            promote_pointer_atomic2: uint1_t = promote_req_atomic2
+            if promote_pointer_atomic2 and promote_mat_capacity2:
+                promote_pointer_desc_hi_req: uint64_t = 69337088 | (promote_write_word.hi & 131071)
+                promote_pointer_value_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                promote_mat_write1_req.addr = promote_write_index[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=promote_mat_count, hi=promote_pointer_desc_hi_req),
+                    valid=1,
+                )
+                promote_mat_write1_req.wr_en = 1
+                promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write2_req.wr_data = red2_promote_mat_t(
+                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_pointer_value_hi_req),
+                    valid=1,
+                )
+                promote_mat_write2_req.wr_en = 1
+
+    promote_mat_out = promote_mat_ram(
+        promote_mat_read_req, promote_mat_write1_req, promote_mat_write2_req
+    )
+
     if command.op == CMD_RESET:
         pc = 0
         fsp = 0
@@ -1830,6 +2049,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_launch_active = 0
         struct_selector_result_active = 0
         struct_selector_result_resume_forward = 0
+        promote_task_kind = PROMOTE_TASK_NONE
+        promote_task_a = 0
+        promote_task_b = 0
+        promote_task_c = 0
+        promote_task_d = 0
+        promote_mat_count = 0
+        promote_pub_value = 0
+        promote_write_index = 0
+        promote_write_word = red2_word_t(lo=0, hi=0)
+        promote_validate_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2052,6 +2281,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_launch_active = 0
         struct_selector_result_active = 0
         struct_selector_result_resume_forward = 0
+        promote_task_kind = PROMOTE_TASK_NONE
+        promote_task_a = 0
+        promote_task_b = 0
+        promote_task_c = 0
+        promote_task_d = 0
+        promote_mat_count = 0
+        promote_pub_value = 0
+        promote_write_index = 0
+        promote_write_word = red2_word_t(lo=0, hi=0)
+        promote_validate_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2254,6 +2493,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             struct_selector_launch_active = 0
             struct_selector_result_active = 0
             struct_selector_result_resume_forward = 0
+            promote_task_kind = PROMOTE_TASK_NONE
+            promote_task_a = 0
+            promote_task_b = 0
+            promote_task_c = 0
+            promote_task_d = 0
+            promote_mat_count = 0
+            promote_pub_value = 0
+            promote_write_index = 0
+            promote_write_word = red2_word_t(lo=0, hi=0)
+            promote_validate_active = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -3618,6 +3867,237 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 struct_selector_result_resume_forward = selector_promote_has_surviving_args
                 join_control_clear_index = control_top
                 microstate = MICRO_JOIN_CONTROL_CLEAR
+        elif micro_is_struct_selector_promote_generic:
+            if promote_task_is_none:
+                # NONE is only a reset/default state; generic launch enters APP_SCAN
+                # directly after advancing the forwarding-cache epoch.
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif promote_task_is_app_scan:
+                promote_scan_in_range_exec: uint1_t = promote_task_a[16:GRAPH_ADDR_BITS] == 0
+                promote_scan_valid_exec: uint1_t = memory_out.p0.rd_data.hi[26]
+                if not promote_scan_in_range_exec or not promote_scan_valid_exec:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    promote_scan_opcode_exec: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                    promote_scan_head_exec: uint1_t = memory_out.p0.rd_data.hi[20]
+                    promote_scan_is_app_exec: uint1_t = promote_scan_opcode_exec == MOP_APP
+                    promote_scan_is_app_var_exec: uint1_t = promote_scan_opcode_exec == MOP_APP_VAR
+                    promote_scan_is_int_exec: uint1_t = promote_scan_opcode_exec == MOP_INT
+                    promote_scan_is_float_exec: uint1_t = promote_scan_opcode_exec == MOP_FLOAT
+                    promote_scan_is_char_exec: uint1_t = promote_scan_opcode_exec == MOP_CHAR
+                    promote_scan_is_sym_exec: uint1_t = promote_scan_opcode_exec == MOP_SYM
+                    promote_scan_is_prim0_exec: uint1_t = promote_scan_opcode_exec == MOP_PRIM_0
+                    promote_scan_is_prim1_exec: uint1_t = promote_scan_opcode_exec == MOP_PRIM_1
+                    promote_scan_is_prim2_exec: uint1_t = promote_scan_opcode_exec == MOP_PRIM_2
+                    promote_scan_is_var_exec: uint1_t = promote_scan_opcode_exec == MOP_VAR
+                    promote_scan_inline_exec: uint1_t = promote_scan_is_int_exec or promote_scan_is_float_exec
+                    promote_scan_inline_exec = promote_scan_inline_exec or promote_scan_is_char_exec
+                    promote_scan_inline_exec = promote_scan_inline_exec or promote_scan_is_sym_exec
+                    promote_scan_inline_exec = promote_scan_inline_exec or promote_scan_is_prim0_exec
+                    promote_scan_inline_exec = promote_scan_inline_exec or promote_scan_is_prim1_exec
+                    promote_scan_inline_exec = promote_scan_inline_exec or promote_scan_is_prim2_exec
+                    promote_scan_atomic_exec: uint1_t = promote_scan_inline_exec or promote_scan_is_var_exec
+                    promote_scan_nonhead_inline_exec: uint1_t = promote_scan_inline_exec and not promote_scan_head_exec
+                    promote_scan_prefix_exec: uint1_t = promote_scan_is_app_exec or promote_scan_is_app_var_exec
+                    promote_scan_prefix_exec = promote_scan_prefix_exec or promote_scan_nonhead_inline_exec
+                    promote_scan_capacity_exec: uint1_t = promote_mat_count[16:GRAPH_ADDR_BITS] == 0
+                    if promote_scan_prefix_exec:
+                        if not promote_scan_capacity_exec:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            promote_mat_count = promote_mat_count + 1
+                            promote_task_a = promote_task_a + 1
+                            promote_task_c = promote_task_c + 1
+                    elif promote_scan_atomic_exec:
+                        if not promote_scan_capacity_exec:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            promote_mat_count = promote_mat_count + 1
+                            promote_scan_source_start_exec: uint17_t = promote_task_a - promote_task_c
+                            promote_task_kind = PROMOTE_TASK_APP_PROCESS
+                            promote_task_a = promote_scan_source_start_exec
+                            promote_task_d = 0
+                    else:
+                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                        microstate = MICRO_FAULT
+            elif promote_task_is_app_process:
+                if promote_task_d == promote_task_c:
+                    if promote_mat_count == 0:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        promote_destination_exec: uint17_t = struct_selector_copy_destination
+                        promote_last_exec: uint17_t = promote_destination_exec + promote_mat_count - 1
+                        promote_last_in_range_exec: uint1_t = promote_last_exec[16:GRAPH_ADDR_BITS] == 0
+                        promote_frontier_gap_exec: uint17_t = join_frame_free_space - promote_last_exec
+                        promote_frontier_wrapped_exec: uint1_t = promote_frontier_gap_exec[16]
+                        promote_frontier_nonzero_exec: uint1_t = promote_frontier_gap_exec != 0
+                        promote_fits_exec: uint1_t = promote_frontier_wrapped_exec == 0
+                        promote_fits_exec = promote_fits_exec and promote_frontier_nonzero_exec
+                        if not promote_last_in_range_exec or not promote_fits_exec:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            promote_write_index = 0
+                            promote_validate_active = 1
+                            microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ
+                else:
+                    promote_process_source_exec: uint17_t = promote_task_a + promote_task_d
+                    promote_process_source_in_range_exec: uint1_t = promote_process_source_exec[16:GRAPH_ADDR_BITS] == 0
+                    promote_process_valid_exec: uint1_t = memory_out.p0.rd_data.hi[26]
+                    if not promote_process_source_in_range_exec or not promote_process_valid_exec:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        promote_process_opcode_exec: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                        promote_process_head_exec: uint1_t = memory_out.p0.rd_data.hi[20]
+                        promote_process_kind_exec: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                        promote_process_is_app_exec: uint1_t = promote_process_opcode_exec == MOP_APP
+                        promote_process_is_app_var_exec: uint1_t = promote_process_opcode_exec == MOP_APP_VAR
+                        promote_process_is_int_exec: uint1_t = promote_process_opcode_exec == MOP_INT
+                        promote_process_is_float_exec: uint1_t = promote_process_opcode_exec == MOP_FLOAT
+                        promote_process_is_char_exec: uint1_t = promote_process_opcode_exec == MOP_CHAR
+                        promote_process_is_sym_exec: uint1_t = promote_process_opcode_exec == MOP_SYM
+                        promote_process_is_prim0_exec: uint1_t = promote_process_opcode_exec == MOP_PRIM_0
+                        promote_process_is_prim1_exec: uint1_t = promote_process_opcode_exec == MOP_PRIM_1
+                        promote_process_is_prim2_exec: uint1_t = promote_process_opcode_exec == MOP_PRIM_2
+                        promote_process_inline_exec: uint1_t = promote_process_is_int_exec or promote_process_is_float_exec
+                        promote_process_inline_exec = promote_process_inline_exec or promote_process_is_char_exec
+                        promote_process_inline_exec = promote_process_inline_exec or promote_process_is_sym_exec
+                        promote_process_inline_exec = promote_process_inline_exec or promote_process_is_prim0_exec
+                        promote_process_inline_exec = promote_process_inline_exec or promote_process_is_prim1_exec
+                        promote_process_inline_exec = promote_process_inline_exec or promote_process_is_prim2_exec
+                        promote_process_nonhead_inline_exec: uint1_t = promote_process_inline_exec and not promote_process_head_exec
+                        promote_process_signed_exec: uint1_t = promote_process_kind_exec == DATA_SIGNED
+                        promote_process_negative_exec: uint1_t = memory_out.p0.rd_data.lo[63]
+                        if promote_process_is_app_var_exec:
+                            if not promote_process_signed_exec or promote_process_negative_exec:
+                                red2_fault = FAULT_INVALID_ADDRESS
+                                microstate = MICRO_FAULT
+                            else:
+                                promote_task_d = promote_task_d + 1
+                        elif promote_process_is_app_exec:
+                            promote_process_target_range_exec: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                            if not promote_process_signed_exec or promote_process_negative_exec or not promote_process_target_range_exec:
+                                red2_fault = FAULT_INVALID_ADDRESS
+                                microstate = MICRO_FAULT
+                            else:
+                                promote_process_forward_state_hit_exec: uint1_t = promote_forward_out.p0.rd_data.state == 2
+                                promote_process_forward_generation_hit_exec: uint1_t = promote_forward_out.p0.rd_data.generation == promote_generation
+                                promote_process_forward_hit_exec: uint1_t = promote_process_forward_state_hit_exec and promote_process_forward_generation_hit_exec
+                                if promote_process_forward_hit_exec:
+                                    promote_task_d = promote_task_d + 1
+                                else:
+                                    promote_pub_value = memory_out.p0.rd_data.lo[16:0]
+                                    promote_write_index = promote_task_b + promote_task_d
+                                    promote_write_word = memory_out.p0.rd_data
+                                    promote_task_kind = PROMOTE_TASK_POINTER_DONE
+                        elif promote_process_nonhead_inline_exec:
+                            promote_process_capacity_exec: uint1_t = promote_mat_count[16:GRAPH_ADDR_BITS] == 0
+                            if not promote_process_capacity_exec:
+                                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                                microstate = MICRO_FAULT
+                            else:
+                                promote_mat_count = promote_mat_count + 1
+                                promote_task_d = promote_task_d + 1
+                        else:
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+            elif promote_task_is_pointer_done:
+                promote_pointer_in_range_exec: uint1_t = promote_pub_value[16:GRAPH_ADDR_BITS] == 0
+                promote_pointer_valid_exec: uint1_t = memory_out.p0.rd_data.hi[26]
+                promote_pointer_opcode_exec: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                promote_pointer_is_int_exec: uint1_t = promote_pointer_opcode_exec == MOP_INT
+                promote_pointer_is_float_exec: uint1_t = promote_pointer_opcode_exec == MOP_FLOAT
+                promote_pointer_is_char_exec: uint1_t = promote_pointer_opcode_exec == MOP_CHAR
+                promote_pointer_is_sym_exec: uint1_t = promote_pointer_opcode_exec == MOP_SYM
+                promote_pointer_is_prim0_exec: uint1_t = promote_pointer_opcode_exec == MOP_PRIM_0
+                promote_pointer_is_prim1_exec: uint1_t = promote_pointer_opcode_exec == MOP_PRIM_1
+                promote_pointer_is_prim2_exec: uint1_t = promote_pointer_opcode_exec == MOP_PRIM_2
+                promote_pointer_is_var_exec: uint1_t = promote_pointer_opcode_exec == MOP_VAR
+                promote_pointer_atomic_exec: uint1_t = promote_pointer_is_int_exec or promote_pointer_is_float_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_char_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_sym_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_prim0_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_prim1_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_prim2_exec
+                promote_pointer_atomic_exec = promote_pointer_atomic_exec or promote_pointer_is_var_exec
+                promote_pointer_capacity_exec: uint1_t = promote_mat_count[16:GRAPH_ADDR_BITS] == 0
+                if not promote_pointer_in_range_exec or not promote_pointer_valid_exec:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not promote_pointer_atomic_exec:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                elif not promote_pointer_capacity_exec:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    promote_mat_count = promote_mat_count + 1
+                    promote_task_kind = PROMOTE_TASK_APP_PROCESS
+                    promote_task_d = promote_task_d + 1
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+        elif micro_is_struct_selector_promote_generic_read:
+            promote_read_valid_exec: uint1_t = promote_mat_out.p0.rd_data.valid
+            if not promote_read_valid_exec:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                promote_read_word_exec: red2_word_t = promote_mat_out.p0.rd_data.word
+                promote_read_opcode_exec: uint5_t = promote_read_word_exec.hi[25:21]
+                promote_read_is_app_exec: uint1_t = promote_read_opcode_exec == MOP_APP
+                promote_relocated_word_exec: red2_word_t = promote_read_word_exec
+                promote_relocation_ok_exec: uint1_t = 1
+                if promote_read_is_app_exec:
+                    promote_read_kind_exec: uint2_t = promote_read_word_exec.hi[18:17]
+                    promote_read_signed_exec: uint1_t = promote_read_kind_exec == DATA_SIGNED
+                    promote_read_negative_exec: uint1_t = promote_read_word_exec.lo[63]
+                    promote_read_relative_range_exec: uint1_t = promote_read_word_exec.lo[63:GRAPH_ADDR_BITS] == 0
+                    promote_read_relative17_exec: uint17_t = promote_read_word_exec.lo[16:0]
+                    promote_read_absolute_exec: uint17_t = struct_selector_copy_destination + promote_read_relative17_exec
+                    promote_read_absolute_range_exec: uint1_t = promote_read_absolute_exec[16:GRAPH_ADDR_BITS] == 0
+                    promote_relocation_ok_exec = promote_read_signed_exec and not promote_read_negative_exec
+                    promote_relocation_ok_exec = promote_relocation_ok_exec and promote_read_relative_range_exec
+                    promote_relocation_ok_exec = promote_relocation_ok_exec and promote_read_absolute_range_exec
+                    promote_read_absolute64_exec: uint64_t = promote_read_absolute_exec
+                    promote_relocated_word_exec = red2_word_t(
+                        lo=promote_read_absolute64_exec, hi=promote_read_word_exec.hi
+                    )
+                if not promote_relocation_ok_exec:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif promote_validate_active:
+                    promote_validate_last_exec: uint17_t = promote_mat_count - 1
+                    if promote_write_index == promote_validate_last_exec:
+                        promote_write_index = 0
+                        promote_validate_active = 0
+                    else:
+                        promote_write_index = promote_write_index + 1
+                else:
+                    promote_write_word = promote_relocated_word_exec
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE
+        elif micro_is_struct_selector_promote_generic_write:
+            promote_publish_last_exec: uint17_t = promote_mat_count - 1
+            if promote_write_index == promote_publish_last_exec:
+                promote_publish_last_address_exec: uint17_t = struct_selector_copy_destination + promote_publish_last_exec
+                fsp = promote_publish_last_address_exec[15:0]
+                env = join_frame_env
+                free_space = join_frame_free_space
+                s_a = join_published_root + 1
+                join_needs_ep_cache = 0
+                struct_selector_contract = 0
+                struct_selector_result_resume_forward = 0
+                join_control_clear_index = control_top
+                microstate = MICRO_JOIN_CONTROL_CLEAR
+            else:
+                promote_write_index = promote_write_index + 1
+                microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ
         elif micro_is_struct_result_read:
             struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -5699,6 +6179,28 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_preserve_fsp = 1
                     join_published_root = join_result_address
                     microstate = MICRO_STRUCT_SELECTOR_COPY_SCAN
+                elif join_tail_is_app:
+                    # Generic selector-result promotion starts transactionally.
+                    # Advance the forwarding-cache epoch before materialization.
+                    struct_selector_source = join_result_address
+                    struct_selector_copy_destination = join_parent_address
+                    struct_selector_copy_old_fsp = fsp
+                    struct_selector_result_resume_forward = 0
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    promote_generation = promote_generation + 1
+                    promote_task_kind = PROMOTE_TASK_APP_SCAN
+                    promote_task_a = join_result_address
+                    promote_task_b = 0
+                    promote_task_c = 0
+                    promote_task_d = 0
+                    promote_mat_count = 0
+                    promote_pub_value = 0
+                    promote_write_index = 0
+                    promote_write_word = red2_word_t(lo=0, hi=0)
+                    promote_validate_active = 0
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC
                 elif join_tail_is_lambda:
                     # The selected child returned a lambda problem. Promotion is
                     # zero-charge: validate the whole linear problem before the
