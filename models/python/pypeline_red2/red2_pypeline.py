@@ -255,6 +255,9 @@ MICRO_JOIN_STRUCT_REWRITE_SCAN = 107
 MICRO_JOIN_STRUCT_REWRITE_TARGET = 108
 MICRO_JOIN_STRUCT_REWRITE_EP_CHASE = 109
 MICRO_JOIN_STRUCT_REWRITE_WRITE = 110
+MICRO_STRUCT_SELECTOR_PROMOTE_SCAN = 111
+MICRO_STRUCT_SELECTOR_PROMOTE_READ = 112
+MICRO_STRUCT_SELECTOR_PROMOTE_WRITE = 113
 
 
 @struct
@@ -473,6 +476,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     struct_selector_result_id: Reg[uint32_t]
     struct_selector_launch_active: Reg[uint1_t]
     struct_selector_result_active: Reg[uint1_t]
+    struct_selector_result_resume_forward: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -769,6 +773,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_copy_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_READ
     micro_is_struct_selector_copy_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_WRITE
     micro_is_struct_selector_result_meta_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_RESULT_META_SCAN
+    micro_is_struct_selector_promote_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_SCAN
+    micro_is_struct_selector_promote_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_READ
+    micro_is_struct_selector_promote_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_WRITE
     micro_is_join_rblock_phi_scan: uint1_t = microstate == MICRO_JOIN_RBLOCK_PHI_SCAN
     micro_is_join_struct_preflight_scan: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
     micro_is_join_struct_preflight_target: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_TARGET
@@ -1151,6 +1158,22 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
             else:
                 memory_req.wr_data = struct_selector_copy_word
+            memory_req.wr_en = 1
+        elif micro_is_struct_selector_promote_scan:
+            memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_promote_read:
+            selector_promote_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
+            memory_req.addr = selector_promote_source_req[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_promote_write:
+            selector_promote_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
+            selector_promote_at_body_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
+            selector_promote_hi_req: uint64_t = struct_selector_copy_word.hi & 132644863
+            if selector_promote_at_body_req:
+                selector_promote_hi_req = selector_promote_hi_req | 1048576
+            memory_req.addr = selector_promote_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(
+                lo=struct_selector_copy_word.lo, hi=selector_promote_hi_req
+            )
             memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
@@ -1806,6 +1829,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_result_id = 0
         struct_selector_launch_active = 0
         struct_selector_result_active = 0
+        struct_selector_result_resume_forward = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2027,6 +2051,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_result_id = 0
         struct_selector_launch_active = 0
         struct_selector_result_active = 0
+        struct_selector_result_resume_forward = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2228,6 +2253,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             struct_selector_result_id = 0
             struct_selector_launch_active = 0
             struct_selector_result_active = 0
+            struct_selector_result_resume_forward = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -3486,6 +3512,112 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     struct_selector_copy_index = struct_selector_copy_index + 1
                     microstate = MICRO_STRUCT_SELECTOR_COPY_READ
+        elif micro_is_struct_selector_promote_scan:
+            selector_promote_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
+            selector_promote_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            selector_promote_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            selector_promote_is_lambda: uint1_t = selector_promote_opcode == MOP_LAMBDA
+            selector_promote_is_int: uint1_t = selector_promote_opcode == MOP_INT
+            selector_promote_is_float: uint1_t = selector_promote_opcode == MOP_FLOAT
+            selector_promote_is_char: uint1_t = selector_promote_opcode == MOP_CHAR
+            selector_promote_is_sym: uint1_t = selector_promote_opcode == MOP_SYM
+            selector_promote_is_prim0: uint1_t = selector_promote_opcode == MOP_PRIM_0
+            selector_promote_is_prim1: uint1_t = selector_promote_opcode == MOP_PRIM_1
+            selector_promote_is_prim2: uint1_t = selector_promote_opcode == MOP_PRIM_2
+            selector_promote_is_var: uint1_t = selector_promote_opcode == MOP_VAR
+            selector_promote_body_supported: uint1_t = selector_promote_is_int or selector_promote_is_float
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_char
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_sym
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_prim0
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_prim1
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_prim2
+            selector_promote_body_supported = selector_promote_body_supported or selector_promote_is_var
+            if not selector_promote_cursor_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not selector_promote_word_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif selector_promote_is_lambda:
+                struct_selector_copy_cursor = struct_selector_copy_cursor + 1
+            elif not selector_promote_body_supported:
+                # APP/STRUCT/RBLOCK bodies need generic graph relinearization.
+                # Keep that unsupported path transactional until the next slice.
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            else:
+                selector_promote_source17: uint17_t = struct_selector_source
+                selector_promote_count17: uint17_t = struct_selector_copy_cursor - selector_promote_source17 + 1
+                selector_promote_destination17: uint17_t = struct_selector_copy_destination
+                selector_promote_last17: uint17_t = selector_promote_destination17 + selector_promote_count17 - 1
+                selector_promote_last_in_range: uint1_t = selector_promote_last17[16:GRAPH_ADDR_BITS] == 0
+                selector_promote_frontier_gap: uint17_t = free_space - selector_promote_last17
+                selector_promote_frontier_wrapped: uint1_t = selector_promote_frontier_gap[16]
+                selector_promote_frontier_nonzero: uint1_t = selector_promote_frontier_gap != 0
+                selector_promote_fits_frontier: uint1_t = selector_promote_frontier_wrapped == 0
+                selector_promote_fits_frontier = selector_promote_fits_frontier and selector_promote_frontier_nonzero
+                if not selector_promote_last_in_range or not selector_promote_fits_frontier:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    selector_promote_destination_from_source: uint17_t = selector_promote_destination17 - selector_promote_source17
+                    selector_promote_destination_before_source: uint1_t = selector_promote_destination_from_source[16]
+                    selector_promote_destination_not_source: uint1_t = selector_promote_destination_from_source != 0
+                    selector_promote_destination_after_source: uint1_t = selector_promote_destination_before_source == 0
+                    selector_promote_destination_after_source = selector_promote_destination_after_source and selector_promote_destination_not_source
+                    selector_promote_cursor_from_destination: uint17_t = struct_selector_copy_cursor - selector_promote_destination17
+                    selector_promote_destination_after_cursor: uint1_t = selector_promote_cursor_from_destination[16]
+                    selector_promote_destination_through_cursor: uint1_t = selector_promote_destination_after_cursor == 0
+                    selector_promote_overlap_backward: uint1_t = selector_promote_destination_after_source and selector_promote_destination_through_cursor
+                    struct_selector_copy_backward = selector_promote_overlap_backward
+                    struct_selector_copy_count = selector_promote_count17
+                    if selector_promote_overlap_backward:
+                        struct_selector_copy_index = selector_promote_count17 - 1
+                    else:
+                        struct_selector_copy_index = 0
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_READ
+        elif micro_is_struct_selector_promote_read:
+            selector_promote_source_index17: uint17_t = struct_selector_source + struct_selector_copy_index
+            selector_promote_source_index_in_range: uint1_t = selector_promote_source_index17[16:GRAPH_ADDR_BITS] == 0
+            if not selector_promote_source_index_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                struct_selector_copy_word = memory_out.p0.rd_data
+                microstate = MICRO_STRUCT_SELECTOR_PROMOTE_WRITE
+        elif micro_is_struct_selector_promote_write:
+            selector_promote_last_index: uint17_t = struct_selector_copy_count - 1
+            selector_promote_at_last: uint1_t = struct_selector_copy_index == selector_promote_last_index
+            selector_promote_at_first: uint1_t = struct_selector_copy_index == 0
+            selector_promote_done: uint1_t = 0
+            if struct_selector_copy_backward:
+                if selector_promote_at_first:
+                    selector_promote_done = 1
+                else:
+                    struct_selector_copy_index = struct_selector_copy_index - 1
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_READ
+            else:
+                if selector_promote_at_last:
+                    selector_promote_done = 1
+                else:
+                    struct_selector_copy_index = struct_selector_copy_index + 1
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_READ
+            if selector_promote_done:
+                selector_promote_destination17_done: uint17_t = struct_selector_copy_destination
+                selector_promote_last17_done: uint17_t = selector_promote_destination17_done + struct_selector_copy_count - 1
+                fsp = selector_promote_last17_done[15:0]
+                env = join_frame_env
+                free_space = join_frame_free_space
+                s_a = join_published_root + 1
+                join_needs_ep_cache = 0
+                struct_selector_contract = 0
+                selector_promote_argcnt_zero: uint1_t = argcnt == 0
+                selector_promote_argcnt_one: uint1_t = argcnt == 1
+                selector_promote_has_surviving_args: uint1_t = not selector_promote_argcnt_zero
+                selector_promote_has_surviving_args = selector_promote_has_surviving_args and not selector_promote_argcnt_one
+                struct_selector_result_resume_forward = selector_promote_has_surviving_args
+                join_control_clear_index = control_top
+                microstate = MICRO_JOIN_CONTROL_CLEAR
         elif micro_is_struct_result_read:
             struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -5537,6 +5669,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_tail_is_prim1: uint1_t = join_tail_opcode == MOP_PRIM_1
             join_tail_is_prim2: uint1_t = join_tail_opcode == MOP_PRIM_2
             join_tail_is_struct: uint1_t = join_tail_opcode == MOP_STRUCT
+            join_tail_is_lambda: uint1_t = join_tail_opcode == MOP_LAMBDA
             join_tail_inline: uint1_t = join_tail_is_int or join_tail_is_float
             join_tail_inline = join_tail_inline or join_tail_is_char
             join_tail_inline = join_tail_inline or join_tail_is_sym
@@ -5566,6 +5699,23 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_preserve_fsp = 1
                     join_published_root = join_result_address
                     microstate = MICRO_STRUCT_SELECTOR_COPY_SCAN
+                elif join_tail_is_lambda:
+                    # The selected child returned a lambda problem. Promotion is
+                    # zero-charge: validate the whole linear problem before the
+                    # first write over the consumed selector operand.
+                    struct_selector_source = join_result_address
+                    struct_selector_copy_cursor = join_result_address
+                    struct_selector_copy_count = 0
+                    struct_selector_copy_index = 0
+                    struct_selector_copy_destination = join_parent_address
+                    struct_selector_copy_old_fsp = fsp
+                    struct_selector_copy_backward = 0
+                    struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+                    struct_selector_result_resume_forward = 0
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_SCAN
                 elif not selector_result_atomic_ok:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
@@ -6049,6 +6199,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 if not struct_selector_launch_active:
                     if join_needs_ep_cache:
                         microstate = MICRO_JOIN_EP_CACHE
+                    elif struct_selector_result_resume_forward:
+                        pc = join_parent_address
+                        fsp = join_parent_address - 1
+                        direction = DIRECTION_FORWARD
+                        struct_selector_result_resume_forward = 0
+                        microstate = MICRO_COMMIT
                     else:
                         pc = join_parent_address - 1
                         microstate = MICRO_COMMIT

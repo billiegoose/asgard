@@ -7998,6 +7998,175 @@ def check() -> None:
     )
     assert selector_result_struct_q0.memory[3] == selector_result_struct_q5.memory[3]
 
+    # A selected reducible lambda returns through the private continuation as an
+    # APP descriptor. Promotion relinearizes the lambda problem over the consumed
+    # selector operand without charging quantum. If arguments survive the selector
+    # redex, the promoted lambda immediately resumes forward as their operator.
+    def run_selector_result_lambda_case(
+        *, q_value: int, argcnt_value: int, body: Word
+    ) -> object:
+        lambda_memory: list[Word | None] = [None] * 32
+        lambda_control: list[object | None] = [None] * 8
+        lambda_memory[2] = Word(MuredOpcode.STOP)
+        lambda_memory[3] = Word(MuredOpcode.APP, 5, False)
+        lambda_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+        lambda_memory[5] = Word(MuredOpcode.LAMBDA, 0, False)
+        lambda_memory[6] = Word(MuredOpcode.LAMBDA, 0, False)
+        lambda_memory[7] = body
+        lambda_control[0] = _SubgraphFrame(
+            env=32,
+            free_space=32,
+            prim="__STRUCT_SELECTOR_RESULT__",
+            fire=1,
+        )
+        lambda_state = MuredMachineState(
+            memory=lambda_memory,
+            control_stack=lambda_control,
+            pc=4,
+            fsp=7,
+            env=28,
+            free_space=28,
+            c=0,
+            direction=Direction.B,
+            q=q_value,
+            phi=0,
+            argcnt=argcnt_value,
+        )
+        lambda_codec = RED2ABICodec()
+        lambda_encoded = lambda_codec.encode_state(lambda_state)
+        lambda_result_id = lambda_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+        lambda_oracle = Red2Processor(
+            lambda_encoded,
+            struct_selector_result_literal_id=lambda_result_id,
+        )
+        assert lambda_oracle.run_to_commit(), lambda_oracle.fault
+        lambda_expected = lambda_oracle.checkpoint()
+
+        _load_hardware(lambda_encoded)
+        _load_literal_meta(
+            42,
+            lambda_result_id,
+            struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+        )
+        result = None
+        for _ in range(160):
+            result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"selector-result lambda hardware faulted: "
+                f"red2={int(result.red2_fault)} hw={int(result.hw_fault)} "
+                f"micro={int(result.microstate)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError("selector-result lambda failed to reach bounded commit")
+        assert result is not None
+        _assert_scalar_checkpoint(result, lambda_expected)
+        for address in range(2, 8):
+            lambda_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=address)
+            )
+            assert (
+                _packed_memory_read(lambda_read)
+                == lambda_expected.memory[address]
+            ), f"selector-result lambda memory mismatch at {address}"
+        lambda_control_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=0)
+        )
+        assert (
+            _packed_control_read(lambda_control_read)
+            == lambda_expected.control_stack[0]
+        )
+        return lambda_expected
+
+    selector_result_lambda_q0 = run_selector_result_lambda_case(
+        q_value=0, argcnt_value=1, body=Word(MuredOpcode.INT, 9, True)
+    )
+    assert selector_result_lambda_q0.pc == 3
+    assert selector_result_lambda_q0.fsp == 2
+    assert selector_result_lambda_q0.direction == abi.DIRECTION_FORWARD
+    assert selector_result_lambda_q0.q == 0
+    assert selector_result_lambda_q0.argcnt == 2
+    selector_result_lambda_q5 = run_selector_result_lambda_case(
+        q_value=5, argcnt_value=0, body=Word(MuredOpcode.INT, 9, True)
+    )
+    assert selector_result_lambda_q5.pc == 2
+    assert selector_result_lambda_q5.fsp == 5
+    assert selector_result_lambda_q5.direction == abi.DIRECTION_REVERSE
+    assert selector_result_lambda_q5.q == 5
+    selector_result_lambda_symbol = run_selector_result_lambda_case(
+        q_value=0, argcnt_value=1, body=Word(MuredOpcode.SYM, "X", True)
+    )
+    assert selector_result_lambda_symbol.pc == 3
+    assert selector_result_lambda_symbol.fsp == 2
+
+    # Promotion validates the entire narrow lambda problem before its first write.
+    # A composite body still belongs to generic relinearization, so hardware must
+    # report NOT_IMPLEMENTED with the architectural graph/control state untouched.
+    unsupported_lambda_memory: list[Word | None] = [None] * 32
+    unsupported_lambda_control: list[object | None] = [None] * 8
+    unsupported_lambda_memory[3] = Word(MuredOpcode.APP, 5, False)
+    unsupported_lambda_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    unsupported_lambda_memory[5] = Word(MuredOpcode.LAMBDA, 0, False)
+    unsupported_lambda_memory[6] = Word(MuredOpcode.APP, 9, True)
+    unsupported_lambda_memory[9] = Word(MuredOpcode.INT, 4, True)
+    unsupported_lambda_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="__STRUCT_SELECTOR_RESULT__",
+        fire=1,
+    )
+    unsupported_lambda_state = MuredMachineState(
+        memory=unsupported_lambda_memory,
+        control_stack=unsupported_lambda_control,
+        pc=4,
+        fsp=9,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=1,
+    )
+    unsupported_lambda_codec = RED2ABICodec()
+    unsupported_lambda_encoded = unsupported_lambda_codec.encode_state(
+        unsupported_lambda_state
+    )
+    unsupported_lambda_id = unsupported_lambda_codec.literal_id(
+        "__STRUCT_SELECTOR_RESULT__"
+    )
+    _load_hardware(unsupported_lambda_encoded)
+    _load_literal_meta(
+        42,
+        unsupported_lambda_id,
+        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+    )
+    unsupported_result = None
+    for _ in range(160):
+        unsupported_result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+        if int(unsupported_result.status) == STATUS_FAULT:
+            break
+    else:
+        raise AssertionError("unsupported selector-result lambda body did not fault")
+    assert unsupported_result is not None
+    assert int(unsupported_result.hw_fault) == HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+    for address in (3, 4, 5, 6, 9):
+        unsupported_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=address)
+        )
+        assert (
+            _packed_memory_read(unsupported_read)
+            == unsupported_lambda_encoded.memory[address]
+        ), f"unsupported selector-result lambda mutated memory at {address}"
+    unsupported_control_read = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=0)
+    )
+    assert (
+        _packed_control_read(unsupported_control_read)
+        == unsupported_lambda_encoded.control_stack[0]
+    )
+
     # The q==0 metadata lookup above must be narrowly structural.  An unknown
     # saved primitive remains exhausted reconstruction rather than becoming a
     # semantic firing merely because metadata is now consulted at the boundary.
