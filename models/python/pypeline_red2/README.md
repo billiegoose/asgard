@@ -89,9 +89,11 @@ on `PATH`. The mise task provisions only the frontend's Python-side `setuptools`
 vendor/open-source synthesis artifacts stay in a temporary directory.
 
 Unlike ordinary pytest, this gate is deliberately non-skipping. A missing
-frontend is an error, a revision mismatch is an error, and PipelineC's
-`No synthesis tool install detected ... Skipping synthesis` path is an error
-rather than a hardware PASS. `--frontend-only` runs the supported
+frontend is an error, a revision mismatch is an error, and the full gate first
+preflights the generic PyRTL backend's real Yosys/GHDL prerequisites. A missing
+synthesis backend is therefore an explicit error rather than being hidden behind
+PipelineC's later `No synthesis tool install detected ... Skipping synthesis`
+path. `--frontend-only` runs the supported
 `pypelinec --no_synth` path, including normal trim/collapse and VHDL emission for
 `red2_processor_top`, and then runs the native Pypeline RED2 parity checker. The
 hardware top is `models/python/pypeline_red2/red2_pypeline.py`; the separate

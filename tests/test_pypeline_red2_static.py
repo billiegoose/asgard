@@ -310,6 +310,51 @@ def test_task14_explicit_gate_hard_fails_when_frontend_is_hidden() -> None:
     )
 
 
+def test_task14_frontend_only_bypasses_synthesis_backend_preflight(tmp_path: Path) -> None:
+    fake_frontend = tmp_path / "pypelinec"
+    fake_frontend.write_text("#!/bin/sh\nexit 0\n")
+    fake_frontend.chmod(0o755)
+
+    env = os.environ.copy()
+    env.pop("PIPELINEC_ROOT", None)
+    env["PATH"] = str(tmp_path)
+    result = subprocess.run(
+        [sys.executable, "scripts/check_pypeline_red2.py", "--frontend-only"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 4
+    assert "synthesis backend unavailable" not in result.stderr
+    assert "did not emit red2_processor_top VHDL" in result.stderr
+
+
+def test_task14_full_gate_hard_fails_before_frontend_when_synthesis_backend_is_hidden(
+    tmp_path: Path,
+) -> None:
+    fake_frontend = tmp_path / "pypelinec"
+    fake_frontend.write_text("#!/bin/sh\nexit 99\n")
+    fake_frontend.chmod(0o755)
+
+    env = os.environ.copy()
+    env.pop("PIPELINEC_ROOT", None)
+    env["PATH"] = str(tmp_path)
+    result = subprocess.run(
+        [sys.executable, "scripts/check_pypeline_red2.py"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 5
+    assert result.stderr.strip() == (
+        "pypeline-red2-check: synthesis backend unavailable: the generic PyRTL flow "
+        "requires Yosys plus a usable GHDL prefix; install the synthesis toolchain "
+        "or use --frontend-only"
+    )
+
+
 def test_task14_mise_exposes_explicit_non_skipping_hardware_gate() -> None:
     text = Path(".mise.toml").read_text()
     assert "[tasks.pypeline-red2-check]" in text

@@ -32,6 +32,11 @@ SYNTHESIS_SKIPPED_DIAGNOSTIC = (
     "pypeline-red2-check: PipelineC skipped synthesis because no configured "
     "synthesis target/tool was available"
 )
+MISSING_SYNTHESIS_BACKEND_DIAGNOSTIC = (
+    "pypeline-red2-check: synthesis backend unavailable: the generic PyRTL flow "
+    "requires Yosys plus a usable GHDL prefix; install the synthesis toolchain "
+    "or use --frontend-only"
+)
 
 
 def _repo_root() -> Path:
@@ -100,6 +105,32 @@ def _frontend_command(frontend: Path, checkout_root: Path | None) -> list[str]:
     if checkout_root is not None:
         return [sys.executable, str(frontend)]
     return [str(frontend)]
+
+
+def _pyrtl_synthesis_backend_available(checkout_root: Path | None, repo: Path) -> bool:
+    """Mirror the pinned PyRTL backend's real external-tool prerequisites."""
+    if checkout_root is None:
+        return shutil.which("yosys") is not None and shutil.which("ghdl") is not None
+
+    probe = "\n".join(
+        (
+            "import os",
+            "import OPEN_TOOLS",
+            "yosys = OPEN_TOOLS.YOSYS_BIN_PATH",
+            "ghdl_prefix = OPEN_TOOLS.GHDL_PREFIX",
+            "yosys_ok = yosys is not None and os.path.isfile(os.path.join(yosys, 'yosys'))",
+            "ghdl_ok = ghdl_prefix is not None and os.path.isdir(ghdl_prefix)",
+            "raise SystemExit(0 if yosys_ok and ghdl_ok else 1)",
+        )
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=_pipelinec_environment(checkout_root, repo),
+    )
+    return result.returncode == 0
 
 
 def _run_pipelinec(
@@ -220,6 +251,10 @@ def check(frontend_only: bool = False) -> int:
         return 2
     source_text = source.read_text()
     semantics_complete = "RED2_PYPELINE_SEMANTICS_COMPLETE = 1" in source_text
+
+    if not frontend_only and not _pyrtl_synthesis_backend_available(checkout_root, repo):
+        print(MISSING_SYNTHESIS_BACKEND_DIAGNOSTIC, file=sys.stderr)
+        return 5
 
     with tempfile.TemporaryDirectory(prefix="asgard-pypeline-red2-") as tmp:
         frontend_out = Path(tmp) / "frontend"
