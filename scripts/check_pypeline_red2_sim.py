@@ -7836,6 +7836,159 @@ def check() -> None:
     assert rblock_collision_expected.fsp == 8
     assert rblock_collision_expected.c == 1
 
+    # Returning through an RBLOCK parent preserves the published child graph and
+    # rewrites only the parent descriptor to RBLOCK(published_root).  At q=0 the
+    # first RBLOCK in a contiguous run owns one run-wide phi decrement; later
+    # members leave phi unchanged.  The entire run is validated before the
+    # parent/control publication boundary so phi underflow is failure-atomic.
+    def run_rblock_join_return(
+        *,
+        parent_address: int,
+        rblock_addresses: tuple[int, ...],
+        phi: int,
+        q: int = 0,
+        head: bool = False,
+        definition: int | None = None,
+        saved_primitive: bool = False,
+        frame_fire: int = 0,
+        expect_fault: int | None = None,
+    ):
+        memory: list[Word | None] = [None] * 64
+        for index, address in enumerate(rblock_addresses):
+            memory[address] = Word(
+                MuredOpcode.RBLOCK,
+                20 + 2 * index,
+                head if address == parent_address else False,
+                definition if address == parent_address else None,
+            )
+        memory[10] = Word(
+            MuredOpcode.JOIN,
+            parent_address,
+            False,
+            1 if saved_primitive else None,
+        )
+        memory[11] = Word(MuredOpcode.INT, 7, True)
+        state = MuredMachineState(
+            memory=memory,
+            control_stack=[None] * 8,
+            pc=10,
+            fsp=11,
+            env=32,
+            free_space=32,
+            c=0,
+            direction=Direction.B,
+            q=q,
+            phi=phi,
+            argcnt=0,
+        )
+        state.control_stack[0] = _SubgraphFrame(
+            env=40,
+            free_space=40,
+            prim="CAR" if saved_primitive else None,
+            fire=frame_fire if saved_primitive else 0,
+        )
+        encoded = RED2ABICodec().encode_state(state)
+        if expect_fault is not None:
+            _, expected, fault = _run_encoded_to_same_fault(encoded)
+            assert fault == expect_fault
+            assert expected == encoded
+            parent_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=parent_address)
+            )
+            assert _packed_memory_read(parent_read) == encoded.memory[parent_address]
+            frame_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=0)
+            )
+            assert _packed_control_read(frame_read) == encoded.control_stack[0]
+            return expected
+
+        _, expected = _run_encoded_to_same_commit(encoded)
+        parent_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=parent_address)
+        )
+        assert _packed_memory_read(parent_read) == expected.memory[parent_address]
+        frame_read = sim_call(red2_processor_top, _command(CMD_NOP, address=0))
+        assert _packed_control_read(frame_read) == expected.control_stack[0]
+        assert expected.fsp == 11
+        assert expected.s_a == 12
+        assert expected.env == 40
+        assert expected.free_space == 40
+        return expected
+
+    rblock_join_single = run_rblock_join_return(
+        parent_address=4, rblock_addresses=(4,), phi=1
+    )
+    assert rblock_join_single.pc == 3
+    assert rblock_join_single.phi == 0
+
+    rblock_join_first = run_rblock_join_return(
+        parent_address=4, rblock_addresses=(4, 5), phi=2
+    )
+    assert rblock_join_first.pc == 3
+    assert rblock_join_first.phi == 0
+
+    rblock_join_later = run_rblock_join_return(
+        parent_address=5, rblock_addresses=(4, 5), phi=2
+    )
+    assert rblock_join_later.pc == 4
+    assert rblock_join_later.phi == 2
+
+    rblock_join_positive_q = run_rblock_join_return(
+        parent_address=4, rblock_addresses=(4,), phi=3, q=2
+    )
+    assert rblock_join_positive_q.pc == 3
+    assert rblock_join_positive_q.phi == 3
+
+    rblock_join_metadata = run_rblock_join_return(
+        parent_address=4,
+        rblock_addresses=(4,),
+        phi=1,
+        head=True,
+        definition=7,
+    )
+    rblock_join_metadata_word = rblock_join_metadata.memory[4]
+    assert abi.word_field(
+        rblock_join_metadata_word, abi.WORD_HEAD_SHIFT, 1
+    ) == 1
+    assert abi.word_field(
+        rblock_join_metadata_word, abi.WORD_DEFINITION_VALID_SHIFT, 1
+    ) == 1
+    assert abi.word_field(
+        rblock_join_metadata_word, abi.WORD_DEFINITION_SHIFT, abi.WORD_DEFINITION_BITS
+    ) == 7
+
+    # Saved-primitive restore remains ordinary JOIN bookkeeping around the
+    # RBLOCK-specific parent rewrite/phi rule.  Exhausted quantum clears a
+    # fire==1 boundary, while fire>1 decrements structurally without firing.
+    rblock_join_saved_fire_one = run_rblock_join_return(
+        parent_address=4,
+        rblock_addresses=(4,),
+        phi=1,
+        saved_primitive=True,
+        frame_fire=1,
+    )
+    assert rblock_join_saved_fire_one.prim_id == 0
+    assert rblock_join_saved_fire_one.fire == 0
+    assert rblock_join_saved_fire_one.phi == 0
+
+    rblock_join_saved_fire_two = run_rblock_join_return(
+        parent_address=4,
+        rblock_addresses=(4,),
+        phi=1,
+        saved_primitive=True,
+        frame_fire=2,
+    )
+    assert rblock_join_saved_fire_two.prim_id != 0
+    assert rblock_join_saved_fire_two.fire == 1
+    assert rblock_join_saved_fire_two.phi == 0
+
+    run_rblock_join_return(
+        parent_address=4,
+        rblock_addresses=(4, 5),
+        phi=1,
+        expect_fault=abi.FAULT_ILLEGAL_TRANSITION,
+    )
+
 
 if __name__ == "__main__":
     check()

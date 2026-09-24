@@ -247,6 +247,7 @@ MICRO_STRUCT_SELECTOR_COPY_SCAN = 99
 MICRO_STRUCT_SELECTOR_COPY_READ = 100
 MICRO_STRUCT_SELECTOR_COPY_WRITE = 101
 MICRO_STRUCT_SELECTOR_RESULT_META_SCAN = 102
+MICRO_JOIN_RBLOCK_PHI_SCAN = 103
 
 
 @struct
@@ -490,6 +491,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     join_recp_rblock_cursor: Reg[uint16_t]
     join_recp_rblock_count: Reg[uint16_t]
     join_recp_binding_root: Reg[uint16_t]
+    join_rblock_phi_cursor: Reg[uint17_t]
+    join_rblock_phi_count: Reg[uint17_t]
+    join_rblock_phi_done: Reg[uint1_t]
+    join_rblock_phi_adjust: Reg[uint1_t]
     join_ep_target: Reg[uint16_t]
     join_frame_env: Reg[uint17_t]
     join_frame_free_space: Reg[uint17_t]
@@ -561,6 +566,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     join_control_clear_index: Reg[uint17_t]
     join_parent_is_ep: Reg[uint1_t]
     join_parent_is_recp: Reg[uint1_t]
+    join_parent_is_rblock: Reg[uint1_t]
     join_needs_ep_cache: Reg[uint1_t]
     join_preserve_fsp: Reg[uint1_t]
     join_ep_chase_target: Reg[uint64_t]
@@ -748,6 +754,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_copy_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_READ
     micro_is_struct_selector_copy_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_WRITE
     micro_is_struct_selector_result_meta_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_RESULT_META_SCAN
+    micro_is_join_rblock_phi_scan: uint1_t = microstate == MICRO_JOIN_RBLOCK_PHI_SCAN
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -1328,6 +1335,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = join_recp_binding_root[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_recp_rblock_body_read:
             memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_rblock_phi_scan:
+            memory_req.addr = join_rblock_phi_cursor[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_parent_read:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_ep_target_read:
@@ -1579,7 +1588,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             if join_parent_is_recp:
                 join_recp_root_wide_req: uint64_t = join_published_root
                 memory_req.wr_data = red2_word_t(lo=join_recp_root_wide_req, hi=69337088)
+            elif join_parent_is_rblock:
+                join_rblock_root_wide_req: uint64_t = join_published_root
+                join_rblock_parent_meta_req: uint64_t = join_parent_word.hi & 1179647
+                join_rblock_hi_req: uint64_t = 100794368 | join_rblock_parent_meta_req
+                memory_req.wr_data = red2_word_t(lo=join_rblock_root_wide_req, hi=join_rblock_hi_req)
             join_publish_preflight_ready: uint1_t = join_scalar_preflight_done or not join_scalar_active
+            join_rblock_phi_gate_req: uint1_t = join_parent_is_rblock and q == 0
+            join_rblock_phi_gate_req = join_rblock_phi_gate_req and not join_rblock_phi_done
+            if join_rblock_phi_gate_req:
+                join_publish_preflight_ready = 0
             # Reverse-EP fire==1 borrows the JOIN scalar evaluator only for
             # transactional preflight.  Its parent write is serialized later by
             # MICRO_EP_REVERSE_PUBLISH together with the caller-path pop.
@@ -1781,6 +1799,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_recp_rblock_cursor = 0
         join_recp_rblock_count = 0
         join_recp_binding_root = 0
+        join_rblock_phi_cursor = 0
+        join_rblock_phi_count = 0
+        join_rblock_phi_done = 0
+        join_rblock_phi_adjust = 0
         join_ep_target = 0
         join_frame_env = 0
         join_frame_free_space = 0
@@ -1852,6 +1874,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_control_clear_index = 0
         join_parent_is_ep = 0
         join_parent_is_recp = 0
+        join_parent_is_rblock = 0
         join_needs_ep_cache = 0
         join_preserve_fsp = 0
         join_ep_chase_target = 0
@@ -1989,6 +2012,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_recp_rblock_cursor = 0
         join_recp_rblock_count = 0
         join_recp_binding_root = 0
+        join_rblock_phi_cursor = 0
+        join_rblock_phi_count = 0
+        join_rblock_phi_done = 0
+        join_rblock_phi_adjust = 0
         join_ep_target = 0
         join_frame_env = 0
         join_frame_free_space = 0
@@ -2060,6 +2087,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_control_clear_index = 0
         join_parent_is_ep = 0
         join_parent_is_recp = 0
+        join_parent_is_rblock = 0
         join_needs_ep_cache = 0
         join_preserve_fsp = 0
         join_ep_chase_target = 0
@@ -2177,6 +2205,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_recp_rblock_cursor = 0
             join_recp_rblock_count = 0
             join_recp_binding_root = 0
+            join_rblock_phi_cursor = 0
+            join_rblock_phi_count = 0
+            join_rblock_phi_done = 0
+            join_rblock_phi_adjust = 0
             join_ep_target = 0
             join_frame_env = 0
             join_frame_free_space = 0
@@ -2195,6 +2227,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_control_clear_index = 0
             join_parent_is_ep = 0
             join_parent_is_recp = 0
+            join_parent_is_rblock = 0
             join_needs_ep_cache = 0
             join_ep_chase_target = 0
             join_ep_hops = 0
@@ -2638,6 +2671,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_saved_primitive = join_saved_primitive
                     join_parent_is_ep = 0
                     join_parent_is_recp = 0
+                    join_parent_is_rblock = 0
+                    join_rblock_phi_cursor = 0
+                    join_rblock_phi_count = 0
+                    join_rblock_phi_done = 0
+                    join_rblock_phi_adjust = 0
                     join_recp_rblock_cursor = 0
                     join_recp_rblock_count = 0
                     join_recp_binding_root = 0
@@ -4434,11 +4472,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_parent_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_parent_is_app: uint1_t = join_parent_opcode == MOP_APP
             join_parent_is_ep_now: uint1_t = join_parent_opcode == MOP_EP
-            join_parent_is_rblock: uint1_t = join_parent_opcode == MOP_RBLOCK
+            join_parent_is_rblock_now: uint1_t = join_parent_opcode == MOP_RBLOCK
             join_parent_is_recp_now: uint1_t = join_parent_opcode == MOP_RECP
             join_parent_supported_opcode: uint1_t = join_parent_is_app or join_parent_is_ep_now
             join_parent_supported_opcode = join_parent_supported_opcode or join_parent_is_recp_now
-            join_parent_known_opcode: uint1_t = join_parent_supported_opcode or join_parent_is_rblock
+            join_parent_supported_opcode = join_parent_supported_opcode or join_parent_is_rblock_now
+            join_parent_known_opcode: uint1_t = join_parent_supported_opcode
             if not join_parent_valid:
                 red2_fault = FAULT_INVALID_ADDRESS
                 microstate = MICRO_FAULT
@@ -4452,9 +4491,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_parent_word = memory_out.p0.rd_data
                 join_parent_is_ep = join_parent_is_ep_now
                 join_parent_is_recp = join_parent_is_recp_now
-                if join_parent_is_recp_now:
-                    # RECP publication always leaves the published child graph live;
-                    # the parent becomes APP(root) rather than compacting the child.
+                join_parent_is_rblock = join_parent_is_rblock_now
+                if join_parent_is_recp_now or join_parent_is_rblock_now:
+                    # RECP/RBLOCK publication leaves the published child graph live;
+                    # only the parent descriptor is rewritten to the published root.
                     join_preserve_fsp = 1
                 # Search for the SUBGRAPH frame using a private cursor.  Keep
                 # architectural control_top and RAM untouched until all JOIN
@@ -4578,6 +4618,39 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_JOIN_PRIM_META_SCAN
                 else:
                     microstate = MICRO_JOIN_TAIL_READ
+        elif micro_is_join_rblock_phi_scan:
+            join_rblock_cursor_in_range: uint1_t = join_rblock_phi_cursor[16:GRAPH_ADDR_BITS] == 0
+            if not join_rblock_cursor_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_rblock_candidate_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                join_rblock_candidate_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                join_rblock_candidate_is_rblock: uint1_t = join_rblock_candidate_valid and join_rblock_candidate_opcode == MOP_RBLOCK
+                if join_rblock_phi_count == 0:
+                    if join_rblock_candidate_is_rblock:
+                        # A preceding RBLOCK owns the run-level phi adjustment.
+                        join_rblock_phi_done = 1
+                        join_rblock_phi_adjust = 0
+                        microstate = MICRO_JOIN_PUBLISH
+                    else:
+                        join_rblock_phi_cursor = join_parent_address + 1
+                        join_rblock_phi_count = 1
+                elif join_rblock_candidate_is_rblock:
+                    join_rblock_phi_cursor = join_rblock_phi_cursor + 1
+                    join_rblock_phi_count = join_rblock_phi_count + 1
+                else:
+                    join_rblock_phi_wide: uint64_t = phi
+                    join_rblock_count_wide: uint64_t = join_rblock_phi_count
+                    join_rblock_phi_sufficient: uint1_t = red2_u64_ge(join_rblock_phi_wide, join_rblock_count_wide)
+                    join_rblock_phi_underflow: uint1_t = not join_rblock_phi_sufficient
+                    if join_rblock_phi_underflow:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        join_rblock_phi_done = 1
+                        join_rblock_phi_adjust = 1
+                        microstate = MICRO_JOIN_PUBLISH
         elif micro_is_join_prim_meta_scan:
             if prim0_meta_active:
                 prim0_scan_valid: uint1_t = literal_meta_out.p0.rd_data.valid
@@ -5193,7 +5266,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             elif join_tail_is_ep:
                 join_ep_descriptor_signed: uint1_t = join_tail_kind == DATA_SIGNED
                 join_ep_descriptor_negative: uint1_t = memory_out.p0.rd_data.lo[63]
-                if not join_ep_descriptor_signed:
+                if join_parent_is_rblock:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                elif not join_ep_descriptor_signed:
                     red2_fault = FAULT_INVALID_ADDRESS
                     microstate = MICRO_FAULT
                 elif join_ep_descriptor_negative:
@@ -5222,7 +5298,18 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
         elif micro_is_join_publish:
-            if join_scalar_active and not join_scalar_preflight_done:
+            join_rblock_phi_gate_exec: uint1_t = join_parent_is_rblock and q == 0
+            join_rblock_phi_gate_exec = join_rblock_phi_gate_exec and not join_rblock_phi_done
+            if join_rblock_phi_gate_exec:
+                join_rblock_phi_adjust = 0
+                if join_parent_address == 0:
+                    join_rblock_phi_cursor = 1
+                    join_rblock_phi_count = 1
+                else:
+                    join_rblock_phi_cursor = join_parent_address - 1
+                    join_rblock_phi_count = 0
+                microstate = MICRO_JOIN_RBLOCK_PHI_SCAN
+            elif join_scalar_active and not join_scalar_preflight_done:
                 join_scalar_opcode: uint5_t = join_publish_word.hi[25:21]
                 join_scalar_kind: uint2_t = join_publish_word.hi[18:17]
                 join_scalar_is_int: uint1_t = join_scalar_opcode == MOP_INT
@@ -5469,6 +5556,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_control_clear_index = join_control_next_index
             if join_control_next_index == join_frame_index:
                 join_frame_fire_one_at_restore: uint1_t = join_frame_fire == 1
+                if join_rblock_phi_adjust:
+                    join_rblock_phi_count32: uint32_t = join_rblock_phi_count
+                    phi = phi - join_rblock_phi_count32
+                    join_rblock_phi_adjust = 0
                 if struct_selector_launch_active:
                     # This clock clears the old frame. Reuse that slot for the
                     # private selector-result subgraph frame on the next clocks.
