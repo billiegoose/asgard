@@ -248,6 +248,13 @@ MICRO_STRUCT_SELECTOR_COPY_READ = 100
 MICRO_STRUCT_SELECTOR_COPY_WRITE = 101
 MICRO_STRUCT_SELECTOR_RESULT_META_SCAN = 102
 MICRO_JOIN_RBLOCK_PHI_SCAN = 103
+MICRO_JOIN_STRUCT_PREFLIGHT_SCAN = 104
+MICRO_JOIN_STRUCT_PREFLIGHT_TARGET = 105
+MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE = 106
+MICRO_JOIN_STRUCT_REWRITE_SCAN = 107
+MICRO_JOIN_STRUCT_REWRITE_TARGET = 108
+MICRO_JOIN_STRUCT_REWRITE_EP_CHASE = 109
+MICRO_JOIN_STRUCT_REWRITE_WRITE = 110
 
 
 @struct
@@ -591,6 +598,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     join_app_first_write_word: Reg[red2_word_t]
     join_app_second_write_word: Reg[red2_word_t]
     join_app_rewrite_word: Reg[red2_word_t]
+    join_struct_cursor: Reg[uint16_t]
+    join_struct_descriptor_address: Reg[uint16_t]
+    join_struct_descriptor_hi: Reg[uint64_t]
+    join_struct_target: Reg[uint64_t]
+    join_struct_ep_target: Reg[uint64_t]
+    join_struct_ep_hops: Reg[uint16_t]
+    join_struct_ep_embedded: Reg[uint1_t]
+    join_struct_rewrite_word: Reg[red2_word_t]
     join_flat_cursor: Reg[uint16_t]
     join_closure_address: Reg[uint16_t]
     join_closure_env: Reg[uint64_t]
@@ -755,6 +770,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_copy_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_WRITE
     micro_is_struct_selector_result_meta_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_RESULT_META_SCAN
     micro_is_join_rblock_phi_scan: uint1_t = microstate == MICRO_JOIN_RBLOCK_PHI_SCAN
+    micro_is_join_struct_preflight_scan: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+    micro_is_join_struct_preflight_target: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_TARGET
+    micro_is_join_struct_preflight_ep_chase: uint1_t = microstate == MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE
+    micro_is_join_struct_rewrite_scan: uint1_t = microstate == MICRO_JOIN_STRUCT_REWRITE_SCAN
+    micro_is_join_struct_rewrite_target: uint1_t = microstate == MICRO_JOIN_STRUCT_REWRITE_TARGET
+    micro_is_join_struct_rewrite_ep_chase: uint1_t = microstate == MICRO_JOIN_STRUCT_REWRITE_EP_CHASE
+    micro_is_join_struct_rewrite_write: uint1_t = microstate == MICRO_JOIN_STRUCT_REWRITE_WRITE
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -1337,6 +1359,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_rblock_phi_scan:
             memory_req.addr = join_rblock_phi_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_struct_preflight_scan or micro_is_join_struct_rewrite_scan:
+            memory_req.addr = join_struct_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_struct_preflight_target or micro_is_join_struct_rewrite_target:
+            memory_req.addr = join_struct_target[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_struct_preflight_ep_chase or micro_is_join_struct_rewrite_ep_chase:
+            memory_req.addr = join_struct_ep_target[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_struct_rewrite_write:
+            memory_req.addr = join_struct_descriptor_address[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = join_struct_rewrite_word
+            memory_req.wr_en = 1
         elif micro_is_join_parent_read:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_ep_target_read:
@@ -1899,6 +1931,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_app_first_write_word = red2_word_t(lo=0, hi=0)
         join_app_second_write_word = red2_word_t(lo=0, hi=0)
         join_app_rewrite_word = red2_word_t(lo=0, hi=0)
+        join_struct_cursor = 0
+        join_struct_descriptor_address = 0
+        join_struct_descriptor_hi = 0
+        join_struct_target = 0
+        join_struct_ep_target = 0
+        join_struct_ep_hops = 0
+        join_struct_ep_embedded = 0
+        join_struct_rewrite_word = red2_word_t(lo=0, hi=0)
         join_flat_cursor = 0
         join_closure_address = 0
         join_closure_env = 0
@@ -2112,6 +2152,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_app_first_write_word = red2_word_t(lo=0, hi=0)
         join_app_second_write_word = red2_word_t(lo=0, hi=0)
         join_app_rewrite_word = red2_word_t(lo=0, hi=0)
+        join_struct_cursor = 0
+        join_struct_descriptor_address = 0
+        join_struct_descriptor_hi = 0
+        join_struct_target = 0
+        join_struct_ep_target = 0
+        join_struct_ep_hops = 0
+        join_struct_ep_embedded = 0
+        join_struct_rewrite_word = red2_word_t(lo=0, hi=0)
         join_flat_cursor = 0
         join_closure_address = 0
         join_closure_env = 0
@@ -2251,6 +2299,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_app_first_write_word = red2_word_t(lo=0, hi=0)
             join_app_second_write_word = red2_word_t(lo=0, hi=0)
             join_app_rewrite_word = red2_word_t(lo=0, hi=0)
+            join_struct_cursor = 0
+            join_struct_descriptor_address = 0
+            join_struct_descriptor_hi = 0
+            join_struct_target = 0
+            join_struct_ep_target = 0
+            join_struct_ep_hops = 0
+            join_struct_ep_embedded = 0
+            join_struct_rewrite_word = red2_word_t(lo=0, hi=0)
             join_flat_cursor = 0
             join_closure_address = 0
             join_closure_env = 0
@@ -4651,6 +4707,342 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         join_rblock_phi_done = 1
                         join_rblock_phi_adjust = 1
                         microstate = MICRO_JOIN_PUBLISH
+        elif micro_is_join_struct_preflight_scan:
+            # join_struct_cursor is 16-bit while graph RAM is narrower.  Check
+            # the architectural address before interpreting memory_out so a
+            # malformed unterminated STRUCT cannot wrap the RAM request to 0.
+            join_struct_cursor_in_range: uint1_t = join_struct_cursor[15:GRAPH_ADDR_BITS] == 0
+            join_struct_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_struct_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_struct_scan_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_struct_scan_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            join_struct_scan_is_app: uint1_t = join_struct_scan_opcode == MOP_APP
+            join_struct_scan_is_ep: uint1_t = join_struct_scan_opcode == MOP_EP
+            join_struct_scan_is_app_var: uint1_t = join_struct_scan_opcode == MOP_APP_VAR
+            join_struct_scan_is_int: uint1_t = join_struct_scan_opcode == MOP_INT
+            join_struct_scan_is_float: uint1_t = join_struct_scan_opcode == MOP_FLOAT
+            join_struct_scan_is_char: uint1_t = join_struct_scan_opcode == MOP_CHAR
+            join_struct_scan_is_sym: uint1_t = join_struct_scan_opcode == MOP_SYM
+            join_struct_scan_is_prim0: uint1_t = join_struct_scan_opcode == MOP_PRIM_0
+            join_struct_scan_is_prim1: uint1_t = join_struct_scan_opcode == MOP_PRIM_1
+            join_struct_scan_is_prim2: uint1_t = join_struct_scan_opcode == MOP_PRIM_2
+            join_struct_scan_inline: uint1_t = join_struct_scan_is_int or join_struct_scan_is_float
+            join_struct_scan_inline = join_struct_scan_inline or join_struct_scan_is_char
+            join_struct_scan_inline = join_struct_scan_inline or join_struct_scan_is_sym
+            join_struct_scan_inline = join_struct_scan_inline or join_struct_scan_is_prim0
+            join_struct_scan_inline = join_struct_scan_inline or join_struct_scan_is_prim1
+            join_struct_scan_inline = join_struct_scan_inline or join_struct_scan_is_prim2
+            join_struct_scan_is_var: uint1_t = join_struct_scan_opcode == MOP_VAR
+            join_struct_scan_var_zero: uint1_t = join_struct_scan_is_var and memory_out.p0.rd_data.lo == 0
+            if not join_struct_cursor_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_struct_scan_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_struct_scan_is_app:
+                join_struct_app_signed: uint1_t = join_struct_scan_kind == DATA_SIGNED
+                join_struct_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_struct_app_in_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                if not join_struct_app_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_struct_app_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_struct_app_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    join_struct_target = memory_out.p0.rd_data.lo
+                    microstate = MICRO_JOIN_STRUCT_PREFLIGHT_TARGET
+            elif join_struct_scan_is_ep:
+                join_struct_ep_signed: uint1_t = join_struct_scan_kind == DATA_SIGNED
+                join_struct_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_struct_ep_in_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                if not join_struct_ep_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_struct_ep_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_struct_ep_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    join_struct_descriptor_address = join_struct_cursor
+                    join_struct_descriptor_hi = memory_out.p0.rd_data.hi
+                    join_struct_ep_target = memory_out.p0.rd_data.lo
+                    join_struct_ep_hops = 0
+                    join_struct_ep_embedded = 1
+                    microstate = MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE
+            elif join_struct_scan_is_app_var or (not join_struct_scan_head and join_struct_scan_inline):
+                join_struct_cursor = join_struct_cursor + 1
+            elif join_struct_scan_var_zero:
+                join_struct_cursor = join_result_address + 1
+                microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+        elif micro_is_join_struct_preflight_target:
+            join_struct_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_struct_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_struct_target_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_struct_target_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            join_struct_target_is_ep: uint1_t = join_struct_target_opcode == MOP_EP
+            join_struct_target_is_app: uint1_t = join_struct_target_opcode == MOP_APP
+            join_struct_target_is_app_var: uint1_t = join_struct_target_opcode == MOP_APP_VAR
+            join_struct_target_is_int: uint1_t = join_struct_target_opcode == MOP_INT
+            join_struct_target_is_float: uint1_t = join_struct_target_opcode == MOP_FLOAT
+            join_struct_target_is_char: uint1_t = join_struct_target_opcode == MOP_CHAR
+            join_struct_target_is_sym: uint1_t = join_struct_target_opcode == MOP_SYM
+            join_struct_target_is_prim0: uint1_t = join_struct_target_opcode == MOP_PRIM_0
+            join_struct_target_is_prim1: uint1_t = join_struct_target_opcode == MOP_PRIM_1
+            join_struct_target_is_prim2: uint1_t = join_struct_target_opcode == MOP_PRIM_2
+            join_struct_target_inline: uint1_t = join_struct_target_is_int or join_struct_target_is_float
+            join_struct_target_inline = join_struct_target_inline or join_struct_target_is_char
+            join_struct_target_inline = join_struct_target_inline or join_struct_target_is_sym
+            join_struct_target_inline = join_struct_target_inline or join_struct_target_is_prim0
+            join_struct_target_inline = join_struct_target_inline or join_struct_target_is_prim1
+            join_struct_target_inline = join_struct_target_inline or join_struct_target_is_prim2
+            join_struct_target_prefix: uint1_t = join_struct_target_is_app or join_struct_target_is_app_var
+            join_struct_target_prefix = join_struct_target_prefix or (not join_struct_target_head and join_struct_target_inline)
+            join_struct_target_composite: uint1_t = join_struct_target_opcode == MOP_LAMBDA
+            join_struct_target_composite = join_struct_target_composite or join_struct_target_opcode == MOP_RBLOCK
+            join_struct_target_composite = join_struct_target_composite or join_struct_target_opcode == MOP_STRUCT
+            if not join_struct_target_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_struct_target_is_ep:
+                join_struct_target_ep_signed: uint1_t = join_struct_target_kind == DATA_SIGNED
+                join_struct_target_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_struct_target_ep_in_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                if not join_struct_target_ep_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_struct_target_ep_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_struct_target_ep_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    join_struct_descriptor_address = join_struct_target[15:0]
+                    join_struct_descriptor_hi = memory_out.p0.rd_data.hi
+                    join_struct_ep_target = memory_out.p0.rd_data.lo
+                    join_struct_ep_hops = 0
+                    join_struct_ep_embedded = 0
+                    microstate = MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE
+            elif join_struct_target_prefix or join_struct_target_composite:
+                # Recursive APP/LAMBDA/RBLOCK/STRUCT publication needs the later
+                # generic walker.  Reject before any STRUCT descriptor mutation.
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            else:
+                # PUB_GRAPH returns all other roots unchanged.
+                join_struct_cursor = join_struct_cursor + 1
+                microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+        elif micro_is_join_struct_preflight_ep_chase:
+            join_struct_chase_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_struct_chase_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_struct_chase_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_struct_chase_defvalid: uint1_t = memory_out.p0.rd_data.hi[16]
+            join_struct_chase_is_ep: uint1_t = join_struct_chase_opcode == MOP_EP
+            if not join_struct_chase_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_struct_chase_is_ep:
+                join_struct_next_signed: uint1_t = join_struct_chase_kind == DATA_SIGNED
+                join_struct_next_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_struct_next_in_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                join_struct_hops_at_limit: uint1_t = join_struct_ep_hops == GRAPH_WORDS - 1
+                if not join_struct_next_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_struct_next_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_struct_next_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_struct_hops_at_limit:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    join_struct_ep_target = memory_out.p0.rd_data.lo
+                    join_struct_ep_hops = join_struct_ep_hops + 1
+            else:
+                join_struct_terminal17: uint17_t = join_struct_ep_target[16:0]
+                join_struct_after_frontier_gap: uint17_t = join_struct_terminal17 - free_space
+                join_struct_after_frontier_wrapped: uint1_t = join_struct_after_frontier_gap[16]
+                join_struct_at_or_after_frontier: uint1_t = join_struct_after_frontier_wrapped == 0
+                join_struct_before_frame_gap: uint17_t = join_frame_free_space - join_struct_terminal17
+                join_struct_before_frame_wrapped: uint1_t = join_struct_before_frame_gap[16]
+                join_struct_before_frame_nonzero: uint1_t = join_struct_before_frame_gap != 0
+                join_struct_before_frame: uint1_t = join_struct_before_frame_wrapped == 0
+                join_struct_before_frame = join_struct_before_frame and join_struct_before_frame_nonzero
+                join_struct_inside_reclaim: uint1_t = join_struct_at_or_after_frontier and join_struct_before_frame
+                join_struct_term_is_int: uint1_t = join_struct_chase_opcode == MOP_INT
+                join_struct_term_is_float: uint1_t = join_struct_chase_opcode == MOP_FLOAT
+                join_struct_term_is_char: uint1_t = join_struct_chase_opcode == MOP_CHAR
+                join_struct_term_is_sym: uint1_t = join_struct_chase_opcode == MOP_SYM
+                join_struct_term_sym_shareable: uint1_t = join_struct_term_is_sym and not join_struct_chase_defvalid
+                join_struct_term_atomic: uint1_t = join_struct_term_is_int or join_struct_term_is_float
+                join_struct_term_atomic = join_struct_term_atomic or join_struct_term_is_char
+                join_struct_term_atomic = join_struct_term_atomic or join_struct_term_sym_shareable
+                join_struct_term_is_ubv: uint1_t = join_struct_chase_opcode == MOP_UBV
+                join_struct_term_is_closure: uint1_t = join_struct_chase_opcode == MOP_CLOSURE
+                join_struct_term_is_rec: uint1_t = join_struct_chase_opcode == MOP_REC
+                if not join_struct_inside_reclaim:
+                    join_struct_cursor = join_struct_cursor + 1
+                    microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+                elif join_struct_term_atomic:
+                    join_struct_cursor = join_struct_cursor + 1
+                    microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+                elif join_struct_term_is_ubv:
+                    join_struct_ubv_signed: uint1_t = join_struct_chase_kind == DATA_SIGNED
+                    join_struct_phi_wide: uint64_t = phi
+                    join_struct_ubv_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    join_struct_ubv_index: uint64_t = join_struct_phi_wide - memory_out.p0.rd_data.lo
+                    if join_struct_ubv_negative:
+                        join_struct_ubv_magnitude: uint64_t = 0 - memory_out.p0.rd_data.lo
+                        join_struct_ubv_index = join_struct_phi_wide + join_struct_ubv_magnitude
+                    join_struct_ubv_index_negative: uint1_t = join_struct_ubv_index[63]
+                    if not join_struct_ubv_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not join_struct_ubv_negative and join_struct_ubv_index_negative:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        join_struct_cursor = join_struct_cursor + 1
+                        microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+                elif join_struct_term_is_closure or join_struct_term_is_rec:
+                    # These may allocate a new publication root.  Leave them to
+                    # the generic transactional publication walker.
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+        elif micro_is_join_struct_rewrite_scan:
+            join_struct_rw_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_struct_rw_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            join_struct_rw_is_app: uint1_t = join_struct_rw_opcode == MOP_APP
+            join_struct_rw_is_ep: uint1_t = join_struct_rw_opcode == MOP_EP
+            join_struct_rw_is_app_var: uint1_t = join_struct_rw_opcode == MOP_APP_VAR
+            join_struct_rw_is_int: uint1_t = join_struct_rw_opcode == MOP_INT
+            join_struct_rw_is_float: uint1_t = join_struct_rw_opcode == MOP_FLOAT
+            join_struct_rw_is_char: uint1_t = join_struct_rw_opcode == MOP_CHAR
+            join_struct_rw_is_sym: uint1_t = join_struct_rw_opcode == MOP_SYM
+            join_struct_rw_is_prim0: uint1_t = join_struct_rw_opcode == MOP_PRIM_0
+            join_struct_rw_is_prim1: uint1_t = join_struct_rw_opcode == MOP_PRIM_1
+            join_struct_rw_is_prim2: uint1_t = join_struct_rw_opcode == MOP_PRIM_2
+            join_struct_rw_inline: uint1_t = join_struct_rw_is_int or join_struct_rw_is_float
+            join_struct_rw_inline = join_struct_rw_inline or join_struct_rw_is_char
+            join_struct_rw_inline = join_struct_rw_inline or join_struct_rw_is_sym
+            join_struct_rw_inline = join_struct_rw_inline or join_struct_rw_is_prim0
+            join_struct_rw_inline = join_struct_rw_inline or join_struct_rw_is_prim1
+            join_struct_rw_inline = join_struct_rw_inline or join_struct_rw_is_prim2
+            join_struct_rw_terminator: uint1_t = join_struct_rw_opcode == MOP_VAR
+            join_struct_rw_terminator = join_struct_rw_terminator and memory_out.p0.rd_data.lo == 0
+            if join_struct_rw_is_app:
+                join_struct_target = memory_out.p0.rd_data.lo
+                microstate = MICRO_JOIN_STRUCT_REWRITE_TARGET
+            elif join_struct_rw_is_ep:
+                join_struct_descriptor_address = join_struct_cursor
+                join_struct_descriptor_hi = memory_out.p0.rd_data.hi
+                join_struct_ep_target = memory_out.p0.rd_data.lo
+                join_struct_ep_hops = 0
+                join_struct_ep_embedded = 1
+                microstate = MICRO_JOIN_STRUCT_REWRITE_EP_CHASE
+            elif join_struct_rw_is_app_var or (not join_struct_rw_head and join_struct_rw_inline):
+                join_struct_cursor = join_struct_cursor + 1
+            elif join_struct_rw_terminator:
+                join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                join_needs_ep_cache = 0
+                join_preserve_fsp = 1
+                join_published_root = join_result_address
+                microstate = MICRO_JOIN_PUBLISH
+            else:
+                # Preflight proved this unreachable without architectural mutation.
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+        elif micro_is_join_struct_rewrite_target:
+            join_struct_rw_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            if join_struct_rw_target_opcode == MOP_EP:
+                join_struct_descriptor_address = join_struct_target[15:0]
+                join_struct_descriptor_hi = memory_out.p0.rd_data.hi
+                join_struct_ep_target = memory_out.p0.rd_data.lo
+                join_struct_ep_hops = 0
+                join_struct_ep_embedded = 0
+                microstate = MICRO_JOIN_STRUCT_REWRITE_EP_CHASE
+            else:
+                join_struct_cursor = join_struct_cursor + 1
+                microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
+        elif micro_is_join_struct_rewrite_ep_chase:
+            join_struct_rw_chase_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_struct_rw_chase_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_struct_rw_chase_defvalid: uint1_t = memory_out.p0.rd_data.hi[16]
+            if join_struct_rw_chase_opcode == MOP_EP:
+                join_struct_ep_target = memory_out.p0.rd_data.lo
+                join_struct_ep_hops = join_struct_ep_hops + 1
+            else:
+                join_struct_rw_terminal17: uint17_t = join_struct_ep_target[16:0]
+                join_struct_rw_after_gap: uint17_t = join_struct_rw_terminal17 - free_space
+                join_struct_rw_after_wrapped: uint1_t = join_struct_rw_after_gap[16]
+                join_struct_rw_after: uint1_t = join_struct_rw_after_wrapped == 0
+                join_struct_rw_before_gap: uint17_t = join_frame_free_space - join_struct_rw_terminal17
+                join_struct_rw_before_wrapped: uint1_t = join_struct_rw_before_gap[16]
+                join_struct_rw_before_nonzero: uint1_t = join_struct_rw_before_gap != 0
+                join_struct_rw_before: uint1_t = join_struct_rw_before_wrapped == 0
+                join_struct_rw_before = join_struct_rw_before and join_struct_rw_before_nonzero
+                join_struct_rw_inside: uint1_t = join_struct_rw_after and join_struct_rw_before
+                join_struct_rw_is_int_term: uint1_t = join_struct_rw_chase_opcode == MOP_INT
+                join_struct_rw_is_float_term: uint1_t = join_struct_rw_chase_opcode == MOP_FLOAT
+                join_struct_rw_is_char_term: uint1_t = join_struct_rw_chase_opcode == MOP_CHAR
+                join_struct_rw_is_sym_term: uint1_t = join_struct_rw_chase_opcode == MOP_SYM
+                join_struct_rw_sym_shareable: uint1_t = join_struct_rw_is_sym_term and not join_struct_rw_chase_defvalid
+                join_struct_rw_atomic: uint1_t = join_struct_rw_is_int_term or join_struct_rw_is_float_term
+                join_struct_rw_atomic = join_struct_rw_atomic or join_struct_rw_is_char_term
+                join_struct_rw_atomic = join_struct_rw_atomic or join_struct_rw_sym_shareable
+                join_struct_rw_is_ubv: uint1_t = join_struct_rw_chase_opcode == MOP_UBV
+                if not join_struct_rw_inside:
+                    join_struct_cursor = join_struct_cursor + 1
+                    microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
+                elif join_struct_rw_atomic:
+                    join_struct_descriptor_head: uint64_t = join_struct_descriptor_hi & 1048576
+                    join_struct_atomic_hi: uint64_t = memory_out.p0.rd_data.hi & 132644863
+                    join_struct_atomic_hi = join_struct_atomic_hi | join_struct_descriptor_head
+                    join_struct_rewrite_word = red2_word_t(
+                        lo=memory_out.p0.rd_data.lo,
+                        hi=join_struct_atomic_hi,
+                    )
+                    microstate = MICRO_JOIN_STRUCT_REWRITE_WRITE
+                elif join_struct_rw_is_ubv:
+                    join_struct_rw_phi_wide: uint64_t = phi
+                    join_struct_rw_ubv_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    join_struct_rw_ubv_index: uint64_t = join_struct_rw_phi_wide - memory_out.p0.rd_data.lo
+                    if join_struct_rw_ubv_negative:
+                        join_struct_rw_ubv_magnitude: uint64_t = 0 - memory_out.p0.rd_data.lo
+                        join_struct_rw_ubv_index = join_struct_rw_phi_wide + join_struct_rw_ubv_magnitude
+                    join_struct_descriptor_definition: uint64_t = join_struct_descriptor_hi & 131071
+                    join_struct_descriptor_head2: uint64_t = join_struct_descriptor_hi & 1048576
+                    join_struct_var_hi: uint64_t = 111280128 | join_struct_descriptor_head2
+                    if join_struct_ep_embedded:
+                        join_struct_var_hi = 71434240 | join_struct_descriptor_head2
+                    join_struct_var_hi = join_struct_var_hi | join_struct_descriptor_definition
+                    join_struct_rewrite_word = red2_word_t(
+                        lo=join_struct_rw_ubv_index,
+                        hi=join_struct_var_hi,
+                    )
+                    microstate = MICRO_JOIN_STRUCT_REWRITE_WRITE
+                else:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+        elif micro_is_join_struct_rewrite_write:
+            join_struct_cursor = join_struct_cursor + 1
+            microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
         elif micro_is_join_prim_meta_scan:
             if prim0_meta_active:
                 prim0_scan_valid: uint1_t = literal_meta_out.p0.rd_data.valid
@@ -5212,11 +5604,21 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
                     else:
-                        join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                        # PUB_STRUCT_SCAN is transactional: validate the entire
+                        # structure and every reachable EP terminal before the
+                        # first descriptor rewrite.  A second pass then performs
+                        # only the rewrites proven safe by this preflight.
+                        join_struct_cursor = join_result_address + 1
+                        join_struct_descriptor_address = 0
+                        join_struct_descriptor_hi = 0
+                        join_struct_target = 0
+                        join_struct_ep_target = 0
+                        join_struct_ep_hops = 0
+                        join_struct_ep_embedded = 0
                         join_needs_ep_cache = 0
                         join_preserve_fsp = 1
                         join_published_root = join_result_address
-                        microstate = MICRO_JOIN_PUBLISH
+                        microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
                 elif join_tail_is_app_var:
                     if not join_multi_parent_supports_app_graph:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED

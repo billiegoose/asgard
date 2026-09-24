@@ -7350,6 +7350,195 @@ def check() -> None:
         )
         assert _packed_control_read(struct_late_control) == struct_late_encoded.control_stack[0]
 
+    # Generic STRUCT JOIN publication uses a two-pass transaction: validate the
+    # complete structure and every supported EP chase before rewriting anything,
+    # then replay the proven-safe walks.  Cover direct lazy fields, APP-target
+    # lazy roots, arbitrary field count, UBV rewriting, late-fault atomicity,
+    # and graph-end cursor overflow.
+    def struct_publication_state(
+        fields: list[Word],
+        *,
+        extras: dict[int, Word] | None = None,
+        memory_words: int = 64,
+        parent_address: int = 3,
+        join_address: int = 4,
+        result_address: int = 5,
+        env: int = 28,
+        frame_env: int = 32,
+        frame_free_space: int = 32,
+        phi_value: int = 7,
+    ) -> MuredMachineState:
+        struct_memory: list[Word | None] = [None] * memory_words
+        struct_control = [None] * 8
+        struct_memory[parent_address] = Word(MuredOpcode.APP, 9, False)
+        struct_memory[join_address] = Word(MuredOpcode.JOIN, parent_address, False)
+        struct_memory[result_address] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        for field_index, field_word in enumerate(fields, result_address + 1):
+            struct_memory[field_index] = field_word
+        if extras is not None:
+            for extra_address, extra_word in extras.items():
+                struct_memory[extra_address] = extra_word
+        struct_control[0] = _SubgraphFrame(
+            env=frame_env,
+            free_space=frame_free_space,
+            prim=None,
+            fire=0,
+        )
+        return MuredMachineState(
+            memory=struct_memory,
+            control_stack=struct_control,
+            pc=join_address,
+            fsp=result_address + len(fields),
+            env=env,
+            free_space=env,
+            c=0,
+            direction=Direction.B,
+            q=10,
+            phi=phi_value,
+            argcnt=0,
+        )
+
+    def run_struct_publication_commit(
+        state: MuredMachineState,
+        *,
+        addresses: tuple[int, ...],
+    ) -> object:
+        struct_codec = RED2ABICodec()
+        encoded = struct_codec.encode_state(state)
+        struct_oracle = Red2Processor(encoded)
+        assert struct_oracle.run_to_commit()
+        expected = struct_oracle.checkpoint()
+        _load_hardware(encoded)
+        result = None
+        for _ in range(256):
+            result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"STRUCT publication hardware faulted before commit: "
+                f"red2={int(result.red2_fault)} hw={int(result.hw_fault)} "
+                f"micro={int(result.microstate)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError("STRUCT publication failed to reach a bounded commit")
+        assert result is not None
+        _assert_scalar_checkpoint(result, expected)
+        for address in addresses:
+            readback = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+            assert _packed_memory_read(readback) == expected.memory[address], (
+                f"STRUCT publication memory mismatch at {address}"
+            )
+        control_readback = sim_call(red2_processor_top, _command(CMD_NOP, address=0))
+        assert _packed_control_read(control_readback) == expected.control_stack[0]
+        return expected
+
+    direct_struct_expected = run_struct_publication_commit(
+        struct_publication_state(
+            [Word(MuredOpcode.EP, 29, False), Word(MuredOpcode.VAR, 0, True)],
+            extras={29: Word(MuredOpcode.INT, 41, True)},
+        ),
+        addresses=(3, 5, 6, 7, 29),
+    )
+    assert direct_struct_expected.memory[6] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 41, False)
+    )
+
+    app_ep_struct_expected = run_struct_publication_commit(
+        struct_publication_state(
+            [Word(MuredOpcode.APP, 29, False), Word(MuredOpcode.VAR, 0, True)],
+            extras={
+                29: Word(MuredOpcode.EP, 30, True, definition=5),
+                30: Word(MuredOpcode.INT, 77, False),
+            },
+        ),
+        addresses=(3, 5, 6, 7, 29, 30),
+    )
+    assert app_ep_struct_expected.memory[6] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.APP, 29, False)
+    )
+    assert app_ep_struct_expected.memory[29] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 77, True)
+    )
+
+    multi_ep_struct_expected = run_struct_publication_commit(
+        struct_publication_state(
+            [
+                Word(MuredOpcode.EP, 29, False),
+                Word(MuredOpcode.EP, 30, False),
+                Word(MuredOpcode.EP, 31, False),
+                Word(MuredOpcode.VAR, 0, True),
+            ],
+            extras={
+                29: Word(MuredOpcode.INT, 77, True),
+                30: Word(MuredOpcode.INT, 88, True),
+                31: Word(MuredOpcode.INT, 99, True),
+            },
+        ),
+        addresses=(3, 5, 6, 7, 8, 9, 29, 30, 31),
+    )
+    for address, value in ((6, 77), (7, 88), (8, 99)):
+        assert multi_ep_struct_expected.memory[address] == RED2ABICodec().encode_word(
+            Word(MuredOpcode.INT, value, False)
+        )
+
+    ubv_struct_expected = run_struct_publication_commit(
+        struct_publication_state(
+            [
+                Word(MuredOpcode.EP, 29, False, definition=7),
+                Word(MuredOpcode.VAR, 0, True),
+            ],
+            extras={29: Word(MuredOpcode.UBV, 3, True)},
+            phi_value=7,
+        ),
+        addresses=(3, 5, 6, 7, 29),
+    )
+    assert ubv_struct_expected.memory[6] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.APP_VAR, 4, False, definition=7)
+    )
+
+    late_bad_state = struct_publication_state(
+        [
+            Word(MuredOpcode.EP, 29, False),
+            Word(MuredOpcode.INT, 99, True),
+            Word(MuredOpcode.VAR, 0, True),
+        ],
+        extras={29: Word(MuredOpcode.INT, 41, False)},
+    )
+    late_bad_encoded = RED2ABICodec().encode_state(late_bad_state)
+    _, late_bad_expected, late_bad_fault = _run_encoded_to_same_fault(
+        late_bad_encoded, max_clocks=256
+    )
+    assert late_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert late_bad_expected == late_bad_encoded
+    for address in (3, 5, 6, 7, 8, 29):
+        late_bad_read = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(late_bad_read) == late_bad_encoded.memory[address]
+
+    boundary_state = struct_publication_state(
+        [
+            Word(MuredOpcode.INT, 253, False),
+            Word(MuredOpcode.INT, 254, False),
+            Word(MuredOpcode.INT, 255, False),
+        ],
+        memory_words=256,
+        parent_address=250,
+        join_address=251,
+        result_address=252,
+        env=256,
+        frame_env=256,
+        frame_free_space=256,
+        phi_value=0,
+    )
+    boundary_encoded = RED2ABICodec().encode_state(boundary_state)
+    _, boundary_expected, boundary_fault = _run_encoded_to_same_fault(
+        boundary_encoded, max_clocks=256
+    )
+    assert boundary_fault == abi.FAULT_INVALID_ADDRESS
+    assert boundary_expected == boundary_encoded
+    for address in (0, 250, 251, 252, 253, 254, 255):
+        boundary_read = sim_call(red2_processor_top, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(boundary_read) == boundary_encoded.memory[address]
+
     # Saved-primitive STRUCT selectors are transactional at JOIN restore.  This
     # checkpoint covers q==0 suppression, passive wrong-tag/APP_VAR fields,
     # direct inline atomics, and APP descriptors resolving to atomics.
