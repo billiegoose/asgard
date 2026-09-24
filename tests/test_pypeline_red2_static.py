@@ -1,5 +1,8 @@
 import ast
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 
 def test_pypeline_stepper_artifact_has_expected_entry_points() -> None:
@@ -270,3 +273,165 @@ def test_task4_runtime_paths_have_no_data_dependent_python_while_walkers() -> No
         if isinstance(node, ast.While)
     ]
     assert offenders == []
+
+
+def test_task14_hardware_checker_pins_real_frontend_and_persistent_processor() -> None:
+    text = Path("scripts/check_pypeline_red2.py").read_text()
+    assert "171c52b3f1411f632a07ccfc3dbfb177efa901cd" in text
+    assert 'PROCESSOR_SOURCE = Path("models/python/pypeline_red2/red2_pypeline.py")' in text
+    assert "legacy red2_step_word" in text
+    assert "--no_synth" in text
+    assert "PY_TO_LOGIC.PARSE_FILE" not in text
+    assert "TRIM_COLLAPSE_LOGIC" not in text
+    assert "red2_processor_top_*.vhd" in text
+    assert "--comb" in text
+    assert "Skipping synthesis" in text
+    assert "check_pypeline_red2_sim.py" in text
+    assert "native Pypeline RED2 parity failed" in text
+
+
+def test_task14_explicit_gate_hard_fails_when_frontend_is_hidden() -> None:
+    env = os.environ.copy()
+    env.pop("PIPELINEC_ROOT", None)
+    env["PATH"] = ""
+    result = subprocess.run(
+        [sys.executable, "scripts/check_pypeline_red2.py"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert result.stderr.strip() == (
+        "pypeline-red2-check: missing PipelineC/Pypeline frontend; "
+        "set PIPELINEC_ROOT to a checkout at "
+        "171c52b3f1411f632a07ccfc3dbfb177efa901cd or put pypelinec/pipelinec on PATH"
+    )
+
+
+def test_task14_mise_exposes_explicit_non_skipping_hardware_gate() -> None:
+    text = Path(".mise.toml").read_text()
+    assert "[tasks.pypeline-red2-check]" in text
+    assert "scripts/check_pypeline_red2.py" in text
+    assert "setuptools" in text
+    assert "pyrtl==0.11.3" in text
+
+
+def test_task14_real_pypeline_top_has_persistent_hardware_state_contract() -> None:
+    source = Path("models/python/pypeline_red2/red2_pypeline.py").read_text()
+    assert "@MAIN(25.0)" in source
+    assert "def red2_processor_top" in source
+    assert "make_ram(" in source
+    assert "class red2_word_t(NamedTuple)" in source
+    assert "class red2_control_t(NamedTuple)" in source
+    assert "RED2_PYPELINE_SEMANTICS_COMPLETE = 0" in source
+    assert "red2_step_word" not in source
+    assert "Red2Processor(" not in source
+
+
+def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
+    path = Path("models/python/pypeline_red2/red2_pypeline.py")
+    tree = ast.parse(path.read_text())
+    top = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "red2_processor_top"
+    )
+
+    parents: dict[ast.AST, ast.AST] = {}
+    for parent in ast.walk(top):
+        for child in ast.iter_child_nodes(parent):
+            parents[child] = parent
+
+    long_dispatch_chains: list[tuple[int, int]] = []
+    for node in ast.walk(top):
+        if not isinstance(node, ast.If) or node.col_offset != 8:
+            continue
+        parent = parents.get(node)
+        if (
+            isinstance(parent, ast.If)
+            and len(parent.orelse) == 1
+            and parent.orelse[0] is node
+        ):
+            continue
+
+        count = 1
+        cursor = node
+        while len(cursor.orelse) == 1 and isinstance(cursor.orelse[0], ast.If):
+            cursor = cursor.orelse[0]
+            count += 1
+        if count >= 40:
+            long_dispatch_chains.append((node.lineno, count))
+
+    assert long_dispatch_chains == []
+    source = path.read_text()
+    assert "micro_is_commit_entry: uint1_t = microstate == MICRO_COMMIT" in source
+    assert "clock_dispatch_handled: uint1_t = 0" in source
+    assert source.count("clock_dispatch_handled = 1") == 117
+
+
+def test_task14_closure_code_validation_keeps_mixed_width_predicates_split() -> None:
+    """PipelineC 171c52b collides helper names for the compound mixed-width form."""
+
+    text = Path("models/python/pypeline_red2/red2_pypeline.py").read_text()
+    assert (
+        "if not equality_child_left_code_valid or "
+        "equality_child_left_code_opcode != MOP_NONE:"
+    ) not in text
+    assert (
+        "if not equality_child_right_code_valid or "
+        "equality_child_right_code_opcode != MOP_NONE:"
+    ) not in text
+    for side in ("left", "right"):
+        assert (
+            f"equality_child_{side}_code_is_none: uint1_t = "
+            f"equality_child_{side}_code_opcode == MOP_NONE"
+        ) in text
+        assert (
+            f"equality_child_{side}_code_bad: uint1_t = "
+            f"equality_child_{side}_code_valid == 0"
+        ) in text
+        assert (
+            f"equality_child_{side}_code_bad = equality_child_{side}_code_bad or "
+            f"equality_child_{side}_code_is_none == 0"
+        ) in text
+
+
+def test_task14_recursive_lambda_metadata_checks_remain_split_for_pipelinec() -> None:
+    """PipelineC 171c52b must not lower mixed-width != comparisons at one bool site."""
+
+    text = Path("models/python/pypeline_red2/red2_pypeline.py").read_text()
+    forbidden = (
+        "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
+        "join_true_literal_id != 0",
+        "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
+        "join_false_literal_id != 0",
+        "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
+        "join_equal_if_literal_id != 0",
+    )
+    for compound in forbidden:
+        assert compound not in text
+
+    for name, source in (
+        ("star", "join_equal_star_literal_id"),
+        ("true", "join_true_literal_id"),
+        ("false", "join_false_literal_id"),
+        ("if", "join_equal_if_literal_id"),
+    ):
+        assert (
+            f"equality_child_lambda_has_{name}: uint1_t = {source} != 0"
+        ) in text
+
+    assert (
+        "equality_child_lambda_meta_ok: uint1_t = "
+        "equality_child_lambda_has_star and equality_child_lambda_has_true"
+    ) in text
+    assert (
+        "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
+        "equality_child_lambda_has_false"
+    ) in text
+    assert (
+        "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
+        "equality_child_lambda_has_if"
+    ) in text

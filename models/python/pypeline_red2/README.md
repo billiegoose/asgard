@@ -75,7 +75,38 @@ uv run pytest -q tests/test_pypeline_red2_lazy.py tests/test_pypeline_red2_progr
 
 ## External Validation
 
-The eventual explicit hardware gate is `mise run pypeline-red2-check`. Unlike
-ordinary pytest, that gate is required to fail clearly when its configured
-Pypeline/PipelineC/HDL synthesis toolchain is absent; it must never report a
-false green by silently skipping translation or synthesis.
+The explicit hardware gate is:
+
+```bash
+mise run pypeline-red2-check
+```
+
+The tested upstream PipelineC/Pypeline revision is
+`171c52b3f1411f632a07ccfc3dbfb177efa901cd`. Point `PIPELINEC_ROOT` at a checkout
+of that exact revision, or provide an installed `pypelinec`/`pipelinec` launcher
+on `PATH`. The mise task provisions only the frontend's Python-side `setuptools`
+(distutils compatibility) and `pyrtl==0.11.3` dependencies; generated HDL and
+vendor/open-source synthesis artifacts stay in a temporary directory.
+
+Unlike ordinary pytest, this gate is deliberately non-skipping. A missing
+frontend is an error, a revision mismatch is an error, and PipelineC's
+`No synthesis tool install detected ... Skipping synthesis` path is an error
+rather than a hardware PASS. `--frontend-only` runs the supported
+`pypelinec --no_synth` path, including normal trim/collapse and VHDL emission for
+`red2_processor_top`, and then runs the native Pypeline RED2 parity checker. The
+hardware top is `models/python/pypeline_red2/red2_pypeline.py`; the separate
+`Red2Processor` class remains the CPython architectural model/oracle.
+
+The RED2 source deliberately keeps the large request and microstate dispatches
+flat rather than expressing them as deep Python `elif` trees. This is a
+frontend-shape optimization only: the request predicates are mutually exclusive,
+and the state-transition dispatch preserves priority with an entry-state
+`clock_dispatch_handled` guard. At the tested PipelineC revision this reduces the
+post-trim RED2 graph enough for the stock supported `--no_synth` flow to complete
+and emit the full VHDL top.
+
+A successful *full* gate additionally requires a real synthesis exit with
+target/resource/timing evidence. `RED2_SYNTH_V1` remains withheld until the
+hardware source marks its persistent reducer semantics complete and that
+synthesis proof succeeds; frontend acceptance or VHDL emission alone does not
+make that claim.

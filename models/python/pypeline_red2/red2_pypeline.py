@@ -904,9 +904,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             control_req.wr_en = 1
 
     if command_is_clock:
+        # Keep these entry-microstate request selectors as sibling ifs. They are
+        # mutually exclusive snapshots, and a deep elif tree makes PipelineC
+        # repeatedly merge the entire remaining reducer request graph.
         if micro_is_fetch:
             memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_execute:
+        if micro_is_execute:
             passive_forward: uint1_t = direction_is_forward and passive_opcode
             sym_forward: uint1_t = direction_is_forward and opcode_is_sym
             prim0_forward: uint1_t = direction_is_forward and opcode_is_prim0
@@ -1017,32 +1020,32 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     lo=env, hi=0, tag_hi=CONTROL_SAVED_DEFINITION_PATH
                 )
                 control_req.wr_en = 1
-        elif micro_is_rup_validate_rec:
+        if micro_is_rup_validate_rec:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
             rup_req_stride64 = rup_req_stride64 + rup_req_index64
             rup_req_rec64: uint64_t = rup_req_env64 + rup_req_stride64
             memory_req.addr = rup_req_rec64[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_rup_validate_context:
+        if micro_is_rup_validate_context:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
             rup_req_stride64 = rup_req_stride64 + rup_req_index64
             rup_req_context64: uint64_t = rup_req_env64 + rup_req_stride64 + 1
             memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_rup_validate_block:
+        if micro_is_rup_validate_block:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
             rup_req_stride64 = rup_req_stride64 + rup_req_index64
             rup_req_block_slot64: uint64_t = rup_req_env64 + rup_req_stride64 + 2
             memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_rup_validate_source:
+        if micro_is_rup_validate_source:
             rup_req_source_offset: uint16_t = rup_count - 1 - rup_index
             rup_req_source17: uint17_t = rup_block + rup_req_source_offset
             memory_req.addr = rup_req_source17[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_rup_write_context:
+        if micro_is_rup_write_context:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
@@ -1052,7 +1055,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=rup_req_env_payload, hi=67239936)
             memory_req.wr_en = 1
-        elif micro_is_rup_write_block:
+        if micro_is_rup_write_block:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
@@ -1062,25 +1065,25 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=rup_req_block_payload, hi=67239936)
             memory_req.wr_en = 1
-        elif micro_is_rup_zero_push:
+        if micro_is_rup_zero_push:
             rup_req_env_payload: uint64_t = env
             control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=rup_req_env_payload, hi=0, tag_hi=CONTROL_ADDRESS)
             control_req.wr_en = 1
-        elif micro_is_rup_zero_result:
+        if micro_is_rup_zero_result:
             rup_req_result_destination: uint17_t = fsp + 1
             memory_req.addr = rup_req_result_destination[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = fetched_word
             memory_req.wr_en = 1
-        elif micro_is_recp_validate_rec:
+        if micro_is_recp_validate_rec:
             memory_req.addr = fetched_word.lo[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_validate_context:
+        if micro_is_recp_validate_context:
             recp_context_address_req: uint17_t = fetched_word.lo[16:0] + 1
             memory_req.addr = recp_context_address_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_validate_block:
+        if micro_is_recp_validate_block:
             recp_block_address_req: uint17_t = fetched_word.lo[16:0] + 2
             memory_req.addr = recp_block_address_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_action:
+        if micro_is_recp_action:
             recp_action_forward: uint1_t = direction == DIRECTION_FORWARD
             if recp_action_forward:
                 if fetched_word.hi[20]:
@@ -1105,59 +1108,59 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     lo=recp_context_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
                 )
                 control_req.wr_en = 1
-        elif micro_is_recp_recon_scan:
+        if micro_is_recp_recon_scan:
             recp_scan_count64_req: uint64_t = recp_count
             recp_scan_address64_req: uint64_t = recp_block + recp_scan_count64_req
             memory_req.addr = recp_scan_address64_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_recon_marker:
+        if micro_is_recp_recon_marker:
             recp_parent_payload_req: uint64_t = recp_parent_environment
             recp_marker_address_req: uint17_t = free_space - 1
             memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=recp_parent_payload_req, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_recp_recon_ubv:
+        if micro_is_recp_recon_ubv:
             recp_ubv_address_req: uint17_t = free_space - 1
             recp_ubv_payload_req: uint64_t = phi + 1
             memory_req.addr = recp_ubv_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=recp_ubv_payload_req, hi=109182976)
             memory_req.wr_en = 1
-        elif micro_is_recp_recon_copy_read:
+        if micro_is_recp_recon_copy_read:
             recp_copy_index64_req: uint64_t = recp_index
             recp_copy_source64_req: uint64_t = recp_block + recp_copy_index64_req
             memory_req.addr = recp_copy_source64_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_recon_copy_write:
+        if micro_is_recp_recon_copy_write:
             recp_copy_destination_req: uint17_t = fsp + 1
             memory_req.addr = recp_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = recp_copy_word
             memory_req.wr_en = 1
-        elif micro_is_recp_recon_path:
+        if micro_is_recp_recon_path:
             recp_replacement_payload_req: uint64_t = recp_replacement
             control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(
                 lo=recp_replacement_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
             )
             control_req.wr_en = 1
-        elif micro_is_recp_recon_rup_read:
+        if micro_is_recp_recon_rup_read:
             recp_rup_count64_req: uint64_t = recp_count
             recp_rup_address64_req: uint64_t = recp_block + recp_rup_count64_req
             memory_req.addr = recp_rup_address64_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_recp_recon_rup_write:
+        if micro_is_recp_recon_rup_write:
             recp_rup_destination_req: uint17_t = fsp + 1
             memory_req.addr = recp_rup_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = recp_rup_word
             memory_req.wr_en = 1
-        elif micro_is_recp_recon_var_write:
+        if micro_is_recp_recon_var_write:
             recp_var_destination_req: uint17_t = fsp + 1
             recp_selected_payload_req: uint64_t = recp_selected
             memory_req.addr = recp_var_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=recp_selected_payload_req, hi=112328704)
             memory_req.wr_en = 1
-        elif micro_is_recp_reverse_bridge:
+        if micro_is_recp_reverse_bridge:
             recp_reverse_parent_wide_req: uint64_t = recp_reverse_parent_env
             memory_req.addr = recp_reverse_entry_env[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=recp_reverse_parent_wide_req, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_recp_reverse_frame:
+        if micro_is_recp_reverse_frame:
             recp_reverse_frame_env_wide_req: uint64_t = recp_reverse_entry_env
             recp_reverse_frame_lo_req: uint64_t = (
                 recp_reverse_frame_env_wide_req | (recp_reverse_frame_env_wide_req << 32)
@@ -1174,7 +1177,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 tag_hi=CONTROL_SUBGRAPH,
             )
             control_req.wr_en = 1
-        elif micro_is_recp_reverse_join:
+        if micro_is_recp_reverse_join:
             recp_reverse_join_address_req: uint17_t = fsp + 1
             recp_reverse_parent_pc_wide_req: uint64_t = pc
             recp_reverse_join_hi_req: uint64_t = 77725696
@@ -1185,11 +1188,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 lo=recp_reverse_parent_pc_wide_req, hi=recp_reverse_join_hi_req
             )
             memory_req.wr_en = 1
-        elif micro_is_struct_result_read:
+        if micro_is_struct_result_read:
             memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
             struct_control_address_req: uint17_t = control_top - 1
             control_req.addr = struct_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_recon_saved_q:
+        if micro_is_struct_recon_saved_q:
             struct_recon_destination_req: uint17_t = fsp + 1
             memory_req.addr = struct_recon_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = fetched_word
@@ -1199,26 +1202,26 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 lo=q, hi=0, tag_hi=CONTROL_SAVED_QUANTUM
             )
             control_req.wr_en = 1
-        elif micro_is_struct_reverse_control_read:
+        if micro_is_struct_reverse_control_read:
             struct_saved_q_address_req: uint17_t = control_top - 1
             control_req.addr = struct_saved_q_address_req[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_reverse_pop:
+        if micro_is_struct_reverse_pop:
             struct_saved_q_pop_address_req: uint17_t = control_top - 1
             control_req.addr = struct_saved_q_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
-        elif micro_is_struct_selector_root_read:
+        if micro_is_struct_selector_root_read:
             memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_descriptor_read:
+        if micro_is_struct_selector_descriptor_read:
             memory_req.addr = struct_selector_descriptor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_value_read:
+        if micro_is_struct_selector_value_read:
             memory_req.addr = struct_selector_source[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_copy_scan:
+        if micro_is_struct_selector_copy_scan:
             memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_copy_read:
+        if micro_is_struct_selector_copy_read:
             selector_copy_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
             memory_req.addr = selector_copy_source_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_copy_write:
+        if micro_is_struct_selector_copy_write:
             selector_copy_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
             memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             selector_copy_is_last_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
@@ -1227,12 +1230,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 memory_req.wr_data = struct_selector_copy_word
             memory_req.wr_en = 1
-        elif micro_is_struct_selector_promote_scan:
+        if micro_is_struct_selector_promote_scan:
             memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_promote_read:
+        if micro_is_struct_selector_promote_read:
             selector_promote_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
             memory_req.addr = selector_promote_source_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_promote_write:
+        if micro_is_struct_selector_promote_write:
             selector_promote_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
             selector_promote_at_body_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
             selector_promote_hi_req: uint64_t = struct_selector_copy_word.hi & 132644863
@@ -1243,7 +1246,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 lo=struct_selector_copy_word.lo, hi=selector_promote_hi_req
             )
             memory_req.wr_en = 1
-        elif micro_is_struct_selector_promote_generic:
+        if micro_is_struct_selector_promote_generic:
             if promote_task_is_app_scan:
                 memory_req.addr = promote_task_a[GRAPH_ADDR_BITS - 1 : 0]
             elif promote_task_is_app_process:
@@ -1251,14 +1254,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 memory_req.addr = promote_app_process_source_req[GRAPH_ADDR_BITS - 1 : 0]
             elif promote_task_is_pointer_done:
                 memory_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_struct_selector_promote_generic_write:
+        if micro_is_struct_selector_promote_generic_write:
             promote_publish_destination_req: uint17_t = struct_selector_copy_destination + promote_write_index
             memory_req.addr = promote_publish_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = promote_write_word
             memory_req.wr_en = 1
-        elif micro_is_lookup_read:
+        if micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_lookup_publish:
+        if micro_is_lookup_publish:
             lookup_fsp_in_range: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lookup_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lookup_free_end: uint1_t = free_space == GRAPH_WORDS
@@ -1275,20 +1278,20 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 memory_req.addr = lookup_destination[GRAPH_ADDR_BITS - 1 : 0]
                 memory_req.wr_data = lookup_word
                 memory_req.wr_en = 1
-        elif micro_is_lambda_read:
+        if micro_is_lambda_read:
             memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_lambda_push:
+        if micro_is_lambda_push:
             lambda_destination: uint17_t = fsp + 1
             memory_req.addr = lambda_destination[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = fetched_word
             memory_req.wr_en = 1
-        elif micro_is_lambda_env_bridge:
+        if micro_is_lambda_env_bridge:
             lambda_env_parent_wide: uint64_t = env
             lambda_env_bridge_address: uint17_t = free_space - 1
             memory_req.addr = lambda_env_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=lambda_env_parent_wide, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_lambda_env_binding:
+        if micro_is_lambda_env_binding:
             lambda_env_needs_bridge_req: uint1_t = free_space != env
             lambda_env_count_req: uint17_t = 1
             if lambda_env_needs_bridge_req:
@@ -1298,13 +1301,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = lambda_env_base_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=lambda_phi_wide, hi=109182976)
             memory_req.wr_en = 1
-        elif micro_is_lambda_beta_bridge:
+        if micro_is_lambda_beta_bridge:
             lambda_beta_parent_wide: uint64_t = env
             lambda_beta_bridge_address: uint17_t = free_space - 1
             memory_req.addr = lambda_beta_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=lambda_beta_parent_wide, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_lambda_beta_binding:
+        if micro_is_lambda_beta_binding:
             lambda_beta_needs_bridge_req: uint1_t = free_space != env
             lambda_beta_count_req: uint17_t = 1
             if lambda_beta_needs_bridge_req:
@@ -1313,29 +1316,29 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = lambda_beta_base_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = lambda_word
             memory_req.wr_en = 1
-        elif micro_is_lambda_ep_control_read:
+        if micro_is_lambda_ep_control_read:
             lambda_ep_control_address: uint17_t = control_top - 1
             control_req.addr = lambda_ep_control_address[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_lambda_ep_control_pop:
+        if micro_is_lambda_ep_control_pop:
             lambda_ep_control_pop_address: uint17_t = control_top - 1
             control_req.addr = lambda_ep_control_pop_address[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
-        elif micro_is_lambda_app_control_read:
+        if micro_is_lambda_app_control_read:
             lambda_app_control_address: uint17_t = control_top - 1
             control_req.addr = lambda_app_control_address[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_lambda_app_control_pop:
+        if micro_is_lambda_app_control_pop:
             lambda_app_control_pop_address: uint17_t = control_top - 1
             control_req.addr = lambda_app_control_pop_address[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
-        elif micro_is_lambda_app_bridge:
+        if micro_is_lambda_app_bridge:
             lambda_app_parent_wide: uint64_t = env
             lambda_app_bridge_address: uint17_t = free_space - 1
             memory_req.addr = lambda_app_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=lambda_app_parent_wide, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_lambda_app_closure:
+        if micro_is_lambda_app_closure:
             lambda_app_needs_bridge_req: uint1_t = free_space != env
             lambda_app_count_req: uint17_t = 2
             if app_rblock_active:
@@ -1351,7 +1354,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 lambda_app_path_wide: uint64_t = lambda_path
                 memory_req.wr_data = red2_word_t(lo=lambda_app_path_wide, hi=73531392)
             memory_req.wr_en = 1
-        elif micro_is_lambda_app_pointer:
+        if micro_is_lambda_app_pointer:
             lambda_app_needs_bridge_pointer: uint1_t = free_space != env
             lambda_app_count_pointer: uint17_t = 2
             if app_rblock_active:
@@ -1370,15 +1373,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 memory_req.wr_data = lambda_word
             memory_req.wr_en = 1
-        elif micro_is_app_control_read:
+        if micro_is_app_control_read:
             app_control_address_req: uint17_t = control_top - 1
             control_req.addr = app_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_app_bridge:
+        if micro_is_app_bridge:
             app_parent_env_wide: uint64_t = app_parent_env
             memory_req.addr = app_entry_env[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=app_parent_env_wide, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_app_frame:
+        if micro_is_app_frame:
             app_frame_address_req: uint17_t = control_top - 1
             app_frame_env_wide: uint64_t = app_entry_env
             app_frame_lo: uint64_t = app_frame_env_wide | (app_frame_env_wide << 32)
@@ -1392,7 +1395,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 tag_hi=CONTROL_SUBGRAPH,
             )
             control_req.wr_en = 1
-        elif micro_is_app_join:
+        if micro_is_app_join:
             app_join_address_req: uint17_t = fsp + 1
             app_parent_pc_wide: uint64_t = app_parent_pc
             app_join_hi: uint64_t = 77725696
@@ -1405,17 +1408,17 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = app_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=app_parent_pc_wide, hi=app_join_hi)
             memory_req.wr_en = 1
-        elif micro_is_closure_read:
+        if micro_is_closure_read:
             closure_code_address_req: uint17_t = pc + 1
             memory_req.addr = closure_code_address_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_closure_marker:
+        if micro_is_closure_marker:
             closure_marker_address_req: uint17_t = free_space - 1
             memory_req.addr = closure_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=fetched_word.lo, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_ep_chase:
+        if micro_is_ep_chase:
             memory_req.addr = ep_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_ep_forward_publish:
+        if micro_is_ep_forward_publish:
             ep_destination_req: uint17_t = fsp + 1
             memory_req.addr = ep_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = fetched_word
@@ -1423,16 +1426,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
             control_req.wr_en = 1
-        elif micro_is_ep_reverse_control_read:
+        if micro_is_ep_reverse_control_read:
             ep_reverse_control_address_req: uint17_t = control_top - 1
             control_req.addr = ep_reverse_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_ep_reverse_marker:
+        if micro_is_ep_reverse_marker:
             ep_reverse_marker_address_req: uint17_t = free_space - 1
             ep_reverse_caller_wide: uint64_t = ep_caller_path
             memory_req.addr = ep_reverse_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=ep_reverse_caller_wide, hi=113377280)
             memory_req.wr_en = 1
-        elif micro_is_ep_reverse_publish:
+        if micro_is_ep_reverse_publish:
             if stop_cleanup_active:
                 stop_cleanup_pop_address_req: uint17_t = control_top - 1
                 control_req.addr = stop_cleanup_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
@@ -1455,34 +1458,34 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 control_req.addr = ep_reverse_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
                 control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                 control_req.wr_en = 1
-        elif micro_is_join_recp_rblock_scan:
+        if micro_is_join_recp_rblock_scan:
             memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_recp_rblock_binding_read:
+        if micro_is_join_recp_rblock_binding_read:
             memory_req.addr = join_recp_binding_root[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_recp_rblock_body_read:
+        if micro_is_join_recp_rblock_body_read:
             memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_rblock_phi_scan:
+        if micro_is_join_rblock_phi_scan:
             memory_req.addr = join_rblock_phi_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_struct_preflight_scan or micro_is_join_struct_rewrite_scan:
+        if micro_is_join_struct_preflight_scan or micro_is_join_struct_rewrite_scan:
             memory_req.addr = join_struct_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_struct_preflight_target or micro_is_join_struct_rewrite_target:
+        if micro_is_join_struct_preflight_target or micro_is_join_struct_rewrite_target:
             memory_req.addr = join_struct_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_struct_preflight_ep_chase or micro_is_join_struct_rewrite_ep_chase:
+        if micro_is_join_struct_preflight_ep_chase or micro_is_join_struct_rewrite_ep_chase:
             memory_req.addr = join_struct_ep_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_struct_rewrite_write:
+        if micro_is_join_struct_rewrite_write:
             memory_req.addr = join_struct_descriptor_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_struct_rewrite_word
             memory_req.wr_en = 1
-        elif micro_is_join_parent_read:
+        if micro_is_join_parent_read:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_ep_target_read:
+        if micro_is_join_ep_target_read:
             memory_req.addr = join_ep_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_frame_read:
+        if micro_is_join_frame_read:
             join_frame_address_req: uint17_t = join_control_clear_index - 1
             control_req.addr = join_frame_address_req[CONTROL_ADDR_BITS - 1 : 0]
-        elif micro_is_join_tail_read:
+        if micro_is_join_tail_read:
             memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_scalar_left_read:
+        if micro_is_join_scalar_left_read:
             if equality_continue_active:
                 if equality_continue_phase == 0:
                     memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
@@ -1718,7 +1721,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 join_scalar_left_address_req: uint17_t = join_parent_address + 1
                 memory_req.addr = join_scalar_left_address_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_publish:
+        if micro_is_join_publish:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_publish_word
             if join_parent_is_recp:
@@ -1741,39 +1744,39 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 memory_req.wr_en = 0
             else:
                 memory_req.wr_en = join_publish_preflight_ready
-        elif micro_is_join_control_clear:
+        if micro_is_join_control_clear:
             join_clear_address_req: uint17_t = join_control_clear_index - 1
             control_req.addr = join_clear_address_req[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
-        elif micro_is_join_ep_cache:
+        if micro_is_join_ep_cache:
             memory_req.addr = join_ep_target[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_cache_word
             memory_req.wr_en = 1
-        elif micro_is_join_ep_chase:
+        if micro_is_join_ep_chase:
             memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_ep_result_write:
+        if micro_is_join_ep_result_write:
             memory_req.addr = join_ep_descriptor_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_ep_publish_word
             join_ep_write_preflight_ready: uint1_t = join_scalar_preflight_done or not join_scalar_active
             memory_req.wr_en = join_ep_write_preflight_ready
-        elif micro_is_join_app_scan:
+        if micro_is_join_app_scan:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_app_target_read:
+        if micro_is_join_app_target_read:
             memory_req.addr = join_app_shared_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_multi_target_read:
+        if micro_is_join_multi_target_read:
             memory_req.addr = join_app_preflight_root[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_multi_target_chase:
+        if micro_is_join_multi_target_chase:
             memory_req.addr = join_app_preflight_chase_target[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_multi_target_write_first:
+        if micro_is_join_multi_target_write_first:
             memory_req.addr = join_app_shared_target[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_app_first_write_word
             memory_req.wr_en = 1
-        elif micro_is_join_multi_target_write_second:
+        if micro_is_join_multi_target_write_second:
             memory_req.addr = join_app_second_target[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_app_second_write_word
             memory_req.wr_en = 1
-        elif micro_is_join_special_meta_done:
+        if micro_is_join_special_meta_done:
             if prim0_y_active:
                 prim0_y_recursive_payload_req: uint64_t = prim0_y_argument_address
                 memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
@@ -1800,38 +1803,38 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     memory_req.addr = prim0_meta_destination_req[GRAPH_ADDR_BITS - 1 : 0]
                     memory_req.wr_data = fetched_word
                     memory_req.wr_en = 1
-        elif micro_is_join_special_meta_scan:
+        if micro_is_join_special_meta_scan:
             if prim0_y_active:
                 prim0_y_scratch_address_req: uint17_t = fsp + 1
                 memory_req.addr = prim0_y_scratch_address_req[GRAPH_ADDR_BITS - 1 : 0]
                 memory_req.wr_data = prim0_y_scratch_word
                 memory_req.wr_en = 1
-        elif micro_is_join_flat_scan:
+        if micro_is_join_flat_scan:
             memory_req.addr = join_flat_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_code_read:
+        if micro_is_join_closure_code_read:
             join_closure_code_slot_req: uint17_t = join_closure_address + 1
             memory_req.addr = join_closure_code_slot_req[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_lambda_scan:
+        if micro_is_join_closure_lambda_scan:
             memory_req.addr = join_closure_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_body_read:
+        if micro_is_join_closure_body_read:
             memory_req.addr = join_closure_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_env_read:
+        if micro_is_join_closure_env_read:
             memory_req.addr = join_closure_env_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_write_lambda:
+        if micro_is_join_closure_write_lambda:
             memory_req.addr = join_closure_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_closure_write_lambda_commit:
+        if micro_is_join_closure_write_lambda_commit:
             join_closure_lambda_destination_req: uint17_t = join_closure_destination + join_closure_write_index
             memory_req.addr = join_closure_lambda_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_closure_lambda_word
             memory_req.wr_en = 1
-        elif micro_is_join_closure_write_body:
+        if micro_is_join_closure_write_body:
             join_closure_body_destination_req: uint17_t = join_closure_destination + join_closure_lambda_count
             memory_req.addr = join_closure_body_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_closure_body_word
             memory_req.wr_en = 1
-        elif micro_is_join_app_rewrite_read:
+        if micro_is_join_app_rewrite_read:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
-        elif micro_is_join_app_rewrite_write:
+        if micro_is_join_app_rewrite_write:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_app_rewrite_word
             memory_req.wr_en = 1
@@ -2608,9 +2611,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         has_red2_fault: uint1_t = red2_fault != FAULT_NONE
         is_fault_microstate: uint1_t = microstate == MICRO_FAULT
         clock_faulted: uint1_t = has_red2_fault or is_fault_microstate
+        # Snapshot dispatch predicates before any arm mutates microstate, then
+        # preserve the original elif priority with an explicit handled bit. The
+        # flat shape avoids PipelineC's superlinear nested-branch merge cost.
+        micro_is_commit_entry: uint1_t = microstate == MICRO_COMMIT
+        clock_dispatch_handled: uint1_t = 0
         if clock_faulted:
+            clock_dispatch_handled = 1
             microstate = MICRO_FAULT
-        elif micro_is_fetch:
+        if not clock_dispatch_handled and micro_is_fetch:
+            clock_dispatch_handled = 1
             pending_host: uint1_t = pending_host_op != HOST_NONE
             fetch_suspended: uint1_t = halted or pending_host
             pc_out_of_range: uint1_t = pc_in_range == 0
@@ -2626,7 +2636,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 fetched_word = memory_out.p0.rd_data
                 microstate = MICRO_EXECUTE
-        elif micro_is_execute:
+        if not clock_dispatch_handled and micro_is_execute:
+            clock_dispatch_handled = 1
             fetched_invalid: uint1_t = fetched_valid == 0
             kind_bad: uint1_t = passive_kind_ok == 0
             direction_is_reverse: uint1_t = direction == DIRECTION_REVERSE
@@ -3410,7 +3421,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
-        elif micro_is_struct_selector_root_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_root_read:
+            clock_dispatch_handled = 1
             selector_root_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             selector_root_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             selector_root_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -3449,7 +3461,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         struct_selector_descriptor = selector_descriptor64[15:0]
                         microstate = MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ
-        elif micro_is_struct_selector_descriptor_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_descriptor_read:
+            clock_dispatch_handled = 1
             selector_descriptor_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             selector_descriptor_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             selector_descriptor_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -3506,7 +3519,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
-        elif micro_is_struct_selector_value_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_value_read:
+            clock_dispatch_handled = 1
             selector_value_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             selector_value_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             selector_value_head: uint1_t = memory_out.p0.rd_data.hi[20]
@@ -3562,7 +3576,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_published_root = join_result_address
                     struct_selector_contract = 1
                     microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_struct_selector_result_meta_scan:
+        if not clock_dispatch_handled and micro_is_struct_selector_result_meta_scan:
+            clock_dispatch_handled = 1
             selector_result_meta_valid: uint1_t = literal_meta_out.p0.rd_data.valid
             selector_result_meta_role: uint2_t = literal_meta_out.p0.rd_data.struct_role
             selector_result_meta_role_match: uint1_t = selector_result_meta_role == STRUCT_ROLE_SELECTOR_RESULT
@@ -3622,7 +3637,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 struct_selector_result_meta_cursor = struct_selector_result_meta_cursor + 1
-        elif micro_is_struct_selector_copy_scan:
+        if not clock_dispatch_handled and micro_is_struct_selector_copy_scan:
+            clock_dispatch_handled = 1
             selector_copy_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
             selector_copy_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             selector_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -3696,7 +3712,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 struct_selector_copy_cursor = struct_selector_copy_cursor + 1
-        elif micro_is_struct_selector_copy_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_copy_read:
+            clock_dispatch_handled = 1
             selector_copy_source_index17: uint17_t = struct_selector_source + struct_selector_copy_index
             selector_copy_source_index_in_range: uint1_t = selector_copy_source_index17[16:GRAPH_ADDR_BITS] == 0
             if not selector_copy_source_index_in_range:
@@ -3705,7 +3722,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 struct_selector_copy_word = memory_out.p0.rd_data
                 microstate = MICRO_STRUCT_SELECTOR_COPY_WRITE
-        elif micro_is_struct_selector_copy_write:
+        if not clock_dispatch_handled and micro_is_struct_selector_copy_write:
+            clock_dispatch_handled = 1
             selector_copy_last_index: uint17_t = struct_selector_copy_count - 1
             selector_copy_at_last: uint1_t = struct_selector_copy_index == selector_copy_last_index
             selector_copy_at_first: uint1_t = struct_selector_copy_index == 0
@@ -3761,7 +3779,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     struct_selector_copy_index = struct_selector_copy_index + 1
                     microstate = MICRO_STRUCT_SELECTOR_COPY_READ
-        elif micro_is_struct_selector_promote_scan:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_scan:
+            clock_dispatch_handled = 1
             selector_promote_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
             selector_promote_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             selector_promote_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -3825,7 +3844,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         struct_selector_copy_index = 0
                     microstate = MICRO_STRUCT_SELECTOR_PROMOTE_READ
-        elif micro_is_struct_selector_promote_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_read:
+            clock_dispatch_handled = 1
             selector_promote_source_index17: uint17_t = struct_selector_source + struct_selector_copy_index
             selector_promote_source_index_in_range: uint1_t = selector_promote_source_index17[16:GRAPH_ADDR_BITS] == 0
             if not selector_promote_source_index_in_range:
@@ -3834,7 +3854,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 struct_selector_copy_word = memory_out.p0.rd_data
                 microstate = MICRO_STRUCT_SELECTOR_PROMOTE_WRITE
-        elif micro_is_struct_selector_promote_write:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_write:
+            clock_dispatch_handled = 1
             selector_promote_last_index: uint17_t = struct_selector_copy_count - 1
             selector_promote_at_last: uint1_t = struct_selector_copy_index == selector_promote_last_index
             selector_promote_at_first: uint1_t = struct_selector_copy_index == 0
@@ -3867,7 +3888,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 struct_selector_result_resume_forward = selector_promote_has_surviving_args
                 join_control_clear_index = control_top
                 microstate = MICRO_JOIN_CONTROL_CLEAR
-        elif micro_is_struct_selector_promote_generic:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_generic:
+            clock_dispatch_handled = 1
             if promote_task_is_none:
                 # NONE is only a reset/default state; generic launch enters APP_SCAN
                 # directly after advancing the forwarding-cache epoch.
@@ -4043,7 +4065,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
-        elif micro_is_struct_selector_promote_generic_read:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_generic_read:
+            clock_dispatch_handled = 1
             promote_read_valid_exec: uint1_t = promote_mat_out.p0.rd_data.valid
             if not promote_read_valid_exec:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
@@ -4082,7 +4105,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     promote_write_word = promote_relocated_word_exec
                     microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE
-        elif micro_is_struct_selector_promote_generic_write:
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_generic_write:
+            clock_dispatch_handled = 1
             promote_publish_last_exec: uint17_t = promote_mat_count - 1
             if promote_write_index == promote_publish_last_exec:
                 promote_publish_last_address_exec: uint17_t = struct_selector_copy_destination + promote_publish_last_exec
@@ -4098,7 +4122,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 promote_write_index = promote_write_index + 1
                 microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ
-        elif micro_is_struct_result_read:
+        if not clock_dispatch_handled and micro_is_struct_result_read:
+            clock_dispatch_handled = 1
             struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             struct_result_is_app: uint1_t = struct_result_opcode == MOP_APP
@@ -4253,7 +4278,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     struct_app_var_binding: uint64_t = struct_phi_wide - memory_out.p0.rd_data.lo
                     lambda_word = red2_word_t(lo=struct_app_var_binding, hi=109182976)
                     microstate = MICRO_LAMBDA_BETA_ENV
-        elif micro_is_struct_recon_saved_q:
+        if not clock_dispatch_handled and micro_is_struct_recon_saved_q:
+            clock_dispatch_handled = 1
             struct_recon_pushed: uint17_t = fsp + 1
             control_top = control_top + 1
             q = 0
@@ -4265,7 +4291,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_LAMBDA_ENV_BRIDGE
             else:
                 microstate = MICRO_LAMBDA_ENV_BINDING
-        elif micro_is_struct_reverse_control_read:
+        if not clock_dispatch_handled and micro_is_struct_reverse_control_read:
+            clock_dispatch_handled = 1
             struct_reverse_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             struct_reverse_top_end: uint1_t = control_top == CONTROL_WORDS
             struct_reverse_top_valid: uint1_t = struct_reverse_top_low or struct_reverse_top_end
@@ -4294,13 +4321,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 struct_saved_q = control_out.p0.rd_data.lo[31:0]
                 microstate = MICRO_STRUCT_REVERSE_POP
-        elif micro_is_struct_reverse_pop:
+        if not clock_dispatch_handled and micro_is_struct_reverse_pop:
+            clock_dispatch_handled = 1
             control_top = control_top - 1
             q = struct_saved_q
             phi = phi - 1
             pc = pc - 1
             microstate = MICRO_COMMIT
-        elif micro_is_lambda_read:
+        if not clock_dispatch_handled and micro_is_lambda_read:
+            clock_dispatch_handled = 1
             lambda_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             lambda_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             lambda_result_is_stop: uint1_t = lambda_result_opcode == MOP_STOP
@@ -4414,7 +4443,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
-        elif micro_is_lambda_push:
+        if not clock_dispatch_handled and micro_is_lambda_push:
+            clock_dispatch_handled = 1
             lambda_pushed: uint17_t = fsp + 1
             fsp = lambda_pushed[15:0]
             if app_rblock_active:
@@ -4423,7 +4453,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 argcnt = 1
             phi = phi + 1
             microstate = MICRO_LAMBDA_ENV
-        elif micro_is_lambda_env:
+        if not clock_dispatch_handled and micro_is_lambda_env:
+            clock_dispatch_handled = 1
             lambda_env_fsp_valid_exec: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lambda_env_free_low_exec: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lambda_env_free_end_exec: uint1_t = free_space == GRAPH_WORDS
@@ -4465,9 +4496,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_LAMBDA_ENV_BRIDGE
             else:
                 microstate = MICRO_LAMBDA_ENV_BINDING
-        elif micro_is_lambda_env_bridge:
+        if not clock_dispatch_handled and micro_is_lambda_env_bridge:
+            clock_dispatch_handled = 1
             microstate = MICRO_LAMBDA_ENV_BINDING
-        elif micro_is_lambda_env_binding:
+        if not clock_dispatch_handled and micro_is_lambda_env_binding:
+            clock_dispatch_handled = 1
             lambda_env_finish_needs_bridge: uint1_t = free_space != env
             lambda_env_finish_count: uint17_t = 1
             if lambda_env_finish_needs_bridge:
@@ -4479,7 +4512,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 app_rblock_active = 0
             pc = pc + 1
             microstate = MICRO_COMMIT
-        elif micro_is_lambda_beta_env:
+        if not clock_dispatch_handled and micro_is_lambda_beta_env:
+            clock_dispatch_handled = 1
             lambda_beta_fsp_valid_exec: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lambda_beta_free_low_exec: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lambda_beta_free_end_exec: uint1_t = free_space == GRAPH_WORDS
@@ -4521,9 +4555,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_LAMBDA_BETA_BRIDGE
             else:
                 microstate = MICRO_LAMBDA_BETA_BINDING
-        elif micro_is_lambda_beta_bridge:
+        if not clock_dispatch_handled and micro_is_lambda_beta_bridge:
+            clock_dispatch_handled = 1
             microstate = MICRO_LAMBDA_BETA_BINDING
-        elif micro_is_lambda_beta_binding:
+        if not clock_dispatch_handled and micro_is_lambda_beta_binding:
+            clock_dispatch_handled = 1
             lambda_beta_finish_needs_bridge: uint1_t = free_space != env
             lambda_beta_finish_count: uint17_t = 1
             if lambda_beta_finish_needs_bridge:
@@ -4536,7 +4572,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             argcnt = argcnt - 1
             pc = pc + 1
             microstate = MICRO_COMMIT
-        elif micro_is_lambda_ep_control_read:
+        if not clock_dispatch_handled and micro_is_lambda_ep_control_read:
+            clock_dispatch_handled = 1
             lambda_ep_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             lambda_ep_top_end: uint1_t = control_top == CONTROL_WORDS
             lambda_ep_top_valid: uint1_t = lambda_ep_top_low or lambda_ep_top_end
@@ -4561,10 +4598,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 microstate = MICRO_LAMBDA_EP_CONTROL_POP
-        elif micro_is_lambda_ep_control_pop:
+        if not clock_dispatch_handled and micro_is_lambda_ep_control_pop:
+            clock_dispatch_handled = 1
             control_top = control_top - 1
             microstate = MICRO_LAMBDA_EP_ENV
-        elif micro_is_lambda_ep_env:
+        if not clock_dispatch_handled and micro_is_lambda_ep_env:
+            clock_dispatch_handled = 1
             lambda_ep_fsp_valid_exec: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lambda_ep_free_low_exec: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lambda_ep_free_end_exec: uint1_t = free_space == GRAPH_WORDS
@@ -4606,7 +4645,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_LAMBDA_BETA_BRIDGE
             else:
                 microstate = MICRO_LAMBDA_BETA_BINDING
-        elif micro_is_lambda_app_control_read:
+        if not clock_dispatch_handled and micro_is_lambda_app_control_read:
+            clock_dispatch_handled = 1
             lambda_app_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             lambda_app_top_end: uint1_t = control_top == CONTROL_WORDS
             lambda_app_top_valid: uint1_t = lambda_app_top_low or lambda_app_top_end
@@ -4632,7 +4672,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 lambda_path = control_out.p0.rd_data.lo[31:0]
                 microstate = MICRO_LAMBDA_APP_CONTROL_POP
-        elif micro_is_lambda_app_control_pop:
+        if not clock_dispatch_handled and micro_is_lambda_app_control_pop:
+            clock_dispatch_handled = 1
             lambda_app_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lambda_app_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lambda_app_free_end: uint1_t = free_space == GRAPH_WORDS
@@ -4675,11 +4716,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_LAMBDA_APP_BRIDGE
             else:
                 microstate = MICRO_LAMBDA_APP_CLOSURE
-        elif micro_is_lambda_app_bridge:
+        if not clock_dispatch_handled and micro_is_lambda_app_bridge:
+            clock_dispatch_handled = 1
             microstate = MICRO_LAMBDA_APP_CLOSURE
-        elif micro_is_lambda_app_closure:
+        if not clock_dispatch_handled and micro_is_lambda_app_closure:
+            clock_dispatch_handled = 1
             microstate = MICRO_LAMBDA_APP_POINTER
-        elif micro_is_lambda_app_pointer:
+        if not clock_dispatch_handled and micro_is_lambda_app_pointer:
+            clock_dispatch_handled = 1
             if app_rblock_active:
                 rblock_none_first_done: uint1_t = lambda_path != 0
                 if not rblock_none_first_done:
@@ -4710,7 +4754,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 argcnt = argcnt - 1
                 pc = pc + 1
                 microstate = MICRO_COMMIT
-        elif micro_is_app_control_read:
+        if not clock_dispatch_handled and micro_is_app_control_read:
+            clock_dispatch_handled = 1
             app_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             app_top_end: uint1_t = control_top == CONTROL_WORDS
             app_top_valid: uint1_t = app_top_low or app_top_end
@@ -4799,11 +4844,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_APP_BRIDGE
                 else:
                     microstate = MICRO_APP_FRAME
-        elif micro_is_app_bridge:
+        if not clock_dispatch_handled and micro_is_app_bridge:
+            clock_dispatch_handled = 1
             microstate = MICRO_APP_FRAME
-        elif micro_is_app_frame:
+        if not clock_dispatch_handled and micro_is_app_frame:
+            clock_dispatch_handled = 1
             microstate = MICRO_APP_JOIN
-        elif micro_is_app_join:
+        if not clock_dispatch_handled and micro_is_app_join:
+            clock_dispatch_handled = 1
             env = app_entry_env
             free_space = app_entry_env
             fsp = fsp + 1
@@ -4822,7 +4870,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 struct_selector_launch_active = 0
                 struct_selector_result_id = 0
             microstate = MICRO_COMMIT
-        elif micro_is_ep_chase:
+        if not clock_dispatch_handled and micro_is_ep_chase:
+            clock_dispatch_handled = 1
             ep_target_in_range: uint1_t = ep_target[63:GRAPH_ADDR_BITS] == 0
             if not ep_target_in_range:
                 red2_fault = FAULT_INVALID_ADDRESS
@@ -4886,13 +4935,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             microstate = MICRO_EP_FORWARD_PUBLISH
                     else:
                         microstate = MICRO_EP_REVERSE_CONTROL_READ
-        elif micro_is_ep_forward_publish:
+        if not clock_dispatch_handled and micro_is_ep_forward_publish:
+            clock_dispatch_handled = 1
             fsp = fsp + 1
             argcnt = argcnt + 1
             control_top = control_top + 1
             pc = pc + 1
             microstate = MICRO_COMMIT
-        elif micro_is_ep_reverse_control_read:
+        if not clock_dispatch_handled and micro_is_ep_reverse_control_read:
+            clock_dispatch_handled = 1
             ep_reverse_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             ep_reverse_top_end: uint1_t = control_top == CONTROL_WORDS
             ep_reverse_top_valid: uint1_t = ep_reverse_top_low or ep_reverse_top_end
@@ -5098,12 +5149,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
-        elif micro_is_ep_reverse_marker:
+        if not clock_dispatch_handled and micro_is_ep_reverse_marker:
+            clock_dispatch_handled = 1
             ep_reverse_new_env: uint17_t = free_space - 1
             env = ep_reverse_new_env
             free_space = ep_reverse_new_env
             microstate = MICRO_EP_REVERSE_PUBLISH
-        elif micro_is_ep_reverse_publish:
+        if not clock_dispatch_handled and micro_is_ep_reverse_publish:
+            clock_dispatch_handled = 1
             if stop_cleanup_active:
                 stop_cleanup_last_saved: uint1_t = control_top == 1
                 control_top = control_top - 1
@@ -5145,7 +5198,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         fire = fire - 1
                 pc = pc - 1
                 microstate = MICRO_COMMIT
-        elif micro_is_join_parent_read:
+        if not clock_dispatch_handled and micro_is_join_parent_read:
+            clock_dispatch_handled = 1
             join_parent_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_parent_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_parent_is_app: uint1_t = join_parent_opcode == MOP_APP
@@ -5197,7 +5251,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_JOIN_EP_TARGET_READ
                 else:
                     microstate = MICRO_JOIN_FRAME_READ
-        elif micro_is_join_ep_target_read:
+        if not clock_dispatch_handled and micro_is_join_ep_target_read:
+            clock_dispatch_handled = 1
             join_ep_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_ep_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_ep_target_is_closure: uint1_t = join_ep_target_opcode == MOP_CLOSURE
@@ -5209,7 +5264,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 microstate = MICRO_JOIN_FRAME_READ
-        elif micro_is_join_frame_read:
+        if not clock_dispatch_handled and micro_is_join_frame_read:
+            clock_dispatch_handled = 1
             join_control_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             join_control_top_end: uint1_t = control_top == CONTROL_WORDS
             join_control_top_valid: uint1_t = join_control_top_low or join_control_top_end
@@ -5298,7 +5354,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_JOIN_PRIM_META_SCAN
                 else:
                     microstate = MICRO_JOIN_TAIL_READ
-        elif micro_is_join_rblock_phi_scan:
+        if not clock_dispatch_handled and micro_is_join_rblock_phi_scan:
+            clock_dispatch_handled = 1
             join_rblock_cursor_in_range: uint1_t = join_rblock_phi_cursor[16:GRAPH_ADDR_BITS] == 0
             if not join_rblock_cursor_in_range:
                 red2_fault = FAULT_INVALID_ADDRESS
@@ -5331,7 +5388,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         join_rblock_phi_done = 1
                         join_rblock_phi_adjust = 1
                         microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_struct_preflight_scan:
+        if not clock_dispatch_handled and micro_is_join_struct_preflight_scan:
+            clock_dispatch_handled = 1
             # join_struct_cursor is 16-bit while graph RAM is narrower.  Check
             # the architectural address before interpreting memory_out so a
             # malformed unterminated STRUCT cannot wrap the RAM request to 0.
@@ -5408,7 +5466,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
-        elif micro_is_join_struct_preflight_target:
+        if not clock_dispatch_handled and micro_is_join_struct_preflight_target:
+            clock_dispatch_handled = 1
             join_struct_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_struct_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_struct_target_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -5466,7 +5525,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 # PUB_GRAPH returns all other roots unchanged.
                 join_struct_cursor = join_struct_cursor + 1
                 microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
-        elif micro_is_join_struct_preflight_ep_chase:
+        if not clock_dispatch_handled and micro_is_join_struct_preflight_ep_chase:
+            clock_dispatch_handled = 1
             join_struct_chase_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_struct_chase_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_struct_chase_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -5549,7 +5609,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
-        elif micro_is_join_struct_rewrite_scan:
+        if not clock_dispatch_handled and micro_is_join_struct_rewrite_scan:
+            clock_dispatch_handled = 1
             join_struct_rw_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_struct_rw_head: uint1_t = memory_out.p0.rd_data.hi[20]
             join_struct_rw_is_app: uint1_t = join_struct_rw_opcode == MOP_APP
@@ -5592,7 +5653,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 # Preflight proved this unreachable without architectural mutation.
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
-        elif micro_is_join_struct_rewrite_target:
+        if not clock_dispatch_handled and micro_is_join_struct_rewrite_target:
+            clock_dispatch_handled = 1
             join_struct_rw_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             if join_struct_rw_target_opcode == MOP_EP:
                 join_struct_descriptor_address = join_struct_target[15:0]
@@ -5604,7 +5666,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 join_struct_cursor = join_struct_cursor + 1
                 microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
-        elif micro_is_join_struct_rewrite_ep_chase:
+        if not clock_dispatch_handled and micro_is_join_struct_rewrite_ep_chase:
+            clock_dispatch_handled = 1
             join_struct_rw_chase_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_struct_rw_chase_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
             join_struct_rw_chase_defvalid: uint1_t = memory_out.p0.rd_data.hi[16]
@@ -5664,10 +5727,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
-        elif micro_is_join_struct_rewrite_write:
+        if not clock_dispatch_handled and micro_is_join_struct_rewrite_write:
+            clock_dispatch_handled = 1
             join_struct_cursor = join_struct_cursor + 1
             microstate = MICRO_JOIN_STRUCT_REWRITE_SCAN
-        elif micro_is_join_prim_meta_scan:
+        if not clock_dispatch_handled and micro_is_join_prim_meta_scan:
+            clock_dispatch_handled = 1
             if prim0_meta_active:
                 prim0_scan_valid: uint1_t = literal_meta_out.p0.rd_data.valid
                 prim0_scan_id_match: uint1_t = literal_meta_out.p0.rd_data.literal_id == join_frame_prim_id
@@ -6010,7 +6075,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_FAULT
                 else:
                     join_prim_meta_cursor = join_prim_meta_cursor + 1
-        elif micro_is_join_special_meta_scan:
+        if not clock_dispatch_handled and micro_is_join_special_meta_scan:
+            clock_dispatch_handled = 1
             if prim0_y_active:
                 control_top = control_top + 1
                 q = q - 1
@@ -6073,7 +6139,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_JOIN_SPECIAL_META_DONE
                 else:
                     join_special_meta_cursor = join_special_meta_cursor + 1
-        elif micro_is_join_special_meta_done:
+        if not clock_dispatch_handled and micro_is_join_special_meta_done:
+            clock_dispatch_handled = 1
             if equality_continue_active:
                 equality_continue_phase = 0
                 microstate = MICRO_JOIN_SCALAR_LEFT_READ
@@ -6122,7 +6189,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_JOIN_PUBLISH
             else:
                 microstate = MICRO_JOIN_TAIL_READ
-        elif micro_is_join_tail_read:
+        if not clock_dispatch_handled and micro_is_join_tail_read:
+            clock_dispatch_handled = 1
             join_published_root = join_result_address
             join_ep_general_root = 0
             join_ep_embedded = 0
@@ -6391,7 +6459,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
-        elif micro_is_join_publish:
+        if not clock_dispatch_handled and micro_is_join_publish:
+            clock_dispatch_handled = 1
             join_rblock_phi_gate_exec: uint1_t = join_parent_is_rblock and q == 0
             join_rblock_phi_gate_exec = join_rblock_phi_gate_exec and not join_rblock_phi_done
             if join_rblock_phi_gate_exec:
@@ -6645,7 +6714,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     # suffix down through the located frame; entries below survive.
                     join_control_clear_index = control_top
                     microstate = MICRO_JOIN_CONTROL_CLEAR
-        elif micro_is_join_control_clear:
+        if not clock_dispatch_handled and micro_is_join_control_clear:
+            clock_dispatch_handled = 1
             join_control_next_index: uint17_t = join_control_clear_index - 1
             join_control_clear_index = join_control_next_index
             if join_control_next_index == join_frame_index:
@@ -6712,10 +6782,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_COMMIT
             else:
                 microstate = MICRO_JOIN_CONTROL_CLEAR
-        elif micro_is_join_ep_cache:
+        if not clock_dispatch_handled and micro_is_join_ep_cache:
+            clock_dispatch_handled = 1
             pc = join_parent_address - 1
             microstate = MICRO_COMMIT
-        elif micro_is_join_ep_chase:
+        if not clock_dispatch_handled and micro_is_join_ep_chase:
+            clock_dispatch_handled = 1
             join_ep_target_in_range: uint1_t = join_ep_chase_target[63:GRAPH_ADDR_BITS] == 0
             if not join_ep_target_in_range:
                 red2_fault = FAULT_INVALID_ADDRESS
@@ -6873,7 +6945,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         red2_fault = FAULT_ILLEGAL_TRANSITION
                         microstate = MICRO_FAULT
-        elif micro_is_join_ep_result_write:
+        if not clock_dispatch_handled and micro_is_join_ep_result_write:
+            clock_dispatch_handled = 1
             if join_scalar_active and not join_scalar_preflight_done:
                 join_ep_scalar_opcode: uint5_t = join_publish_word.hi[25:21]
                 join_ep_scalar_kind: uint2_t = join_publish_word.hi[18:17]
@@ -7078,7 +7151,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             join_scalar_preflight_done = 1
             else:
                 microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_scalar_left_read:
+        if not clock_dispatch_handled and micro_is_join_scalar_left_read:
+            clock_dispatch_handled = 1
             if equality_continue_active:
                 if equality_continue_phase == 0:
                     equality_continue_child_valid: uint1_t = memory_out.p0.rd_data.hi[26]
@@ -8703,7 +8777,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                                 join_scalar_contract = 1
                                 join_scalar_preflight_done = 1
                                 microstate = join_scalar_resume
-        elif micro_is_join_closure_code_read:
+        if not clock_dispatch_handled and micro_is_join_closure_code_read:
+            clock_dispatch_handled = 1
             join_closure_code_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_closure_code_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_closure_code_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -8743,7 +8818,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_closure_code = memory_out.p0.rd_data.lo
                 join_closure_cursor = memory_out.p0.rd_data.lo[15:0]
                 microstate = MICRO_JOIN_CLOSURE_LAMBDA_SCAN
-        elif micro_is_join_closure_lambda_scan:
+        if not clock_dispatch_handled and micro_is_join_closure_lambda_scan:
+            clock_dispatch_handled = 1
             join_closure_scan_cursor_in_range: uint1_t = join_closure_cursor[15:GRAPH_ADDR_BITS] == 0
             join_closure_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_closure_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -8758,7 +8834,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_closure_cursor = join_closure_cursor + 1
             else:
                 microstate = MICRO_JOIN_CLOSURE_BODY_READ
-        elif micro_is_join_closure_body_read:
+        if not clock_dispatch_handled and micro_is_join_closure_body_read:
+            clock_dispatch_handled = 1
             join_closure_body_cursor_in_range: uint1_t = join_closure_cursor[15:GRAPH_ADDR_BITS] == 0
             join_closure_body_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_closure_body_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -8805,7 +8882,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_closure_env_cursor = join_closure_env
                     join_closure_env_hops = 0
                     microstate = MICRO_JOIN_CLOSURE_ENV_READ
-        elif micro_is_join_closure_env_read:
+        if not clock_dispatch_handled and micro_is_join_closure_env_read:
+            clock_dispatch_handled = 1
             join_closure_env_addr_in_range: uint1_t = join_closure_env_cursor[63:GRAPH_ADDR_BITS] == 0
             if not join_closure_env_addr_in_range:
                 red2_fault = FAULT_INVALID_ADDRESS
@@ -8863,7 +8941,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
-        elif micro_is_join_closure_preflight:
+        if not clock_dispatch_handled and micro_is_join_closure_preflight:
+            clock_dispatch_handled = 1
             # Match oracle ordering: validate/materialize the complete narrow
             # source first, then capacity-check before the first architectural
             # graph write.  Keep this subset out of overlapping source/destination
@@ -8887,7 +8966,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_closure_write_index = 0
                 join_closure_cursor = join_closure_code[15:0]
                 microstate = MICRO_JOIN_CLOSURE_WRITE_LAMBDA
-        elif micro_is_join_closure_write_lambda:
+        if not clock_dispatch_handled and micro_is_join_closure_write_lambda:
+            clock_dispatch_handled = 1
             # All source lambdas were validated before publication begins.  Read
             # one source word into scratch; the next state writes it to the graph.
             join_closure_lambda_word = red2_word_t(
@@ -8895,7 +8975,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 hi=memory_out.p0.rd_data.hi & 132644863,
             )
             microstate = MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT
-        elif micro_is_join_closure_write_lambda_commit:
+        if not clock_dispatch_handled and micro_is_join_closure_write_lambda_commit:
+            clock_dispatch_handled = 1
             join_closure_next_write_index: uint16_t = join_closure_write_index + 1
             join_closure_write_index = join_closure_next_write_index
             join_closure_cursor = join_closure_cursor + 1
@@ -8903,7 +8984,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_JOIN_CLOSURE_WRITE_BODY
             else:
                 microstate = MICRO_JOIN_CLOSURE_WRITE_LAMBDA
-        elif micro_is_join_closure_write_body:
+        if not clock_dispatch_handled and micro_is_join_closure_write_body:
+            clock_dispatch_handled = 1
             join_closure_new_fsp: uint16_t = join_closure_destination + join_closure_lambda_count
             fsp = join_closure_new_fsp
             join_needs_ep_cache = 0
@@ -8921,7 +9003,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     hi=69337088,
                 )
                 microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_app_rewrite_read:
+        if not clock_dispatch_handled and micro_is_join_app_rewrite_read:
+            clock_dispatch_handled = 1
             # No validation/faults occur in this post-publication phase: every
             # slot was checked during MICRO_JOIN_APP_SCAN.  Only APP descriptors
             # target the materialized root; APP_VAR/non-head inline entries are
@@ -8945,7 +9028,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_JOIN_PUBLISH
                 else:
                     microstate = MICRO_JOIN_APP_REWRITE_READ
-        elif micro_is_join_app_rewrite_write:
+        if not clock_dispatch_handled and micro_is_join_app_rewrite_write:
+            clock_dispatch_handled = 1
             join_app_next_cursor: uint16_t = join_app_cursor + 1
             join_app_cursor = join_app_next_cursor
             if join_app_next_cursor == join_app_operator_address:
@@ -8956,7 +9040,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_JOIN_PUBLISH
             else:
                 microstate = MICRO_JOIN_APP_REWRITE_READ
-        elif micro_is_join_app_scan:
+        if not clock_dispatch_handled and micro_is_join_app_scan:
+            clock_dispatch_handled = 1
             join_app_cursor_in_range: uint1_t = join_app_cursor[15:GRAPH_ADDR_BITS] == 0
             join_app_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_app_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -9050,7 +9135,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
-        elif micro_is_join_app_target_read:
+        if not clock_dispatch_handled and micro_is_join_app_target_read:
+            clock_dispatch_handled = 1
             join_app_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_app_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_app_target_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9111,7 +9197,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 )
                 join_preserve_fsp = 1
                 microstate = MICRO_JOIN_EP_CHASE
-        elif micro_is_join_multi_target_read:
+        if not clock_dispatch_handled and micro_is_join_multi_target_read:
+            clock_dispatch_handled = 1
             join_multi_root_in_range: uint1_t = join_app_preflight_root[63:GRAPH_ADDR_BITS] == 0
             join_multi_root_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_multi_root_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -9167,7 +9254,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 # The transaction has not written either target yet.
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
-        elif micro_is_join_multi_target_chase:
+        if not clock_dispatch_handled and micro_is_join_multi_target_chase:
+            clock_dispatch_handled = 1
             join_multi_chase_in_range: uint1_t = join_app_preflight_chase_target[63:GRAPH_ADDR_BITS] == 0
             if not join_multi_chase_in_range:
                 red2_fault = FAULT_INVALID_ADDRESS
@@ -9279,7 +9367,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     else:
                         red2_fault = FAULT_ILLEGAL_TRANSITION
                         microstate = MICRO_FAULT
-        elif micro_is_join_multi_target_advance:
+        if not clock_dispatch_handled and micro_is_join_multi_target_advance:
+            clock_dispatch_handled = 1
             if not join_app_preflight_slot:
                 join_app_preflight_slot = 1
                 join_app_preflight_root = join_app_second_target
@@ -9295,7 +9384,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_needs_ep_cache = 0
                 join_preserve_fsp = 1
                 microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_multi_target_write_first:
+        if not clock_dispatch_handled and micro_is_join_multi_target_write_first:
+            clock_dispatch_handled = 1
             if join_app_second_write_needed:
                 microstate = MICRO_JOIN_MULTI_TARGET_WRITE_SECOND
             else:
@@ -9305,14 +9395,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_needs_ep_cache = 0
                 join_preserve_fsp = 1
                 microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_multi_target_write_second:
+        if not clock_dispatch_handled and micro_is_join_multi_target_write_second:
+            clock_dispatch_handled = 1
             join_publish_word = red2_word_t(
                 lo=join_result_address, hi=69337088
             )
             join_needs_ep_cache = 0
             join_preserve_fsp = 1
             microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_recp_rblock_scan:
+        if not clock_dispatch_handled and micro_is_join_recp_rblock_scan:
+            clock_dispatch_handled = 1
             join_recp_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_recp_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_recp_scan_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9361,7 +9453,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     join_recp_rblock_cursor = join_recp_body_wide[15:0]
                     microstate = MICRO_JOIN_RECP_RBLOCK_BODY_READ
-        elif micro_is_join_recp_rblock_binding_read:
+        if not clock_dispatch_handled and micro_is_join_recp_rblock_binding_read:
+            clock_dispatch_handled = 1
             join_recp_binding_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_recp_binding_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_recp_binding_head: uint1_t = memory_out.p0.rd_data.hi[20]
@@ -9396,7 +9489,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_recp_rblock_cursor = join_recp_rblock_cursor + 1
                 join_recp_rblock_count = join_recp_rblock_count + 1
                 microstate = MICRO_JOIN_RECP_RBLOCK_SCAN
-        elif micro_is_join_recp_rblock_body_read:
+        if not clock_dispatch_handled and micro_is_join_recp_rblock_body_read:
+            clock_dispatch_handled = 1
             join_recp_body_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_recp_body_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_recp_body_head: uint1_t = memory_out.p0.rd_data.hi[20]
@@ -9433,7 +9527,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_needs_ep_cache = 0
                 join_preserve_fsp = 1
                 microstate = MICRO_JOIN_PUBLISH
-        elif micro_is_join_flat_scan:
+        if not clock_dispatch_handled and micro_is_join_flat_scan:
+            clock_dispatch_handled = 1
             join_flat_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_flat_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             join_flat_head: uint1_t = memory_out.p0.rd_data.hi[20]
@@ -9478,7 +9573,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 join_flat_cursor = join_flat_cursor + 1
-        elif micro_is_closure_read:
+        if not clock_dispatch_handled and micro_is_closure_read:
+            clock_dispatch_handled = 1
             closure_code_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             closure_code_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             closure_code_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9533,13 +9629,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 closure_target = memory_out.p0.rd_data.lo[15:0]
                 microstate = MICRO_CLOSURE_MARKER
-        elif micro_is_closure_marker:
+        if not clock_dispatch_handled and micro_is_closure_marker:
+            clock_dispatch_handled = 1
             closure_new_env: uint17_t = free_space - 1
             env = closure_new_env
             free_space = closure_new_env
             pc = closure_target
             microstate = MICRO_COMMIT
-        elif micro_is_rup_validate_rec:
+        if not clock_dispatch_handled and micro_is_rup_validate_rec:
+            clock_dispatch_handled = 1
             rup_exec_index64: uint64_t = rup_index
             rup_exec_env64: uint64_t = env
             rup_exec_stride64: uint64_t = rup_exec_index64 + rup_exec_index64
@@ -9576,7 +9674,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 rup_rec_binding = memory_out.p0.rd_data.lo
                 rup_rec_payload_bad = rup_rec_payload_bad_now
                 microstate = MICRO_RUP_VALIDATE_CONTEXT
-        elif micro_is_rup_validate_context:
+        if not clock_dispatch_handled and micro_is_rup_validate_context:
+            clock_dispatch_handled = 1
             rup_context_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             rup_context_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             if not rup_context_valid:
@@ -9587,7 +9686,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 microstate = MICRO_RUP_VALIDATE_BLOCK
-        elif micro_is_rup_validate_block:
+        if not clock_dispatch_handled and micro_is_rup_validate_block:
+            clock_dispatch_handled = 1
             rup_block_slot_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             rup_block_slot_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             if not rup_block_slot_valid:
@@ -9598,7 +9698,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 microstate = MICRO_RUP_VALIDATE_SOURCE
-        elif micro_is_rup_validate_source:
+        if not clock_dispatch_handled and micro_is_rup_validate_source:
+            clock_dispatch_handled = 1
             rup_source_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             rup_source_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             rup_source_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9627,9 +9728,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     rup_index = rup_next_validate_index
                     microstate = MICRO_RUP_VALIDATE_REC
-        elif micro_is_rup_write_context:
+        if not clock_dispatch_handled and micro_is_rup_write_context:
+            clock_dispatch_handled = 1
             microstate = MICRO_RUP_WRITE_BLOCK
-        elif micro_is_rup_write_block:
+        if not clock_dispatch_handled and micro_is_rup_write_block:
+            clock_dispatch_handled = 1
             rup_next_write_index: uint16_t = rup_index + 1
             if rup_next_write_index == rup_count:
                 rup_index = 0
@@ -9638,7 +9741,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 rup_index = rup_next_write_index
                 microstate = MICRO_RUP_WRITE_CONTEXT
-        elif micro_is_rup_zero_push:
+        if not clock_dispatch_handled and micro_is_rup_zero_push:
+            clock_dispatch_handled = 1
             control_top = control_top + 1
             rup_next_push_index: uint16_t = rup_index + 1
             if rup_next_push_index == rup_count:
@@ -9646,13 +9750,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_RUP_ZERO_RESULT
             else:
                 rup_index = rup_next_push_index
-        elif micro_is_rup_zero_result:
+        if not clock_dispatch_handled and micro_is_rup_zero_result:
+            clock_dispatch_handled = 1
             fsp = fsp + 1
             argcnt = argcnt + 1
             pc = pc + 1
             rup_index = 0
             microstate = MICRO_COMMIT
-        elif micro_is_recp_validate_rec:
+        if not clock_dispatch_handled and micro_is_recp_validate_rec:
+            clock_dispatch_handled = 1
             recp_rec_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             recp_rec_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             recp_rec_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9674,7 +9780,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 recp_binding = memory_out.p0.rd_data.lo
                 microstate = MICRO_RECP_VALIDATE_CONTEXT
-        elif micro_is_recp_validate_context:
+        if not clock_dispatch_handled and micro_is_recp_validate_context:
+            clock_dispatch_handled = 1
             recp_context_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             recp_context_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             recp_context_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9690,7 +9797,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 recp_context = memory_out.p0.rd_data.lo
                 microstate = MICRO_RECP_VALIDATE_BLOCK
-        elif micro_is_recp_validate_block:
+        if not clock_dispatch_handled and micro_is_recp_validate_block:
+            clock_dispatch_handled = 1
             recp_block_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             recp_block_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             recp_block_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
@@ -9853,7 +9961,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_FAULT
                     else:
                         microstate = MICRO_RECP_ACTION
-        elif micro_is_recp_recon_scan:
+        if not clock_dispatch_handled and micro_is_recp_recon_scan:
+            clock_dispatch_handled = 1
             recp_scan_count64: uint64_t = recp_count
             recp_scan_address64: uint64_t = recp_block + recp_scan_count64
             recp_scan_address_bad: uint1_t = recp_scan_address64[63:GRAPH_ADDR_BITS] != 0
@@ -9923,7 +10032,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     recp_selected = recp_selected16
                     microstate = MICRO_RECP_RECON_PREFLIGHT
-        elif micro_is_recp_recon_preflight:
+        if not clock_dispatch_handled and micro_is_recp_recon_preflight:
+            clock_dispatch_handled = 1
             recp_count17: uint17_t = recp_count
             recp_count64: uint64_t = recp_count
             recp_parent64: uint64_t = recp_context + recp_count64 + recp_count64 + recp_count64
@@ -10003,11 +10113,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_RECP_REVERSE_FRAME
                 else:
                     microstate = MICRO_RECP_RECON_MARKER
-        elif micro_is_recp_reverse_bridge:
+        if not clock_dispatch_handled and micro_is_recp_reverse_bridge:
+            clock_dispatch_handled = 1
             microstate = MICRO_RECP_REVERSE_FRAME
-        elif micro_is_recp_reverse_frame:
+        if not clock_dispatch_handled and micro_is_recp_reverse_frame:
+            clock_dispatch_handled = 1
             microstate = MICRO_RECP_REVERSE_JOIN
-        elif micro_is_recp_reverse_join:
+        if not clock_dispatch_handled and micro_is_recp_reverse_join:
+            clock_dispatch_handled = 1
             env = recp_reverse_entry_env
             free_space = recp_reverse_entry_env
             control_top = control_top + 1
@@ -10019,13 +10132,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_reverse_needs_bridge = 0
             recp_index = 0
             microstate = MICRO_RECP_RECON_MARKER
-        elif micro_is_recp_recon_marker:
+        if not clock_dispatch_handled and micro_is_recp_recon_marker:
+            clock_dispatch_handled = 1
             recp_marker_new_env: uint17_t = free_space - 1
             env = recp_marker_new_env
             free_space = recp_marker_new_env
             recp_index = 0
             microstate = MICRO_RECP_RECON_UBV
-        elif micro_is_recp_recon_ubv:
+        if not clock_dispatch_handled and micro_is_recp_recon_ubv:
+            clock_dispatch_handled = 1
             recp_ubv_new_env: uint17_t = free_space - 1
             phi = phi + 1
             env = recp_ubv_new_env
@@ -10037,7 +10152,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_RECP_RECON_COPY_READ
             else:
                 recp_index = recp_next_ubv_index
-        elif micro_is_recp_recon_copy_read:
+        if not clock_dispatch_handled and micro_is_recp_recon_copy_read:
+            clock_dispatch_handled = 1
             recp_copy_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             recp_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             if not recp_copy_valid:
@@ -10049,7 +10165,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 recp_copy_word = memory_out.p0.rd_data
                 microstate = MICRO_RECP_RECON_COPY_WRITE
-        elif micro_is_recp_recon_copy_write:
+        if not clock_dispatch_handled and micro_is_recp_recon_copy_write:
+            clock_dispatch_handled = 1
             fsp = fsp + 1
             argcnt = argcnt + 1
             recp_next_copy_index: uint16_t = recp_index + 1
@@ -10059,7 +10176,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 recp_index = recp_next_copy_index
                 microstate = MICRO_RECP_RECON_COPY_READ
-        elif micro_is_recp_recon_path:
+        if not clock_dispatch_handled and micro_is_recp_recon_path:
+            clock_dispatch_handled = 1
             control_top = control_top + 1
             recp_next_path_index: uint16_t = recp_index + 1
             if recp_next_path_index == recp_count:
@@ -10067,20 +10185,24 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_RECP_RECON_RUP_READ
             else:
                 recp_index = recp_next_path_index
-        elif micro_is_recp_recon_rup_read:
+        if not clock_dispatch_handled and micro_is_recp_recon_rup_read:
+            clock_dispatch_handled = 1
             recp_rup_word = memory_out.p0.rd_data
             microstate = MICRO_RECP_RECON_RUP_WRITE
-        elif micro_is_recp_recon_rup_write:
+        if not clock_dispatch_handled and micro_is_recp_recon_rup_write:
+            clock_dispatch_handled = 1
             fsp = fsp + 1
             argcnt = argcnt + 1
             microstate = MICRO_RECP_RECON_VAR_WRITE
-        elif micro_is_recp_recon_var_write:
+        if not clock_dispatch_handled and micro_is_recp_recon_var_write:
+            clock_dispatch_handled = 1
             pc = fsp
             fsp = fsp + 1
             argcnt = argcnt + 1
             direction = DIRECTION_REVERSE
             microstate = MICRO_COMMIT
-        elif micro_is_recp_action:
+        if not clock_dispatch_handled and micro_is_recp_action:
+            clock_dispatch_handled = 1
             recp_action_forward: uint1_t = direction == DIRECTION_FORWARD
             if recp_action_forward:
                 if fetched_word.hi[20]:
@@ -10098,7 +10220,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 control_top = control_top + 1
                 q = q - 1
                 microstate = MICRO_COMMIT
-        elif micro_is_lookup_read:
+        if not clock_dispatch_handled and micro_is_lookup_read:
+            clock_dispatch_handled = 1
             binding_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             binding_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             binding_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
@@ -10226,7 +10349,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
-        elif micro_is_lookup_publish:
+        if not clock_dispatch_handled and micro_is_lookup_publish:
+            clock_dispatch_handled = 1
             publish_fsp_ok: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             publish_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             publish_free_end: uint1_t = free_space == GRAPH_WORDS
@@ -10257,10 +10381,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
-        elif microstate == MICRO_COMMIT:
+        if not clock_dispatch_handled and micro_is_commit_entry:
+            clock_dispatch_handled = 1
             committed = 1
             microstate = MICRO_FETCH
-        else:
+        if not clock_dispatch_handled:
             red2_fault = FAULT_ILLEGAL_TRANSITION
             microstate = MICRO_FAULT
     elif command.op == CMD_NOP:

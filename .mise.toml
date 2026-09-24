@@ -191,3 +191,7 @@ run = "cargo test -p red2-wasm"
 [tasks.verify]
 description = "Run all project verification gates"
 depends = ["test", "lint", "typecheck", "rust-test"]
+
+[tasks.pypeline-red2-check]
+description = "Run the explicit real PipelineC/Pypeline RED2 frontend+synthesis gate"
+run = "uv run --with setuptools --with pyrtl==0.11.3 python scripts/check_pypeline_red2.py"
