@@ -64,6 +64,12 @@ PRIM0_ROLE_DEFERRED = 3
 PRIM0_ROLE_Y = 4
 PRIM0_ROLE_IO_THEN = 5
 PRIM0_ROLE_IO_RETURN = 6
+
+STRUCT_ROLE_NONE = 0
+STRUCT_ROLE_SELECTOR = 1
+STRUCT_ROLE_CONS = 2
+STRUCT_ROLE_SELECTOR_RESULT = 3
+
 CONTROL_ADDRESS = 1
 CONTROL_SAVED_QUANTUM = 4
 CONTROL_SAVED_DEFINITION_PATH = 5
@@ -234,6 +240,9 @@ MICRO_STRUCT_RESULT_READ = 92
 MICRO_STRUCT_RECON_SAVED_Q = 93
 MICRO_STRUCT_REVERSE_CONTROL_READ = 94
 MICRO_STRUCT_REVERSE_POP = 95
+MICRO_STRUCT_SELECTOR_ROOT_READ = 96
+MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ = 97
+MICRO_STRUCT_SELECTOR_VALUE_READ = 98
 
 
 @struct
@@ -268,6 +277,9 @@ class red2_literal_meta_t(NamedTuple):
     prim0_role: uint3_t
     host_op: uint3_t
     special_flags: uint16_t
+    struct_role: uint2_t
+    struct_tag_id: uint32_t
+    struct_offset: uint32_t
     valid: uint1_t
 
 
@@ -433,6 +445,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     recp_copy_word: Reg[red2_word_t]
     recp_rup_word: Reg[red2_word_t]
     struct_saved_q: Reg[uint32_t]
+    struct_selector_tag_id: Reg[uint32_t]
+    struct_selector_offset: Reg[uint32_t]
+    struct_selector_descriptor: Reg[uint16_t]
+    struct_selector_source: Reg[uint16_t]
+    struct_selector_contract: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -590,6 +607,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         prim0_role=command.aux[7:5],
         host_op=command.aux[10:8],
         special_flags=command.aux[26:11],
+        struct_role=command.word.hi[1:0],
+        struct_tag_id=command.word.lo[31:0],
+        struct_offset=command.word.lo[63:32],
         valid=literal_meta_load_valid,
     )
     literal_meta_req.wr_en = 0
@@ -706,6 +726,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_recon_saved_q: uint1_t = microstate == MICRO_STRUCT_RECON_SAVED_Q
     micro_is_struct_reverse_control_read: uint1_t = microstate == MICRO_STRUCT_REVERSE_CONTROL_READ
     micro_is_struct_reverse_pop: uint1_t = microstate == MICRO_STRUCT_REVERSE_POP
+    micro_is_struct_selector_root_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_ROOT_READ
+    micro_is_struct_selector_descriptor_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ
+    micro_is_struct_selector_value_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_VALUE_READ
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -1061,6 +1084,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             control_req.addr = struct_saved_q_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+        elif micro_is_struct_selector_root_read:
+            memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_descriptor_read:
+            memory_req.addr = struct_selector_descriptor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_value_read:
+            memory_req.addr = struct_selector_source[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1673,6 +1702,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
         struct_saved_q = 0
+        struct_selector_tag_id = 0
+        struct_selector_offset = 0
+        struct_selector_descriptor = 0
+        struct_selector_source = 0
+        struct_selector_contract = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1865,6 +1899,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
         struct_saved_q = 0
+        struct_selector_tag_id = 0
+        struct_selector_offset = 0
+        struct_selector_descriptor = 0
+        struct_selector_source = 0
+        struct_selector_contract = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2037,6 +2076,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_copy_word = red2_word_t(lo=0, hi=0)
             recp_rup_word = red2_word_t(lo=0, hi=0)
             struct_saved_q = 0
+            struct_selector_tag_id = 0
+            struct_selector_offset = 0
+            struct_selector_descriptor = 0
+            struct_selector_source = 0
+            struct_selector_contract = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -2926,6 +2970,147 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
+        elif micro_is_struct_selector_root_read:
+            selector_root_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            selector_root_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            selector_root_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            selector_root_is_struct: uint1_t = selector_root_opcode == MOP_STRUCT
+            selector_root_tag_matches: uint1_t = memory_out.p0.rd_data.lo == struct_selector_tag_id
+            selector_parent_opcode: uint5_t = join_parent_word.hi[25:21]
+            selector_parent_is_app: uint1_t = selector_parent_opcode == MOP_APP
+            if not selector_root_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not selector_parent_is_app:
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            elif not selector_root_is_struct:
+                # The published operand is not a structure; the selector is passive.
+                microstate = MICRO_JOIN_TAIL_READ
+            else:
+                selector_root_kind_bad: uint1_t = selector_root_kind != DATA_LITERAL_ID
+                selector_root_tag_bad: uint1_t = selector_root_tag_matches == 0
+                selector_root_shape_bad: uint1_t = selector_root_kind_bad or selector_root_tag_bad
+                if selector_root_shape_bad:
+                    # A structure of a different tag is likewise passive.  Preserve the
+                    # complete returned child graph and publish APP(root) to the parent.
+                    join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_JOIN_PUBLISH
+                else:
+                    selector_root64: uint64_t = join_result_address
+                    selector_descriptor64: uint64_t = selector_root64 + struct_selector_offset
+                    selector_descriptor_oob: uint1_t = selector_descriptor64[63:GRAPH_ADDR_BITS] != 0
+                    if selector_descriptor_oob:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        struct_selector_descriptor = selector_descriptor64[15:0]
+                        microstate = MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ
+        elif micro_is_struct_selector_descriptor_read:
+            selector_descriptor_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            selector_descriptor_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            selector_descriptor_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            selector_descriptor_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            selector_descriptor_is_app: uint1_t = selector_descriptor_opcode == MOP_APP
+            selector_descriptor_is_app_var: uint1_t = selector_descriptor_opcode == MOP_APP_VAR
+            selector_descriptor_is_ep: uint1_t = selector_descriptor_opcode == MOP_EP
+            selector_descriptor_is_int: uint1_t = selector_descriptor_opcode == MOP_INT
+            selector_descriptor_is_float: uint1_t = selector_descriptor_opcode == MOP_FLOAT
+            selector_descriptor_is_char: uint1_t = selector_descriptor_opcode == MOP_CHAR
+            selector_descriptor_is_sym: uint1_t = selector_descriptor_opcode == MOP_SYM
+            selector_descriptor_is_prim0: uint1_t = selector_descriptor_opcode == MOP_PRIM_0
+            selector_descriptor_is_prim1: uint1_t = selector_descriptor_opcode == MOP_PRIM_1
+            selector_descriptor_is_prim2: uint1_t = selector_descriptor_opcode == MOP_PRIM_2
+            selector_descriptor_inline: uint1_t = selector_descriptor_is_ep or selector_descriptor_is_int
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_float
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_char
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_sym
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_prim0
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_prim1
+            selector_descriptor_inline = selector_descriptor_inline or selector_descriptor_is_prim2
+            if not selector_descriptor_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif selector_descriptor_is_app:
+                selector_descriptor_signed: uint1_t = selector_descriptor_kind == DATA_SIGNED
+                selector_descriptor_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                selector_source_oob: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                if not selector_descriptor_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    selector_descriptor_bad_target: uint1_t = selector_descriptor_negative or selector_source_oob
+                    if selector_descriptor_bad_target:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        struct_selector_source = memory_out.p0.rd_data.lo[15:0]
+                        microstate = MICRO_STRUCT_SELECTOR_VALUE_READ
+            elif selector_descriptor_is_app_var:
+                # An unresolved lexical field keeps the selector passive.
+                join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                join_needs_ep_cache = 0
+                join_preserve_fsp = 1
+                join_published_root = join_result_address
+                microstate = MICRO_JOIN_PUBLISH
+            elif not selector_descriptor_head and selector_descriptor_inline:
+                selector_inline_hi: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                join_publish_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=selector_inline_hi)
+                join_needs_ep_cache = 0
+                join_published_root = join_result_address
+                struct_selector_contract = 1
+                microstate = MICRO_JOIN_PUBLISH
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+        elif micro_is_struct_selector_value_read:
+            selector_value_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            selector_value_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            selector_value_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            selector_value_definition: uint1_t = memory_out.p0.rd_data.hi[16]
+            selector_value_is_app: uint1_t = selector_value_opcode == MOP_APP
+            selector_value_is_app_var: uint1_t = selector_value_opcode == MOP_APP_VAR
+            selector_value_is_lambda: uint1_t = selector_value_opcode == MOP_LAMBDA
+            selector_value_is_struct: uint1_t = selector_value_opcode == MOP_STRUCT
+            selector_value_is_int: uint1_t = selector_value_opcode == MOP_INT
+            selector_value_is_float: uint1_t = selector_value_opcode == MOP_FLOAT
+            selector_value_is_char: uint1_t = selector_value_opcode == MOP_CHAR
+            selector_value_is_sym: uint1_t = selector_value_opcode == MOP_SYM
+            selector_value_is_prim0: uint1_t = selector_value_opcode == MOP_PRIM_0
+            selector_value_is_prim1: uint1_t = selector_value_opcode == MOP_PRIM_1
+            selector_value_is_prim2: uint1_t = selector_value_opcode == MOP_PRIM_2
+            selector_value_inline: uint1_t = selector_value_is_int or selector_value_is_float
+            selector_value_inline = selector_value_inline or selector_value_is_char
+            selector_value_inline = selector_value_inline or selector_value_is_sym
+            selector_value_inline = selector_value_inline or selector_value_is_prim0
+            selector_value_inline = selector_value_inline or selector_value_is_prim1
+            selector_value_inline = selector_value_inline or selector_value_is_prim2
+            selector_value_nonhead_inline: uint1_t = selector_value_inline and not selector_value_head
+            selector_value_prefix: uint1_t = selector_value_is_app or selector_value_is_app_var
+            selector_value_prefix = selector_value_prefix or selector_value_nonhead_inline
+            selector_value_defined_sym: uint1_t = selector_value_is_sym and selector_value_definition
+            selector_value_reducible: uint1_t = selector_value_prefix or selector_value_is_lambda
+            selector_value_reducible = selector_value_reducible or selector_value_defined_sym
+            if not selector_value_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                selector_value_composite: uint1_t = selector_value_reducible or selector_value_is_struct
+                if selector_value_composite:
+                    # Reducible fields and nested STRUCT copy/result continuation are
+                    # intentionally the next selector checkpoint.
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    selector_value_hi: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                    join_publish_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=selector_value_hi)
+                    join_needs_ep_cache = 0
+                    join_published_root = join_result_address
+                    struct_selector_contract = 1
+                    microstate = MICRO_JOIN_PUBLISH
         elif micro_is_struct_result_read:
             struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -4259,6 +4444,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 if join_meta_matches:
                     join_meta_scalar: uint5_t = literal_meta_out.p0.rd_data.scalar_op
                     join_meta_special: uint16_t = literal_meta_out.p0.rd_data.special_flags
+                    join_meta_struct_role: uint2_t = literal_meta_out.p0.rd_data.struct_role
+                    join_meta_struct_tag_id: uint32_t = literal_meta_out.p0.rd_data.struct_tag_id
+                    join_meta_struct_offset: uint32_t = literal_meta_out.p0.rd_data.struct_offset
+                    join_meta_is_struct_selector: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR
                     join_meta_equality: uint1_t = join_meta_special[5]
                     join_meta_equality_continue: uint1_t = join_meta_special[6]
                     join_meta_is_dec: uint1_t = join_meta_scalar == SCALAR_OP_DEC
@@ -4310,7 +4499,39 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_char_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_symbol_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_supported_binary_bool
-                    if join_meta_equality_continue:
+                    if join_meta_is_struct_selector:
+                        join_selector_tag_missing: uint1_t = join_meta_struct_tag_id == 0
+                        join_selector_offset_missing: uint1_t = join_meta_struct_offset == 0
+                        join_selector_meta_bad: uint1_t = join_selector_tag_missing or join_selector_offset_missing
+                        if join_selector_meta_bad:
+                            if direct_scalar_active:
+                                # Direct MOVE-BACKWARD exposed fire==0 before metadata
+                                # dispatch.  Selector faults are transactional, so put
+                                # the countdown back at its architectural entry value.
+                                fire = 1
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+                        elif direct_scalar_active:
+                            # A selector firing directly on an inline/passive value
+                            # sees a non-APP operand and is therefore passive.
+                            prim_id = 0
+                            fire = 0
+                            pc = join_parent_address - 1
+                            direct_scalar_active = 0
+                            struct_selector_contract = 0
+                            microstate = MICRO_COMMIT
+                        elif ep_scalar_active:
+                            # EP-return selector dispatch is a later selector slice.
+                            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                            microstate = MICRO_FAULT
+                        else:
+                            struct_selector_tag_id = join_meta_struct_tag_id
+                            struct_selector_offset = join_meta_struct_offset
+                            struct_selector_descriptor = 0
+                            struct_selector_source = 0
+                            struct_selector_contract = 0
+                            microstate = MICRO_STRUCT_SELECTOR_ROOT_READ
+                    elif join_meta_equality_continue:
                         # __EQUALITY_CONTINUE__ is a private one-shot primitive.
                         # Validate the returned boolean and both lower equality
                         # frames before publishing or clearing any architectural RAM.
@@ -4543,6 +4764,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_tail_is_prim0: uint1_t = join_tail_opcode == MOP_PRIM_0
             join_tail_is_prim1: uint1_t = join_tail_opcode == MOP_PRIM_1
             join_tail_is_prim2: uint1_t = join_tail_opcode == MOP_PRIM_2
+            join_tail_is_struct: uint1_t = join_tail_opcode == MOP_STRUCT
             join_tail_inline: uint1_t = join_tail_is_int or join_tail_is_float
             join_tail_inline = join_tail_inline or join_tail_is_char
             join_tail_inline = join_tail_inline or join_tail_is_sym
@@ -4615,6 +4837,16 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_recp_rblock_count = 0
                     join_preserve_fsp = 1
                     microstate = MICRO_JOIN_RECP_RBLOCK_SCAN
+                elif join_tail_is_struct:
+                    if not join_multi_parent_supports_app_graph:
+                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                        microstate = MICRO_FAULT
+                    else:
+                        join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                        join_needs_ep_cache = 0
+                        join_preserve_fsp = 1
+                        join_published_root = join_result_address
+                        microstate = MICRO_JOIN_PUBLISH
                 elif join_tail_is_app_var:
                     if not join_multi_parent_supports_app_graph:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
@@ -4929,6 +5161,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                             fsp = fsp - 2
                     if join_scalar_contract and join_scalar_binary:
                         fsp = join_parent_address
+                    if struct_selector_contract:
+                        fsp = join_parent_address
                     # Parent/result publication is complete.  Clear the original control
                     # suffix down through the located frame; entries below survive.
                     join_control_clear_index = control_top
@@ -4944,6 +5178,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     fire = 0
                     if join_scalar_contract:
                         q = q - 1
+                elif struct_selector_contract:
+                    prim_id = 0
+                    fire = 0
+                    q = q - 1
+                    struct_selector_contract = 0
                 elif join_saved_primitive:
                     if join_frame_fire_one_at_restore:
                         # q==0 reaches the firing boundary but must not execute the

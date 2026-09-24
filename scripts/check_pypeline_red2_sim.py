@@ -72,6 +72,7 @@ from pypeline_red2.red2_pypeline import (
     LITERAL_SPECIAL_EQUAL_STUCK,
     STATUS_FAULT,
     STATUS_RUNNING,
+    STRUCT_ROLE_SELECTOR,
     red2_arch_state_t,
     red2_command_t,
     red2_control_t,
@@ -152,11 +153,25 @@ def _load_literal_meta(
     prim0_role: int = 0,
     host_op: int = 0,
     special_flags: int = 0,
+    struct_role: int = 0,
+    struct_tag_id: int = 0,
+    struct_offset: int = 0,
 ) -> None:
     aux = scalar_op | (prim0_role << 5) | (host_op << 8) | (special_flags << 11)
+    struct_meta = (
+        (struct_tag_id & 0xFFFFFFFF)
+        | ((struct_offset & 0xFFFFFFFF) << 32)
+        | ((struct_role & 0x3) << 64)
+    )
     sim_call(
         red2_processor_top,
-        _command(CMD_LOAD_LITERAL_META, address=slot, value=literal_id, aux=aux),
+        _command(
+            CMD_LOAD_LITERAL_META,
+            address=slot,
+            value=literal_id,
+            aux=aux,
+            word=_word_struct(struct_meta),
+        ),
     )
 
 
@@ -7333,6 +7348,174 @@ def check() -> None:
             red2_processor_top, _command(CMD_NOP, address=0)
         )
         assert _packed_control_read(struct_late_control) == struct_late_encoded.control_stack[0]
+
+    # Saved-primitive STRUCT selectors are transactional at JOIN restore.  This
+    # checkpoint covers q==0 suppression, passive wrong-tag/APP_VAR fields,
+    # direct inline atomics, and APP descriptors resolving to atomics.
+    def selector_join_state(
+        *,
+        selector: str = "CAR",
+        q_value: int = 4,
+        struct_tag: str = "PAIR",
+        descriptor: Word | None = None,
+        source: tuple[int, Word] | None = None,
+    ) -> MuredMachineState:
+        selector_memory: list[Word | None] = [None] * 64
+        selector_control = [None] * 32
+        selector_memory[3] = Word(MuredOpcode.APP, 9, False)
+        selector_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+        selector_memory[5] = Word(MuredOpcode.STRUCT, struct_tag, False)
+        selector_memory[6] = Word(MuredOpcode.INT, 22, False)
+        selector_memory[7] = Word(MuredOpcode.INT, 11, False)
+        selector_memory[8] = Word(MuredOpcode.VAR, 0, True)
+        selector_slot = 7 if selector == "CAR" else 6
+        if descriptor is not None:
+            selector_memory[selector_slot] = descriptor
+        if source is not None:
+            selector_memory[source[0]] = source[1]
+        selector_control[0] = _SubgraphFrame(
+            env=32,
+            free_space=32,
+            prim=selector,
+            fire=1,
+        )
+        return MuredMachineState(
+            memory=selector_memory,
+            control_stack=selector_control,
+            pc=4,
+            fsp=8,
+            env=28,
+            free_space=28,
+            c=0,
+            direction=Direction.B,
+            q=q_value,
+            phi=0,
+            argcnt=0,
+        )
+
+    def run_selector_join_case(
+        state: MuredMachineState,
+        *,
+        expected_contract: bool,
+    ) -> tuple[object, object]:
+        selector_codec = RED2ABICodec()
+        encoded = selector_codec.encode_state(state)
+        car_id = selector_codec.literal_id("CAR")
+        cdr_id = selector_codec.literal_id("CDR")
+        pair_id = selector_codec.literal_id("PAIR")
+        selector_limit = max(car_id, cdr_id)
+        selector_tags = [0] * (selector_limit + 1)
+        selector_offsets = [0] * (selector_limit + 1)
+        selector_tags[car_id] = pair_id
+        selector_offsets[car_id] = 2
+        selector_tags[cdr_id] = pair_id
+        selector_offsets[cdr_id] = 1
+        selector_oracle = Red2Processor(
+            encoded,
+            struct_selector_tags=tuple(selector_tags),
+            struct_selector_offsets=tuple(selector_offsets),
+            struct_selector_result_literal_id=selector_codec.literal_id(
+                "__STRUCT_SELECTOR_RESULT__"
+            ),
+            cons_literal_id=selector_codec.literal_id("CONS"),
+            pair_literal_id=pair_id,
+        )
+        assert selector_oracle.run_to_commit()
+        expected = selector_oracle.checkpoint()
+
+        _load_hardware(encoded)
+        _load_literal_meta(
+            40,
+            car_id,
+            struct_role=STRUCT_ROLE_SELECTOR,
+            struct_tag_id=pair_id,
+            struct_offset=2,
+        )
+        _load_literal_meta(
+            41,
+            cdr_id,
+            struct_role=STRUCT_ROLE_SELECTOR,
+            struct_tag_id=pair_id,
+            struct_offset=1,
+        )
+        result = None
+        for _ in range(64):
+            result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"selector hardware faulted before commit: red2={int(result.red2_fault)} "
+                f"hw={int(result.hw_fault)} micro={int(result.microstate)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError("selector hardware failed to reach a bounded commit")
+        assert result is not None
+        _assert_scalar_checkpoint(result, expected)
+        if expected_contract:
+            assert expected.fsp == expected.pc + 1
+        for selector_address in range(3, 13):
+            selector_read = sim_call(
+                red2_processor_top,
+                _command(CMD_NOP, address=selector_address),
+            )
+            assert _packed_memory_read(selector_read) == expected.memory[selector_address], (
+                f"selector memory mismatch at {selector_address}"
+            )
+        selector_control_read = sim_call(
+            red2_processor_top,
+            _command(CMD_NOP, address=0),
+        )
+        assert _packed_control_read(selector_control_read) == expected.control_stack[0]
+        return result, expected
+
+    _, selector_car_expected = run_selector_join_case(
+        selector_join_state(), expected_contract=True
+    )
+    assert selector_car_expected.q == 3
+    assert selector_car_expected.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 11, True)
+    )
+
+    _, selector_cdr_expected = run_selector_join_case(
+        selector_join_state(selector="CDR"), expected_contract=True
+    )
+    assert selector_cdr_expected.q == 3
+    assert selector_cdr_expected.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 22, True)
+    )
+
+    _, selector_qzero_expected = run_selector_join_case(
+        selector_join_state(q_value=0), expected_contract=False
+    )
+    assert selector_qzero_expected.q == 0
+    assert selector_qzero_expected.fsp == 8
+
+    _, selector_wrong_tag_expected = run_selector_join_case(
+        selector_join_state(struct_tag="OTHER"), expected_contract=False
+    )
+    assert selector_wrong_tag_expected.q == 4
+    assert selector_wrong_tag_expected.fsp == 8
+
+    _, selector_app_var_expected = run_selector_join_case(
+        selector_join_state(
+            descriptor=Word(MuredOpcode.APP_VAR, 1, False),
+        ),
+        expected_contract=False,
+    )
+    assert selector_app_var_expected.q == 4
+    assert selector_app_var_expected.fsp == 8
+
+    _, selector_app_atomic_expected = run_selector_join_case(
+        selector_join_state(
+            descriptor=Word(MuredOpcode.APP, 12, False),
+            source=(12, Word(MuredOpcode.INT, 77, True)),
+        ),
+        expected_contract=True,
+    )
+    assert selector_app_atomic_expected.q == 3
+    assert selector_app_atomic_expected.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 77, True)
+    )
 
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
