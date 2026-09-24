@@ -18,6 +18,8 @@ RED2_LAZY_V1 = 1
 RED2_RECURSIVE_V1 = 1
 RED2_PURE_V1 = 1
 RED2_QUANTUM_V1 = 1
+RED2_HOSTCALL_V1 = 1
+RED2_PROGRAMS_V1 = 1
 
 SCALAR_OP_NONE = 0
 SCALAR_OP_DEC = 1
@@ -50,8 +52,11 @@ SCALAR_OP_MOD = 26
 PRIM0_ROLE_PASSIVE = 0
 PRIM0_ROLE_IF = 1
 PRIM0_ROLE_IO_SEQUENCE = 2
+PRIM0_ROLE_IO_BIND = PRIM0_ROLE_IO_SEQUENCE
 PRIM0_ROLE_DEFERRED = 3
 PRIM0_ROLE_Y = 4
+PRIM0_ROLE_IO_THEN = 5
+PRIM0_ROLE_IO_RETURN = 6
 
 MICRO_FETCH = 0
 MICRO_EXECUTE = 1
@@ -71,6 +76,7 @@ TASK4_RECP = 8
 TASK4_STRUCT = 9
 TASK4_EQUALITY = 10
 TASK4_QUANTUM = 11
+TASK4_IO = 12
 
 TASK4_COPY_MEMORY = 100
 TASK4_COPY_CONTROL = 101
@@ -129,6 +135,7 @@ TASK4_QUANTUM_CLEAR_MEMORY = 82
 TASK4_QUANTUM_WRITE_MEMORY = 83
 TASK4_QUANTUM_CLEAR_CONTROL = 84
 TASK4_QUANTUM_FINISH = 85
+TASK4_IO_FIRE = 90
 
 TASK4_PUB_GRAPH = 1
 TASK4_PUB_ROOT_DONE = 2
@@ -194,6 +201,7 @@ class Red2Processor:
         *,
         prim0_roles: tuple[int, ...] = (),
         scalar_ops: tuple[int, ...] = (),
+        host_ops: tuple[int, ...] = (),
         true_literal_id: int = 0,
         false_literal_id: int = 0,
         nil_literal_id: int = 0,
@@ -245,6 +253,7 @@ class Red2Processor:
         self.clocks = 0
         self.prim0_roles = prim0_roles
         self.scalar_ops = scalar_ops
+        self.host_ops = host_ops
         self.true_literal_id = true_literal_id
         self.false_literal_id = false_literal_id
         self.nil_literal_id = nil_literal_id
@@ -414,7 +423,7 @@ class Red2Processor:
         """Return the scheduler-visible RED2_ABI_V1 processor status."""
         if self.fault != abi.FAULT_NONE or self.microstate == MICRO_FAULT:
             return abi.STATUS_FAULT
-        if self.pending_host_op != abi.HOST_NONE:
+        if self.pending_host_op != abi.HOST_NONE and self.microstate == MICRO_FETCH:
             return abi.STATUS_HOST_CALL
         if self.halted and self.microstate == MICRO_FETCH:
             if self.q == 0:
@@ -435,6 +444,99 @@ class Red2Processor:
             if current != abi.STATUS_RUNNING:
                 return current
         return abi.STATUS_RUNNING
+
+    def resume_host_call(self, result: int) -> int:
+        """Commit one atomic host result into the currently suspended RED2 machine."""
+        if (
+            self.fault != abi.FAULT_NONE
+            or self.microstate != MICRO_FETCH
+            or self.halted
+            or self.pending_host_op == abi.HOST_NONE
+            or self.q <= 0
+            or type(result) is not int
+            or result < 0
+            or result >= (1 << abi.WORD_WIDTH)
+            or abi.word_field(result, abi.WORD_VALID_SHIFT, 1) != 1
+        ):
+            self._fault(abi.FAULT_INVALID_RESUME)
+            return self.status()
+
+        opcode = self._opcode(result)
+        kind = self._data_kind(result)
+        payload = self._payload(result)
+        atomic = (
+            (opcode == abi.MOP_INT and kind == abi.DATA_SIGNED)
+            or (opcode == abi.MOP_FLOAT and kind == abi.DATA_FLOAT64)
+            or (
+                opcode in (abi.MOP_CHAR, abi.MOP_SYM)
+                and kind == abi.DATA_LITERAL_ID
+                and 0 < payload <= abi.LITERAL_ID_MAX
+            )
+        )
+        reserved_mask = abi.WORD_MASK ^ ((1 << (abi.WORD_VALID_SHIFT + 1)) - 1)
+        definition_valid = self._definition_valid(result)
+        definition = self._definition(result)
+        if (
+            not atomic
+            or (result & reserved_mask) != 0
+            or self._closure_slot(result) != 0
+            or (not definition_valid and definition != 0)
+        ):
+            self._fault(abi.FAULT_INVALID_RESUME)
+            return self.status()
+
+        host_op = self.pending_host_op
+        encoded_argument = self.pending_host_argument
+        direct = host_op in (abi.HOST_CLOCK, abi.HOST_UART_RX)
+        strict = host_op in (abi.HOST_UART_TX, abi.HOST_UART_TX_BYTES)
+        if (direct and encoded_argument != 0) or (
+            strict
+            and (
+                type(encoded_argument) is not int
+                or encoded_argument <= 0
+                or encoded_argument > abi.FRONTIER_MAX
+            )
+        ) or (not direct and not strict):
+            self._fault(abi.FAULT_INVALID_RESUME)
+            return self.status()
+
+        argument_address = -1 if direct else encoded_argument - 1
+        if strict and (
+            argument_address < 0
+            or argument_address >= len(self.memory)
+            or self.pc != argument_address
+        ):
+            self._fault(abi.FAULT_INVALID_RESUME)
+            return self.status()
+
+        resumed = self._make_word(
+            opcode,
+            kind,
+            payload,
+            1,
+            self._definition_valid(result),
+            self._definition(result),
+        )
+        if direct:
+            destination = self.fsp + 1
+            if destination >= self.free_space or destination >= len(self.memory):
+                self._fault(abi.FAULT_GRAPH_ENV_COLLISION)
+                return self.status()
+            self.memory[destination] = resumed
+            self.fsp = destination
+            self.argcnt += 1
+            self.q -= 1
+            self.pc = self.fsp - 1
+            self.direction = abi.DIRECTION_REVERSE
+        else:
+            self.memory[self.pc] = resumed
+            self.fsp = self.pc
+            self.q -= 1
+            self.pc -= 1
+
+        self.pending_host_op = abi.HOST_NONE
+        self.pending_host_argument = 0
+        return self.status()
 
     def recharge_quantum(self, quantum: int, max_clocks: int | None = None) -> int:
         """Refill an exhausted live state or restart a halted bounded residual."""
@@ -698,6 +800,11 @@ class Red2Processor:
             return SCALAR_OP_NONE
         return self.scalar_ops[literal_id]
 
+    def _host_op(self, literal_id: int) -> int:
+        if literal_id < 0 or literal_id >= len(self.host_ops):
+            return abi.HOST_NONE
+        return self.host_ops[literal_id]
+
     def _struct_selector_tag(self, literal_id: int) -> int:
         if literal_id < 0 or literal_id >= len(self.struct_selector_tags):
             return 0
@@ -897,6 +1004,25 @@ class Red2Processor:
         return result
 
     def _fire_scalar_primitive(self) -> None:
+        io_role = self._prim0_role(self.prim_id)
+        if io_role in (
+            PRIM0_ROLE_IO_BIND,
+            PRIM0_ROLE_IO_THEN,
+            PRIM0_ROLE_IO_RETURN,
+        ):
+            self._task4_begin(TASK4_IO, TASK4_IO_FIRE)
+            self.microstate = MICRO_TASK4
+            return
+        host_op = self._host_op(self.prim_id)
+        if host_op in (abi.HOST_UART_TX, abi.HOST_UART_TX_BYTES):
+            self.prim_id = 0
+            self.fire = 0
+            if self.q <= 0:
+                self.pc -= 1
+                return
+            self.pending_host_op = host_op
+            self.pending_host_argument = abi.encode_optional_address(self.pc)
+            return
         if self.prim_id == self.equality_literal_id and self.equality_literal_id > 0:
             self._task4_begin(TASK4_EQUALITY, TASK4_EQUALITY_FIRE)
             self.microstate = MICRO_TASK4
@@ -944,6 +1070,16 @@ class Red2Processor:
         if primitive_id == 0:
             self._fault(abi.FAULT_ILLEGAL_TRANSITION)
             return False
+        host_op = self._host_op(primitive_id)
+        if host_op in (abi.HOST_UART_TX, abi.HOST_UART_TX_BYTES):
+            self._task_prim_id = 0
+            self._task_fire = 0
+            if self._task_q <= 0:
+                self._task_pc -= 1
+                return True
+            self._task_pending_host_op = host_op
+            self._task_pending_host_argument = abi.encode_optional_address(self._task_pc)
+            return True
         if primitive_id == self.if_reconstruct_literal_id:
             self._task_prim_id = 0
             self._task_fire = 0
@@ -953,7 +1089,16 @@ class Red2Processor:
             self._task_q = restored
             self._task_pc -= 1
             return True
-        if self._prim0_role(primitive_id) == PRIM0_ROLE_IF:
+        io_role = self._prim0_role(primitive_id)
+        if io_role in (
+            PRIM0_ROLE_IO_BIND,
+            PRIM0_ROLE_IO_THEN,
+            PRIM0_ROLE_IO_RETURN,
+        ):
+            self._task4_kind = TASK4_IO
+            self._task4_phase = TASK4_IO_FIRE
+            return False
+        if io_role == PRIM0_ROLE_IF:
             self._task4_kind = TASK4_IF
             self._task4_phase = TASK4_IF_FIRE
             return False
@@ -1422,6 +1567,16 @@ class Red2Processor:
             if self._head(word) and role == PRIM0_ROLE_Y:
                 self._execute_y(word)
                 return
+            host_op = self._host_op(literal_id)
+            if (
+                self._head(word)
+                and host_op in (abi.HOST_CLOCK, abi.HOST_UART_RX)
+                and self.argcnt == 0
+                and self.q > 0
+            ):
+                self.pending_host_op = host_op
+                self.pending_host_argument = 0
+                return
             if (
                 self._head(word)
                 and role == PRIM0_ROLE_IF
@@ -1432,7 +1587,7 @@ class Red2Processor:
                 self.fire = 1
             elif (
                 self._head(word)
-                and role == PRIM0_ROLE_IO_SEQUENCE
+                and role in (PRIM0_ROLE_IO_BIND, PRIM0_ROLE_IO_THEN)
                 and self.argcnt >= 2
                 and self.q > 0
             ):
@@ -1672,14 +1827,15 @@ class Red2Processor:
         self._task_pub_value = 0
 
     def _task4_commit(self) -> None:
-        if self._task4_kind == TASK4_QUANTUM:
-            for index in range(len(self.memory)):
-                self.memory[index] = self._task_memory[index]
-            for index in range(len(self.control_stack)):
-                self.control_stack[index] = self._task_control[index]
-        else:
-            self.memory, self._task_memory = self._task_memory, self.memory
-            self.control_stack, self._task_control = self._task_control, self.control_stack
+        # Architectural RAM/control arrays model persistent hardware storage.  The
+        # Task-4 shadow buffers provide failure atomicity, but publishing a commit
+        # must not replace those architectural storage objects.  Copy the fully
+        # validated shadow contents in place at the commit boundary; the next
+        # Task-4 transaction refreshes its shadows from live state before use.
+        for index in range(len(self.memory)):
+            self.memory[index] = self._task_memory[index]
+        for index in range(len(self.control_stack)):
+            self.control_stack[index] = self._task_control[index]
         self.pc = self._task_pc
         self.fsp = self._task_fsp
         self.env = self._task_env
@@ -6169,6 +6325,102 @@ class Red2Processor:
 
         self._fault(abi.FAULT_ILLEGAL_TRANSITION)
 
+    def _task11_io_clock(self) -> None:
+        if self._task4_phase != TASK4_IO_FIRE:
+            self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+            return
+
+        primitive_id = self._task_prim_id
+        role = self._prim0_role(primitive_id)
+        self._task_prim_id = 0
+        self._task_fire = 0
+        if self._task_q <= 0:
+            self._task_pc -= 1
+            self.microstate = MICRO_COMMIT
+            return
+
+        if role == PRIM0_ROLE_IO_RETURN:
+            if not 0 <= self._task_pc < len(self._task_memory):
+                self._fault(abi.FAULT_INVALID_ADDRESS)
+                return
+            value = self._task_memory[self._task_pc]
+            if value == 0:
+                self._fault(abi.FAULT_INVALID_ADDRESS)
+                return
+            opcode = self._opcode(value)
+            if opcode not in (abi.MOP_INT, abi.MOP_FLOAT, abi.MOP_CHAR, abi.MOP_SYM):
+                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+                return
+            self._task_memory[self._task_pc] = self._clone_word(value, head=1)
+            self._task_fsp = self._task_pc
+            self._task_q -= 1
+            self._task_pc -= 1
+            self.microstate = MICRO_COMMIT
+            return
+
+        if role not in (PRIM0_ROLE_IO_BIND, PRIM0_ROLE_IO_THEN):
+            self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+            return
+
+        value_slot = self._task_pc
+        continuation_slot = value_slot - 1
+        if not 0 <= continuation_slot < len(self._task_memory):
+            self._fault(abi.FAULT_INVALID_ADDRESS)
+            return
+        continuation = self._task_memory[continuation_slot]
+        if continuation == 0:
+            self._fault(abi.FAULT_INVALID_ADDRESS)
+            return
+        if self._opcode(continuation) != abi.MOP_APP:
+            self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+            return
+        continuation_target = self._signed_data(continuation)
+        if continuation_target is None or continuation_target < 0:
+            self._fault(abi.FAULT_INVALID_ADDRESS)
+            return
+        continuation_path = self._task4_pop_control_path()
+        if continuation_path is None:
+            return
+
+        self._task_q -= 1
+        if role == PRIM0_ROLE_IO_THEN:
+            self._task_fsp = continuation_slot - 1
+            self._task_argcnt = 0
+            self._task_env = continuation_path
+            self._task_pc = continuation_target
+            self._task_direction = abi.DIRECTION_FORWARD
+            self.microstate = MICRO_COMMIT
+            return
+
+        if not 0 <= value_slot < len(self._task_memory):
+            self._fault(abi.FAULT_INVALID_ADDRESS)
+            return
+        value = self._task_memory[value_slot]
+        if value == 0:
+            self._fault(abi.FAULT_INVALID_ADDRESS)
+            return
+        value_opcode = self._opcode(value)
+        supported = (
+            value_opcode in (abi.MOP_INT, abi.MOP_FLOAT, abi.MOP_CHAR)
+            or (value_opcode == abi.MOP_SYM and not self._definition_valid(value))
+            or (value_opcode == abi.MOP_EP and self._signed_data(value) is not None)
+        )
+        if not supported:
+            self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+            return
+
+        value_path = self._task_env
+        self._task_fsp = continuation_slot - 1
+        self._task_argcnt = 0
+        if not self._task4_task_push_result(self._clone_word(value, head=0)):
+            return
+        if value_opcode == abi.MOP_EP and not self._task4_push_control_path(value_path):
+            return
+        self._task_env = continuation_path
+        self._task_pc = continuation_target
+        self._task_direction = abi.DIRECTION_FORWARD
+        self.microstate = MICRO_COMMIT
+
     def _task4_clock(self) -> None:
         if not self._task4_active:
             self._fault(abi.FAULT_ILLEGAL_TRANSITION)
@@ -6211,6 +6463,9 @@ class Red2Processor:
             return
         if self._task4_kind == TASK4_QUANTUM:
             self._task10_quantum_clock()
+            return
+        if self._task4_kind == TASK4_IO:
+            self._task11_io_clock()
             return
         self._fault(abi.FAULT_ILLEGAL_TRANSITION)
 

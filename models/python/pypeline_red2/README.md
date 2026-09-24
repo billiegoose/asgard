@@ -73,6 +73,37 @@ Run the Task 7 lazy-control parity gate with:
 uv run pytest -q tests/test_pypeline_red2_lazy.py tests/test_pypeline_red2_programs.py
 ```
 
+## Program-level execution contract
+
+`RED2_PROGRAMS_V1` is the program-level proof contract built on
+`RED2_LOCKSTEP_V1`. After THOR parsing/compilation and image loading, the
+Pypeline processor owns RED2 evaluation. The host may schedule the processor,
+recharge an exhausted quantum and service declared host calls, but it does not
+reduce RED2 expressions or continuations on the processor's behalf.
+
+`tests/test_pypeline_red2_programs.py` proves that boundary in three ways:
+
+- recursive, closure-heavy and structure-heavy pure programs each execute more
+  than 500 committed processor transitions and finish with the same canonical
+  result as an independently executed faithful Python RED2 reference;
+- a bounded recursive program crosses repeated quantum exhaustion/recharge
+  boundaries without replacing the processor, architectural memory array or
+  control-stack array, and reaches the same final result;
+- the real `examples/clock-dots.thor` program runs on the processor with a
+  deterministic host and produces the same ordered, exactly-once CLOCK/UART
+  effect trace as faithful Python RED2.
+
+The tests deliberately disable `MuredMachine.step`, `run` and
+`run_until_suspend` while the processor is executing. `MuredMachine.result_expr`
+is used only after halt as a read-only graph decompiler for canonical result
+comparison; it performs no RED2 transition.
+
+Run the Task 13 program-level gate with:
+
+```bash
+uv run pytest -q tests/test_pypeline_red2_programs.py
+```
+
 ## External Validation
 
 The explicit hardware gate is:

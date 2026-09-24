@@ -7,6 +7,7 @@
 **Goal:** Build a persistent, stateful RED2 processor that owns graph/environment/control memory, matches `MuredMachine` semantics across pure reduction, bounded q=0 residualization, and host-call suspension/resume, and is suitable for Basys 3 deployment under a PC host.
 **Tech Stack:** Python 3.14+, Pypeline/PipelineC, uv, pytest, ruff, mypy; external HDL/synthesis tooling for the explicit hardware gate.
 **Exam command:** uv run pytest -q {paths}
+**Spec:** `docs/superpowers/specs/2026-09-11-full-pypeline-red2-processor-design.md`
 **Acceptance:** suite — focused transition/memory/program exams, independent peer or adversarial review at declared high-risk boundaries, full Python quality gates, real Pypeline/PipelineC frontend plus HDL/synthesis smoke validation, and archive/thesis preservation are required; missing external hardware tooling blocks the hardware gate rather than silently waiving it.
 **Parallelization rationale:** Tasks 1–3 establish the representation, memory substrate, and first true stateful reducer and therefore serialize. Tasks 4–9 extend semantic coverage in dependency order because each consumes the prior machine substrate. Task 10 establishes the external quantum boundary only after pure reduction is complete; Task 11 then adds host suspension. Tasks 12–13 build whole-program differential proof on the completed semantics. Tasks 14–15 add external toolchain and transport integration after semantic parity exists. Task 16 is a write-nothing gate. Correctness and hardware observability, rather than maximal fanout, determine the dependency graph.
 
@@ -502,9 +503,11 @@ Machine: M1. Pure programs exercise hundreds/thousands of committed transitions 
 **Review:** peer
 
 **Files:**
+- Create: `models/python/pypeline_red2/red2_pypeline.py`
 - Modify: `models/python/pypeline_red2/README.md`
 - Modify: `.mise.toml`
 - Create: `scripts/check_pypeline_red2.py`
+- Create: `scripts/check_pypeline_red2_sim.py`
 - Test: `tests/test_pypeline_red2_static.py`
 
 **Claim:** Validate the processor with the real installed/cloned Pypeline/PipelineC toolchain and produce a reproducible HDL/synthesis smoke result without making vendor tools mandatory for ordinary Python tests. (derived)
@@ -516,7 +519,7 @@ Machine: M1. The processor source passes the current Pypeline/PipelineC frontend
 - Consumes: `RED2_PROGRAMS_V1`
 - Produces: `RED2_SYNTH_V1`
 
-**Context:** Earlier tool detection timed out; do not hide this behind a skip in the explicit hardware gate. Discover the actual local PipelineC/Pypeline invocation and pin/document the tested revision. Keep generated/vendor artifacts out of source control unless explicitly useful.
+**Context:** Earlier tool detection timed out; do not hide this behind a skip in the explicit hardware gate. Discover the actual local PipelineC/Pypeline invocation and pin/document the tested revision. `Red2Processor` is the executable simulation/oracle model, not directly synthesizable Pypeline source; Task 14 therefore owns a dedicated hardware top in `red2_pypeline.py` using supported fixed-width `@struct`, `Reg` and RAM constructs while preserving the same architectural contract. Keep generated/vendor artifacts out of source control unless explicitly useful.
 
 **Proof:**
 - Test: `tests/test_pypeline_red2_static.py`

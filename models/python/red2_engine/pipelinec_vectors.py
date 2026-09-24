@@ -7,6 +7,7 @@ from red2_engine.instructions import Instruction, Opcode, encode_instruction
 from red2_engine.mured import (
     Direction,
     MuredHostCall,
+    MuredMachine,
     MuredMachineState,
     MuredOpcode,
     Word,
@@ -56,6 +57,13 @@ class StepperVector:
 
 
 @dataclass(frozen=True, slots=True)
+class EncodedStructSelector:
+    selector_id: int
+    tag_id: int
+    offset: int
+
+
+@dataclass(frozen=True, slots=True)
 class EncodedArchitecturalState:
     """Hardware-visible checkpoint; Python-only diagnostics are deliberately absent."""
 
@@ -77,6 +85,15 @@ class EncodedArchitecturalState:
     halted: int
     pending_host_op: int = abi.HOST_NONE
     pending_host_argument: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class EncodedProgramImage:
+    """Processor-neutral compiled RED2 image plus finite semantic metadata."""
+
+    state: EncodedArchitecturalState
+    working_memory_limit: int
+    struct_selectors: tuple[EncodedStructSelector, ...]
 
 
 class RED2ABICodec:
@@ -325,6 +342,27 @@ class RED2ABICodec:
             halted=int(state.halted),
             pending_host_op=pending_op,
             pending_host_argument=pending_argument,
+        )
+
+    def encode_program(self, machine: MuredMachine) -> EncodedProgramImage:
+        """Encode one already-loaded μRED machine without re-evaluating its source."""
+        effective_selectors = dict(machine.struct_selectors)
+        # These two selectors are built directly into MuredMachine and take
+        # precedence over the extensible selector table.
+        effective_selectors["CAR"] = ("PAIR", 2)
+        effective_selectors["CDR"] = ("PAIR", 1)
+        selectors = tuple(
+            EncodedStructSelector(
+                self.literal_id(name),
+                self.literal_id(tag),
+                abi.require_unsigned(offset, abi.COUNTER_BITS),
+            )
+            for name, (tag, offset) in sorted(effective_selectors.items())
+        )
+        return EncodedProgramImage(
+            state=self.encode_state(machine.state, machine.pending_host_call),
+            working_memory_limit=abi.require_frontier(machine.working_memory_limit),
+            struct_selectors=selectors,
         )
 
     def decode_state(self, encoded: EncodedArchitecturalState) -> MuredMachineState:

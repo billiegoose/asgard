@@ -48,6 +48,21 @@ uv run red2 "${usage_file?}" --quantum "${usage_quantum?}" --memory-words "${usa
 exit $?
 '''
 
+[tasks.pypeline]
+description = "Run a THOR source file on the native Pypeline RED2 hardware simulator"
+quiet = true
+usage = '''
+arg "<file>" help="THOR source file"
+flag "--quantum <n>" help="maximum contraction quantum" default="2000"
+flag "--verbose" help="write simulator diagnostics to stderr"
+flag "--clock <path>" help="clock source (accepted now; host resume support is pending)"
+'''
+run = '''
+#!/bin/sh
+uv run python scripts/run_pypeline_red2.py "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+exit $?
+'''
+
 [tasks.rust]
 description = "Compile a THOR source file and run it with the native Rust RED2 VM"
 quiet = true
