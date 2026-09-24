@@ -84,6 +84,7 @@ from red2_engine.mured import (
     MuredMachineState,
     MuredOpcode,
     Word,
+    _SubgraphFrame,
 )
 from red2_engine.pipelinec_vectors import EncodedArchitecturalState, RED2ABICodec
 
@@ -6839,6 +6840,150 @@ def check() -> None:
             red2_processor_top, _command(CMD_NOP, address=address)
         )
         assert _packed_control_read(recp_zero_read) == recp_zero_expected.control_stack[address]
+
+    # Reverse head/tail RECP at q=0 first enters a subgraph and then runs the
+    # same reconstruction serializer.  Verify both normalized-frontier shapes.
+    for recp_reverse_env in (28, 27):
+        recp_reverse_zero_state = MuredMachineState(
+            memory=list(recp_zero_memory),
+            control_stack=[None] * 32,
+            pc=8,
+            fsp=12,
+            env=recp_reverse_env,
+            c=-1,
+            direction=Direction.B,
+            q=0,
+            phi=0,
+            free_space=28,
+            argcnt=0,
+        )
+        recp_reverse_zero_machine = MuredMachine(recp_reverse_zero_state)
+        _, recp_reverse_zero_expected = _run_bounded_to_same_commit(
+            recp_reverse_zero_machine, RED2ABICodec()
+        )
+        assert recp_reverse_zero_expected.fsp == 17
+        assert recp_reverse_zero_expected.direction == abi.DIRECTION_REVERSE
+        assert recp_reverse_zero_expected.q == 0
+        assert recp_reverse_zero_expected.phi == 2
+        expected_frontier = 25 if recp_reverse_env == 28 else 24
+        assert recp_reverse_zero_expected.env == expected_frontier
+        assert recp_reverse_zero_expected.free_space == expected_frontier
+        assert recp_reverse_zero_expected.c == 3
+        for address in range(13, 18):
+            recp_reverse_zero_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
+        for address in range(expected_frontier, 28):
+            recp_reverse_zero_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
+        for address in range(3):
+            recp_reverse_zero_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=address)
+            )
+            assert _packed_control_read(recp_reverse_zero_read) == recp_reverse_zero_expected.control_stack[address]
+
+    # Exercise the actual RECP-parent JOIN return, not only its reconstruction
+    # entry commit.  Advance faithful muRED to the exact JOIN-return checkpoint;
+    # the native hardware transition must preserve the child graph, restore the
+    # frame, and rewrite the original RECP as non-head APP(published_root).
+    recp_join_state = MuredMachineState(
+        memory=[None] * 40,
+        control_stack=[None] * 12,
+        pc=10,
+        fsp=10,
+        env=28,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="CAR",
+        fire=2,
+    )
+    recp_join_state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    recp_join_state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    recp_join_state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    recp_join_state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    recp_join_state.memory[5] = Word(MuredOpcode.INT, 7, True)
+    recp_join_state.memory[9] = Word(MuredOpcode.STOP)
+    recp_join_state.memory[10] = Word(MuredOpcode.RECP, 28, False)
+    recp_join_state.memory[28] = Word(MuredOpcode.REC, 5, False)
+    recp_join_state.memory[29] = Word(None, 28, False)
+    recp_join_state.memory[30] = Word(None, 0, False)
+    recp_join_machine = MuredMachine(recp_join_state)
+    for _ in range(7):
+        recp_join_machine.step()
+    _, recp_join_expected = _run_bounded_to_same_commit(
+        recp_join_machine, RED2ABICodec()
+    )
+    assert recp_join_expected.pc == 9
+    assert recp_join_expected.fsp == 17
+    assert recp_join_expected.env == 28
+    assert recp_join_expected.free_space == 28
+    assert recp_join_expected.c == 0
+    assert recp_join_expected.direction == abi.DIRECTION_REVERSE
+    assert recp_join_expected.q == 0
+    assert recp_join_expected.phi == 0
+    assert recp_join_expected.fire == 1
+    recp_join_parent = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=10)
+    )
+    assert _packed_memory_read(recp_join_parent) == recp_join_expected.memory[10]
+    recp_join_child = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=12)
+    )
+    assert _packed_memory_read(recp_join_child) == recp_join_expected.memory[12]
+    recp_join_frame = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=0)
+    )
+    assert _packed_control_read(recp_join_frame) == recp_join_expected.control_stack[0]
+
+    # Malformed recursive residuals must fault before the RECP parent/frame is
+    # published.  Compare the native hardware fault and unchanged architecture
+    # directly against the bounded processor for the supported validator subset.
+    def _recp_join_residual_state(*, bad_rup_count: bool = False, missing_binding: bool = False):
+        memory = [None] * 64
+        memory[3] = Word(MuredOpcode.RECP, 40, False)
+        memory[4] = Word(MuredOpcode.JOIN, 3, False)
+        memory[5] = Word(MuredOpcode.RBLOCK, 20, False)
+        memory[6] = Word(MuredOpcode.RUP, 2 if bad_rup_count else 1, False)
+        memory[7] = Word(MuredOpcode.VAR, 0, True)
+        memory[20] = Word(MuredOpcode.SYM, "x", False)
+        if not missing_binding:
+            memory[21] = Word(MuredOpcode.INT, 7, True)
+        memory[40] = Word(MuredOpcode.REC, 21, False)
+        memory[41] = Word(None, 40, False)
+        memory[42] = Word(None, 5, False)
+        state = MuredMachineState(
+            memory=memory,
+            control_stack=[None] * 8,
+            pc=4,
+            fsp=7,
+            env=30,
+            free_space=30,
+            c=0,
+            direction=Direction.B,
+            q=0,
+            phi=1,
+            argcnt=0,
+        )
+        state.control_stack[0] = _SubgraphFrame(
+            env=44, free_space=44, prim=None, fire=0
+        )
+        return state
+
+    for recp_fault_state, recp_fault_code in (
+        (_recp_join_residual_state(bad_rup_count=True), abi.FAULT_ILLEGAL_TRANSITION),
+        (_recp_join_residual_state(missing_binding=True), abi.FAULT_INVALID_ADDRESS),
+    ):
+        recp_fault_encoded = RED2ABICodec().encode_state(recp_fault_state)
+        _, recp_fault_expected, recp_fault_actual = _run_encoded_to_same_fault(
+            recp_fault_encoded
+        )
+        assert recp_fault_actual == recp_fault_code
+        assert recp_fault_expected == recp_fault_encoded
 
     # Fault precedence follows the reconstruction phases.  With fsp=21 the
     # marker/UBVs and both RBLOCK copies fit, while the final RUP+VAR do not.

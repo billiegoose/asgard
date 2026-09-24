@@ -224,6 +224,12 @@ MICRO_RECP_RECON_PATH = 82
 MICRO_RECP_RECON_RUP_READ = 83
 MICRO_RECP_RECON_RUP_WRITE = 84
 MICRO_RECP_RECON_VAR_WRITE = 85
+MICRO_RECP_REVERSE_BRIDGE = 86
+MICRO_RECP_REVERSE_FRAME = 87
+MICRO_RECP_REVERSE_JOIN = 88
+MICRO_JOIN_RECP_RBLOCK_SCAN = 89
+MICRO_JOIN_RECP_RBLOCK_BINDING_READ = 90
+MICRO_JOIN_RECP_RBLOCK_BODY_READ = 91
 
 
 @struct
@@ -416,6 +422,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     recp_selected: Reg[uint16_t]
     recp_replacement: Reg[uint17_t]
     recp_parent_environment: Reg[uint17_t]
+    recp_reverse_zero: Reg[uint1_t]
+    recp_reverse_needs_bridge: Reg[uint1_t]
+    recp_reverse_parent_env: Reg[uint17_t]
+    recp_reverse_entry_env: Reg[uint17_t]
     recp_copy_word: Reg[red2_word_t]
     recp_rup_word: Reg[red2_word_t]
     lambda_word: Reg[red2_word_t]
@@ -440,6 +450,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     join_parent_address: Reg[uint16_t]
     join_result_address: Reg[uint16_t]
     join_published_root: Reg[uint16_t]
+    join_recp_rblock_cursor: Reg[uint16_t]
+    join_recp_rblock_count: Reg[uint16_t]
+    join_recp_binding_root: Reg[uint16_t]
     join_ep_target: Reg[uint16_t]
     join_frame_env: Reg[uint17_t]
     join_frame_free_space: Reg[uint17_t]
@@ -510,6 +523,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     join_frame_index: Reg[uint17_t]
     join_control_clear_index: Reg[uint17_t]
     join_parent_is_ep: Reg[uint1_t]
+    join_parent_is_recp: Reg[uint1_t]
     join_needs_ep_cache: Reg[uint1_t]
     join_preserve_fsp: Reg[uint1_t]
     join_ep_chase_target: Reg[uint64_t]
@@ -677,6 +691,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_recp_recon_rup_read: uint1_t = microstate == MICRO_RECP_RECON_RUP_READ
     micro_is_recp_recon_rup_write: uint1_t = microstate == MICRO_RECP_RECON_RUP_WRITE
     micro_is_recp_recon_var_write: uint1_t = microstate == MICRO_RECP_RECON_VAR_WRITE
+    micro_is_recp_reverse_bridge: uint1_t = microstate == MICRO_RECP_REVERSE_BRIDGE
+    micro_is_recp_reverse_frame: uint1_t = microstate == MICRO_RECP_REVERSE_FRAME
+    micro_is_recp_reverse_join: uint1_t = microstate == MICRO_RECP_REVERSE_JOIN
+    micro_is_join_recp_rblock_scan: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_SCAN
+    micro_is_join_recp_rblock_binding_read: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_BINDING_READ
+    micro_is_join_recp_rblock_body_read: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_BODY_READ
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -976,6 +996,39 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = recp_var_destination_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=recp_selected_payload_req, hi=112328704)
             memory_req.wr_en = 1
+        elif micro_is_recp_reverse_bridge:
+            recp_reverse_parent_wide_req: uint64_t = recp_reverse_parent_env
+            memory_req.addr = recp_reverse_entry_env[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(lo=recp_reverse_parent_wide_req, hi=113377280)
+            memory_req.wr_en = 1
+        elif micro_is_recp_reverse_frame:
+            recp_reverse_frame_env_wide_req: uint64_t = recp_reverse_entry_env
+            recp_reverse_frame_lo_req: uint64_t = (
+                recp_reverse_frame_env_wide_req | (recp_reverse_frame_env_wide_req << 32)
+            )
+            recp_reverse_frame_prim_req: uint64_t = prim_id
+            recp_reverse_frame_fire_req: uint64_t = fire
+            recp_reverse_frame_hi_req: uint64_t = (
+                recp_reverse_frame_prim_req | (recp_reverse_frame_fire_req << 32)
+            )
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(
+                lo=recp_reverse_frame_lo_req,
+                hi=recp_reverse_frame_hi_req,
+                tag_hi=CONTROL_SUBGRAPH,
+            )
+            control_req.wr_en = 1
+        elif micro_is_recp_reverse_join:
+            recp_reverse_join_address_req: uint17_t = fsp + 1
+            recp_reverse_parent_pc_wide_req: uint64_t = pc
+            recp_reverse_join_hi_req: uint64_t = 77725696
+            if fire != 0:
+                recp_reverse_join_hi_req = 78315521
+            memory_req.addr = recp_reverse_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = red2_word_t(
+                lo=recp_reverse_parent_pc_wide_req, hi=recp_reverse_join_hi_req
+            )
+            memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1172,6 +1225,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 control_req.addr = ep_reverse_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
                 control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                 control_req.wr_en = 1
+        elif micro_is_join_recp_rblock_scan:
+            memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_recp_rblock_binding_read:
+            memory_req.addr = join_recp_binding_root[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_join_recp_rblock_body_read:
+            memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_parent_read:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_join_ep_target_read:
@@ -1420,6 +1479,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         elif micro_is_join_publish:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_publish_word
+            if join_parent_is_recp:
+                join_recp_root_wide_req: uint64_t = join_published_root
+                memory_req.wr_data = red2_word_t(lo=join_recp_root_wide_req, hi=69337088)
             join_publish_preflight_ready: uint1_t = join_scalar_preflight_done or not join_scalar_active
             # Reverse-EP fire==1 borrows the JOIN scalar evaluator only for
             # transactional preflight.  Its parent write is serialized later by
@@ -1572,6 +1634,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_selected = 0
         recp_replacement = 0
         recp_parent_environment = 0
+        recp_reverse_zero = 0
+        recp_reverse_needs_bridge = 0
+        recp_reverse_parent_env = 0
+        recp_reverse_entry_env = 0
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
@@ -1596,6 +1662,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_parent_address = 0
         join_result_address = 0
         join_published_root = 0
+        join_recp_rblock_cursor = 0
+        join_recp_rblock_count = 0
+        join_recp_binding_root = 0
         join_ep_target = 0
         join_frame_env = 0
         join_frame_free_space = 0
@@ -1666,6 +1735,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_frame_index = 0
         join_control_clear_index = 0
         join_parent_is_ep = 0
+        join_parent_is_recp = 0
         join_needs_ep_cache = 0
         join_preserve_fsp = 0
         join_ep_chase_target = 0
@@ -1755,6 +1825,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_selected = 0
         recp_replacement = 0
         recp_parent_environment = 0
+        recp_reverse_zero = 0
+        recp_reverse_needs_bridge = 0
+        recp_reverse_parent_env = 0
+        recp_reverse_entry_env = 0
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
@@ -1779,6 +1853,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_parent_address = 0
         join_result_address = 0
         join_published_root = 0
+        join_recp_rblock_cursor = 0
+        join_recp_rblock_count = 0
+        join_recp_binding_root = 0
         join_ep_target = 0
         join_frame_env = 0
         join_frame_free_space = 0
@@ -1849,6 +1926,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         join_frame_index = 0
         join_control_clear_index = 0
         join_parent_is_ep = 0
+        join_parent_is_recp = 0
         join_needs_ep_cache = 0
         join_preserve_fsp = 0
         join_ep_chase_target = 0
@@ -1918,6 +1996,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_selected = 0
             recp_replacement = 0
             recp_parent_environment = 0
+            recp_reverse_zero = 0
+            recp_reverse_needs_bridge = 0
+            recp_reverse_parent_env = 0
+            recp_reverse_entry_env = 0
             recp_copy_word = red2_word_t(lo=0, hi=0)
             recp_rup_word = red2_word_t(lo=0, hi=0)
             lambda_word = red2_word_t(lo=0, hi=0)
@@ -1942,6 +2024,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_parent_address = 0
             join_result_address = 0
             join_published_root = 0
+            join_recp_rblock_cursor = 0
+            join_recp_rblock_count = 0
+            join_recp_binding_root = 0
             join_ep_target = 0
             join_frame_env = 0
             join_frame_free_space = 0
@@ -1959,6 +2044,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_frame_index = 0
             join_control_clear_index = 0
             join_parent_is_ep = 0
+            join_parent_is_recp = 0
             join_needs_ep_cache = 0
             join_ep_chase_target = 0
             join_ep_hops = 0
@@ -2401,6 +2487,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_result_address = join_result_wide[15:0]
                     join_saved_primitive = join_saved_primitive
                     join_parent_is_ep = 0
+                    join_parent_is_recp = 0
+                    join_recp_rblock_cursor = 0
+                    join_recp_rblock_count = 0
+                    join_recp_binding_root = 0
                     join_needs_ep_cache = 0
                     join_preserve_fsp = 0
                     join_prim_scalar_op = SCALAR_OP_NONE
@@ -3632,10 +3722,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_parent_is_app: uint1_t = join_parent_opcode == MOP_APP
             join_parent_is_ep_now: uint1_t = join_parent_opcode == MOP_EP
             join_parent_is_rblock: uint1_t = join_parent_opcode == MOP_RBLOCK
-            join_parent_is_recp: uint1_t = join_parent_opcode == MOP_RECP
+            join_parent_is_recp_now: uint1_t = join_parent_opcode == MOP_RECP
             join_parent_supported_opcode: uint1_t = join_parent_is_app or join_parent_is_ep_now
+            join_parent_supported_opcode = join_parent_supported_opcode or join_parent_is_recp_now
             join_parent_known_opcode: uint1_t = join_parent_supported_opcode or join_parent_is_rblock
-            join_parent_known_opcode = join_parent_known_opcode or join_parent_is_recp
             if not join_parent_valid:
                 red2_fault = FAULT_INVALID_ADDRESS
                 microstate = MICRO_FAULT
@@ -3648,6 +3738,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 join_parent_word = memory_out.p0.rd_data
                 join_parent_is_ep = join_parent_is_ep_now
+                join_parent_is_recp = join_parent_is_recp_now
+                if join_parent_is_recp_now:
+                    # RECP publication always leaves the published child graph live;
+                    # the parent becomes APP(root) rather than compacting the child.
+                    join_preserve_fsp = 1
                 # Search for the SUBGRAPH frame using a private cursor.  Keep
                 # architectural control_top and RAM untouched until all JOIN
                 # validation/publication work has succeeded.
@@ -4209,11 +4304,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 join_multi_parent_opcode: uint5_t = join_parent_word.hi[25:21]
                 join_multi_parent_is_app: uint1_t = join_multi_parent_opcode == MOP_APP
                 join_multi_parent_is_ep: uint1_t = join_multi_parent_opcode == MOP_EP
-                join_multi_parent_supports_ep_root: uint1_t = join_multi_parent_is_app or join_multi_parent_is_ep
+                join_multi_parent_is_recp: uint1_t = join_multi_parent_opcode == MOP_RECP
+                join_multi_parent_supports_app_graph: uint1_t = join_multi_parent_is_app or join_multi_parent_is_recp
+                join_multi_parent_supports_ep_root: uint1_t = join_multi_parent_supports_app_graph or join_multi_parent_is_ep
                 if join_tail_is_app:
                     join_multi_app_signed: uint1_t = join_tail_kind == DATA_SIGNED
                     join_multi_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
-                    if not join_multi_parent_is_app:
+                    if not join_multi_parent_supports_app_graph:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
                     elif not join_multi_app_signed:
@@ -4261,15 +4358,20 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         join_ep_descriptor_hi = memory_out.p0.rd_data.hi
                         join_ep_descriptor_address = join_result_address
                         microstate = MICRO_JOIN_EP_CHASE
+                elif join_parent_is_recp and join_tail_opcode == MOP_RBLOCK:
+                    join_recp_rblock_cursor = join_result_address
+                    join_recp_rblock_count = 0
+                    join_preserve_fsp = 1
+                    microstate = MICRO_JOIN_RECP_RBLOCK_SCAN
                 elif join_tail_is_app_var:
-                    if not join_multi_parent_is_app:
+                    if not join_multi_parent_supports_app_graph:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
                     else:
                         join_flat_cursor = join_result_address + 1
                         join_preserve_fsp = 1
                         microstate = MICRO_JOIN_FLAT_SCAN
-                elif not join_multi_parent_is_app:
+                elif not join_multi_parent_supports_app_graph:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
                 elif join_tail_head and join_tail_inline:
@@ -7212,6 +7314,127 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_needs_ep_cache = 0
             join_preserve_fsp = 1
             microstate = MICRO_JOIN_PUBLISH
+        elif micro_is_join_recp_rblock_scan:
+            join_recp_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_recp_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_recp_scan_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            if not join_recp_scan_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_recp_scan_opcode == MOP_RBLOCK:
+                join_recp_binding_signed: uint1_t = join_recp_scan_kind == DATA_SIGNED
+                join_recp_binding_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_recp_binding_plus_one: uint64_t = memory_out.p0.rd_data.lo + 1
+                join_recp_binding_in_range: uint1_t = join_recp_binding_plus_one[63:GRAPH_ADDR_BITS] == 0
+                if not join_recp_binding_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_recp_binding_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_recp_binding_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    join_recp_binding_root = join_recp_binding_plus_one[15:0]
+                    microstate = MICRO_JOIN_RECP_RBLOCK_BINDING_READ
+            else:
+                join_recp_rup_signed: uint1_t = join_recp_scan_kind == DATA_SIGNED
+                join_recp_rup_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_recp_rup_count_wide: uint64_t = join_recp_rblock_count
+                join_recp_rup_count_match: uint1_t = memory_out.p0.rd_data.lo == join_recp_rup_count_wide
+                join_recp_body_wide: uint17_t = join_recp_rblock_cursor + 1
+                join_recp_body_in_range: uint1_t = join_recp_body_wide[16:GRAPH_ADDR_BITS] == 0
+                if join_recp_scan_opcode != MOP_RUP:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif not join_recp_rup_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_recp_rup_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not join_recp_rup_count_match:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif not join_recp_body_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    join_recp_rblock_cursor = join_recp_body_wide[15:0]
+                    microstate = MICRO_JOIN_RECP_RBLOCK_BODY_READ
+        elif micro_is_join_recp_rblock_binding_read:
+            join_recp_binding_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_recp_binding_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_recp_binding_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            join_recp_binding_is_int: uint1_t = join_recp_binding_opcode == MOP_INT
+            join_recp_binding_is_float: uint1_t = join_recp_binding_opcode == MOP_FLOAT
+            join_recp_binding_is_char: uint1_t = join_recp_binding_opcode == MOP_CHAR
+            join_recp_binding_is_sym: uint1_t = join_recp_binding_opcode == MOP_SYM
+            join_recp_binding_is_prim0: uint1_t = join_recp_binding_opcode == MOP_PRIM_0
+            join_recp_binding_is_prim1: uint1_t = join_recp_binding_opcode == MOP_PRIM_1
+            join_recp_binding_is_prim2: uint1_t = join_recp_binding_opcode == MOP_PRIM_2
+            join_recp_binding_inline: uint1_t = join_recp_binding_is_int or join_recp_binding_is_float
+            join_recp_binding_inline = join_recp_binding_inline or join_recp_binding_is_char
+            join_recp_binding_inline = join_recp_binding_inline or join_recp_binding_is_sym
+            join_recp_binding_inline = join_recp_binding_inline or join_recp_binding_is_prim0
+            join_recp_binding_inline = join_recp_binding_inline or join_recp_binding_is_prim1
+            join_recp_binding_inline = join_recp_binding_inline or join_recp_binding_is_prim2
+            join_recp_binding_prefix_inline: uint1_t = join_recp_binding_inline and not join_recp_binding_head
+            join_recp_binding_composite: uint1_t = join_recp_binding_opcode == MOP_EP
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_opcode == MOP_APP
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_opcode == MOP_APP_VAR
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_prefix_inline
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_opcode == MOP_LAMBDA
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_opcode == MOP_RBLOCK
+            join_recp_binding_composite = join_recp_binding_composite or join_recp_binding_opcode == MOP_STRUCT
+            if not join_recp_binding_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_recp_binding_composite:
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            else:
+                join_recp_rblock_cursor = join_recp_rblock_cursor + 1
+                join_recp_rblock_count = join_recp_rblock_count + 1
+                microstate = MICRO_JOIN_RECP_RBLOCK_SCAN
+        elif micro_is_join_recp_rblock_body_read:
+            join_recp_body_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_recp_body_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_recp_body_head: uint1_t = memory_out.p0.rd_data.hi[20]
+            join_recp_body_is_int: uint1_t = join_recp_body_opcode == MOP_INT
+            join_recp_body_is_float: uint1_t = join_recp_body_opcode == MOP_FLOAT
+            join_recp_body_is_char: uint1_t = join_recp_body_opcode == MOP_CHAR
+            join_recp_body_is_sym: uint1_t = join_recp_body_opcode == MOP_SYM
+            join_recp_body_is_prim0: uint1_t = join_recp_body_opcode == MOP_PRIM_0
+            join_recp_body_is_prim1: uint1_t = join_recp_body_opcode == MOP_PRIM_1
+            join_recp_body_is_prim2: uint1_t = join_recp_body_opcode == MOP_PRIM_2
+            join_recp_body_inline: uint1_t = join_recp_body_is_int or join_recp_body_is_float
+            join_recp_body_inline = join_recp_body_inline or join_recp_body_is_char
+            join_recp_body_inline = join_recp_body_inline or join_recp_body_is_sym
+            join_recp_body_inline = join_recp_body_inline or join_recp_body_is_prim0
+            join_recp_body_inline = join_recp_body_inline or join_recp_body_is_prim1
+            join_recp_body_inline = join_recp_body_inline or join_recp_body_is_prim2
+            join_recp_body_prefix_inline: uint1_t = join_recp_body_inline and not join_recp_body_head
+            join_recp_body_composite: uint1_t = join_recp_body_opcode == MOP_EP
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_opcode == MOP_APP
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_opcode == MOP_APP_VAR
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_prefix_inline
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_opcode == MOP_LAMBDA
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_opcode == MOP_RBLOCK
+            join_recp_body_composite = join_recp_body_composite or join_recp_body_opcode == MOP_STRUCT
+            if not join_recp_body_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_recp_body_composite:
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            else:
+                join_published_root = join_result_address
+                join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                join_needs_ep_cache = 0
+                join_preserve_fsp = 1
+                microstate = MICRO_JOIN_PUBLISH
         elif micro_is_join_flat_scan:
             join_flat_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             join_flat_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -7520,10 +7743,68 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         recp_rup_word = red2_word_t(lo=0, hi=0)
                         microstate = MICRO_RECP_RECON_SCAN
                     else:
-                        # Reverse q=0 first enters a RECP-parent subgraph; that
-                        # serializer is the next slice built on this recon path.
-                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                        microstate = MICRO_FAULT
+                        # Reverse q=0 performs _enter_subgraph transactionally before
+                        # reconstruction.  Match its fault order, but publish none of
+                        # bridge/frame/JOIN until the reconstruction has also validated.
+                        recp_reverse_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                        recp_reverse_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+                        recp_reverse_free_end: uint1_t = free_space == GRAPH_WORDS
+                        recp_reverse_free_valid: uint1_t = recp_reverse_free_low or recp_reverse_free_end
+                        recp_reverse_layout_gap: uint17_t = free_space - fsp
+                        recp_reverse_layout_wrapped: uint1_t = recp_reverse_layout_gap[16]
+                        recp_reverse_layout_nonzero: uint1_t = recp_reverse_layout_gap != 0
+                        recp_reverse_layout_ok: uint1_t = recp_reverse_layout_wrapped == 0
+                        recp_reverse_layout_ok = recp_reverse_layout_ok and recp_reverse_layout_nonzero
+                        recp_reverse_env_low: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
+                        recp_reverse_env_end: uint1_t = env == GRAPH_WORDS
+                        recp_reverse_env_valid: uint1_t = recp_reverse_env_low or recp_reverse_env_end
+                        recp_reverse_bridge_now: uint1_t = env != free_space
+                        recp_reverse_normalized: uint17_t = env
+                        if recp_reverse_bridge_now:
+                            recp_reverse_normalized = free_space - 1
+                        recp_reverse_join_address: uint17_t = fsp + 1
+                        recp_reverse_join_gap: uint17_t = recp_reverse_normalized - recp_reverse_join_address
+                        recp_reverse_join_wrapped: uint1_t = recp_reverse_join_gap[16]
+                        recp_reverse_join_nonzero: uint1_t = recp_reverse_join_gap != 0
+                        recp_reverse_join_ok: uint1_t = recp_reverse_join_wrapped == 0
+                        recp_reverse_join_ok = recp_reverse_join_ok and recp_reverse_join_nonzero
+                        recp_reverse_control_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+                        recp_reverse_control_end: uint1_t = control_top == CONTROL_WORDS
+                        recp_reverse_control_valid: uint1_t = recp_reverse_control_low or recp_reverse_control_end
+                        if not recp_reverse_fsp_valid:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_free_valid:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_layout_ok:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_env_valid:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_join_ok:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_control_valid:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        elif not recp_reverse_control_low:
+                            red2_fault = FAULT_CONTROL_OVERFLOW
+                            microstate = MICRO_FAULT
+                        else:
+                            recp_count = 0
+                            recp_index = 0
+                            recp_selected = 0
+                            recp_replacement = 0
+                            recp_parent_environment = 0
+                            recp_copy_word = red2_word_t(lo=0, hi=0)
+                            recp_rup_word = red2_word_t(lo=0, hi=0)
+                            recp_reverse_zero = 1
+                            recp_reverse_needs_bridge = recp_reverse_bridge_now
+                            recp_reverse_parent_env = env
+                            recp_reverse_entry_env = recp_reverse_normalized
+                            microstate = MICRO_RECP_RECON_SCAN
                 elif recp_forward_now:
                     recp_context_negative: uint1_t = recp_context[63]
                     recp_context_upper_nonzero: uint1_t = recp_context[62:GRAPH_ADDR_BITS] != 0
@@ -7653,27 +7934,34 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_parent_end: uint1_t = recp_parent17 == GRAPH_WORDS
             recp_parent_address: uint1_t = recp_parent17[16:GRAPH_ADDR_BITS] == 0
             recp_parent_valid: uint1_t = recp_parent_low and (recp_parent_address or recp_parent_end)
-            recp_fsp_valid_pre: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
-            recp_free_low_pre: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
-            recp_free_end_pre: uint1_t = free_space == GRAPH_WORDS
+            recp_base_fsp: uint17_t = fsp
+            recp_base_free: uint17_t = free_space
+            recp_base_control: uint17_t = control_top
+            if recp_reverse_zero:
+                recp_base_fsp = fsp + 1
+                recp_base_free = recp_reverse_entry_env
+                recp_base_control = control_top + 1
+            recp_fsp_valid_pre: uint1_t = recp_base_fsp[16:GRAPH_ADDR_BITS] == 0
+            recp_free_low_pre: uint1_t = recp_base_free[16:GRAPH_ADDR_BITS] == 0
+            recp_free_end_pre: uint1_t = recp_base_free == GRAPH_WORDS
             recp_free_valid_pre: uint1_t = recp_free_low_pre or recp_free_end_pre
             recp_env_words: uint17_t = recp_count17 + 1
-            recp_env_base: uint17_t = free_space - recp_env_words
-            recp_env_gap: uint17_t = recp_env_base - fsp
+            recp_env_base: uint17_t = recp_base_free - recp_env_words
+            recp_env_gap: uint17_t = recp_env_base - recp_base_fsp
             recp_env_wrapped: uint1_t = recp_env_gap[16]
             recp_env_nonzero: uint1_t = recp_env_gap != 0
             recp_env_space_ok: uint1_t = recp_env_wrapped == 0
             recp_env_space_ok = recp_env_space_ok and recp_env_nonzero
-            recp_copy_end: uint17_t = fsp + recp_count17
+            recp_copy_end: uint17_t = recp_base_fsp + recp_count17
             recp_copy_gap: uint17_t = recp_env_base - recp_copy_end
             recp_copy_wrapped: uint1_t = recp_copy_gap[16]
             recp_copy_nonzero: uint1_t = recp_copy_gap != 0
             recp_copy_space_ok: uint1_t = recp_copy_wrapped == 0
             recp_copy_space_ok = recp_copy_space_ok and recp_copy_nonzero
-            recp_control_low_pre: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
-            recp_control_end_pre: uint1_t = control_top == CONTROL_WORDS
+            recp_control_low_pre: uint1_t = recp_base_control[16:CONTROL_ADDR_BITS] == 0
+            recp_control_end_pre: uint1_t = recp_base_control == CONTROL_WORDS
             recp_control_valid_pre: uint1_t = recp_control_low_pre or recp_control_end_pre
-            recp_control_room: uint17_t = CONTROL_WORDS - control_top
+            recp_control_room: uint17_t = CONTROL_WORDS - recp_base_control
             recp_control_gap: uint17_t = recp_control_room - recp_count17
             recp_control_wrapped: uint1_t = recp_control_gap[16]
             recp_control_room_ok: uint1_t = recp_control_wrapped == 0
@@ -7710,7 +7998,29 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             else:
                 recp_parent_environment = recp_parent17
                 recp_index = 0
-                microstate = MICRO_RECP_RECON_MARKER
+                if recp_reverse_zero:
+                    if recp_reverse_needs_bridge:
+                        microstate = MICRO_RECP_REVERSE_BRIDGE
+                    else:
+                        microstate = MICRO_RECP_REVERSE_FRAME
+                else:
+                    microstate = MICRO_RECP_RECON_MARKER
+        elif micro_is_recp_reverse_bridge:
+            microstate = MICRO_RECP_REVERSE_FRAME
+        elif micro_is_recp_reverse_frame:
+            microstate = MICRO_RECP_REVERSE_JOIN
+        elif micro_is_recp_reverse_join:
+            env = recp_reverse_entry_env
+            free_space = recp_reverse_entry_env
+            control_top = control_top + 1
+            fsp = fsp + 1
+            argcnt = 1
+            prim_id = 0
+            fire = 0
+            recp_reverse_zero = 0
+            recp_reverse_needs_bridge = 0
+            recp_index = 0
+            microstate = MICRO_RECP_RECON_MARKER
         elif micro_is_recp_recon_marker:
             recp_marker_new_env: uint17_t = free_space - 1
             env = recp_marker_new_env
