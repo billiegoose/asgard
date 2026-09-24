@@ -7619,6 +7619,89 @@ def check() -> None:
         1,
     )
 
+    # Returning __STRUCT_SELECTOR_RESULT__ on an atomic value is a zero-charge
+    # continuation: ordinary JOIN publication writes the selected value at the
+    # parent, then the private primitive clears without consuming more quantum.
+    def run_selector_result_atomic_case(selected_word: Word) -> object:
+        result_memory: list[Word | None] = [None] * 32
+        result_control: list[object | None] = [None] * 8
+        result_memory[3] = Word(MuredOpcode.APP, 5, False)
+        result_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+        result_memory[5] = selected_word
+        result_control[0] = _SubgraphFrame(
+            env=32,
+            free_space=32,
+            prim="__STRUCT_SELECTOR_RESULT__",
+            fire=1,
+        )
+        result_state = MuredMachineState(
+            memory=result_memory,
+            control_stack=result_control,
+            pc=4,
+            fsp=5,
+            env=28,
+            free_space=28,
+            c=0,
+            direction=Direction.B,
+            q=5,
+            phi=0,
+            argcnt=0,
+        )
+        result_codec = RED2ABICodec()
+        encoded_result = result_codec.encode_state(result_state)
+        result_literal_id = result_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+        result_oracle = Red2Processor(
+            encoded_result,
+            struct_selector_result_literal_id=result_literal_id,
+        )
+        assert result_oracle.run_to_commit()
+        result_expected = result_oracle.checkpoint()
+        _load_hardware(encoded_result)
+        _load_literal_meta(42, result_literal_id, struct_role=STRUCT_ROLE_SELECTOR_RESULT)
+        result = None
+        for _ in range(128):
+            result = sim_call(red2_processor_top, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"selector-result atomic hardware faulted before commit: "
+                f"red2={int(result.red2_fault)} hw={int(result.hw_fault)} "
+                f"micro={int(result.microstate)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError("selector-result atomic failed to reach bounded commit")
+        assert result is not None
+        _assert_scalar_checkpoint(result, result_expected)
+        assert result_expected.q == 5
+        assert result_expected.pc == 2
+        assert result_expected.fsp == 3
+        for result_address in range(3, 6):
+            result_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=result_address)
+            )
+            assert _packed_memory_read(result_read) == result_expected.memory[result_address], (
+                f"selector-result atomic memory mismatch at {result_address}"
+            )
+        result_control_read = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=0)
+        )
+        assert _packed_control_read(result_control_read) == result_expected.control_stack[0]
+        return result_expected
+
+    selector_result_int_expected = run_selector_result_atomic_case(
+        Word(MuredOpcode.INT, 7, True)
+    )
+    assert selector_result_int_expected.memory[3] == RED2ABICodec().encode_word(
+        Word(MuredOpcode.INT, 7, True)
+    )
+    # PRIM_1 is deliberately included: generic single-word JOIN publication did
+    # not previously accept primitive literals, while selector-result must clone
+    # every supported inline non-APP value exactly as the bounded oracle does.
+    selector_result_prim_expected = run_selector_result_atomic_case(
+        Word(MuredOpcode.PRIM_1, "CAR", True)
+    )
+    assert selector_result_prim_expected.q == 5
+
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
     # semantic difference is internal argcnt=-1, encoded as hardware zero.

@@ -464,6 +464,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     struct_selector_result_meta_cursor: Reg[uint16_t]
     struct_selector_result_id: Reg[uint32_t]
     struct_selector_launch_active: Reg[uint1_t]
+    struct_selector_result_active: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -1754,6 +1755,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_result_meta_cursor = 0
         struct_selector_result_id = 0
         struct_selector_launch_active = 0
+        struct_selector_result_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1961,6 +1963,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_result_meta_cursor = 0
         struct_selector_result_id = 0
         struct_selector_launch_active = 0
+        struct_selector_result_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2148,6 +2151,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             struct_selector_result_meta_cursor = 0
             struct_selector_result_id = 0
             struct_selector_launch_active = 0
+            struct_selector_result_active = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -4720,6 +4724,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_meta_struct_tag_id: uint32_t = literal_meta_out.p0.rd_data.struct_tag_id
                     join_meta_struct_offset: uint32_t = literal_meta_out.p0.rd_data.struct_offset
                     join_meta_is_struct_selector: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR
+                    join_meta_is_struct_selector_result: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR_RESULT
                     join_meta_equality: uint1_t = join_meta_special[5]
                     join_meta_equality_continue: uint1_t = join_meta_special[6]
                     join_meta_is_dec: uint1_t = join_meta_scalar == SCALAR_OP_DEC
@@ -4771,7 +4776,14 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_char_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_symbol_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_supported_binary_bool
-                    if join_meta_is_struct_selector:
+                    if join_meta_is_struct_selector_result:
+                        # __STRUCT_SELECTOR_RESULT__ fires after the selected child
+                        # has returned.  Publication itself stays in the ordinary
+                        # JOIN pipeline; this flag only changes the supported tail
+                        # class and zero-charge restoration semantics.
+                        struct_selector_result_active = 1
+                        microstate = MICRO_JOIN_TAIL_READ
+                    elif join_meta_is_struct_selector:
                         join_selector_tag_missing: uint1_t = join_meta_struct_tag_id == 0
                         join_selector_offset_missing: uint1_t = join_meta_struct_offset == 0
                         join_selector_meta_bad: uint1_t = join_selector_tag_missing or join_selector_offset_missing
@@ -5046,6 +5058,19 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             if not join_tail_valid:
                 red2_fault = FAULT_INVALID_ADDRESS
                 microstate = MICRO_FAULT
+            elif struct_selector_result_active:
+                selector_result_atomic_ok: uint1_t = join_single_word and join_tail_head
+                selector_result_atomic_ok = selector_result_atomic_ok and join_tail_inline
+                if not selector_result_atomic_ok:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    selector_result_hi: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                    join_publish_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=selector_result_hi)
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 0
+                    join_published_root = join_result_address
+                    microstate = MICRO_JOIN_PUBLISH
             elif not join_single_word:
                 join_multi_parent_opcode: uint5_t = join_parent_word.hi[25:21]
                 join_multi_parent_is_app: uint1_t = join_multi_parent_opcode == MOP_APP
@@ -5466,6 +5491,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     fire = 0
                     q = q - 1
                     struct_selector_contract = 0
+                elif struct_selector_result_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
+                    struct_selector_result_active = 0
                 elif join_saved_primitive:
                     control_top = join_frame_index
                     if join_frame_fire_one_at_restore:
