@@ -7115,6 +7115,225 @@ def check() -> None:
     assert recp_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
     assert recp_overflow_expected.memory[4] == recp_overflow_encoded.memory[4]
 
+    # Core STRUCT execution: reconstruction saves/restores quantum, while positive-q
+    # APP_VAR/EP/APP result heads bind through the same environment shapes as LAMBDA.
+    struct_codec = RED2ABICodec()
+    pair_id = struct_codec.literal_id("PAIR")
+
+    struct_recon_state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=5,
+        env=24,
+        c=-1,
+        direction=Direction.F,
+        q=7,
+        phi=2,
+        free_space=24,
+        argcnt=0,
+    )
+    struct_recon_state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    struct_recon_state.memory[5] = Word(MuredOpcode.INT, 99, True)
+    struct_recon_result, struct_recon_expected = _run_bounded_to_same_commit(
+        MuredMachine(struct_recon_state), struct_codec
+    )
+    assert struct_recon_expected.pc == 1
+    assert struct_recon_expected.fsp == 6
+    assert struct_recon_expected.env == 23
+    assert struct_recon_expected.free_space == 23
+    assert struct_recon_expected.c == 1
+    assert struct_recon_expected.q == 0
+    assert struct_recon_expected.phi == 3
+    assert struct_recon_expected.argcnt == 1
+    struct_recon_mem = sim_call(red2_processor_top, _command(CMD_NOP, address=6))
+    assert _packed_memory_read(struct_recon_mem) == struct_recon_expected.memory[6]
+    struct_recon_env = sim_call(red2_processor_top, _command(CMD_NOP, address=23))
+    assert _packed_memory_read(struct_recon_env) == struct_recon_expected.memory[23]
+    struct_recon_control = sim_call(red2_processor_top, _command(CMD_NOP, address=0))
+    assert _packed_control_read(struct_recon_control) == struct_recon_expected.control_stack[0]
+
+    for struct_argument, struct_path in (
+        (Word(MuredOpcode.APP_VAR, 2, False), None),
+        (Word(MuredOpcode.EP, 17, False), 20),
+        (Word(MuredOpcode.APP, 17, False), 20),
+    ):
+        struct_bind_state = MuredMachineState(
+            memory=[None] * 32,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=5,
+            env=24,
+            c=-1 if struct_path is None else 0,
+            direction=Direction.F,
+            q=4,
+            phi=5,
+            free_space=24,
+            argcnt=2,
+        )
+        struct_bind_state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        struct_bind_state.memory[5] = struct_argument
+        if struct_path is not None:
+            struct_bind_state.control_stack[0] = struct_path
+        struct_bind_result, struct_bind_expected = _run_bounded_to_same_commit(
+            MuredMachine(struct_bind_state), RED2ABICodec()
+        )
+        assert struct_bind_expected.pc == 1
+        assert struct_bind_expected.fsp == 4
+        assert struct_bind_expected.q == 3
+        assert struct_bind_expected.argcnt == 2
+        for address in range(struct_bind_expected.free_space, 24):
+            struct_bind_read = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(struct_bind_read) == struct_bind_expected.memory[address]
+        if struct_path is not None:
+            struct_bind_control = sim_call(
+                red2_processor_top, _command(CMD_NOP, address=0)
+            )
+            assert _packed_control_read(struct_bind_control) == struct_bind_expected.control_stack[0]
+
+    # Reverse STRUCT validates the typed saved-quantum entry before binder depth,
+    # then clears it and restores q on the committed transition.
+    struct_reverse_base = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=6,
+        env=23,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        free_space=23,
+        argcnt=0,
+    )
+    struct_reverse_base.memory[6] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    struct_reverse_encoded = RED2ABICodec().encode_state(struct_reverse_base)
+    struct_reverse_encoded = _with_control_entry(
+        struct_reverse_encoded,
+        abi.pack_control_entry(abi.CONTROL_SAVED_QUANTUM, 9, 0, 0, 0),
+    )
+    struct_reverse_result, struct_reverse_expected = _run_encoded_to_same_commit(
+        struct_reverse_encoded
+    )
+    assert struct_reverse_expected.pc == 5
+    assert struct_reverse_expected.c == 0
+    assert struct_reverse_expected.q == 9
+    assert struct_reverse_expected.phi == 0
+    struct_reverse_control = sim_call(
+        red2_processor_top, _command(CMD_NOP, address=0)
+    )
+    assert _packed_control_read(struct_reverse_control) == 0
+
+    # Reverse control faults precede phi underflow and must not mutate the stack.
+    struct_reverse_underflow = replace(
+        struct_reverse_encoded,
+        control_stack=tuple(0 for _ in struct_reverse_encoded.control_stack),
+        c=0,
+        phi=0,
+    )
+    _, struct_reverse_underflow_expected, struct_reverse_underflow_fault = (
+        _run_encoded_to_same_fault(struct_reverse_underflow)
+    )
+    assert struct_reverse_underflow_fault == abi.FAULT_CONTROL_UNDERFLOW
+    assert struct_reverse_underflow_expected == struct_reverse_underflow
+
+    struct_reverse_wrong_tag = replace(struct_reverse_encoded, phi=0)
+    struct_reverse_wrong_tag = _with_control_entry(
+        struct_reverse_wrong_tag,
+        abi.pack_control_entry(abi.CONTROL_ADDRESS, 9, 0, 0, 0),
+    )
+    _, struct_reverse_wrong_expected, struct_reverse_wrong_fault = (
+        _run_encoded_to_same_fault(struct_reverse_wrong_tag)
+    )
+    assert struct_reverse_wrong_fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert struct_reverse_wrong_expected == struct_reverse_wrong_tag
+
+    # Reconstruction and positive-q binding preflight all resources before their
+    # first architectural write/pop.  Check both graph and control failures.
+    struct_collision_state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=7,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=7,
+        phi=2,
+        free_space=8,
+        argcnt=0,
+    )
+    struct_collision_state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    struct_collision_state.memory[7] = Word(MuredOpcode.INT, 99, True)
+    struct_collision_encoded = RED2ABICodec().encode_state(struct_collision_state)
+    _, struct_collision_expected, struct_collision_fault = _run_encoded_to_same_fault(
+        struct_collision_encoded
+    )
+    assert struct_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert struct_collision_expected == struct_collision_encoded
+
+    struct_overflow_state = MuredMachineState(
+        memory=[None] * 32,
+        control_stack=[None] * CONTROL_WORDS,
+        pc=0,
+        fsp=5,
+        env=24,
+        c=-1,
+        direction=Direction.F,
+        q=7,
+        phi=2,
+        free_space=24,
+        argcnt=0,
+    )
+    struct_overflow_state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    struct_overflow_state.memory[5] = Word(MuredOpcode.INT, 99, True)
+    struct_overflow_encoded = RED2ABICodec().encode_state(struct_overflow_state)
+    struct_overflow_control = list(struct_overflow_encoded.control_stack)
+    for struct_control_index in range(CONTROL_WORDS):
+        struct_overflow_control[struct_control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, struct_control_index, 0, 0, 0
+        )
+    struct_overflow_encoded = replace(
+        struct_overflow_encoded,
+        control_stack=tuple(struct_overflow_control),
+        c=CONTROL_WORDS,
+    )
+    _, struct_overflow_expected, struct_overflow_fault = _run_encoded_to_same_fault(
+        struct_overflow_encoded
+    )
+    assert struct_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
+    assert struct_overflow_expected == struct_overflow_encoded
+
+    for struct_fault_opcode in (MuredOpcode.EP, MuredOpcode.APP):
+        struct_late_state = MuredMachineState(
+            memory=[None] * 32,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=7,
+            env=8,
+            c=0,
+            direction=Direction.F,
+            q=4,
+            phi=5,
+            free_space=8,
+            argcnt=2,
+        )
+        struct_late_state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        struct_late_state.memory[7] = Word(struct_fault_opcode, 17, False)
+        struct_late_state.control_stack[0] = 20
+        struct_late_encoded = RED2ABICodec().encode_state(struct_late_state)
+        _, struct_late_expected, struct_late_fault = _run_encoded_to_same_fault(
+            struct_late_encoded
+        )
+        assert struct_late_fault == abi.FAULT_GRAPH_ENV_COLLISION
+        assert struct_late_expected == struct_late_encoded
+        struct_late_control = sim_call(
+            red2_processor_top, _command(CMD_NOP, address=0)
+        )
+        assert _packed_control_read(struct_late_control) == struct_late_encoded.control_stack[0]
+
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
     # semantic difference is internal argcnt=-1, encoded as hardware zero.

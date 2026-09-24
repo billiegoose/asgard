@@ -136,6 +136,114 @@ def test_struct_with_selector_and_zero_quantum_reconstructs_lazily_exactly() -> 
     assert processor.c == 1
 
 
+def test_struct_reverse_control_fault_precedes_binder_underflow() -> None:
+    codec = RED2ABICodec()
+
+    def make_processor(control_entry):
+        state = MuredMachineState(
+            memory=[None] * 16,
+            control_stack=[None] * 6,
+            pc=0,
+            fsp=5,
+            env=16,
+            c=-1 if control_entry is None else 0,
+            direction=Direction.B,
+            q=0,
+            phi=0,
+            argcnt=0,
+        )
+        state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        if control_entry is not None:
+            state.control_stack[0] = control_entry
+        machine = MuredMachine(state)
+        processor = _processor(machine, codec)
+        before = processor.checkpoint()
+        assert processor.run_to_commit() is False
+        assert processor.checkpoint() == before
+        return processor
+
+    underflow = make_processor(None)
+    assert underflow.fault == abi.FAULT_CONTROL_UNDERFLOW
+
+    # A plain integer control entry is encoded as CONTROL_ADDRESS by the ABI codec.
+    illegal = make_processor(9)
+    assert illegal.fault == abi.FAULT_ILLEGAL_TRANSITION
+
+
+def test_struct_reconstruction_preflights_control_and_graph_atomically() -> None:
+    codec = RED2ABICodec()
+
+    def make_state(*, fsp: int, control_full: bool) -> MuredMachineState:
+        state = MuredMachineState(
+            memory=[None] * 16,
+            control_stack=[None] * 6,
+            pc=0,
+            fsp=fsp,
+            env=8,
+            free_space=8,
+            c=5 if control_full else -1,
+            direction=Direction.F,
+            q=7,
+            phi=2,
+            argcnt=0,
+        )
+        state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        state.memory[fsp] = Word(MuredOpcode.INT, 99, True)
+        if control_full:
+            for i in range(6):
+                state.control_stack[i] = i + 1
+        return state
+
+    graph_machine = MuredMachine(make_state(fsp=7, control_full=False))
+    graph_processor = _processor(graph_machine, codec)
+    graph_before = graph_processor.checkpoint()
+    assert graph_processor.run_to_commit() is False
+    assert graph_processor.fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert graph_processor.checkpoint() == graph_before
+
+    control_machine = MuredMachine(make_state(fsp=5, control_full=True))
+    control_processor = _processor(control_machine, RED2ABICodec())
+    control_before = control_processor.checkpoint()
+    assert control_processor.run_to_commit() is False
+    assert control_processor.fault == abi.FAULT_CONTROL_OVERFLOW
+    assert control_processor.checkpoint() == control_before
+
+
+def test_struct_positive_quantum_special_argument_shapes_exactly() -> None:
+    cases = (
+        (Word(MuredOpcode.APP_VAR, 1, False), None),
+        (Word(MuredOpcode.EP, 17, False), 20),
+        (Word(MuredOpcode.APP, 17, False), 20),
+    )
+    for argument, control_path in cases:
+        state = MuredMachineState(
+            memory=[None] * 24,
+            control_stack=[None] * 6,
+            pc=0,
+            fsp=5,
+            env=24,
+            c=-1 if control_path is None else 0,
+            direction=Direction.F,
+            q=4,
+            phi=5,
+            free_space=24,
+            argcnt=2,
+        )
+        state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+        state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+        state.memory[5] = argument
+        if control_path is not None:
+            state.control_stack[0] = control_path
+        machine = MuredMachine(state)
+        codec = RED2ABICodec()
+        processor = _processor(machine, codec)
+        _step_both(machine, processor, codec)
+        assert processor.q == 3
+        assert processor.pc == 1
+        assert processor.fsp == 4
+        assert processor.argcnt == 1
+
+
 def test_struct_reverse_restores_quantum_and_binder_depth_exactly() -> None:
     state = MuredMachineState(
         memory=[None] * 16,

@@ -230,6 +230,10 @@ MICRO_RECP_REVERSE_JOIN = 88
 MICRO_JOIN_RECP_RBLOCK_SCAN = 89
 MICRO_JOIN_RECP_RBLOCK_BINDING_READ = 90
 MICRO_JOIN_RECP_RBLOCK_BODY_READ = 91
+MICRO_STRUCT_RESULT_READ = 92
+MICRO_STRUCT_RECON_SAVED_Q = 93
+MICRO_STRUCT_REVERSE_CONTROL_READ = 94
+MICRO_STRUCT_REVERSE_POP = 95
 
 
 @struct
@@ -428,6 +432,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     recp_reverse_entry_env: Reg[uint17_t]
     recp_copy_word: Reg[red2_word_t]
     recp_rup_word: Reg[red2_word_t]
+    struct_saved_q: Reg[uint32_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -697,6 +702,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_join_recp_rblock_scan: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_SCAN
     micro_is_join_recp_rblock_binding_read: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_BINDING_READ
     micro_is_join_recp_rblock_body_read: uint1_t = microstate == MICRO_JOIN_RECP_RBLOCK_BODY_READ
+    micro_is_struct_result_read: uint1_t = microstate == MICRO_STRUCT_RESULT_READ
+    micro_is_struct_recon_saved_q: uint1_t = microstate == MICRO_STRUCT_RECON_SAVED_Q
+    micro_is_struct_reverse_control_read: uint1_t = microstate == MICRO_STRUCT_REVERSE_CONTROL_READ
+    micro_is_struct_reverse_pop: uint1_t = microstate == MICRO_STRUCT_REVERSE_POP
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -731,6 +740,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     opcode_is_rblock: uint1_t = fetched_opcode == MOP_RBLOCK
     opcode_is_rup: uint1_t = fetched_opcode == MOP_RUP
     opcode_is_recp: uint1_t = fetched_opcode == MOP_RECP
+    opcode_is_struct: uint1_t = fetched_opcode == MOP_STRUCT
     kind_is_signed: uint1_t = fetched_kind == DATA_SIGNED
     kind_is_float64: uint1_t = fetched_kind == DATA_FLOAT64
     kind_is_literal: uint1_t = fetched_kind == DATA_LITERAL_ID
@@ -1029,6 +1039,28 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 lo=recp_reverse_parent_pc_wide_req, hi=recp_reverse_join_hi_req
             )
             memory_req.wr_en = 1
+        elif micro_is_struct_result_read:
+            memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
+            struct_control_address_req: uint17_t = control_top - 1
+            control_req.addr = struct_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_recon_saved_q:
+            struct_recon_destination_req: uint17_t = fsp + 1
+            memory_req.addr = struct_recon_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = fetched_word
+            memory_req.wr_en = 1
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(
+                lo=q, hi=0, tag_hi=CONTROL_SAVED_QUANTUM
+            )
+            control_req.wr_en = 1
+        elif micro_is_struct_reverse_control_read:
+            struct_saved_q_address_req: uint17_t = control_top - 1
+            control_req.addr = struct_saved_q_address_req[CONTROL_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_reverse_pop:
+            struct_saved_q_pop_address_req: uint17_t = control_top - 1
+            control_req.addr = struct_saved_q_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1640,6 +1672,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_reverse_entry_env = 0
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
+        struct_saved_q = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1831,6 +1864,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         recp_reverse_entry_env = 0
         recp_copy_word = red2_word_t(lo=0, hi=0)
         recp_rup_word = red2_word_t(lo=0, hi=0)
+        struct_saved_q = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2002,6 +2036,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             recp_reverse_entry_env = 0
             recp_copy_word = red2_word_t(lo=0, hi=0)
             recp_rup_word = red2_word_t(lo=0, hi=0)
+            struct_saved_q = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -2822,6 +2857,21 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         rup_rec_binding = 0
                         rup_rec_payload_bad = 0
                         microstate = MICRO_RUP_ZERO_PUSH
+            elif opcode_is_struct:
+                struct_payload_nonzero: uint1_t = fetched_word.lo != 0
+                struct_literal_valid: uint1_t = kind_is_literal and struct_payload_nonzero
+                if not struct_literal_valid:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif direction_is_reverse:
+                    microstate = MICRO_STRUCT_REVERSE_CONTROL_READ
+                else:
+                    struct_fsp_valid_exec: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                    if not struct_fsp_valid_exec:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        microstate = MICRO_STRUCT_RESULT_READ
             elif opcode_is_recp:
                 recp_address_negative: uint1_t = fetched_word.lo[63]
                 recp_address_kind_bad: uint1_t = kind_is_signed == 0
@@ -2876,6 +2926,208 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
+        elif micro_is_struct_result_read:
+            struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            struct_result_is_app: uint1_t = struct_result_opcode == MOP_APP
+            struct_result_is_app_var: uint1_t = struct_result_opcode == MOP_APP_VAR
+            struct_result_is_ep: uint1_t = struct_result_opcode == MOP_EP
+            struct_result_special: uint1_t = struct_result_is_app or struct_result_is_app_var
+            struct_result_special = struct_result_special or struct_result_is_ep
+            struct_reconstruct: uint1_t = q == 0 or struct_result_special == 0
+
+            struct_control_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            struct_control_top_end: uint1_t = control_top == CONTROL_WORDS
+            struct_control_top_valid: uint1_t = struct_control_top_low or struct_control_top_end
+            struct_control_empty: uint1_t = control_top == 0
+            struct_control_entry_lo_zero: uint1_t = control_out.p0.rd_data.lo == 0
+            struct_control_entry_hi_zero: uint1_t = control_out.p0.rd_data.hi == 0
+            struct_control_entry_tag_zero: uint1_t = control_out.p0.rd_data.tag_hi == 0
+            struct_control_entry_empty: uint1_t = struct_control_entry_lo_zero and struct_control_entry_hi_zero
+            struct_control_entry_empty = struct_control_entry_empty and struct_control_entry_tag_zero
+            struct_control_entry_address: uint1_t = control_out.p0.rd_data.tag_hi == CONTROL_ADDRESS
+
+            struct_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+            struct_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+            struct_free_end: uint1_t = free_space == GRAPH_WORDS
+            struct_free_valid: uint1_t = struct_free_low or struct_free_end
+            struct_layout_gap: uint17_t = free_space - fsp
+            struct_layout_wrapped: uint1_t = struct_layout_gap[16]
+            struct_layout_nonzero: uint1_t = struct_layout_gap != 0
+            struct_layout_ok: uint1_t = struct_layout_wrapped == 0
+            struct_layout_ok = struct_layout_ok and struct_layout_nonzero
+            struct_env_low: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
+            struct_env_end: uint1_t = env == GRAPH_WORDS
+            struct_env_valid: uint1_t = struct_env_low or struct_env_end
+            struct_needs_bridge: uint1_t = free_space != env
+
+            struct_env_words: uint17_t = 1
+            if struct_result_is_app:
+                struct_env_words = 2
+            if struct_needs_bridge:
+                struct_env_words = struct_env_words + 1
+            struct_env_base: uint17_t = free_space - struct_env_words
+            struct_env_gap: uint17_t = struct_env_base - fsp
+            struct_env_wrapped: uint1_t = struct_env_gap[16]
+            struct_env_nonzero: uint1_t = struct_env_gap != 0
+            struct_env_after_fsp: uint1_t = struct_env_wrapped == 0
+            struct_env_after_fsp = struct_env_after_fsp and struct_env_nonzero
+
+            struct_recon_destination: uint17_t = fsp + 1
+            struct_recon_destination_oob: uint1_t = struct_recon_destination[16:GRAPH_ADDR_BITS] != 0
+            struct_recon_push_gap: uint17_t = free_space - struct_recon_destination
+            struct_recon_push_wrapped: uint1_t = struct_recon_push_gap[16]
+            struct_recon_push_nonzero: uint1_t = struct_recon_push_gap != 0
+            struct_recon_push_ok: uint1_t = struct_recon_push_wrapped == 0
+            struct_recon_push_ok = struct_recon_push_ok and struct_recon_push_nonzero
+            struct_recon_env_words: uint17_t = 1
+            if struct_needs_bridge:
+                struct_recon_env_words = 2
+            struct_recon_env_base: uint17_t = free_space - struct_recon_env_words
+            struct_recon_env_gap: uint17_t = struct_recon_env_base - struct_recon_destination
+            struct_recon_env_wrapped: uint1_t = struct_recon_env_gap[16]
+            struct_recon_env_nonzero: uint1_t = struct_recon_env_gap != 0
+            struct_recon_env_after_result: uint1_t = struct_recon_env_wrapped == 0
+            struct_recon_env_after_result = struct_recon_env_after_result and struct_recon_env_nonzero
+
+            struct_result_kind_signed: uint1_t = memory_out.p0.rd_data.hi[18:17] == DATA_SIGNED
+            struct_result_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+
+            if not struct_result_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif struct_reconstruct:
+                if not struct_control_top_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_control_top_low:
+                    red2_fault = FAULT_CONTROL_OVERFLOW
+                    microstate = MICRO_FAULT
+                elif struct_recon_destination_oob:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_recon_push_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_free_valid:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_env_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_recon_env_after_result:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    microstate = MICRO_STRUCT_RECON_SAVED_Q
+            elif not struct_result_kind_signed:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif struct_result_negative:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif struct_result_is_app or struct_result_is_ep:
+                if not struct_control_top_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif struct_control_empty:
+                    red2_fault = FAULT_CONTROL_UNDERFLOW
+                    microstate = MICRO_FAULT
+                elif struct_control_entry_empty:
+                    red2_fault = FAULT_CONTROL_UNDERFLOW
+                    microstate = MICRO_FAULT
+                elif not struct_control_entry_address:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif not struct_fsp_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_free_valid:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_layout_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_env_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_env_after_fsp:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif struct_result_is_app:
+                    lambda_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=67239936)
+                    microstate = MICRO_LAMBDA_APP_CONTROL_READ
+                else:
+                    lambda_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=75628544)
+                    microstate = MICRO_LAMBDA_EP_CONTROL_READ
+            else:
+                if not struct_fsp_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_free_valid:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_layout_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not struct_env_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not struct_env_after_fsp:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    struct_phi_wide: uint64_t = phi
+                    struct_app_var_binding: uint64_t = struct_phi_wide - memory_out.p0.rd_data.lo
+                    lambda_word = red2_word_t(lo=struct_app_var_binding, hi=109182976)
+                    microstate = MICRO_LAMBDA_BETA_ENV
+        elif micro_is_struct_recon_saved_q:
+            struct_recon_pushed: uint17_t = fsp + 1
+            control_top = control_top + 1
+            q = 0
+            fsp = struct_recon_pushed[15:0]
+            argcnt = 1
+            phi = phi + 1
+            struct_recon_needs_bridge: uint1_t = free_space != env
+            if struct_recon_needs_bridge:
+                microstate = MICRO_LAMBDA_ENV_BRIDGE
+            else:
+                microstate = MICRO_LAMBDA_ENV_BINDING
+        elif micro_is_struct_reverse_control_read:
+            struct_reverse_top_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            struct_reverse_top_end: uint1_t = control_top == CONTROL_WORDS
+            struct_reverse_top_valid: uint1_t = struct_reverse_top_low or struct_reverse_top_end
+            struct_reverse_empty: uint1_t = control_top == 0
+            struct_reverse_entry_lo_zero: uint1_t = control_out.p0.rd_data.lo == 0
+            struct_reverse_entry_hi_zero: uint1_t = control_out.p0.rd_data.hi == 0
+            struct_reverse_entry_tag_zero: uint1_t = control_out.p0.rd_data.tag_hi == 0
+            struct_reverse_entry_empty: uint1_t = struct_reverse_entry_lo_zero and struct_reverse_entry_hi_zero
+            struct_reverse_entry_empty = struct_reverse_entry_empty and struct_reverse_entry_tag_zero
+            struct_reverse_saved_q: uint1_t = control_out.p0.rd_data.tag_hi == CONTROL_SAVED_QUANTUM
+            if not struct_reverse_top_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif struct_reverse_empty:
+                red2_fault = FAULT_CONTROL_UNDERFLOW
+                microstate = MICRO_FAULT
+            elif struct_reverse_entry_empty:
+                red2_fault = FAULT_CONTROL_UNDERFLOW
+                microstate = MICRO_FAULT
+            elif not struct_reverse_saved_q:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif phi == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                struct_saved_q = control_out.p0.rd_data.lo[31:0]
+                microstate = MICRO_STRUCT_REVERSE_POP
+        elif micro_is_struct_reverse_pop:
+            control_top = control_top - 1
+            q = struct_saved_q
+            phi = phi - 1
+            pc = pc - 1
+            microstate = MICRO_COMMIT
         elif micro_is_lambda_read:
             lambda_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             lambda_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
