@@ -243,6 +243,9 @@ MICRO_STRUCT_REVERSE_POP = 95
 MICRO_STRUCT_SELECTOR_ROOT_READ = 96
 MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ = 97
 MICRO_STRUCT_SELECTOR_VALUE_READ = 98
+MICRO_STRUCT_SELECTOR_COPY_SCAN = 99
+MICRO_STRUCT_SELECTOR_COPY_READ = 100
+MICRO_STRUCT_SELECTOR_COPY_WRITE = 101
 
 
 @struct
@@ -450,6 +453,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     struct_selector_descriptor: Reg[uint16_t]
     struct_selector_source: Reg[uint16_t]
     struct_selector_contract: Reg[uint1_t]
+    struct_selector_copy_cursor: Reg[uint17_t]
+    struct_selector_copy_count: Reg[uint17_t]
+    struct_selector_copy_index: Reg[uint17_t]
+    struct_selector_copy_destination: Reg[uint16_t]
+    struct_selector_copy_old_fsp: Reg[uint16_t]
+    struct_selector_copy_backward: Reg[uint1_t]
+    struct_selector_copy_word: Reg[red2_word_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -729,6 +739,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_root_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_ROOT_READ
     micro_is_struct_selector_descriptor_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ
     micro_is_struct_selector_value_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_VALUE_READ
+    micro_is_struct_selector_copy_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_SCAN
+    micro_is_struct_selector_copy_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_READ
+    micro_is_struct_selector_copy_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_WRITE
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -1090,6 +1103,20 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             memory_req.addr = struct_selector_descriptor[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_struct_selector_value_read:
             memory_req.addr = struct_selector_source[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_copy_scan:
+            memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_copy_read:
+            selector_copy_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
+            memory_req.addr = selector_copy_source_req[GRAPH_ADDR_BITS - 1 : 0]
+        elif micro_is_struct_selector_copy_write:
+            selector_copy_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
+            memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+            selector_copy_is_last_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
+            if selector_copy_is_last_req:
+                memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+            else:
+                memory_req.wr_data = struct_selector_copy_word
+            memory_req.wr_en = 1
         elif micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         elif micro_is_lookup_publish:
@@ -1707,6 +1734,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_descriptor = 0
         struct_selector_source = 0
         struct_selector_contract = 0
+        struct_selector_copy_cursor = 0
+        struct_selector_copy_count = 0
+        struct_selector_copy_index = 0
+        struct_selector_copy_destination = 0
+        struct_selector_copy_old_fsp = 0
+        struct_selector_copy_backward = 0
+        struct_selector_copy_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1904,6 +1938,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_descriptor = 0
         struct_selector_source = 0
         struct_selector_contract = 0
+        struct_selector_copy_cursor = 0
+        struct_selector_copy_count = 0
+        struct_selector_copy_index = 0
+        struct_selector_copy_destination = 0
+        struct_selector_copy_old_fsp = 0
+        struct_selector_copy_backward = 0
+        struct_selector_copy_word = red2_word_t(lo=0, hi=0)
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2081,6 +2122,13 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             struct_selector_descriptor = 0
             struct_selector_source = 0
             struct_selector_contract = 0
+            struct_selector_copy_cursor = 0
+            struct_selector_copy_count = 0
+            struct_selector_copy_index = 0
+            struct_selector_copy_destination = 0
+            struct_selector_copy_old_fsp = 0
+            struct_selector_copy_backward = 0
+            struct_selector_copy_word = red2_word_t(lo=0, hi=0)
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -3098,12 +3146,21 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 red2_fault = FAULT_INVALID_ADDRESS
                 microstate = MICRO_FAULT
             else:
-                selector_value_composite: uint1_t = selector_value_reducible or selector_value_is_struct
-                if selector_value_composite:
-                    # Reducible fields and nested STRUCT copy/result continuation are
-                    # intentionally the next selector checkpoint.
+                if selector_value_reducible:
+                    # Reducible selected fields use __STRUCT_SELECTOR_RESULT__; that
+                    # continuation is the next selector checkpoint.
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                     microstate = MICRO_FAULT
+                elif selector_value_is_struct:
+                    struct_selector_copy_cursor = struct_selector_source + 1
+                    struct_selector_copy_count = 0
+                    struct_selector_copy_index = 0
+                    struct_selector_copy_destination = join_parent_address
+                    struct_selector_copy_old_fsp = fsp
+                    struct_selector_copy_backward = 0
+                    struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+                    join_published_root = join_result_address
+                    microstate = MICRO_STRUCT_SELECTOR_COPY_SCAN
                 else:
                     selector_value_hi: uint64_t = memory_out.p0.rd_data.hi | 1048576
                     join_publish_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=selector_value_hi)
@@ -3111,6 +3168,135 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_published_root = join_result_address
                     struct_selector_contract = 1
                     microstate = MICRO_JOIN_PUBLISH
+        elif micro_is_struct_selector_copy_scan:
+            selector_copy_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
+            selector_copy_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            selector_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            selector_copy_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            selector_copy_is_var: uint1_t = selector_copy_opcode == MOP_VAR
+            selector_copy_is_app: uint1_t = selector_copy_opcode == MOP_APP
+            selector_copy_is_app_var: uint1_t = selector_copy_opcode == MOP_APP_VAR
+            selector_copy_is_ep: uint1_t = selector_copy_opcode == MOP_EP
+            selector_copy_is_int: uint1_t = selector_copy_opcode == MOP_INT
+            selector_copy_is_float: uint1_t = selector_copy_opcode == MOP_FLOAT
+            selector_copy_is_char: uint1_t = selector_copy_opcode == MOP_CHAR
+            selector_copy_is_sym: uint1_t = selector_copy_opcode == MOP_SYM
+            selector_copy_is_prim0: uint1_t = selector_copy_opcode == MOP_PRIM_0
+            selector_copy_is_prim1: uint1_t = selector_copy_opcode == MOP_PRIM_1
+            selector_copy_is_prim2: uint1_t = selector_copy_opcode == MOP_PRIM_2
+            selector_copy_allowed: uint1_t = selector_copy_is_app or selector_copy_is_app_var
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_ep
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_int
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_float
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_char
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_sym
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim0
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim1
+            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim2
+            if not selector_copy_cursor_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not selector_copy_word_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif selector_copy_is_var:
+                selector_copy_var_signed: uint1_t = selector_copy_kind == DATA_SIGNED
+                selector_copy_var_zero: uint1_t = memory_out.p0.rd_data.lo == 0
+                selector_copy_var_ok: uint1_t = selector_copy_var_signed and selector_copy_var_zero
+                if not selector_copy_var_ok:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    selector_copy_source17: uint17_t = struct_selector_source
+                    selector_copy_count17: uint17_t = struct_selector_copy_cursor - selector_copy_source17 + 1
+                    selector_copy_destination17: uint17_t = struct_selector_copy_destination
+                    selector_copy_last17: uint17_t = selector_copy_destination17 + selector_copy_count17 - 1
+                    selector_copy_last_in_range: uint1_t = selector_copy_last17[16:GRAPH_ADDR_BITS] == 0
+                    selector_copy_frontier_gap: uint17_t = free_space - selector_copy_last17
+                    selector_copy_frontier_wrapped: uint1_t = selector_copy_frontier_gap[16]
+                    selector_copy_frontier_nonzero: uint1_t = selector_copy_frontier_gap != 0
+                    selector_copy_fits_frontier: uint1_t = selector_copy_frontier_wrapped == 0
+                    selector_copy_fits_frontier = selector_copy_fits_frontier and selector_copy_frontier_nonzero
+                    if not selector_copy_last_in_range or not selector_copy_fits_frontier:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        selector_copy_destination_from_source: uint17_t = selector_copy_destination17 - selector_copy_source17
+                        selector_copy_destination_before_source: uint1_t = selector_copy_destination_from_source[16]
+                        selector_copy_destination_not_source: uint1_t = selector_copy_destination_from_source != 0
+                        selector_copy_destination_after_source: uint1_t = selector_copy_destination_before_source == 0
+                        selector_copy_destination_after_source = selector_copy_destination_after_source and selector_copy_destination_not_source
+                        selector_copy_cursor_from_destination: uint17_t = struct_selector_copy_cursor - selector_copy_destination17
+                        selector_copy_destination_after_cursor: uint1_t = selector_copy_cursor_from_destination[16]
+                        selector_copy_destination_through_cursor: uint1_t = selector_copy_destination_after_cursor == 0
+                        selector_copy_overlap_backward: uint1_t = selector_copy_destination_after_source and selector_copy_destination_through_cursor
+                        struct_selector_copy_backward = selector_copy_overlap_backward
+                        struct_selector_copy_count = selector_copy_count17
+                        if selector_copy_overlap_backward:
+                            struct_selector_copy_index = selector_copy_count17 - 1
+                        else:
+                            struct_selector_copy_index = 0
+                        microstate = MICRO_STRUCT_SELECTOR_COPY_READ
+            elif not selector_copy_allowed:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                struct_selector_copy_cursor = struct_selector_copy_cursor + 1
+        elif micro_is_struct_selector_copy_read:
+            selector_copy_source_index17: uint17_t = struct_selector_source + struct_selector_copy_index
+            selector_copy_source_index_in_range: uint1_t = selector_copy_source_index17[16:GRAPH_ADDR_BITS] == 0
+            if not selector_copy_source_index_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                struct_selector_copy_word = memory_out.p0.rd_data
+                microstate = MICRO_STRUCT_SELECTOR_COPY_WRITE
+        elif micro_is_struct_selector_copy_write:
+            selector_copy_last_index: uint17_t = struct_selector_copy_count - 1
+            selector_copy_at_last: uint1_t = struct_selector_copy_index == selector_copy_last_index
+            selector_copy_at_first: uint1_t = struct_selector_copy_index == 0
+            if struct_selector_copy_backward:
+                if selector_copy_at_first:
+                    selector_copy_destination17_done: uint17_t = struct_selector_copy_destination
+                    selector_copy_last17_done: uint17_t = selector_copy_destination17_done + struct_selector_copy_count - 1
+                    selector_copy_old_fsp17: uint17_t = struct_selector_copy_old_fsp
+                    selector_copy_fsp_gap: uint17_t = selector_copy_last17_done - selector_copy_old_fsp17
+                    selector_copy_last_ge_old: uint1_t = selector_copy_fsp_gap[16] == 0
+                    if selector_copy_last_ge_old:
+                        fsp = selector_copy_last17_done[15:0]
+                    else:
+                        fsp = struct_selector_copy_old_fsp
+                    env = join_frame_env
+                    free_space = join_frame_free_space
+                    s_a = join_published_root + 1
+                    join_needs_ep_cache = 0
+                    struct_selector_contract = 1
+                    join_control_clear_index = control_top
+                    microstate = MICRO_JOIN_CONTROL_CLEAR
+                else:
+                    struct_selector_copy_index = struct_selector_copy_index - 1
+                    microstate = MICRO_STRUCT_SELECTOR_COPY_READ
+            else:
+                if selector_copy_at_last:
+                    selector_copy_destination17_done_f: uint17_t = struct_selector_copy_destination
+                    selector_copy_last17_done_f: uint17_t = selector_copy_destination17_done_f + struct_selector_copy_count - 1
+                    selector_copy_old_fsp17_f: uint17_t = struct_selector_copy_old_fsp
+                    selector_copy_fsp_gap_f: uint17_t = selector_copy_last17_done_f - selector_copy_old_fsp17_f
+                    selector_copy_last_ge_old_f: uint1_t = selector_copy_fsp_gap_f[16] == 0
+                    if selector_copy_last_ge_old_f:
+                        fsp = selector_copy_last17_done_f[15:0]
+                    else:
+                        fsp = struct_selector_copy_old_fsp
+                    env = join_frame_env
+                    free_space = join_frame_free_space
+                    s_a = join_published_root + 1
+                    join_needs_ep_cache = 0
+                    struct_selector_contract = 1
+                    join_control_clear_index = control_top
+                    microstate = MICRO_JOIN_CONTROL_CLEAR
+                else:
+                    struct_selector_copy_index = struct_selector_copy_index + 1
+                    microstate = MICRO_STRUCT_SELECTOR_COPY_READ
         elif micro_is_struct_result_read:
             struct_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
             struct_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]

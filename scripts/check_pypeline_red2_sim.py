@@ -7517,6 +7517,34 @@ def check() -> None:
         Word(MuredOpcode.INT, 77, True)
     )
 
+    nested_selector_state = selector_join_state(
+        descriptor=Word(MuredOpcode.APP, 9, False),
+    )
+    nested_selector_state.memory[9] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    nested_selector_state.memory[10] = Word(MuredOpcode.INT, 2, False)
+    nested_selector_state.memory[11] = Word(MuredOpcode.INT, 1, False)
+    nested_selector_state.memory[12] = Word(MuredOpcode.VAR, 0, True)
+    nested_selector_state = replace(nested_selector_state, fsp=12)
+    _, selector_nested_struct_expected = run_selector_join_case(
+        nested_selector_state,
+        expected_contract=False,
+    )
+    nested_selector_codec = RED2ABICodec()
+    assert selector_nested_struct_expected.q == 3
+    assert selector_nested_struct_expected.fsp == 12
+    assert selector_nested_struct_expected.memory[3] == nested_selector_codec.encode_word(
+        Word(MuredOpcode.STRUCT, "PAIR", False)
+    )
+    assert selector_nested_struct_expected.memory[4] == nested_selector_codec.encode_word(
+        Word(MuredOpcode.INT, 2, False)
+    )
+    assert selector_nested_struct_expected.memory[5] == nested_selector_codec.encode_word(
+        Word(MuredOpcode.INT, 1, False)
+    )
+    assert selector_nested_struct_expected.memory[6] == nested_selector_codec.encode_word(
+        Word(MuredOpcode.VAR, 0, True)
+    )
+
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
     # through the same PNP/SUBGRAPH/JOIN serializer as reverse APP.  Its one
     # semantic difference is internal argcnt=-1, encoded as hardware zero.
