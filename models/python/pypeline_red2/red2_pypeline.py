@@ -246,6 +246,7 @@ MICRO_STRUCT_SELECTOR_VALUE_READ = 98
 MICRO_STRUCT_SELECTOR_COPY_SCAN = 99
 MICRO_STRUCT_SELECTOR_COPY_READ = 100
 MICRO_STRUCT_SELECTOR_COPY_WRITE = 101
+MICRO_STRUCT_SELECTOR_RESULT_META_SCAN = 102
 
 
 @struct
@@ -460,6 +461,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     struct_selector_copy_old_fsp: Reg[uint16_t]
     struct_selector_copy_backward: Reg[uint1_t]
     struct_selector_copy_word: Reg[red2_word_t]
+    struct_selector_result_meta_cursor: Reg[uint16_t]
+    struct_selector_result_id: Reg[uint32_t]
+    struct_selector_launch_active: Reg[uint1_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -742,6 +746,7 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_copy_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_SCAN
     micro_is_struct_selector_copy_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_READ
     micro_is_struct_selector_copy_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_COPY_WRITE
+    micro_is_struct_selector_result_meta_scan: uint1_t = microstate == MICRO_STRUCT_SELECTOR_RESULT_META_SCAN
     join_scalar_active: uint1_t = join_prim_scalar_op != SCALAR_OP_NONE
     join_scalar_binary: uint1_t = join_prim_scalar_op == SCALAR_OP_ADD
     join_scalar_binary = join_scalar_binary or join_prim_scalar_op == SCALAR_OP_SUB
@@ -1259,7 +1264,10 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             app_join_hi: uint64_t = 77725696
             app_saved_fire_active: uint1_t = fire != 0
             if app_saved_fire_active:
-                app_join_hi = 78315521
+                if struct_selector_launch_active:
+                    app_join_hi = 77791233
+                else:
+                    app_join_hi = 78315521
             memory_req.addr = app_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=app_parent_pc_wide, hi=app_join_hi)
             memory_req.wr_en = 1
@@ -1679,6 +1687,8 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         literal_meta_req.addr = join_prim_meta_cursor[LITERAL_META_ADDR_BITS - 1 : 0]
     elif micro_is_join_special_meta_scan:
         literal_meta_req.addr = join_special_meta_cursor[LITERAL_META_ADDR_BITS - 1 : 0]
+    elif micro_is_struct_selector_result_meta_scan:
+        literal_meta_req.addr = struct_selector_result_meta_cursor[LITERAL_META_ADDR_BITS - 1 : 0]
 
     memory_out = graph_ram(memory_req)
     control_out = control_ram(control_req)
@@ -1741,6 +1751,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_copy_old_fsp = 0
         struct_selector_copy_backward = 0
         struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+        struct_selector_result_meta_cursor = 0
+        struct_selector_result_id = 0
+        struct_selector_launch_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -1945,6 +1958,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
         struct_selector_copy_old_fsp = 0
         struct_selector_copy_backward = 0
         struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+        struct_selector_result_meta_cursor = 0
+        struct_selector_result_id = 0
+        struct_selector_launch_active = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2129,6 +2145,9 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             struct_selector_copy_old_fsp = 0
             struct_selector_copy_backward = 0
             struct_selector_copy_word = red2_word_t(lo=0, hi=0)
+            struct_selector_result_meta_cursor = 0
+            struct_selector_result_id = 0
+            struct_selector_launch_active = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -3147,10 +3166,12 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
             else:
                 if selector_value_reducible:
-                    # Reducible selected fields use __STRUCT_SELECTOR_RESULT__; that
-                    # continuation is the next selector checkpoint.
-                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                    microstate = MICRO_FAULT
+                    # Resolve the private selector-result continuation semantically
+                    # before replacing the returning selector frame.
+                    struct_selector_result_meta_cursor = 0
+                    struct_selector_result_id = 0
+                    struct_selector_launch_active = 0
+                    microstate = MICRO_STRUCT_SELECTOR_RESULT_META_SCAN
                 elif selector_value_is_struct:
                     struct_selector_copy_cursor = struct_selector_source + 1
                     struct_selector_copy_count = 0
@@ -3168,6 +3189,66 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                     join_published_root = join_result_address
                     struct_selector_contract = 1
                     microstate = MICRO_JOIN_PUBLISH
+        elif micro_is_struct_selector_result_meta_scan:
+            selector_result_meta_valid: uint1_t = literal_meta_out.p0.rd_data.valid
+            selector_result_meta_role: uint2_t = literal_meta_out.p0.rd_data.struct_role
+            selector_result_meta_role_match: uint1_t = selector_result_meta_role == STRUCT_ROLE_SELECTOR_RESULT
+            selector_result_meta_match: uint1_t = selector_result_meta_valid and selector_result_meta_role_match
+            selector_result_meta_last: uint1_t = struct_selector_result_meta_cursor == LITERAL_META_WORDS - 1
+            if selector_result_meta_match:
+                selector_result_literal_nonzero: uint1_t = literal_meta_out.p0.rd_data.literal_id != 0
+                selector_launch_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+                selector_launch_free_low: uint1_t = join_frame_free_space[16:GRAPH_ADDR_BITS] == 0
+                selector_launch_free_end: uint1_t = join_frame_free_space == GRAPH_WORDS
+                selector_launch_free_valid: uint1_t = selector_launch_free_low or selector_launch_free_end
+                selector_launch_layout_gap: uint17_t = join_frame_free_space - fsp
+                selector_launch_layout_wrapped: uint1_t = selector_launch_layout_gap[16]
+                selector_launch_layout_nonzero: uint1_t = selector_launch_layout_gap != 0
+                selector_launch_layout_ok: uint1_t = selector_launch_layout_wrapped == 0
+                selector_launch_layout_ok = selector_launch_layout_ok and selector_launch_layout_nonzero
+                selector_launch_needs_bridge: uint1_t = join_frame_env != join_frame_free_space
+                selector_launch_normalized_env: uint17_t = join_frame_env
+                if selector_launch_needs_bridge:
+                    selector_launch_normalized_env = join_frame_free_space - 1
+                selector_launch_join_address: uint17_t = fsp + 1
+                selector_launch_join_gap: uint17_t = selector_launch_normalized_env - selector_launch_join_address
+                selector_launch_join_wrapped: uint1_t = selector_launch_join_gap[16]
+                selector_launch_join_nonzero: uint1_t = selector_launch_join_gap != 0
+                selector_launch_join_ok: uint1_t = selector_launch_join_wrapped == 0
+                selector_launch_join_ok = selector_launch_join_ok and selector_launch_join_nonzero
+                if not selector_result_literal_nonzero:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                elif not selector_launch_fsp_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not selector_launch_free_valid:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not selector_launch_layout_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                elif not selector_launch_join_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    struct_selector_result_id = literal_meta_out.p0.rd_data.literal_id
+                    struct_selector_launch_active = 1
+                    app_parent_env = join_frame_env
+                    app_entry_env = selector_launch_normalized_env
+                    app_child_pc = struct_selector_source
+                    app_parent_pc = join_parent_address
+                    app_rblock_active = 0
+                    join_publish_word = red2_word_t(lo=join_result_address, hi=69337088)
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_JOIN_PUBLISH
+            elif selector_result_meta_last:
+                red2_fault = FAULT_UNSUPPORTED_VALUE
+                microstate = MICRO_FAULT
+            else:
+                struct_selector_result_meta_cursor = struct_selector_result_meta_cursor + 1
         elif micro_is_struct_selector_copy_scan:
             selector_copy_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
             selector_copy_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
@@ -4015,6 +4096,11 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             direction = DIRECTION_FORWARD
             prim_id = 0
             fire = 0
+            if struct_selector_launch_active:
+                q = q - 1
+                s_a = join_published_root + 1
+                struct_selector_launch_active = 0
+                struct_selector_result_id = 0
             microstate = MICRO_COMMIT
         elif micro_is_ep_chase:
             ep_target_in_range: uint1_t = ep_target[63:GRAPH_ADDR_BITS] == 0
@@ -5357,19 +5443,31 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
             join_control_next_index: uint17_t = join_control_clear_index - 1
             join_control_clear_index = join_control_next_index
             if join_control_next_index == join_frame_index:
-                control_top = join_frame_index
                 join_frame_fire_one_at_restore: uint1_t = join_frame_fire == 1
-                if join_scalar_active:
+                if struct_selector_launch_active:
+                    # This clock clears the old frame. Reuse that slot for the
+                    # private selector-result subgraph frame on the next clocks.
+                    control_top = join_frame_index + 1
+                    prim_id = struct_selector_result_id
+                    fire = 1
+                    if app_entry_env != app_parent_env:
+                        microstate = MICRO_APP_BRIDGE
+                    else:
+                        microstate = MICRO_APP_FRAME
+                elif join_scalar_active:
+                    control_top = join_frame_index
                     prim_id = 0
                     fire = 0
                     if join_scalar_contract:
                         q = q - 1
                 elif struct_selector_contract:
+                    control_top = join_frame_index
                     prim_id = 0
                     fire = 0
                     q = q - 1
                     struct_selector_contract = 0
                 elif join_saved_primitive:
+                    control_top = join_frame_index
                     if join_frame_fire_one_at_restore:
                         # q==0 reaches the firing boundary but must not execute the
                         # primitive; ordinary reconstruction clears the exhausted
@@ -5382,13 +5480,15 @@ def red2_processor_top(command: red2_command_t) -> red2_status_t:
                         prim_id = join_frame_prim_id
                         fire = join_frame_fire - 1
                 else:
+                    control_top = join_frame_index
                     prim_id = 0
                     fire = 0
-                if join_needs_ep_cache:
-                    microstate = MICRO_JOIN_EP_CACHE
-                else:
-                    pc = join_parent_address - 1
-                    microstate = MICRO_COMMIT
+                if not struct_selector_launch_active:
+                    if join_needs_ep_cache:
+                        microstate = MICRO_JOIN_EP_CACHE
+                    else:
+                        pc = join_parent_address - 1
+                        microstate = MICRO_COMMIT
             else:
                 microstate = MICRO_JOIN_CONTROL_CLEAR
         elif micro_is_join_ep_cache:

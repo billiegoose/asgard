@@ -73,6 +73,7 @@ from pypeline_red2.red2_pypeline import (
     STATUS_FAULT,
     STATUS_RUNNING,
     STRUCT_ROLE_SELECTOR,
+    STRUCT_ROLE_SELECTOR_RESULT,
     red2_arch_state_t,
     red2_command_t,
     red2_control_t,
@@ -7397,6 +7398,7 @@ def check() -> None:
         state: MuredMachineState,
         *,
         expected_contract: bool,
+        extra_memory_addresses: tuple[int, ...] = (),
     ) -> tuple[object, object]:
         selector_codec = RED2ABICodec()
         encoded = selector_codec.encode_state(state)
@@ -7438,8 +7440,16 @@ def check() -> None:
             struct_tag_id=pair_id,
             struct_offset=1,
         )
+        _load_literal_meta(
+            42,
+            selector_codec.literal_id("__STRUCT_SELECTOR_RESULT__"),
+            struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+        )
         result = None
-        for _ in range(64):
+        # Selector-result launch includes a full semantic-metadata scan before
+        # replacing the returning frame; keep this bounded above the ~96-clock
+        # reducible path while still detecting accidental nontermination.
+        for _ in range(160):
             result = sim_call(red2_processor_top, _command(CMD_CLOCK))
             assert int(result.status) != STATUS_FAULT, (
                 f"selector hardware faulted before commit: red2={int(result.red2_fault)} "
@@ -7453,7 +7463,8 @@ def check() -> None:
         _assert_scalar_checkpoint(result, expected)
         if expected_contract:
             assert expected.fsp == expected.pc + 1
-        for selector_address in range(3, 13):
+        selector_addresses = tuple(range(3, 13)) + extra_memory_addresses
+        for selector_address in selector_addresses:
             selector_read = sim_call(
                 red2_processor_top,
                 _command(CMD_NOP, address=selector_address),
@@ -7543,6 +7554,69 @@ def check() -> None:
     )
     assert selector_nested_struct_expected.memory[6] == nested_selector_codec.encode_word(
         Word(MuredOpcode.VAR, 0, True)
+    )
+
+    reducible_selector_state = selector_join_state(
+        descriptor=Word(MuredOpcode.APP, 9, False),
+    )
+    reducible_selector_state.memory[9] = Word(MuredOpcode.LAMBDA, 0, False)
+    reducible_selector_state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    reducible_selector_state = replace(reducible_selector_state, fsp=10)
+    _, selector_reducible_expected = run_selector_join_case(
+        reducible_selector_state,
+        expected_contract=False,
+    )
+    reducible_selector_codec = RED2ABICodec()
+    reducible_selector_codec.encode_state(reducible_selector_state)
+    reducible_selector_codec.literal_id("CAR")
+    reducible_selector_codec.literal_id("CDR")
+    reducible_selector_codec.literal_id("PAIR")
+    selector_result_id = reducible_selector_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+    assert selector_reducible_expected.pc == 9
+    assert selector_reducible_expected.fsp == 11
+    assert selector_reducible_expected.q == 3
+    assert selector_reducible_expected.control_stack[0] == abi.pack_control_entry(
+        abi.CONTROL_SUBGRAPH,
+        32,
+        32,
+        selector_result_id,
+        1,
+    )
+
+    # A restored caller environment below the frame frontier requires the same
+    # PNP normalization used by ordinary subgraph entry.  Pin that less-common
+    # path as well as the env==free_space case above.
+    reducible_bridge_state = selector_join_state(
+        descriptor=Word(MuredOpcode.APP, 9, False),
+    )
+    reducible_bridge_state.memory[9] = Word(MuredOpcode.LAMBDA, 0, False)
+    reducible_bridge_state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    reducible_bridge_state.control_stack[0] = _SubgraphFrame(
+        env=20,
+        free_space=32,
+        prim="CAR",
+        fire=1,
+    )
+    reducible_bridge_state = replace(reducible_bridge_state, fsp=10)
+    _, selector_reducible_bridge_expected = run_selector_join_case(
+        reducible_bridge_state,
+        expected_contract=False,
+        extra_memory_addresses=(31,),
+    )
+    assert selector_reducible_bridge_expected.pc == 9
+    assert selector_reducible_bridge_expected.fsp == 11
+    assert selector_reducible_bridge_expected.env == 31
+    assert selector_reducible_bridge_expected.free_space == 31
+    assert selector_reducible_bridge_expected.q == 3
+    assert selector_reducible_bridge_expected.memory[31] == reducible_selector_codec.encode_word(
+        Word(MuredOpcode.PNP, 20, False)
+    )
+    assert selector_reducible_bridge_expected.control_stack[0] == abi.pack_control_entry(
+        abi.CONTROL_SUBGRAPH,
+        31,
+        31,
+        selector_result_id,
+        1,
     )
 
     # Reverse RBLOCK pops its saved caller path and enters the binding graph
