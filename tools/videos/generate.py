@@ -13,10 +13,8 @@ ROOT_README = ROOT / "README.md"
 EXAMPLES_README = ROOT / "examples" / "README.md"
 MEDIA_DIR = ROOT / "examples" / "media"
 BREAKOUT_CAST = MEDIA_DIR / "breakout.cast"
-BREAKOUT_WASM_CAST = MEDIA_DIR / "breakout-wasm.cast"
 PONG_CAST = MEDIA_DIR / "pong.cast"
 BREAKOUT_TITLE = "Asgard Breakout Python RED2"
-BREAKOUT_WASM_TITLE = "Asgard Breakout WASM"
 PONG_TITLE = "Asgard Pong Python RED2"
 
 
@@ -47,10 +45,6 @@ def _breakout_steps() -> tuple[tuple[int, str, float], ...]:
     return tuple(steps)
 
 
-def _breakout_wasm_steps() -> tuple[tuple[int, str, float], ...]:
-    return BREAKOUT_STEPS
-
-
 def _pong_steps() -> tuple[tuple[int, str, float], ...]:
     keys_by_tick = {
         3: "\x1b[A",
@@ -70,13 +64,12 @@ def _pong_steps() -> tuple[tuple[int, str, float], ...]:
 
 TICK_MS = 100
 BREAKOUT_STEPS = _breakout_steps()
-BREAKOUT_WASM_STEPS = _breakout_wasm_steps()
 PONG_STEPS = _pong_steps()
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate and upload example videos.")
-    parser.add_argument("video", choices=("breakout", "breakout-wasm", "pong"))
+    parser.add_argument("video", choices=("breakout", "pong"))
     parser.add_argument(
         "--no-upload",
         action="store_true",
@@ -86,11 +79,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.video == "breakout":
         url = generate_breakout(upload=not args.no_upload)
-        if url:
-            print(url)
-        return 0
-    if args.video == "breakout-wasm":
-        url = generate_breakout_wasm(upload=not args.no_upload)
         if url:
             print(url)
         return 0
@@ -107,7 +95,7 @@ def generate_breakout(*, upload: bool) -> str | None:
         upload=upload,
         cast=BREAKOUT_CAST,
         title=BREAKOUT_TITLE,
-        command_model="red2",
+        command_model="abs",
         source="examples/breakout.thor",
         steps=BREAKOUT_STEPS,
         height=16,
@@ -116,25 +104,12 @@ def generate_breakout(*, upload: bool) -> str | None:
     )
 
 
-def generate_breakout_wasm(*, upload: bool) -> str | None:
-    return _generate_terminal_video(
-        upload=upload,
-        cast=BREAKOUT_WASM_CAST,
-        title=BREAKOUT_WASM_TITLE,
-        command_model="wasm",
-        source="examples/breakout.thor",
-        steps=BREAKOUT_WASM_STEPS,
-        height=16,
-        readme_writer=_write_examples_readme_wasm,
-    )
-
-
 def generate_pong(*, upload: bool) -> str | None:
     return _generate_terminal_video(
         upload=upload,
         cast=PONG_CAST,
         title=PONG_TITLE,
-        command_model="red2",
+        command_model="abs",
         source="examples/pong.thor",
         steps=PONG_STEPS,
         height=17,
@@ -164,7 +139,7 @@ def _generate_terminal_video(
         driver.write_text(_driver_source(clock, steps))
         memory_arg = (
             f" --memory-words {memory_words}"
-            if command_model == "red2" and memory_words is not None
+            if command_model == "abs" and memory_words is not None
             else ""
         )
         command = (
@@ -296,14 +271,6 @@ def _write_examples_readme(url: str) -> None:
     alt_text = "Asgard Breakout asciicast"
     _replace_asciinema_embed(EXAMPLES_README, alt_text, url)
     _replace_asciinema_embed(ROOT_README, alt_text, url)
-
-
-def _write_examples_readme_wasm(url: str) -> None:
-    _replace_asciinema_embed(
-        EXAMPLES_README,
-        "Asgard Breakout WASM asciicast",
-        url,
-    )
 
 
 def _write_examples_readme_pong(url: str) -> None:

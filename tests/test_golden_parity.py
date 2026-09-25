@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from thor_engine.golden import run_source
-from thor_engine.lockstep import compare_prefixes
+from thor_interpreter.golden import run_source
+from thor_interpreter.lockstep import compare_prefixes
 
 
 def test_golden_examples_match_between_thor_and_red2() -> None:
@@ -13,7 +13,7 @@ def test_golden_examples_match_between_thor_and_red2() -> None:
     ]
     for case in cases:
         thor = run_source(case, model="thor", quantum=40)
-        red2 = run_source(case, model="red2", quantum=40)
+        red2 = run_source(case, model="abs", quantum=40)
         assert red2 == thor, case
 
 
@@ -39,3 +39,10 @@ def test_fibonacci_example_reports_first_prefix_mismatch() -> None:
     # machine reaches the same Fibonacci value sooner than the non-sharing
     # Chapter 3 oracle at the same bounded quantum.
     assert result.snapshots[75].red2 == "8"
+
+
+def test_red2_model_name_remains_compatibility_alias() -> None:
+    source = "(+ 20 22)"
+    assert run_source(source, model="red2", quantum=20) == run_source(
+        source, model="abs", quantum=20
+    )

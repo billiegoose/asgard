@@ -49,12 +49,7 @@ def _python_rows() -> list[dict[str, object]]:
 
 
 def _breakout_rows() -> list[tuple[str, float, float]]:
-    return [
-        ("thor", 2.0, 1.9),
-        ("red2", 1.0, 0.9),
-        ("rust", 0.8, 0.7),
-        ("wasm", 0.5, 0.4),
-    ]
+    return [("thor", 2.0, 1.9), ("abs", 1.0, 0.9)]
 
 
 def _fake_python_benchmark(*args: object, **kwargs: object) -> list[dict[str, object]]:
@@ -84,7 +79,7 @@ def test_render_report_contains_both_benchmark_tables() -> None:
     assert "## In-process Python reducer and VM battery" in report
     assert "| tak | 100.00 ms | 50.00 ms | 2.00x | 100 | 200 |" in report
     assert "## End-to-end Breakout backend benchmark" in report
-    assert "| WASM RED2 | 500.00 ms | 400.00 ms | 4.00x |" in report
+    assert "| Python RED2 |" in report
 
 
 def test_main_updates_report_only_after_both_suites_succeed(

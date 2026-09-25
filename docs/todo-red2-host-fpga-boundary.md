@@ -2,7 +2,7 @@
 
 ## Summary
 
-Historical source inspection suggests that Hilton's systems already had a recognizable host/reducer split, but the modern Asgard `MuredMachine -> HOST_CALL -> host -> resume_host_call()` design pushes that boundary lower and makes it substantially more suitable for an FPGA implementation.
+Historical source inspection suggests that Hilton's systems already had a recognizable host/reducer split, but the modern Asgard `AbstractRED2Machine -> HOST_CALL -> host -> resume_host_call()` design pushes that boundary lower and makes it substantially more suitable for an FPGA implementation.
 
 The key architectural conclusion is:
 
@@ -256,7 +256,7 @@ Asgard RED2 with q=N
 
 `QUANTUM_EXHAUSTED` therefore means **the reduction budget was consumed and RED2 has completed the q=0 residualization pass**. It does not mean "q just became zero."
 
-This is now implemented by Python `MuredMachine.run_until_suspend()`: after externally visible q reaches zero, the machine continues q=0 execution until `STOP`, returns `QUANTUM_EXHAUSTED`, and leaves a halted bounded residual that can be recharged and continued.
+This is now implemented by Python `AbstractRED2Machine.run_until_suspend()`: after externally visible q reaches zero, the machine continues q=0 execution until `STOP`, returns `QUANTUM_EXHAUSTED`, and leaves a halted bounded residual that can be recharged and continued.
 
 ---
 
@@ -284,7 +284,7 @@ At `HOST_CALL`, execution is genuinely suspended in-place. The graph, environmen
 
 At `QUANTUM_EXHAUSTED`, RED2 has already reconstructed a stable residual and reached `STOP`. Semantically, execution could be continued exactly as HORSE did: serialize/copy that residual, initialize a fresh reducer invocation, and reduce it again with a fresh budget.
 
-Asgard instead relinearizes/reloads the bounded residual inside the **same `MuredMachine` object** when `recharge_quantum()` is called. Keeping one logical execution in one machine is valuable because it avoids a costly host round-trip and serialize/recompile/reconstruct cycle, especially for an FPGA. It is an implementation/performance property, however, **not a RED2 semantic invariant**.
+Asgard instead relinearizes/reloads the bounded residual inside the **same `AbstractRED2Machine` object** when `recharge_quantum()` is called. Keeping one logical execution in one machine is valuable because it avoids a costly host round-trip and serialize/recompile/reconstruct cycle, especially for an FPGA. It is an implementation/performance property, however, **not a RED2 semantic invariant**.
 
 ---
 
@@ -431,7 +431,7 @@ This preserves the important live-state rule for effects:
 
 > A `HOST_CALL` belongs to the currently executing RED2 machine and resumes that same live machine state.
 
-The broader "one THOR run -> one `MuredMachine`" behavior remains desirable for performance and maps well to FPGA execution, but should not be mistaken for a semantic requirement of RED2. Quantum boundaries are stable residual-graph boundaries; host-call boundaries are live suspension boundaries.
+The broader "one THOR run -> one `AbstractRED2Machine`" behavior remains desirable for performance and maps well to FPGA execution, but should not be mistaken for a semantic requirement of RED2. Quantum boundaries are stable residual-graph boundaries; host-call boundaries are live suspension boundaries.
 
 ---
 
@@ -466,7 +466,7 @@ The Asgard design should keep that trajectory rather than reproducing HORSE's re
 
 Before committing to a physical FPGA transport protocol, define the **logical machine ABI** independently of UART, AXI, MMIO, USB, or any specific board.
 
-The Python `MuredMachine` should implement that logical contract first. The Lean model and FPGA implementation can then implement the same state transitions and stop reasons.
+The Python `AbstractRED2Machine` should implement that logical contract first. The Lean model and FPGA implementation can then implement the same state transitions and stop reasons.
 
 A later transport can map that ABI onto, for example:
 

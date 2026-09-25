@@ -1,4 +1,4 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def test_tree_struct_definition_installs_appendix_a_helpers() -> None:
@@ -8,7 +8,7 @@ def test_tree_struct_definition_installs_appendix_a_helpers() -> None:
     (tree-label (make-tree 7 []))
     """
     assert run_source(source, model="thor", quantum=80) == "7"
-    assert run_source(source, model="red2", quantum=80) == "7"
+    assert run_source(source, model="abs", quantum=80) == "7"
 
 
 def test_tree_subtrees_accessor_returns_lazy_list() -> None:
@@ -17,7 +17,7 @@ def test_tree_subtrees_accessor_returns_lazy_list() -> None:
     (tree-subtrees (make-tree 1 [2 3]))
     """
     assert run_source(source, model="thor", quantum=80) == "[2 3]"
-    assert run_source(source, model="red2", quantum=80) == "[2 3]"
+    assert run_source(source, model="abs", quantum=80) == "[2 3]"
 
 
 def test_generated_struct_helpers_use_declared_case_only() -> None:
@@ -31,9 +31,9 @@ def test_generated_struct_helpers_use_declared_case_only() -> None:
     """
 
     assert run_source(canonical, model="thor", quantum=80) == "{tree 1 NIL}"
-    assert run_source(canonical, model="red2", quantum=80) == "{tree 1 NIL}"
+    assert run_source(canonical, model="abs", quantum=80) == "{tree 1 NIL}"
     assert run_source(alternate, model="thor", quantum=80) == "(MAKE-TREE 1 NIL)"
-    assert run_source(alternate, model="red2", quantum=80) == "(MAKE-TREE 1 NIL)"
+    assert run_source(alternate, model="abs", quantum=80) == "(MAKE-TREE 1 NIL)"
 
 
 def test_case_distinct_struct_tags_get_case_distinct_helpers() -> None:
@@ -49,4 +49,4 @@ def test_case_distinct_struct_tags_get_case_distinct_helpers() -> None:
     expected = "{tree 1}\n{TREE 2}\n{Tree 3}"
 
     assert run_source(source, model="thor", quantum=80) == expected
-    assert run_source(source, model="red2", quantum=80) == expected
+    assert run_source(source, model="abs", quantum=80) == expected

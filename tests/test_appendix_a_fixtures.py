@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def assert_fixture_parity(path: str, expected: str, quantum: int) -> None:
     source = Path(path).read_text()
     thor = run_source(source, model="thor", quantum=quantum)
-    red2 = run_source(source, model="red2", quantum=quantum)
+    red2 = run_source(source, model="abs", quantum=quantum)
     assert thor == expected
     assert red2 == expected
 

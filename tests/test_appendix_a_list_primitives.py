@@ -1,9 +1,9 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def assert_parity(source: str, expected: str, quantum: int = 80) -> None:
     assert run_source(source, model="thor", quantum=quantum) == expected
-    assert run_source(source, model="red2", quantum=quantum) == expected
+    assert run_source(source, model="abs", quantum=quantum) == expected
 
 
 def test_cons_car_cdr_null_match_on_pair_lists() -> None:

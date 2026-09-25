@@ -1,0 +1,482 @@
+import pytest
+
+from abstract_red2_machine.machine import (
+    AbstractRED2Machine,
+    MuredOpcode,
+    Word,
+    compile_lambda,
+)
+from thor_compile.red2 import load_faithful_machine, prepare_faithful_definitions
+from thor_lang.ast import Binding, Lambda, LetRec, StructLit, Var
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
+
+
+def test_compile_lambda_uses_linear_body_and_operator_layout() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (x) x)")) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+    )
+    assert compile_lambda(parse_expr("((LAMBDA (x) x) (LAMBDA (y) y))")) == (
+        Word(MuredOpcode.APP, 3, False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, 0, True),
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "variable_index"),
+    [
+        ("(LAMBDA (x y) x)", 1),
+        ("(LAMBDA (x y) y)", 0),
+    ],
+)
+def test_compile_grouped_lambda_uses_nearest_de_bruijn_binder(
+    source: str,
+    variable_index: int,
+) -> None:
+    assert compile_lambda(parse_expr(source)) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, variable_index, True),
+    )
+
+
+def test_compile_translated_grouped_lambda_uses_physical_binder_name() -> None:
+    assert compile_lambda(Lambda(("x", "y"), Var(0, "x"))) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.LAMBDA, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_letrec_emits_one_binding_block_and_symbol_prefix() -> None:
+    assert compile_lambda(parse_expr("(LETREC ((x 1)) x)")) == (
+        Word(MuredOpcode.RBLOCK, 3, False),
+        Word(MuredOpcode.RUP, 1, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.INT, 1, True),
+    )
+
+
+def test_compile_letrec_uses_physical_recursive_binding_order() -> None:
+    assert compile_lambda(parse_expr("(LETREC ((x y) (y x)) x)")) == (
+        Word(MuredOpcode.RBLOCK, 4, False),
+        Word(MuredOpcode.RBLOCK, 6, False),
+        Word(MuredOpcode.RUP, 2, False),
+        Word(MuredOpcode.VAR, 1, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_translated_letrec_uses_physical_binder_names() -> None:
+    expr = LetRec(
+        (
+            Binding("x", Var(1, "y")),
+            Binding("y", Var(0, "x")),
+        ),
+        Var(0, "x"),
+    )
+
+    assert compile_lambda(expr) == (
+        Word(MuredOpcode.RBLOCK, 4, False),
+        Word(MuredOpcode.RBLOCK, 6, False),
+        Word(MuredOpcode.RUP, 2, False),
+        Word(MuredOpcode.VAR, 1, True),
+        Word(MuredOpcode.SYM, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.SYM, "y", False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_lambda_inlines_single_variable_application_argument() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (f x) (f x))")) == (
+        Word(MuredOpcode.LAMBDA, "f", False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.APP_VAR, 0, False),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_compile_flat_application_emits_outermost_argument_first() -> None:
+    source = "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))"
+
+    assert compile_lambda(parse_expr(source)) == (
+        Word(MuredOpcode.APP, 4, False),
+        Word(MuredOpcode.APP, 6, False),
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "b", False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.LAMBDA, "a", False),
+        Word(MuredOpcode.VAR, 0, True),
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "compiled", "expected_source"),
+    [
+        (
+            "42",
+            (Word(MuredOpcode.INT, 42, True),),
+            "42",
+        ),
+        (
+            "(LAMBDA (x) 42)",
+            (
+                Word(MuredOpcode.LAMBDA, "x", False),
+                Word(MuredOpcode.INT, 42, True),
+            ),
+            "(LAMBDA (x) 42)",
+        ),
+        (
+            "((LAMBDA (x) x) 42)",
+            (
+                Word(MuredOpcode.APP, 3, False),
+                Word(MuredOpcode.LAMBDA, "x", False),
+                Word(MuredOpcode.VAR, 0, True),
+                Word(MuredOpcode.INT, 42, True),
+            ),
+            "42",
+        ),
+    ],
+)
+def test_compile_lambda_emits_integer_literals_and_results(
+    source: str,
+    compiled: tuple[Word, ...],
+    expected_source: str,
+) -> None:
+    assert compile_lambda(parse_expr(source)) == compiled
+
+    machine = AbstractRED2Machine.from_expr(
+        parse_expr(source),
+        quantum=10,
+        memory_words=64,
+    )
+    machine.run()
+
+    assert machine.state.halted is True
+    assert to_source(machine.result_expr()) == expected_source
+
+
+@pytest.mark.parametrize(
+    ("source", "compiled"),
+    [
+        ("1.5", (Word(MuredOpcode.FLOAT, 1.5, True),)),
+        ("#\\a", (Word(MuredOpcode.CHAR, "a", True),)),
+    ],
+)
+def test_compile_lambda_emits_float_and_char_literals(
+    source: str,
+    compiled: tuple[Word, ...],
+) -> None:
+    assert compile_lambda(parse_expr(source)) == compiled
+
+
+def test_compile_lambda_emits_headed_float_and_char_results() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (x) 1.5)"))[-1] == Word(
+        MuredOpcode.FLOAT,
+        1.5,
+        True,
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) #\\space)"))[-1] == Word(
+        MuredOpcode.CHAR,
+        " ",
+        True,
+    )
+
+
+def test_decompile_application_spine_restores_source_argument_order() -> None:
+    machine = AbstractRED2Machine.load(
+        (
+            Word(MuredOpcode.APP, 4, False),
+            Word(MuredOpcode.APP, 6, False),
+            Word(MuredOpcode.LAMBDA, "x", False),
+            Word(MuredOpcode.VAR, 0, True),
+            Word(MuredOpcode.LAMBDA, "b", False),
+            Word(MuredOpcode.VAR, 0, True),
+            Word(MuredOpcode.LAMBDA, "a", False),
+            Word(MuredOpcode.VAR, 0, True),
+        ),
+        quantum=0,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == (
+        "((LAMBDA (x) x) (LAMBDA (a) a) (LAMBDA (b) b))"
+    )
+
+
+def test_decompile_application_spine_restores_inline_variable_arguments() -> None:
+    machine = AbstractRED2Machine.load(
+        (
+            Word(MuredOpcode.LAMBDA, "f", False),
+            Word(MuredOpcode.LAMBDA, "x", False),
+            Word(MuredOpcode.APP_VAR, 0, False),
+            Word(MuredOpcode.VAR, 1, True),
+        ),
+        quantum=0,
+    )
+    machine.state.halted = True
+
+    assert to_source(machine.result_expr()) == "(LAMBDA (f x) (f x))"
+
+
+def test_compile_lambda_emits_free_symbols_as_sym_words() -> None:
+    assert compile_lambda(parse_expr("FOO")) == (
+        Word(MuredOpcode.SYM, "FOO", True, None),
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) FOO)"))[-1] == Word(
+        MuredOpcode.SYM,
+        "FOO",
+        True,
+        None,
+    )
+    assert compile_lambda(parse_expr("(LAMBDA (x) x)"))[-1] == Word(
+        MuredOpcode.VAR,
+        0,
+        True,
+    )
+    assert any(
+        word.opcode is MuredOpcode.APP_VAR
+        for word in compile_lambda(parse_expr("(LAMBDA (f x) (f x))"))
+    )
+
+
+def test_mured_machine_loads_integer_words_and_decompiles_them() -> None:
+    machine = AbstractRED2Machine.load((Word(MuredOpcode.INT, 42, True),), quantum=10)
+    machine.run()
+
+    assert machine.state.halted is True
+    assert machine.state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert to_source(machine.result_expr()) == "42"
+
+
+@pytest.mark.parametrize(
+    ("word", "expected_source"),
+    [
+        (Word(MuredOpcode.FLOAT, 1.5, True), "1.5"),
+        (Word(MuredOpcode.CHAR, " ", True), "#\\space"),
+    ],
+)
+def test_mured_machine_loads_float_and_char_words_and_decompiles_them(
+    word: Word,
+    expected_source: str,
+) -> None:
+    machine = AbstractRED2Machine.load((word,), quantum=10)
+    machine.run()
+
+    assert machine.state.halted is True
+    assert machine.state.memory[2] == word
+    assert to_source(machine.result_expr()) == expected_source
+
+
+def test_identity_application_runs_and_decompiles_after_halt() -> None:
+    machine = AbstractRED2Machine.from_expr(
+        parse_expr("((LAMBDA (x) x) (LAMBDA (y) y))"),
+        quantum=10,
+        memory_words=64,
+    )
+    machine.run()
+
+    assert machine.state.halted is True
+    assert machine.state.q == 9
+    assert to_source(machine.result_expr()) == "(LAMBDA (y) y)"
+
+
+def test_result_expr_requires_halt() -> None:
+    machine = AbstractRED2Machine.from_expr(
+        parse_expr("(LAMBDA (x) x)"),
+        quantum=10,
+    )
+    with pytest.raises(RuntimeError, match="result is available only after halt"):
+        machine.result_expr()
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "1-",
+        "1+",
+        "ABS",
+        "CAR",
+        "CDR",
+        "CEILING",
+        "EVEN?",
+        "FLOOR",
+        "MINUS",
+        "NULL?",
+        "NOT",
+        "TAG",
+        "INTEGER?",
+        "FLOAT?",
+        "CHAR?",
+        "SYMBOL?",
+        "STRUCTURE?",
+        "IO-RETURN",
+        "UART-TX",
+        "UART-TX-BYTES",
+    ],
+)
+def test_compile_lambda_emits_current_strict_unary_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_1, name, True),
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "+",
+        "-",
+        "*",
+        "/",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "=",
+        "CONS",
+        "EQUAL?",
+        "EXPT",
+        "MAX",
+        "MIN",
+        "MOD",
+    ],
+)
+def test_compile_lambda_emits_current_strict_binary_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_2, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["IO-BIND", "IO-THEN", "CLOCK", "UART-RX"])
+def test_compile_lambda_emits_io_sequence_primitives(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_0, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["IF", "Y", "AND", "OR"])
+def test_compile_lambda_emits_non_strict_primitives_as_prim_zero(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.PRIM_0, name, True),
+    )
+
+
+@pytest.mark.parametrize("name", ["TRUE", "FALSE", "NIL"])
+def test_compile_lambda_keeps_constants_as_symbols(name: str) -> None:
+    assert compile_lambda(parse_expr(name)) == (
+        Word(MuredOpcode.SYM, name, True),
+    )
+
+
+def test_compile_lambda_lexical_binding_shadows_primitive_name() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (+) +)")) == (
+        Word(MuredOpcode.LAMBDA, "+", False),
+        Word(MuredOpcode.VAR, 0, True),
+    )
+
+
+def test_compile_structure_uses_chapter4_struct_app_var_layout() -> None:
+    assert compile_lambda(parse_expr("{PAIR 1 2}")) == (
+        Word(MuredOpcode.STRUCT, "PAIR", False),
+        Word(MuredOpcode.APP, 4, False),
+        Word(MuredOpcode.APP, 5, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.INT, 2, True),
+        Word(MuredOpcode.INT, 1, True),
+    )
+
+
+def test_compile_structure_fields_use_surrounding_scope() -> None:
+    assert compile_lambda(parse_expr("(LAMBDA (x) {PAIR x 2})")) == (
+        Word(MuredOpcode.LAMBDA, "x", False),
+        Word(MuredOpcode.STRUCT, "PAIR", False),
+        Word(MuredOpcode.APP, 5, False),
+        Word(MuredOpcode.APP, 6, False),
+        Word(MuredOpcode.VAR, 0, True),
+        Word(MuredOpcode.INT, 2, True),
+        Word(MuredOpcode.VAR, 1, True),
+    )
+
+
+def test_structure_literal_round_trips_through_mured_result_graph() -> None:
+    source = "{PAIR 1 2}"
+    machine = AbstractRED2Machine.from_expr(parse_expr(source), quantum=3)
+
+    machine.run()
+
+    assert machine.result_expr() == parse_expr(source)
+    assert machine.state.q == 3
+
+
+def test_structure_field_decompile_removes_synthetic_selector_index() -> None:
+    source = "(LAMBDA (x) {BOX x})"
+    machine = AbstractRED2Machine.from_expr(parse_expr(source), quantum=0)
+
+    machine.run()
+
+    assert machine.result_expr() == Lambda(
+        ("x",),
+        StructLit("BOX", (Var(0, "x"),)),
+    )
+
+
+def test_zero_quantum_primitive_application_round_trips_passively() -> None:
+    machine = AbstractRED2Machine.from_expr(parse_expr("(+ 2 3)"), quantum=0)
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(+ 2 3)"
+
+
+def test_unapplied_lambda_body_does_not_supply_primitive_argument() -> None:
+    machine = AbstractRED2Machine.from_expr(parse_expr("(LAMBDA (x) NOT)"), quantum=3)
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(LAMBDA (x) NOT)"
+    assert machine.state.prim is None
+    assert machine.state.fire == 0
+
+
+def test_recharge_preserves_static_definition_arena_and_symbol_identity() -> None:
+    definitions = {"ID": Lambda(("x",), Var(0, "x"))}
+    cache = prepare_faithful_definitions(definitions, memory_words=128)
+    machine = load_faithful_machine(
+        parse_expr("ID"),
+        quantum=0,
+        definitions=cache,
+        memory_words=128,
+        control_words=16,
+    )
+    identity = id(machine)
+    definition_address = cache.definition_addresses["ID"]
+    static_before = tuple(machine.state.memory[cache.static_start :])
+
+    machine.run()
+    for _ in range(3):
+        machine.recharge_quantum(0)
+        assert id(machine) == identity
+        assert machine.working_memory_limit == cache.static_start
+        assert machine.state.free_space == cache.static_start
+        assert machine.state.env == cache.static_start
+        assert tuple(machine.state.memory[cache.static_start :]) == static_before
+        root = machine.state.memory[0]
+        assert root == Word(MuredOpcode.SYM, "ID", True, definition_address)
+        machine.run()
+        assert to_source(machine.result_expr()) == "ID"
+
+    machine.recharge_quantum(2)
+    machine.run()
+    assert to_source(machine.result_expr()) == "(LAMBDA (x) x)"
+    assert tuple(machine.state.memory[cache.static_start :]) == static_before

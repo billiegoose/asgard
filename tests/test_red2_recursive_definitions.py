@@ -1,6 +1,6 @@
 from thor_compile.red2 import load_faithful_machine
-from thor_engine.golden import _initial_definitions, run_source
-from thor_engine.semantics import reduce_expr
+from thor_interpreter.golden import _initial_definitions, run_source
+from thor_interpreter.semantics import reduce_expr
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -35,7 +35,7 @@ def test_recursive_top_level_factorial_definition_matches_thor() -> None:
     (fact 5)
     """
     assert run_source(source, model="thor", quantum=500) == "120"
-    assert run_source(source, model="red2", quantum=500) == "120"
+    assert run_source(source, model="abs", quantum=500) == "120"
 
 
 def test_recursive_top_level_fibonacci_definition_matches_thor() -> None:
@@ -47,7 +47,7 @@ def test_recursive_top_level_fibonacci_definition_matches_thor() -> None:
     (fib 7)
     """
     assert run_source(source, model="thor", quantum=2000) == "13"
-    assert run_source(source, model="red2", quantum=2000) == "13"
+    assert run_source(source, model="abs", quantum=2000) == "13"
 
 
 def test_mutual_recursive_prefixes_survive_reclaim_poisoning() -> None:
@@ -57,7 +57,7 @@ def test_mutual_recursive_prefixes_survive_reclaim_poisoning() -> None:
     (even 4)
     """
     thor_expr, thor_definitions = _prepare_recursive_source(source, model="thor")
-    red2_expr, red2_definitions = _prepare_recursive_source(source, model="red2")
+    red2_expr, red2_definitions = _prepare_recursive_source(source, model="abs")
     thor_matching_prefixes = {0, 1, 2, 4, 5, 6}
 
     for quantum in (0, 1, 2, 3, 4, 5, 6, 12, 64, 500):
@@ -142,7 +142,7 @@ def test_y_combinator_fibonacci_still_matches() -> None:
            (+ (fib (1- n)) (fib (1- (1- n))))))) 6)
     """
     assert run_source(source, model="thor", quantum=2000) == "8"
-    assert run_source(source, model="red2", quantum=2000) == "8"
+    assert run_source(source, model="abs", quantum=2000) == "8"
 
 
 def test_recursive_q0_residual_survives_repeated_recharge_and_finishes() -> None:
@@ -150,7 +150,7 @@ def test_recursive_q0_residual_survives_repeated_recharge_and_finishes() -> None
     fact == (lambda (n) (if (= n 0) 1 (* n (fact (1- n)))))
     (fact 4)
     """
-    expr, definitions = _prepare_recursive_source(source, model="red2")
+    expr, definitions = _prepare_recursive_source(source, model="abs")
     machine = load_faithful_machine(
         expr,
         quantum=0,

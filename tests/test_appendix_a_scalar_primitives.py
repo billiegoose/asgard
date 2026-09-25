@@ -1,10 +1,10 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def both(source: str, quantum: int = 50) -> tuple[str, str]:
     return (
         run_source(source, model="thor", quantum=quantum),
-        run_source(source, model="red2", quantum=quantum),
+        run_source(source, model="abs", quantum=quantum),
     )
 
 

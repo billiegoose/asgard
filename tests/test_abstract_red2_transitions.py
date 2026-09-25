@@ -1,0 +1,3347 @@
+import pytest
+
+from abstract_red2_machine.machine import (
+    AbstractRED2Machine,
+    AbstractRED2MachineState,
+    ControlStackOverflow,
+    ControlStackUnderflow,
+    Direction,
+    GraphEnvironmentCollision,
+    IllegalTransition,
+    InvalidAddress,
+    MuredOpcode,
+    Word,
+    _SubgraphFrame,
+    compile_lambda,
+)
+from thor_lang.parser import parse_expr
+from thor_lang.pretty import to_source
+
+
+def base_machine() -> AbstractRED2Machine:
+    return AbstractRED2Machine.load(
+        [Word(MuredOpcode.LAMBDA, "x"), Word(MuredOpcode.VAR, 0)],
+        quantum=3,
+        memory_words=32,
+        control_words=8,
+    )
+
+
+def test_app_forward_copies_word_saves_env_and_advances() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP, 9)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 9)
+    assert state.fsp == 3
+    assert state.control_stack[0] == 32
+    assert state.c == 0
+    assert state.pc == 1
+    assert state.direction is Direction.F
+    assert state.argcnt == 1
+    assert state.cycles == 1
+
+
+def test_app_var_forward_resolves_ubv_and_pushes_corrected_app_var() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.memory[30] = Word(MuredOpcode.UBV, 1)
+    state.env = 30
+    state.phi = 4
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP_VAR, 3, False)
+    assert state.fsp == 3
+    assert state.pc == 1
+    assert state.direction is Direction.F
+    assert state.argcnt == 1
+    assert state.cycles == 1
+
+
+def test_app_var_forward_resolves_closure_to_ep_and_saves_caller_path() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.memory[30] = Word(MuredOpcode.CLOSURE, 28)
+    state.memory[31] = Word(None, 7)
+    state.env = 30
+
+    machine.step()
+
+    assert state.control_stack[0] == 30
+    assert state.c == 0
+    assert state.memory[3] == Word(MuredOpcode.EP, 30, False)
+    assert state.fsp == 3
+    assert state.pc == 1
+    assert state.direction is Direction.F
+    assert state.argcnt == 1
+    assert state.cycles == 1
+
+
+def test_app_var_forward_rejects_bool_payload() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[0] = Word(MuredOpcode.APP_VAR, True, False)
+    state.memory[30] = Word(MuredOpcode.UBV, 1)
+    state.memory[31] = Word(MuredOpcode.UBV, 1)
+    state.env = 30
+    state.phi = 4
+
+    with pytest.raises(
+        InvalidAddress, match="APP_VAR requires a non-negative variable index"
+    ):
+        machine.step()
+
+
+def test_machine_generated_join_rejects_missing_typed_frame() -> None:
+    machine = base_machine()
+    machine._enter_subgraph(32, 0, 0)
+    frame = machine.state.control_stack[machine.state.c]
+    assert isinstance(frame, _SubgraphFrame)
+
+    machine.state.control_stack[machine.state.c] = 32
+    with pytest.raises(
+        IllegalTransition,
+        match="machine-generated JOIN requires its typed subgraph frame",
+    ):
+        machine._push_subgraph_join(frame, 0)
+
+
+def test_app_reverse_creates_join_with_parent_pointer() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[9] = Word(MuredOpcode.VAR, 0)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.control_stack[0] = 27
+    state.c = 0
+    state.direction = Direction.B
+    state.argcnt = 4
+
+    machine.step()
+
+    assert state.env == state.free_space == 31
+    assert state.memory[31] == Word(MuredOpcode.PNP, 27, False)
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
+    assert state.fsp == 4
+    assert state.pc == 9
+    assert state.direction is Direction.F
+    assert state.argcnt == 0
+
+
+def test_app_var_reverse_only_decrements_pc() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.pc == 2
+    assert state.fsp == 3
+    assert state.env == 20
+    assert state.direction is Direction.B
+
+
+def test_lookup_skips_ubv_closure_and_follows_parent_pointer() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 20
+    state.memory[20] = Word(MuredOpcode.UBV, 3)
+    state.memory[21] = Word(MuredOpcode.CLOSURE, 28)
+    state.memory[22] = Word(None, 7)
+    state.memory[23] = Word(MuredOpcode.PNP, 27)
+    state.memory[27] = Word(MuredOpcode.UBV, 1)
+
+    assert machine.lookup(0) == 20
+    assert machine.lookup(1) == 21
+    assert machine.lookup(2) == 27
+    assert state.s_d == 0
+    assert state.s_a == 27
+
+
+def test_lookup_preserves_two_word_stride_after_closure_is_shared_to_atom() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 20
+    state.memory[20] = Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    state.memory[21] = Word(None, 7)
+    state.memory[22] = Word(MuredOpcode.UBV, 1)
+
+    assert machine.lookup(0) == 20
+    assert machine.lookup(1) == 22
+
+
+def test_lambda_contracts_against_result_app() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.control_stack[0] = 32
+    state.c = 0
+    state.fsp = 3
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == -1
+    assert state.env == 30
+    assert state.memory[30] == Word(MuredOpcode.CLOSURE, 32)
+    assert state.memory[31] == Word(None, 9)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_lambda_contracts_against_result_app_var_without_popping_control() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP_VAR, 1, False)
+    state.control_stack[0] = 22
+    state.c = 0
+    state.fsp = 3
+    state.env = 30
+    state.free_space = 30
+    state.phi = 4
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == 0
+    assert state.control_stack[0] == 22
+    assert state.env == 29
+    assert state.memory[29] == Word(MuredOpcode.UBV, 3, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_lambda_contracts_against_result_ep_as_one_word_binding() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 24, False)
+    state.control_stack[0] = 19
+    state.c = 0
+    state.fsp = 3
+    state.env = 30
+    state.free_space = 30
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == -1
+    assert state.env == 29
+    assert state.memory[29] == Word(MuredOpcode.EP, 24, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_lambda_contracts_against_immediate_int_argument() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.INT, 42, False)
+    state.fsp = 3
+    state.argcnt = 1
+
+    machine.step()
+
+    assert state.q == 2
+    assert state.fsp == 2
+    assert state.c == -1
+    assert state.env == 31
+    assert state.memory[31] == Word(MuredOpcode.INT, 42, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+
+def test_lambda_without_redex_copies_and_allocates_ubv() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.argcnt = 2
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.LAMBDA, "x")
+    assert state.fsp == 3
+    assert state.memory[31] == Word(MuredOpcode.UBV, 1)
+    assert state.env == 31
+    assert state.phi == 1
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_struct_without_selector_saves_quantum_and_allocates_ubv() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=7,
+        phi=2,
+        argcnt=0,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.APP, 8, False)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[6] == Word(MuredOpcode.STRUCT, "PAIR", False)
+    assert state.fsp == 6
+    assert state.q == 0
+    assert state.phi == 3
+    assert state.env == 15
+    assert state.memory[15] == Word(MuredOpcode.UBV, 3, False)
+    assert state.c == 0
+    assert state.control_stack[0] is not None
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_struct_reverse_restores_quantum_and_binder_depth() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=-1,
+        direction=Direction.F,
+        q=9,
+        phi=0,
+        argcnt=0,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+    copied_struct = state.fsp
+    state.pc = copied_struct
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.q == 9
+    assert state.c == -1
+    assert state.phi == 0
+    assert state.pc == copied_struct - 1
+    assert state.direction is Direction.B
+
+
+def test_struct_with_selector_app_contracts_like_lambda() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=6,
+        env=20,
+        c=0,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[6] = Word(MuredOpcode.APP, 12, False)
+    state.control_stack[0] = 20
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.q == 3
+    assert state.fsp == 5
+    assert state.c == -1
+    assert state.env == 18
+    assert state.memory[18] == Word(MuredOpcode.CLOSURE, 20, False)
+    assert state.memory[19] == Word(None, 12, False)
+    assert state.pc == 1
+    assert state.argcnt == 0
+
+
+def test_struct_with_selector_and_zero_quantum_reconstructs_lazily() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[1] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.APP, 9, False)
+    state.control_stack[0] = 14
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.q == 0
+    assert state.memory[6] == Word(MuredOpcode.STRUCT, "PAIR", False)
+    assert state.fsp == 6
+    assert state.phi == 1
+    assert state.env == 15
+    assert state.memory[15] == Word(MuredOpcode.UBV, 1, False)
+    assert state.argcnt == 0
+    assert state.c == 1
+    assert state.pc == 1
+
+
+def test_rblock_and_rup_with_quantum_construct_rec_context() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=24,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 3, False)
+    state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[4] = Word(MuredOpcode.INT, 1, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.env == 21
+    assert state.memory[21] == Word(MuredOpcode.REC, 4, False)
+    assert state.memory[22] == Word(None)
+    assert state.memory[23] == Word(None)
+    assert state.pc == 1
+    assert state.q == 3
+
+    machine.step()
+
+    assert state.memory[22] == Word(None, 21, False)
+    assert state.memory[23] == Word(None, 0, False)
+    assert state.pc == 2
+    assert state.q == 3
+
+
+def test_rblock_and_rup_at_zero_quantum_prepare_reconstruction_context() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=5,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=2,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 3, False)
+    state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[4] = Word(MuredOpcode.INT, 1, True)
+    state.memory[5] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[6] == Word(MuredOpcode.RBLOCK, 3, False)
+    assert state.fsp == 6
+    assert state.phi == 3
+    assert state.env == 19
+    assert state.memory[19] == Word(MuredOpcode.UBV, 3, False)
+    assert state.pc == 1
+
+    machine.step()
+
+    assert state.control_stack[0] == 19
+    assert state.c == 0
+    assert state.memory[7] == Word(MuredOpcode.RUP, 1, False)
+    assert state.fsp == 7
+    assert state.pc == 2
+    assert state.q == 0
+    assert state.argcnt == 2
+
+
+def test_rblock_and_rup_construct_two_binding_context_in_physical_order() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=8,
+        env=32,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+    machine.step()
+    machine.step()
+
+    assert state.env == 26
+    assert state.memory[26] == Word(MuredOpcode.REC, 7, False)
+    assert state.memory[27] == Word(None, 26, False)
+    assert state.memory[28] == Word(None, 0, False)
+    assert state.memory[29] == Word(MuredOpcode.REC, 5, False)
+    assert state.memory[30] == Word(None, 26, False)
+    assert state.memory[31] == Word(None, 0, False)
+    assert state.pc == 3
+    assert state.q == 4
+
+
+def test_rup_positive_quantum_preserves_python_graph_boundary_and_outer_marker(
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 48,
+        control_stack=[None] * 12,
+        pc=0,
+        fsp=8,
+        env=46,
+        free_space=42,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 1, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.INT, 2, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    state.memory[46] = Word(MuredOpcode.INT, 99, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+    machine.step()
+    assert state.env == 35
+    assert state.memory[35] == Word(MuredOpcode.REC, 7, False)
+    assert state.memory[38] == Word(MuredOpcode.REC, 5, False)
+    assert state.memory[41] == Word(MuredOpcode.PNP, 46, False)
+    before_fsp = state.fsp
+
+    machine.step()
+
+    # Hilton C drops two copied LETREC descriptors here. Python never copied
+    # them, so faithful equivalent reclamation leaves the graph frontier alone.
+    assert state.fsp == before_fsp == 8
+    assert state.memory[0] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[1] == Word(MuredOpcode.RBLOCK, 6, False)
+    assert state.memory[36] == Word(None, 35, False)
+    assert state.memory[37] == Word(None, 0, False)
+    assert state.memory[39] == Word(None, 35, False)
+    assert state.memory[40] == Word(None, 0, False)
+
+    machine._reconstruct(35)
+    assert state.memory[34] == Word(MuredOpcode.PNP, 41, False)
+    assert state.memory[41] == Word(MuredOpcode.PNP, 46, False)
+    assert state.memory[9] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[10] == Word(MuredOpcode.RBLOCK, 6, False)
+    assert state.memory[11] == Word(MuredOpcode.RUP, 2, False)
+    assert state.memory[12] == Word(MuredOpcode.VAR, 0, True)
+
+
+def test_rup_positive_quantum_rejects_rec_block_binding_mismatch() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 32,
+        control_stack=[None] * 6,
+        pc=2,
+        fsp=8,
+        env=26,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 1, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.INT, 2, True)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    state.memory[26] = Word(MuredOpcode.REC, 5, False)
+    state.memory[27] = Word(None)
+    state.memory[28] = Word(None)
+    state.memory[29] = Word(MuredOpcode.REC, 7, False)
+    state.memory[30] = Word(None)
+    state.memory[31] = Word(None)
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(
+        IllegalTransition,
+        match="RUP REC binding does not match RBLOCK",
+    ):
+        machine.step()
+
+
+def test_rup_at_zero_quantum_pushes_one_path_per_binding() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=2,
+        fsp=6,
+        env=18,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=2,
+        argcnt=2,
+    )
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[6] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.control_stack[:2] == [18, 18]
+    assert state.c == 1
+    assert state.memory[7] == Word(MuredOpcode.RUP, 2, False)
+    assert state.argcnt == 3
+    assert state.pc == 3
+
+
+def test_lookup_skips_three_word_rec_values() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=2,
+        phi=1,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[10] = Word(MuredOpcode.REC, 5, False)
+    state.memory[11] = Word(None, 10, False)
+    state.memory[12] = Word(None, 3, False)
+    state.memory[13] = Word(MuredOpcode.UBV, 1, False)
+    machine = AbstractRED2Machine(state)
+
+    assert machine.lookup(1) == 13
+
+
+def test_head_var_landing_on_rec_enters_binding_and_charges_quantum() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=6,
+        env=18,
+        c=-1,
+        direction=Direction.F,
+        q=2,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[5] = Word(MuredOpcode.INT, 7, True)
+    state.memory[6] = Word(MuredOpcode.STOP)
+    state.memory[18] = Word(MuredOpcode.REC, 5, False)
+    state.memory[19] = Word(None, 18, False)
+    state.memory[20] = Word(None, 2, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.q == 1
+    assert state.pc == 5
+    assert state.env < 18
+    assert state.memory[state.env] == Word(MuredOpcode.PNP, 18, False)
+
+
+def test_app_var_landing_on_rec_emits_non_head_recp() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=0,
+        fsp=2,
+        env=14,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    state.memory[1] = Word(MuredOpcode.INT, 1, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[14] = Word(MuredOpcode.REC, 8, False)
+    state.memory[15] = Word(None, 14, False)
+    state.memory[16] = Word(None, 4, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.RECP, 14, False)
+    assert state.q == 3
+    assert state.pc == 1
+
+
+def test_non_head_recp_copies_without_charging_quantum() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RECP, 12, False)
+    state.memory[1] = Word(MuredOpcode.INT, 1, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[12] = Word(MuredOpcode.REC, 7, False)
+    state.memory[13] = Word(None, 12, False)
+    state.memory[14] = Word(None, 4, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.RECP, 12, False)
+    assert state.q == 3
+    assert state.pc == 1
+
+
+def test_reverse_recp_with_quantum_becomes_app_and_saves_letrec_path() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 20,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=4,
+        env=14,
+        c=-1,
+        direction=Direction.B,
+        q=2,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.RECP, 14, False)
+    state.memory[14] = Word(MuredOpcode.REC, 8, False)
+    state.memory[15] = Word(None, 14, False)
+    state.memory[16] = Word(None, 1, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.APP, 8, False)
+    assert state.control_stack[0] == 14
+    assert state.c == 0
+    assert state.q == 1
+    assert state.pc == 4
+
+
+def test_reverse_recp_at_zero_quantum_joins_reconstructed_letrec_argument() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 40,
+        control_stack=[None] * 12,
+        pc=10,
+        fsp=10,
+        env=28,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="CAR",
+        fire=2,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 7, True)
+    state.memory[9] = Word(MuredOpcode.STOP)
+    state.memory[10] = Word(MuredOpcode.RECP, 28, False)
+    state.memory[28] = Word(MuredOpcode.REC, 5, False)
+    state.memory[29] = Word(None, 28, False)
+    state.memory[30] = Word(None, 0, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[11] == Word(MuredOpcode.JOIN, 10, False, 1)
+    assert state.memory[12] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[13] == Word(MuredOpcode.RUP, 1, False)
+    assert state.memory[14] == Word(MuredOpcode.VAR, 0, True)
+    frame = state.control_stack[0]
+    assert isinstance(frame, _SubgraphFrame)
+    assert frame.env == 28
+    assert frame.free_space == 28
+    assert frame.prim == "CAR"
+    assert frame.fire == 2
+    assert state.control_stack[1] == 26
+    assert state.c == 1
+    assert state.free_space == 26
+    assert state.prim is None
+    assert state.fire == 0
+    assert state.direction is Direction.B
+    assert state.pc == 13
+    assert state.q == 0
+
+    for _ in range(6):
+        machine.step()
+    assert state.pc == 11
+    assert type(state.control_stack[state.c]).__name__ == "_SubgraphFrame"
+
+    machine.step()
+
+    result_word = state.memory[10]
+    assert result_word is not None
+    assert result_word.opcode is MuredOpcode.APP
+    assert state.free_space == 28
+    assert state.env == 28
+    assert state.c == -1
+    assert state.prim == "CAR"
+    assert state.fire == 1
+
+
+def test_head_recp_at_zero_quantum_reconstructs_letrec_wrapper() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 40,
+        control_stack=[None] * 10,
+        pc=8,
+        fsp=12,
+        env=28,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    state.memory[2] = Word(MuredOpcode.RUP, 2, False)
+    state.memory[3] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[6] = Word(MuredOpcode.SYM, "y", False)
+    state.memory[7] = Word(MuredOpcode.VAR, 1, True)
+    state.memory[8] = Word(MuredOpcode.RECP, 31, True)
+    state.memory[12] = Word(MuredOpcode.STOP)
+    state.memory[28] = Word(MuredOpcode.REC, 7, False)
+    state.memory[29] = Word(None, 28, False)
+    state.memory[30] = Word(None, 0, False)
+    state.memory[31] = Word(MuredOpcode.REC, 5, False)
+    state.memory[32] = Word(None, 28, False)
+    state.memory[33] = Word(None, 0, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[13] == Word(MuredOpcode.RBLOCK, 4, False)
+    assert state.memory[14] == Word(MuredOpcode.RBLOCK, 6, False)
+    assert state.memory[15] == Word(MuredOpcode.RUP, 2, False)
+    assert state.memory[16] == Word(MuredOpcode.VAR, 1, True)
+    assert state.direction is Direction.B
+    assert state.pc == 15
+    assert state.q == 0
+    assert state.phi == 2
+    env_word = state.memory[state.env]
+    assert env_word is not None
+    assert env_word.opcode is MuredOpcode.UBV
+
+
+def test_reverse_rblock_begins_sym_prefixed_binding_traversal() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 8,
+        pc=6,
+        fsp=8,
+        env=20,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=1,
+        argcnt=1,
+    )
+    state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[5] = Word(MuredOpcode.INT, 1, True)
+    state.memory[6] = Word(MuredOpcode.RBLOCK, 4, False)
+    state.memory[8] = Word(MuredOpcode.STOP)
+    state.control_stack[0] = 20
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    join = state.memory[9]
+    assert join is not None
+    assert join.opcode is MuredOpcode.JOIN
+    assert join.data == 6
+    assert state.pc == 4
+    assert state.env == 20
+    assert state.argcnt == -1
+    assert state.direction is Direction.F
+
+
+def test_passive_int_reverse_completes_active_strict_primitive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="+",
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.INT, 2, False)
+    state.memory[3] = Word(MuredOpcode.INT, 3, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "+", True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_int_forward_head_copies_itself_then_begins_reverse_traversal() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 42, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+    original_q = state.q
+    original_phi = state.phi
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(MuredOpcode.INT, 42, True)
+    assert state.argcnt == 1
+    assert (state.direction, state.pc, state.q, state.phi) == (
+        Direction.B,
+        state.fsp - 1,
+        original_q,
+        original_phi,
+    )
+
+
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.FLOAT, 1.5),
+        (MuredOpcode.CHAR, "a"),
+    ],
+)
+def test_passive_float_and_char_forward_head_copy_exact_word_and_reverse(
+    opcode: MuredOpcode,
+    payload: float | str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, True)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
+
+
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.FLOAT, 2.5),
+        (MuredOpcode.CHAR, "z"),
+    ],
+)
+def test_passive_float_and_char_forward_non_head_copies_and_advances(
+    opcode: MuredOpcode,
+    payload: float | str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, False)
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+@pytest.mark.parametrize(
+    "opcode",
+    [MuredOpcode.FLOAT, MuredOpcode.CHAR],
+)
+def test_passive_float_and_char_reverse_only_decrement_pc(opcode: MuredOpcode) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(opcode, 7.0 if opcode is MuredOpcode.FLOAT else "q", False)
+    machine = AbstractRED2Machine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.SYM, "FOO"),
+    ],
+)
+def test_sym_forward_head_copies_itself_then_begins_reverse_traversal(
+    opcode: MuredOpcode,
+    payload: str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, True)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
+
+
+@pytest.mark.parametrize(
+    ("opcode", "payload"),
+    [
+        (MuredOpcode.SYM, "bar"),
+    ],
+)
+def test_sym_forward_non_head_copies_and_advances(
+    opcode: MuredOpcode,
+    payload: str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(opcode, payload, False, 5)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    copied = state.memory[state.fsp]
+    assert copied == Word(opcode, payload, False, 5)
+    assert state.argcnt == 1
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_sym_reverse_non_head_with_definition_remains_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=3,
+        fsp=3,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.SYM, "FOO", False, 5)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.pc == 2
+    assert state.memory[3] == Word(MuredOpcode.SYM, "FOO", False, 5)
+    assert state.control_stack == [None] * 4
+    assert state.c == -1
+    assert state.direction is Direction.B
+
+
+def test_sym_head_with_definition_and_zero_quantum_remains_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[state.fsp] == Word(MuredOpcode.SYM, "FOO", True, 9)
+    assert (state.direction, state.pc) == (Direction.B, state.fsp - 1)
+
+
+def test_sym_head_with_definition_forward_enters_reverse_copy_path() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[state.fsp] == Word(MuredOpcode.SYM, "FOO", True, 9)
+    assert state.direction is Direction.B
+    assert state.pc == state.fsp
+    assert state.q == 3
+
+
+def test_sym_reverse_definition_converts_to_app_and_pushes_control_path() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=2,
+        env=12,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        argcnt=3,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.SYM, "FOO", True, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.APP, 1, True, 9)
+    assert state.argcnt == 2
+    saved_path = state.control_stack[0]
+    assert saved_path is not None
+    assert getattr(saved_path, "value", None) == 12
+    assert state.c == 0
+    assert state.direction is Direction.B
+    assert state.pc == 2
+
+
+def test_sym_reverse_completes_active_primitive_countdown() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="NOT",
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "NOT", True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.SYM, "FALSE", True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_defined_sym_reverse_preserves_active_primitive_until_definition_returns(
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=4,
+        env=16,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        argcnt=2,
+        prim="=",
+        fire=1,
+    )
+    state.memory[3] = Word(MuredOpcode.STOP)
+    state.memory[4] = Word(MuredOpcode.SYM, "A", True, 12)
+    state.memory[12] = Word(MuredOpcode.INT, 65, True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.APP, 3, True, 12)
+    assert state.prim == "="
+    assert state.fire == 1
+    assert state.argcnt == 1
+    assert state.c == 0
+    saved_path = state.control_stack[0]
+    assert saved_path is not None
+    assert type(saved_path).__name__ == "_SavedDefinitionPath"
+    assert getattr(saved_path, "value", None) == 16
+    assert state.pc == 4
+    assert state.direction is Direction.B
+
+
+def test_defined_symbol_application_reclaims_synthetic_definition_app() -> None:
+    machine = AbstractRED2Machine.from_expr(
+        parse_expr("(FOO 41)"),
+        quantum=20,
+        memory_words=64,
+    )
+    definition_address = 40
+    definition = compile_lambda(parse_expr("(LAMBDA (x) (+ x 1))"))
+    for offset, word in enumerate(definition):
+        data = word.data
+        if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
+            assert isinstance(data, int)
+            data += definition_address
+        machine.state.memory[definition_address + offset] = Word(
+            word.opcode,
+            data,
+            word.head,
+            word.definition,
+        )
+    machine.state.memory[definition_address + len(definition)] = Word(MuredOpcode.STOP)
+    root_symbol = machine.state.memory[1]
+    assert root_symbol is not None
+    machine.state.memory[1] = Word(
+        root_symbol.opcode,
+        root_symbol.data,
+        root_symbol.head,
+        definition_address,
+    )
+    machine.state.env = definition_address
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "42"
+
+
+def test_defined_symbol_app_reverse_enters_definition_code() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=2,
+        env=12,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.APP, 1, True, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.memory[10] = Word(MuredOpcode.STOP)
+    state.control_stack[0] = 12
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.STOP)
+    assert state.pc == 9
+    assert state.direction is Direction.F
+    assert state.q == 2
+    assert state.control_stack[0] == 12
+
+
+def test_sym_reverse_only_decrements_pc() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.SYM, "baz", False)
+    machine = AbstractRED2Machine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (1, "SYM requires a non-empty symbol name"),
+        (True, "SYM requires a non-empty symbol name"),
+        ("", "SYM requires a non-empty symbol name"),
+    ],
+)
+def test_sym_forward_rejects_malformed_payloads(
+    payload: int | bool | str,
+    message: str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (1, "FLOAT requires a floating-point value"),
+        (True, "FLOAT requires a floating-point value"),
+        ("bad", "FLOAT requires a floating-point value"),
+    ],
+)
+def test_float_forward_rejects_malformed_payloads(
+    payload: int | bool | str,
+    message: str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.FLOAT, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ("", "CHAR requires a single-character string"),
+        ("ab", "CHAR requires a single-character string"),
+        (1, "CHAR requires a single-character string"),
+    ],
+)
+def test_char_forward_rejects_malformed_payloads(
+    payload: int | str,
+    message: str,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.CHAR, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(IllegalTransition, match=message):
+        machine.step()
+
+
+def test_int_forward_non_head_copies_itself_and_advances_through_source_spine() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.INT, 7, False)
+    machine = AbstractRED2Machine(state)
+    original_state = (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    )
+
+    machine.step()
+
+    assert state.pc == 4
+    assert (
+        state.direction,
+        state.fsp,
+        state.env,
+        state.c,
+        state.q,
+        state.phi,
+    ) == original_state
+
+
+@pytest.mark.parametrize("payload", ["bad", None])
+def test_int_forward_rejects_non_integer_payloads(payload: str | None) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, payload, False)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(IllegalTransition, match="INT requires an integer value"):
+        machine.step()
+
+
+def test_head_var_executes_shared_closure_slot_atom_as_head() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=6,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[6] = Word(MuredOpcode.INT, 5, False, closure_slot=True)
+    state.memory[7] = Word(None, 11, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.memory[6] == Word(MuredOpcode.INT, 5, False, closure_slot=True)
+    assert state.fsp == 2
+    assert state.pc == 1
+    assert state.direction is Direction.B
+
+
+def test_head_var_dereferences_ep_to_closure_instead_of_executing_environment_ep(
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=3,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[3] = Word(MuredOpcode.STOP)
+    state.memory[8] = Word(MuredOpcode.INT, 9, True)
+    state.memory[10] = Word(MuredOpcode.EP, 12, False)
+    state.memory[11] = Word(MuredOpcode.PNP, 15, False)
+    state.memory[12] = Word(MuredOpcode.CLOSURE, 14, False)
+    state.memory[13] = Word(None, 8, False)
+    state.memory[14] = Word(MuredOpcode.UBV, 1, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.pc == 12
+    assert state.direction is Direction.F
+    assert state.memory[10] == Word(MuredOpcode.EP, 12, False)
+    assert state.memory[11] == Word(MuredOpcode.PNP, 15, False)
+
+    machine.step()
+
+    assert state.pc == 8
+    assert state.env < 10
+    assert state.memory[state.env] == Word(MuredOpcode.PNP, 14, False)
+
+
+
+def test_head_var_executes_direct_immediate_binding_as_detached_head() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=6,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[6] = Word(MuredOpcode.INT, 5, False)
+    state.memory[7] = Word(MuredOpcode.PNP, 6, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 5, True)
+    assert state.memory[6] == Word(MuredOpcode.INT, 5, False)
+    assert state.memory[7] == Word(MuredOpcode.PNP, 6, False)
+    assert state.fsp == 2
+    assert state.pc == 1
+    assert state.direction is Direction.B
+
+
+
+def test_var_uses_lookup_and_executes_environment_value() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.pc = 1
+    state.env = 31
+    state.memory[31] = Word(MuredOpcode.UBV, 1)
+    state.phi = 1
+
+    machine.step()
+
+    assert state.s_d == 0
+    assert state.s_a == 31
+    assert state.pc == 31
+
+
+def test_ubv_emits_var_and_switches_to_reverse() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.pc = 31
+    state.env = 31
+    state.memory[31] = Word(MuredOpcode.UBV, 1)
+    state.memory[3] = Word(MuredOpcode.LAMBDA, "x")
+    state.phi = 1
+    state.fsp = 3
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 4
+    assert state.pc == 3
+    assert state.direction is Direction.B
+
+
+def test_struct_result_copy_preserves_inline_atomic_field_descriptor() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.INT, 7, False)
+    state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    state.fsp = 10
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.INT, 7, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 10
+
+
+def test_struct_result_copy_preserves_ep_field_descriptor() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.EP, 20, False)
+    state.memory[10] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[20] = Word(MuredOpcode.INT, 7, False, closure_slot=True)
+    state.memory[21] = Word(None, 11, False)
+    state.fsp = 21
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.EP, 20, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 21
+
+
+def test_struct_result_copy_preserves_detached_field_graph_above_destination() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[8] = Word(MuredOpcode.STRUCT, "node", False)
+    state.memory[9] = Word(MuredOpcode.APP, 12, False)
+    state.memory[10] = Word(MuredOpcode.APP, 13, False)
+    state.memory[11] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[12] = Word(MuredOpcode.INT, 1, True)
+    state.memory[13] = Word(MuredOpcode.INT, 2, True)
+    state.fsp = 13
+
+    machine._copy_struct_value_to_result(8, 3)
+
+    assert state.memory[3] == Word(MuredOpcode.STRUCT, "node", False)
+    assert state.memory[4] == Word(MuredOpcode.APP, 12, False)
+    assert state.memory[5] == Word(MuredOpcode.APP, 13, False)
+    assert state.memory[6] == Word(MuredOpcode.VAR, 0, True)
+    assert state.memory[12] == Word(MuredOpcode.INT, 1, True)
+    assert state.memory[13] == Word(MuredOpcode.INT, 2, True)
+    assert state.fsp == 13
+
+
+def test_join_inserts_argument_root_and_walks_parent_backward() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[4] = Word(MuredOpcode.JOIN, 3)
+    state.memory[5] = Word(MuredOpcode.INT, 0)
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+    state.argcnt = 2
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5)
+    assert state.s_a == 5
+    assert state.pc == 2
+    assert state.argcnt == 2
+
+
+def test_join_converts_reduced_var_to_app_var_and_reclaims_tail() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP_VAR, 0, False)
+    assert state.s_a == 5
+    assert state.fsp == 3
+    assert state.pc == 2
+
+
+def test_structure_selector_multiword_non_struct_result_replaces_selector_head(
+) -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.APP, 6, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_1, "CAR", True)
+    state.memory[6] = Word(MuredOpcode.APP, 8, False)
+    state.memory[7] = Word(MuredOpcode.SYM, "f", True)
+    state.memory[8] = Word(MuredOpcode.INT, 1, True)
+    state.pc = 3
+    state.fsp = 8
+    state.prim = "__STRUCT_SELECTOR_RESULT__"
+    state.fire = 0
+    state.direction = Direction.B
+
+    machine._fire_primitive()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[4] == Word(MuredOpcode.SYM, "f", True)
+    assert state.memory[5] == Word(MuredOpcode.INT, 1, True)
+    assert state.fsp == 5
+    assert state.pc == 2
+    assert state.prim is None
+    assert state.fire == 0
+
+
+
+def test_join_shares_single_atomic_result_through_ep_closure_slot() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3)
+    state.memory[5] = Word(MuredOpcode.INT, 21, True)
+    state.memory[20] = Word(MuredOpcode.CLOSURE, 27)
+    state.memory[21] = Word(None, 9)
+    state.pc = 4
+    state.fsp = 5
+    state.env = 20
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.INT, 21, False)
+    assert state.memory[20] == Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    assert state.memory[21] == Word(None, 9)
+    assert state.fsp == 3
+    assert state.pc == 2
+
+
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        (Word(MuredOpcode.CLOSURE, 27), "(F 42)"),
+        (Word(MuredOpcode.INT, 21, False, closure_slot=True), "(F 21)"),
+    ],
+)
+def test_result_expr_projects_ep_without_mutating_environment(
+    target: Word,
+    expected: str,
+) -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[20] = target
+    state.memory[21] = Word(None, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 3
+    state.fsp = 4
+    state.halted = True
+    before = list(state.memory)
+
+    assert to_source(machine.result_expr()) == expected
+    assert state.memory == before
+
+
+def test_closure_adds_parent_path_and_jumps_to_code() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[20] = Word(MuredOpcode.CLOSURE, 27)
+    state.memory[21] = Word(None, 9)
+    state.memory[9] = Word(MuredOpcode.VAR, 0)
+    state.pc = 20
+    state.env = 20
+    state.free_space = 20
+
+    machine.step()
+
+    assert state.env == 19
+    assert state.memory[19] == Word(MuredOpcode.PNP, 27)
+    assert state.pc == 9
+
+
+def test_ep_result_restores_caller_path_and_activates_unshared_closure() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[20] = Word(MuredOpcode.CLOSURE, 27)
+    state.memory[21] = Word(None, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 21, True)
+    state.control_stack[0] = 24
+    state.c = 0
+    state.pc = 3
+    state.fsp = 3
+    state.env = 18
+    state.free_space = 18
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.env == 17
+    assert state.memory[17] == Word(MuredOpcode.PNP, 24, False)
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3)
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
+    assert state.pc == 20
+    assert state.direction is Direction.F
+
+    machine.step()
+
+    assert state.env == 16
+    assert state.memory[16] == Word(MuredOpcode.PNP, 27, False)
+    assert state.pc == 9
+    assert state.direction is Direction.F
+
+
+def test_ep_result_copies_already_shared_atom_without_reducing_again() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.EP, 20, False)
+    state.memory[20] = Word(
+        MuredOpcode.INT,
+        21,
+        False,
+        closure_slot=True,
+    )
+    state.memory[21] = Word(None, 9)
+    state.control_stack[0] = 24
+    state.c = 0
+    state.pc = 3
+    state.fsp = 3
+    state.env = 18
+    state.free_space = 18
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.env == 17
+    assert state.memory[17] == Word(MuredOpcode.PNP, 24, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 21, False)
+    assert state.fsp == 3
+    assert state.c == -1
+    assert state.pc == 2
+    assert state.direction is Direction.B
+
+
+def test_stop_is_reverse_only_and_points_pc_at_result_root() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.LAMBDA, "x")
+    state.pc = 2
+    state.fsp = 3
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.halted is True
+    assert state.pc == 3
+    assert state.cycles == 1
+
+
+def test_reverse_app_requires_saved_environment() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.pc = 3
+    state.fsp = 3
+    state.direction = Direction.B
+
+    with pytest.raises(ControlStackUnderflow):
+        machine.step()
+    assert state.cycles == 0
+
+
+def test_environment_allocation_does_not_reuse_cells_after_path_restore() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 30
+    state.free_space = 30
+
+    first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
+    assert first == 29
+    state.memory[30] = Word(MuredOpcode.UBV, 0, False)
+    state.env = 30
+
+    second = machine._allocate_environment(Word(MuredOpcode.UBV, 2, False))
+
+    assert second == 27
+    assert state.free_space == 27
+    assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
+    assert state.memory[28] == Word(MuredOpcode.PNP, 30, False)
+    assert state.memory[27] == Word(MuredOpcode.UBV, 2, False)
+    assert machine.lookup(1) == 30
+
+
+def test_environment_marker_uses_physical_frontier_without_extra_bridge() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.env = 30
+    state.free_space = 30
+
+    first = machine._allocate_environment(Word(MuredOpcode.UBV, 1, False))
+    assert first == 29
+    state.env = 30
+
+    marker = machine._push_environment_marker(26)
+
+    assert marker == 28
+    assert state.env == 28
+    assert state.free_space == 28
+    assert state.memory[29] == Word(MuredOpcode.UBV, 1, False)
+    assert state.memory[28] == Word(MuredOpcode.PNP, 26, False)
+    assert state.memory[27] is None
+
+
+def test_stop_rejects_forward_execution() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.pc = 2
+
+    with pytest.raises(IllegalTransition, match="STOP requires backward execution"):
+        machine.step()
+
+
+@pytest.mark.parametrize(
+    ("opcode", "name", "arity"),
+    [
+        (MuredOpcode.PRIM_1, "NOT", 1),
+        (MuredOpcode.PRIM_2, "+", 2),
+    ],
+)
+def test_head_strict_primitive_primes_without_firing(
+    opcode: MuredOpcode,
+    name: str,
+    arity: int,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=arity,
+    )
+    state.memory[0] = Word(opcode, name, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(opcode, name, True)
+    assert state.argcnt == arity + 1
+    assert state.prim == name
+    assert state.fire == arity
+    assert (state.direction, state.pc) == (Direction.B, 2)
+    assert state.q == 3
+
+
+@pytest.mark.parametrize(
+    ("argcnt", "quantum"),
+    [
+        (1, 3),
+        (2, 0),
+    ],
+)
+def test_head_binary_primitive_stays_unprimed_without_arity_or_quantum(
+    argcnt: int,
+    quantum: int,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=quantum,
+        phi=0,
+        argcnt=argcnt,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, "+", True)
+    state.memory[1] = Word(MuredOpcode.INT, 77, False)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.INT, 77, False)
+    assert state.memory[3] == Word(MuredOpcode.PRIM_2, "+", True)
+    assert state.fsp == 3
+    assert state.argcnt == argcnt + 1
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_non_head_strict_primitive_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=2,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_2, "+", False)
+    state.memory[1] = Word(MuredOpcode.INT, 1, True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_2, "+", False)
+    assert state.argcnt == 3
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_head_if_primes_only_the_condition() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=3,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.PRIM_0, "IF", True)
+    assert state.argcnt == 4
+    assert state.q == 3
+    assert state.prim == "IF"
+    assert state.fire == 1
+    assert (state.direction, state.pc) == (Direction.B, 3)
+
+
+def test_head_if_with_zero_quantum_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=3,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "IF", True)
+    assert state.q == 0
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_head_if_with_too_few_arguments_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=2,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "IF", True)
+    assert state.q == 3
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_non_head_y_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "Y", False)
+    state.memory[1] = Word(MuredOpcode.INT, 7, True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "Y", False)
+    assert state.argcnt == 2
+    assert state.q == 3
+    assert (state.direction, state.pc) == (Direction.F, 1)
+
+
+def test_head_y_with_no_argument_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=2,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        argcnt=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[2] = Word(MuredOpcode.STOP)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.PRIM_0, "Y", True)
+    assert state.argcnt == 1
+    assert state.q == 3
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.B, 2)
+
+
+def test_head_y_with_zero_quantum_is_passive() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=10,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.INT, 7, True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[3] = Word(MuredOpcode.INT, 7, True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[4] == Word(MuredOpcode.PRIM_0, "Y", True)
+    assert state.argcnt == 2
+    assert state.q == 0
+    assert (state.direction, state.pc) == (Direction.B, 3)
+
+
+def test_head_y_rewrites_non_app_argument_with_temporary_head_copy() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True, 9)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+    assert state.memory[4] == Word(MuredOpcode.SYM, "F", True, 9)
+    assert state.fsp == 3
+    assert state.q == 3
+    assert state.c == 0
+    assert state.control_stack[0] == 12
+    assert state.argcnt == 1
+    assert state.prim is None
+    assert state.fire == 0
+    assert (state.direction, state.pc) == (Direction.F, 4)
+
+
+def test_y_immediate_unfold_uses_one_reusable_scratch_word_outside_live_graph() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=12,
+        c=-1,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True, 9)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    machine = AbstractRED2Machine(state)
+    boundaries: set[tuple[int, int, int]] = set()
+
+    for iteration in range(32):
+        state.pc = 1
+        state.fsp = 3
+        state.c = -1
+        state.q = 4
+        state.argcnt = 1
+        state.direction = Direction.F
+        state.memory[3] = Word(MuredOpcode.SYM, "F", True, 9)
+        state.memory[4] = None
+        for index in range(len(state.control_stack)):
+            state.control_stack[index] = None
+
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
+
+        scratch = state.fsp + 1
+        boundaries.add((state.fsp, scratch, state.c))
+        assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+        assert state.memory[scratch] == Word(MuredOpcode.SYM, "F", True, 9)
+        assert state.memory[3].data == 0
+        assert state.memory[3].data != scratch
+
+        # The temporary headed copy is not part of the live graph.  Reusing its
+        # cell cannot retarget the recursive argument, which points back to the
+        # original (Y f) problem code at address zero.
+        state.memory[scratch] = Word(MuredOpcode.INT, iteration, True)
+        assert state.memory[3] == Word(MuredOpcode.APP, 0, False)
+        assert state.memory[0] == Word(MuredOpcode.SYM, "F", True, 9)
+
+    assert boundaries == {(3, 4, 0)}
+
+
+def test_y_immediate_scratch_collision_does_not_partially_unfold() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=3,
+        env=4,
+        free_space=4,
+        c=-1,
+        direction=Direction.F,
+        q=2,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    original_graph_word = state.memory[3]
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(
+        GraphEnvironmentCollision,
+        match="graph and environment collide",
+    ):
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
+
+    assert state.pc == 1
+    assert state.fsp == 3
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack == [None] * 4
+    assert state.memory[3] is original_graph_word
+
+
+def test_y_immediate_control_overflow_does_not_partially_unfold() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[17],
+        pc=1,
+        fsp=3,
+        env=10,
+        c=0,
+        direction=Direction.F,
+        q=2,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    original_graph_word = state.memory[3]
+    machine = AbstractRED2Machine(state)
+
+    with pytest.raises(ControlStackOverflow, match="control stack overflow"):
+        y_word = state.memory[1]
+        assert y_word is not None
+        machine._y(y_word)
+
+    assert state.pc == 1
+    assert state.fsp == 3
+    assert state.q == 2
+    assert state.c == 0
+    assert state.control_stack == [17]
+    assert state.memory[3] is original_graph_word
+    assert state.memory[4] is None
+
+
+def test_head_y_rewrites_app_argument_and_follows_code_without_extra_path_push(
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=1,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.F,
+        q=4,
+        phi=0,
+        argcnt=1,
+    )
+    state.memory[0] = Word(MuredOpcode.APP, 8, True)
+    state.memory[1] = Word(MuredOpcode.PRIM_0, "Y", True)
+    state.memory[5] = Word(MuredOpcode.APP, 8, True)
+    state.memory[8] = Word(MuredOpcode.INT, 1, True)
+    state.control_stack[0] = 13
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.memory[5] == Word(MuredOpcode.APP, 0, False)
+    assert state.fsp == 5
+    assert state.q == 3
+    assert state.c == 0
+    assert state.control_stack[0] == 13
+    assert state.argcnt == 1
+    assert (state.direction, state.pc) == (Direction.F, 8)
+
+
+def test_primitive_reverse_only_walks_backward() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 10,
+        control_stack=[None] * 4,
+        pc=5,
+        fsp=5,
+        env=10,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        argcnt=4,
+        prim="+",
+        fire=2,
+    )
+    state.memory[4] = Word(MuredOpcode.STOP)
+    state.memory[5] = Word(MuredOpcode.PRIM_2, "+", True)
+    machine = AbstractRED2Machine(state)
+
+    machine.step()
+
+    assert state.pc == 4
+    assert state.argcnt == 4
+    assert state.prim == "+"
+    assert state.fire == 2
+    assert state.direction is Direction.B
+
+
+def test_reverse_app_saves_active_primitive_context_before_argument_reduction() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.control_stack[0] = 27
+    state.c = 0
+    state.direction = Direction.B
+    state.prim = "+"
+    state.fire = 2
+
+    machine.step()
+
+    assert state.env == state.free_space == 31
+    assert state.memory[31] == Word(MuredOpcode.PNP, 27, False)
+    assert state.c == 0
+    assert type(state.control_stack[0]).__name__ == "_SubgraphFrame"
+    assert state.prim is None
+    assert state.fire == 0
+    assert state.memory[4] == Word(MuredOpcode.JOIN, 3, False, 1)
+    assert (state.direction, state.pc) == (Direction.F, 9)
+
+
+def test_nested_app_join_does_not_restore_outer_primitive_context() -> None:
+    expr = parse_expr("(INTEGER? (FOO X))")
+    machine = AbstractRED2Machine.from_expr(
+        expr,
+        quantum=20,
+        memory_words=128,
+        control_words=32,
+    )
+
+    machine.run()
+
+    assert to_source(machine.result_expr()) == "(INTEGER? (FOO X))"
+
+
+def test_join_restores_primitive_context_compacts_int_and_decrements_fire() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9)
+    state.memory[9] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 3
+    state.fsp = 3
+    state.env = 20
+    state.control_stack[0] = 27
+    state.c = 0
+    state.direction = Direction.B
+    state.prim = "+"
+    state.fire = 2
+
+    machine.step()
+    state.memory[5] = Word(MuredOpcode.INT, 2, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.INT, 2, False)
+    assert state.fsp == 3
+    assert state.c == -1
+    assert state.prim == "+"
+    assert state.fire == 1
+    assert state.pc == 2
+
+
+@pytest.mark.parametrize(
+    ("primitive", "operand", "expected"),
+    [
+        (
+            "1+",
+            Word(MuredOpcode.FLOAT, 1.5, False),
+            Word(MuredOpcode.FLOAT, 2.5, True),
+        ),
+        (
+            "FLOOR",
+            Word(MuredOpcode.FLOAT, 3.75, False),
+            Word(MuredOpcode.INT, 3, True),
+        ),
+        (
+            "EVEN?",
+            Word(MuredOpcode.INT, 8, False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+        (
+            "NOT",
+            Word(MuredOpcode.SYM, "TRUE", False),
+            Word(MuredOpcode.SYM, "FALSE", True),
+        ),
+        (
+            "CHAR?",
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+    ],
+)
+def test_unary_strict_primitive_fire_overwrites_and_reclaims(
+    primitive: str,
+    operand: Word,
+    expected: Word,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim=primitive,
+        fire=0,
+    )
+    state.memory[2] = operand
+    state.memory[3] = Word(MuredOpcode.PRIM_1, primitive, True)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory[2] == expected
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+    assert state.prim is None
+    assert state.fire == 0
+
+
+@pytest.mark.parametrize(
+    ("primitive", "second", "first", "expected"),
+    [
+        (
+            "+",
+            Word(MuredOpcode.FLOAT, 0.5, False),
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.FLOAT, 2.5, True),
+        ),
+        (
+            "/",
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.INT, 7, False),
+            Word(MuredOpcode.FLOAT, 3.5, True),
+        ),
+        (
+            "<",
+            Word(MuredOpcode.FLOAT, 2.5, False),
+            Word(MuredOpcode.INT, 2, False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+        (
+            "=",
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.CHAR, "a", False),
+            Word(MuredOpcode.SYM, "TRUE", True),
+        ),
+    ],
+)
+def test_binary_strict_primitive_fire_handles_atomic_result_types(
+    primitive: str,
+    second: Word,
+    first: Word,
+    expected: Word,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=4,
+        phi=0,
+        prim=primitive,
+        fire=0,
+    )
+    state.memory[2] = second
+    state.memory[3] = first
+    state.memory[4] = Word(MuredOpcode.PRIM_2, primitive, True)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory[2] == expected
+    assert state.fsp == 2
+    assert state.q == 3
+    assert state.pc == 1
+
+
+@pytest.mark.parametrize(
+    ("condition", "selected", "kept_path"),
+    [
+        ("TRUE", Word(MuredOpcode.APP, 10, False), 21),
+        ("FALSE", Word(MuredOpcode.APP, 9, False), 20),
+    ],
+)
+def test_if_boolean_fire_selects_one_lazy_branch_and_reclaims_spine(
+    condition: str,
+    selected: Word,
+    kept_path: int,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.fsp == 1
+    assert state.pc == selected.data
+    assert state.q == 2
+    assert state.env == kept_path
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.control_stack[1] is None
+    assert state.argcnt == 0
+    assert state.direction is Direction.F
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_if_selected_app_survives_immediate_reuse_of_discarded_spine() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[9] = Word(MuredOpcode.INT, 99, True)
+    state.memory[10] = Word(MuredOpcode.INT, 42, True)
+    state.control_stack[0] = 14
+    state.control_stack[1] = 15
+    machine = AbstractRED2Machine(state)
+
+    machine._fire_primitive()
+
+    assert state.pc == 10
+    assert state.fsp == 1
+    assert state.env == 15
+    assert state.c == -1
+    for address in range(2, 6):
+        state.memory[address] = Word(MuredOpcode.SYM, f"POISON-{address}", True)
+
+    machine.step()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.pc == 1
+    assert state.fsp == 2
+    assert state.env == 15
+    assert state.c == -1
+
+
+@pytest.mark.parametrize(
+    ("condition", "false_branch", "true_branch"),
+    [
+        (
+            "TRUE",
+            Word(MuredOpcode.INT, 9, False),
+            Word(MuredOpcode.EP, 12, False),
+        ),
+        (
+            "FALSE",
+            Word(MuredOpcode.EP, 12, False),
+            Word(MuredOpcode.INT, 9, False),
+        ),
+    ],
+)
+def test_if_boolean_fire_selects_shared_ep_and_consumes_only_its_saved_path(
+    condition: str,
+    false_branch: Word,
+    true_branch: Word,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 24,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=24,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = false_branch
+    state.memory[3] = true_branch
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[12] = Word(MuredOpcode.INT, 42, False, closure_slot=True)
+    state.control_stack[0] = 20
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 2
+    assert state.pc == 2
+    assert state.env == 20
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.direction is Direction.B
+    assert state.prim is None
+    assert state.fire == 0
+
+
+@pytest.mark.parametrize(
+    ("condition", "false_branch", "true_branch"),
+    [
+        (
+            "TRUE",
+            Word(MuredOpcode.APP, 9, False),
+            Word(MuredOpcode.INT, 7, False),
+        ),
+        (
+            "FALSE",
+            Word(MuredOpcode.INT, 7, False),
+            Word(MuredOpcode.APP, 9, False),
+        ),
+    ],
+)
+def test_if_boolean_fire_selects_direct_value_and_discards_unselected_app_path(
+    condition: str,
+    false_branch: Word,
+    true_branch: Word,
+) -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 6,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=0,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = false_branch
+    state.memory[3] = true_branch
+    state.memory[4] = Word(MuredOpcode.SYM, condition, False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.memory[9] = Word(MuredOpcode.INT, 99, True)
+    state.control_stack[0] = 14
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 7, True)
+    assert state.memory[9] == Word(MuredOpcode.INT, 99, True)
+    assert state.fsp == 2
+    assert state.pc == 2
+    assert state.env == 16
+    assert state.q == 2
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.direction is Direction.B
+
+
+def test_if_boolean_fire_with_exhausted_quantum_reconstructs() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 12,
+        control_stack=[None] * 4,
+        pc=4,
+        fsp=5,
+        env=12,
+        c=1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 8, False)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "TRUE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 10
+    state.control_stack[1] = 11
+    before = list(state.memory)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.pc == 1
+    assert state.q == 0
+    assert state.c == -1
+    assert state.control_stack[0] is None
+    assert state.control_stack[1] is None
+    assert state.prim is None
+    assert state.fire == 0
+
+
+def test_if_non_boolean_fire_starts_zero_quantum_branch_reconstruction() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.APP, 10, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "MAYBE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.q == 0
+    assert state.pc == 3
+    assert state.prim == "__IF_RECONSTRUCT__"
+    assert state.fire == 2
+    assert state.c == 2
+    assert state.control_stack[1] == 20
+    assert state.control_stack[2] == 21
+
+
+def test_if_non_boolean_reconstruction_counts_ep_branch_path() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=5,
+        env=16,
+        c=1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="IF",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 9, False)
+    state.memory[3] = Word(MuredOpcode.EP, 12, False)
+    state.memory[4] = Word(MuredOpcode.SYM, "MAYBE", False)
+    state.memory[5] = Word(MuredOpcode.PRIM_0, "IF", True)
+    state.control_stack[0] = 20
+    state.control_stack[1] = 21
+    machine = AbstractRED2Machine(state)
+
+    machine._fire_primitive()
+
+    assert state.q == 0
+    assert state.pc == 3
+    assert state.prim == "__IF_RECONSTRUCT__"
+    assert state.fire == 2
+    assert state.c == 2
+    assert type(state.control_stack[0]).__name__ == "_SavedQuantum"
+    assert state.control_stack[1] == 20
+    assert state.control_stack[2] == 21
+
+
+
+def test_wrong_type_strict_fire_leaves_compact_spine_unchanged() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=4,
+        phi=0,
+        prim="MOD",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.FLOAT, 2.0, False)
+    state.memory[3] = Word(MuredOpcode.INT, 7, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "MOD", True)
+    before = list(state.memory)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.q == 4
+    assert state.pc == 1
+
+
+def test_strict_fire_with_exhausted_quantum_leaves_compact_spine_unchanged() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=5,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="-",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.INT, 2, False)
+    state.memory[3] = Word(MuredOpcode.INT, 7, False)
+    state.memory[4] = Word(MuredOpcode.PRIM_2, "-", True)
+    before = list(state.memory)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 5
+    assert state.q == 0
+    assert state.pc == 1
+
+
+def test_deferred_strict_primitive_fire_remains_unreduced() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=4,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="TAG",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.SYM, "NIL", False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "TAG", True)
+    before = list(state.memory)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory == before
+    assert state.fsp == 4
+    assert state.q == 3
+    assert state.pc == 1
+
+
+def test_primitive_rejects_malformed_name() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=0,
+        fsp=1,
+        env=8,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+    )
+    state.memory[0] = Word(MuredOpcode.PRIM_1, "", True)
+    state.memory[1] = Word(MuredOpcode.STOP)
+
+    with pytest.raises(
+        IllegalTransition,
+        match="PRIM requires a non-empty primitive name",
+    ):
+        AbstractRED2Machine(state).step()
+
+
+def test_join_head_atomic_result_rewinds_to_destination_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, True)
+    state.memory[2] = Word(MuredOpcode.INT, 777, False)
+    state.memory[3] = Word(MuredOpcode.INT, 888, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 1
+    assert state.pc == 0
+
+
+def test_join_apply_atomic_result_drops_only_join_result_suffix_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, False)
+    state.memory[2] = Word(MuredOpcode.INT, 777, False)
+    state.memory[3] = Word(MuredOpcode.INT, 888, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.INT, 42, False)
+    assert state.memory[2] == Word(MuredOpcode.INT, 777, False)
+    assert state.memory[3] == Word(MuredOpcode.INT, 888, False)
+    assert state.fsp == 3
+    assert state.pc == 0
+
+
+def test_join_head_pointer_result_retains_live_graph_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[1] = Word(MuredOpcode.APP, 9, True)
+    state.memory[4] = Word(MuredOpcode.JOIN, 1, False)
+    state.memory[5] = Word(MuredOpcode.APP, 20, True)
+    state.memory[20] = Word(MuredOpcode.INT, 42, True)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[1] == Word(MuredOpcode.APP, 20, True)
+    assert state.memory[5] == Word(MuredOpcode.APP, 20, True)
+    assert state.memory[20] == Word(MuredOpcode.INT, 42, True)
+    assert state.fsp == 5
+    assert state.pc == 0
+
+
+def test_struct_selector_reads_compacted_inline_atomic_field_as_value() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 16,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=3,
+        env=16,
+        c=-1,
+        direction=Direction.B,
+        q=3,
+        phi=0,
+        prim="CAR",
+        fire=0,
+    )
+    state.memory[2] = Word(MuredOpcode.APP, 8, False)
+    state.memory[3] = Word(MuredOpcode.PRIM_1, "CAR", True)
+    state.memory[8] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[9] = Word(MuredOpcode.INT, 99, False)
+    state.memory[10] = Word(MuredOpcode.INT, 42, False)
+    state.memory[11] = Word(MuredOpcode.VAR, 0, True)
+
+    AbstractRED2Machine(state)._fire_primitive()
+
+    assert state.memory[2] == Word(MuredOpcode.INT, 42, True)
+    assert state.memory[9] == Word(MuredOpcode.INT, 99, False)
+    assert state.memory[10] == Word(MuredOpcode.INT, 42, False)
+    assert state.memory[11] == Word(MuredOpcode.VAR, 0, True)
+    assert state.fsp == 2
+    assert state.q == 2
+    assert state.pc == 1
+
+
+def test_join_nonhead_var_result_remains_pointer_backed_like_hilton() -> None:
+    machine = base_machine()
+    state = machine.state
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+    state.memory[5] = Word(MuredOpcode.VAR, 0, False)
+    state.pc = 4
+    state.fsp = 5
+    state.direction = Direction.B
+
+    machine.step()
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[5] == Word(MuredOpcode.VAR, 0, False)
+    assert state.fsp == 5
+    assert state.pc == 2
+
+def test_equality_split_uses_typed_join_and_reclaims_generated_scratch() -> None:
+    from thor_compile.red2 import load_faithful_machine
+
+    machine = load_faithful_machine(
+        parse_expr("(EQUAL? (F 1 2) (F 1 2))"),
+        quantum=1,
+        memory_words=192,
+        control_words=64,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+    machine.run()
+
+    events = machine.memory_events()
+    equality_enters = [
+        event
+        for event in events
+        if event.name == "SUBGRAPH_ENTER"
+        and event.data.get("prim") == "__EQUALITY_CONTINUE__"
+    ]
+    rewinds = [event for event in events if event.name == "GRAPH_REWIND"]
+
+    assert equality_enters
+    assert any(event.name == "JOIN_RETURN" for event in events)
+    assert rewinds
+    assert machine.state.c == -1
+    assert to_source(machine.result_expr()) == "TRUE"
+
+    peak = machine.memory_snapshot().peak_graph_words
+    before = to_source(machine.result_expr())
+    for address in range(machine.state.fsp + 1, peak):
+        machine.state.memory[address] = Word(MuredOpcode.INT, 999, True)
+    assert to_source(machine.result_expr()) == before
+
+
+def test_equality_public_q0_residual_recharges_without_private_state() -> None:
+    from abstract_red2_machine.machine import MuredStopReason
+    from thor_compile.red2 import load_faithful_machine
+
+    source = "(EQUAL? (LAMBDA (x) (F x)) (LAMBDA (y) (F y)))"
+    machine = load_faithful_machine(
+        parse_expr(source), quantum=0, memory_words=192, control_words=64
+    )
+
+    machine.run()
+    assert machine.state.halted
+    assert to_source(machine.result_expr()) == source
+    assert machine.state.c == -1
+
+    machine.recharge_quantum(1)
+    assert machine.run_until_suspend().reason is MuredStopReason.QUANTUM_EXHAUSTED
+    assert machine.state.q == 0
+    assert machine.state.halted
+    assert machine.state.c == -1
+    assert not any(
+        word is not None
+        and isinstance(word.data, str)
+        and word.data.startswith("__EQUAL")
+        for word in machine.state.memory[: machine.state.fsp + 1]
+    )
+
+    machine.recharge_quantum(1)
+    assert machine.run_until_suspend().reason is MuredStopReason.COMPLETE
+    assert to_source(machine.result_expr()) == "TRUE"
+    assert machine.state.c == -1
+
+
+def test_repeated_equality_reuses_fixed_scratch_envelope() -> None:
+    from abstract_red2_machine.machine import _EqualityFrame
+    from thor_compile.red2 import load_faithful_machine
+    from thor_lang.ast import Definition, StructDef
+    from thor_lang.normalization import normalize_program
+    from thor_lang.parser import parse_program
+    from thor_lang.primitives import install_struct_definition
+
+    source = """
+    loop == (lambda (n)
+      (if (= n 0)
+          TRUE
+          (if (EQUAL? (F 1 2) (F 1 2))
+              (loop (1- n))
+              FALSE)))
+    (loop 12)
+    """
+    program = normalize_program(parse_program(source))
+    definitions = {}
+    action = None
+    for form in program.forms:
+        if isinstance(form, Definition):
+            definitions[form.name] = form.expr
+        elif isinstance(form, StructDef):
+            install_struct_definition(form.tag, form.accessors, definitions)
+        else:
+            action = form
+    assert action is not None
+
+    machine = load_faithful_machine(
+        action,
+        quantum=1000,
+        definitions=definitions,
+        memory_words=4096,
+        control_words=512,
+        memory_diagnostics=True,
+        poison_reclaimed_environment=True,
+    )
+    scratch_deltas = []
+    active = False
+    start_fsp = -1
+    peak_fsp = -1
+
+    for _ in range(100_000):
+        state = machine.state
+        has_equality = any(
+            isinstance(entry, _EqualityFrame)
+            for entry in state.control_stack[: state.c + 1]
+        )
+        if has_equality and not active:
+            active = True
+            start_fsp = state.fsp
+            peak_fsp = state.fsp
+        elif has_equality:
+            peak_fsp = max(peak_fsp, state.fsp)
+        elif active:
+            scratch_deltas.append(peak_fsp - start_fsp)
+            active = False
+        if state.halted:
+            break
+        machine.step()
+    else:
+        pytest.fail("recursive equality probe exceeded cycle budget")
+
+    assert to_source(machine.result_expr()) == "TRUE"
+    assert len(scratch_deltas) == 12
+    assert scratch_deltas[1:] == [scratch_deltas[0]] * 11
+    assert machine.state.c == -1

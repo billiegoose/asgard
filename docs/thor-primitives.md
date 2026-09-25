@@ -175,7 +175,7 @@ They are not all present today.
 
 ## Simulator IO Actions
 
-`uv run thor` and `uv run red2` run source-file programs as host-simulated IO
+`uv run thor` and `uv run abs` run source-file programs as host-simulated IO
 actions. With `--expr`, they run IO actions through the simulator and pure
 expressions through the normal THOR/RED2 reducers.
 
@@ -201,7 +201,7 @@ Example:
 ### Simulated Device Actions
 
 Python RED2 supports exactly `UART-RX`, `UART-TX`, `UART-TX-BYTES`, and `CLOCK`
-as native `MuredMachine` suspension points in this device subset. A running machine
+as native `AbstractRED2Machine` suspension points in this device subset. A running machine
 returns a host-call suspension, the RED2 scheduler performs that effect, and the
 same machine resumes without rebuilding its graph or continuation. `LEDS` and
 `TICKS` remain THOR-host simulator actions and are not part of the Python RED2
@@ -224,7 +224,7 @@ scheduler choices.
   counter.
 - `CLOCK` — return the current Unix timestamp in milliseconds as an integer. It
   is an IO action and must be sequenced with `IO-BIND` or `IO-THEN`. Python
-  THOR/RED2 and Rust/Wasm runners support `--clock <path>` as a latest-value
+  THOR and RED2 runners support `--clock <path>` as a latest-value
   clock source for deterministic tests; malformed clock lines are ignored.
 
 The surface API hides explicit world-token threading. Internally these actions
@@ -244,8 +244,7 @@ Example fixtures:
 - `examples/breakout.thor` runs a 20x12 ANSI terminal Breakout example with
   score, lives, arrow-key paddle movement, and clock-paced ball motion.
 
-Run them with `mise run thor`, `mise run red2`, `mise run rust`, or
-`mise run wasm` where supported. Use `--clock <path>` with Breakout to provide
+Run them with `mise run thor`, `mise run abs`, `mise run con`, or `mise run syn` where supported. Use `--clock <path>` with Breakout to provide
 newline-delimited millisecond timestamps from a controlled latest-value clock
 source; omit `--clock` to use the host system clock.
 

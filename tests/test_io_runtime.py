@@ -7,10 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from red2_engine.io_runtime import Red2IoHost, Red2RechargeEvent, run_red2_io_action
-from thor_engine.golden import ModelName
-from thor_engine.io_runtime import LatestFileClockSource, run_io_source
-from thor_engine.semantics import ThorDefinitionCache, reduce_expr
+from abstract_red2_machine.io_runtime import (
+    Red2IoHost,
+    Red2RechargeEvent,
+    run_red2_io_action,
+)
+from thor_interpreter.golden import ModelName
+from thor_interpreter.io_runtime import LatestFileClockSource, run_io_source
+from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr
 from thor_lang.ast import Definition, Expr
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -81,7 +85,7 @@ def test_clock_io_action_returns_integer_for_thor_model() -> None:
 def test_clock_io_action_returns_integer_for_red2_model() -> None:
     result = run_io_source(
         "(CLOCK)",
-        model="red2",
+        model="abs",
         quantum=100,
         stdin=StringIO(""),
         stdout=StringIO(),
@@ -140,7 +144,7 @@ def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:
 
         (loop 0)
         """,
-        model="red2",
+        model="abs",
         quantum=1000,
         stdin=StringIO(""),
         stdout=StringIO(),
@@ -152,7 +156,7 @@ def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:
 
 
 def test_thor_io_pure_reducer_has_no_red2_faithful_machine_branch() -> None:
-    source = Path("models/python/thor_engine/io_runtime.py").read_text()
+    source = Path("models/thor_interpreter/io_runtime.py").read_text()
     pure_start = source.index("    def _pure(self, expr: Expr) -> Expr:")
     pure_end = source.index("    def _integer_arg", pure_start)
     pure_source = source[pure_start:pure_end]
@@ -165,7 +169,7 @@ def test_thor_io_pure_reducer_has_no_red2_faithful_machine_branch() -> None:
 def test_red2_io_path_delegates_to_red2_owned_runner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import thor_engine.io_runtime as runtime
+    import thor_interpreter.io_runtime as runtime
 
     original = run_red2_io_action
     calls = 0
@@ -192,7 +196,7 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
 
     monkeypatch.setattr(runtime, "run_red2_io_action", counting_runner)
 
-    result, stdout, stderr = run_io("(UART-TX 65)", model="red2")
+    result, stdout, stderr = run_io("(UART-TX 65)", model="abs")
 
     assert result == "NIL"
     assert stdout == "A"
@@ -215,7 +219,7 @@ def test_red2_deep_io_then_chain_does_not_consume_python_stack() -> None:
     previous_limit = sys.getrecursionlimit()
     sys.setrecursionlimit(80)
     try:
-        result, stdout, stderr = run_io(source, model="red2", quantum=20_000)
+        result, stdout, stderr = run_io(source, model="abs", quantum=20_000)
     finally:
         sys.setrecursionlimit(previous_limit)
 
@@ -405,7 +409,7 @@ def test_alphanumerics_fixture_prints_digits_letters_and_newline() -> None:
     assert stdout == "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n"
     assert stderr == ""
 
-    red2_result, red2_stdout, red2_stderr = run_io(source, model="red2")
+    red2_result, red2_stdout, red2_stderr = run_io(source, model="abs")
     assert red2_result == result
     assert red2_stdout == stdout
     assert red2_stderr == stderr
@@ -423,7 +427,7 @@ def test_caesar_fixture_rotates_letters_until_escape() -> None:
     red2_result, red2_stdout, red2_stderr = run_io(
         source,
         stdin_text="ABYZabyz-09\x1bignored",
-        model="red2",
+        model="abs",
     )
     assert red2_result == result
     assert red2_stdout == stdout
@@ -468,7 +472,7 @@ def test_pong_runs_on_red2_and_quits_cleanly() -> None:
     stderr = StringIO()
     result = run_io_source(
         Path("examples/pong.thor").read_text(),
-        model="red2",
+        model="abs",
         quantum=50_000,
         stdin=StringIO("q"),
         stdout=stdout,
@@ -536,7 +540,7 @@ def test_breakout_red2_stdout_matches_thor_byte_for_byte() -> None:
     red2_stderr = StringIO()
     result = run_io_source(
         source,
-        model="red2",
+        model="abs",
         quantum=50_000,
         stdin=StringIO(stdin_text),
         stdout=red2_stdout,

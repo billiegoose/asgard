@@ -1,4 +1,4 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 from thor_lang.ast import Char
 from thor_lang.parser import parse_expr
 from thor_lang.pretty import to_source
@@ -6,7 +6,7 @@ from thor_lang.pretty import to_source
 
 def assert_model_parity(source: str, expected: str, quantum: int = 50) -> None:
     assert run_source(source, model="thor", quantum=quantum) == expected
-    assert run_source(source, model="red2", quantum=quantum) == expected
+    assert run_source(source, model="abs", quantum=quantum) == expected
 
 
 def test_character_constant_parses_and_prints() -> None:

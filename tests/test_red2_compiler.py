@@ -1,4 +1,4 @@
-from red2_engine.instructions import (
+from abstract_red2_machine.instructions import (
     Instruction,
     Opcode,
     decode_instruction,

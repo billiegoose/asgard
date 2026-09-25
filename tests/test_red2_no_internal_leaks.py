@@ -1,8 +1,8 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def test_red2_partial_lambda_application_does_not_print_pnp() -> None:
-    output = run_source("((LAMBDA (X) X) 42)", model="red2", quantum=0)
+    output = run_source("((LAMBDA (X) X) 42)", model="abs", quantum=0)
     assert "PNP" not in output
     assert "LAMBDA" in output
     assert "42" in output
@@ -16,7 +16,7 @@ def test_red2_partial_recursive_definition_does_not_print_pnp() -> None:
           (+ (fib (1- n)) (fib (1- (1- n))))))
     (fib 3)
     """
-    output = run_source(source, model="red2", quantum=2)
+    output = run_source(source, model="abs", quantum=2)
     assert "PNP" not in output
 
 
@@ -50,15 +50,15 @@ def test_structural_equality_private_symbols_are_machine_only() -> None:
 
 
 def test_residual_forwarding_is_copy_local_and_leaves_no_machine_marker() -> None:
-    from red2_engine.mured import (
+    from abstract_red2_machine.machine import (
+        AbstractRED2Machine,
+        AbstractRED2MachineState,
         Direction,
-        MuredMachine,
-        MuredMachineState,
         MuredOpcode,
         Word,
     )
 
-    state = MuredMachineState(
+    state = AbstractRED2MachineState(
         memory=[None] * 24,
         control_stack=[None] * 8,
         pc=0,
@@ -77,7 +77,7 @@ def test_residual_forwarding_is_copy_local_and_leaves_no_machine_marker() -> Non
     state.memory[3] = Word(MuredOpcode.INT, 7, True)
     state.memory[4] = Word(MuredOpcode.SYM, "__UNREACHABLE__", True)
     state.memory[5] = Word(MuredOpcode.INT, 999, True)
-    machine = MuredMachine(state)
+    machine = AbstractRED2Machine(state)
     source_before = tuple(state.memory)
 
     compact = machine._relinearize_result_graph()

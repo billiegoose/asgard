@@ -6,20 +6,20 @@ Status: retrospective design record backfilled at the accepted Tasks 1–10 chec
 
 The operator requested a faithful implementation of the Python RED2 machine as a synthesizable Pypeline/PipelineC processor suitable for eventual Basys 3 deployment. The target is not a combinational opcode demonstration: it is a persistent stateful reducer that owns RED2 graph/environment memory, control state, semantic contraction quantum, reconstruction, and the host-effect suspension boundary.
 
-The executable semantic oracle is `models/python/red2_engine/mured.py`. Hilton's thesis and archived RED2/HORSE material are historical authority when the executable model exposes a representation ambiguity. `archives/` and `thesis-transcription/` remain read-only evidence. The Pypeline processor is a cycle-level refinement of the same machine semantics, not a second language implementation with independently invented behavior.
+The executable semantic oracle is `models/abstract_red2_machine/machine.py`. Hilton's thesis and archived RED2/HORSE material are historical authority when the executable model exposes a representation ambiguity. `archives/` and `thesis-transcription/` remain read-only evidence. The Pypeline processor is a cycle-level refinement of the same machine semantics, not a second language implementation with independently invented behavior.
 
 This specification separates two layers deliberately:
 
-- `MuredMachine` is the architectural/ISA-level executable model: RED2 instructions, machine-visible registers, arena layout, control contexts, q semantics, JOIN/subgraph behavior, and host-call suspension/resume.
-- `Red2Processor` is the cycle-level hardware-oriented realization: fixed-width encodings, bounded storage, explicit microstates, fixed scratch, architectural commit points, and synthesizable control/data paths.
+- `AbstractRED2Machine` is the architectural/ISA-level executable model: RED2 instructions, machine-visible registers, arena layout, control contexts, q semantics, JOIN/subgraph behavior, and host-call suspension/resume.
+- `ConcreteRED2Machine` is the cycle-level hardware-oriented realization: fixed-width encodings, bounded storage, explicit microstates, fixed scratch, architectural commit points, and synthesizable control/data paths.
 
 The target flow is therefore:
 
 ```text
 THOR source
    -> μRED image
-   -> MuredMachine architectural oracle
-   -> Red2Processor cycle-level model
+   -> AbstractRED2Machine architectural oracle
+   -> ConcreteRED2Machine cycle-level model
    -> Pypeline/PipelineC
    -> FPGA implementation
 ```
@@ -71,7 +71,7 @@ The processor preserves the following non-negotiable invariants.
 
 The processor ABI must finitely encode every machine-visible value needed by the supported RED2 corpus: opcodes, `Word.head`, opcode payloads, graph/environment addresses, traversal direction, machine registers, primitive identity/state, scratch registers, status/fault codes, host-call request/result descriptors, and typed control entries.
 
-Graph storage grows upward through `fsp`; environment storage grows downward through `free_space`; logical `env` is a path/root and is not itself the physical allocator. The live arena maintains the same collision discipline as `MuredMachine`. PNP bridges express environment-path changes independently of physical allocation.
+Graph storage grows upward through `fsp`; environment storage grows downward through `free_space`; logical `env` is a path/root and is not itself the physical allocator. The live arena maintains the same collision discipline as `AbstractRED2Machine`. PNP bridges express environment-path changes independently of physical allocation.
 
 Control state is finite tagged storage. Entries required by the accepted machine include addresses and saved primitive/fire/quantum/definition-path state, typed subgraph frames, and equality state. Malformed tags, widths, addresses, overflows and underflows produce deterministic typed faults rather than partial writes or Python-level failures.
 
@@ -79,7 +79,7 @@ Scratch registers such as lookup address/data are architectural when the referen
 
 ## 5. Transition, subgraph and publication model
 
-The processor advances through explicit fetch/execute/commit microstates while preserving `MuredMachine.step()` as the architectural transition boundary. APP, APP_VAR, atomic values, LAMBDA, VAR, STOP and later semantic families operate over one persistent state and memory image.
+The processor advances through explicit fetch/execute/commit microstates while preserving `AbstractRED2Machine.step()` as the architectural transition boundary. APP, APP_VAR, atomic values, LAMBDA, VAR, STOP and later semantic families operate over one persistent state and memory image.
 
 Closure/environment execution uses the same graph/environment distinction as the oracle. Reverse APP may enter a child subgraph; CLOSURE follows code under an environment marker; EP preserves caller path semantics; JOIN returns a child result to a typed parent context. Child results must be published into parent-owned/live storage before the child's environment region is reclaimed or reused.
 
@@ -93,7 +93,7 @@ At the checkpoint preceding host-call implementation, Tasks 1–10 have been ind
 
 - A fixed-width `RED2_ABI_V1` encodes machine words, registers, statuses, faults and typed control entries.
 - Persistent graph/environment/control memories enforce bounded allocation, PNP bridging, collision checks and deterministic faults.
-- `Red2Processor` is a persistent clocked reducer with explicit microstates and architectural commit boundaries.
+- `ConcreteRED2Machine` is a persistent clocked reducer with explicit microstates and architectural commit boundaries.
 - APP/CLOSURE/EP/JOIN/PNP behavior, nested subgraph restoration and publication-before-reclamation match the accepted oracle corpus.
 - SYM and PRIM sequencing implement strict/deferred primitive setup without conflating semantic q with processor clocks.
 - Scalar, lazy IF/Y, recursive, STRUCT and equality slices execute on the processor for the accepted corpus, with unsupported behavior represented explicitly rather than silently delegated.
@@ -143,7 +143,7 @@ A debug single-transition operation may exist for verification. The logical ABI 
 
 ## 10. Differential proof strategy
 
-Correctness is established against `MuredMachine` at three layers.
+Correctness is established against `AbstractRED2Machine` at three layers.
 
 **Transition vectors.** The same encoded architectural pre-state plus relevant memory/control contents must produce the same committed post-state, writes, fault, quantum suspension, or host suspension.
 

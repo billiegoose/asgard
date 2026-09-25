@@ -13,8 +13,9 @@ authors = [{ name = "Billie" }]
 dependencies = []
 
 [project.scripts]
-thor = "thor_engine.cli:main"
-red2 = "red2_engine.cli:main"
+thor = "thor_interpreter.cli:main"
+abs = "abstract_red2_machine.cli:main"
+con = "concrete_red2_machine.cli:main"
 compile = "thor_compile.cli:main"
 
 [dependency-groups]
@@ -27,11 +28,12 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = [
-  "models/python/thor_lang",
-  "models/python/thor_engine",
-  "models/python/red2_engine",
-  "models/python/thor_compile",
-  "models/python/pypeline_red2",
+  "models/thor_lang",
+  "models/thor_compile",
+  "models/thor_interpreter",
+  "models/abstract_red2_machine",
+  "models/concrete_red2_machine",
+  "models/synthesizable_red2_machine",
 ]
 
 [tool.pytest.ini_options]
@@ -40,7 +42,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 88
-src = ["models/python", "tests"]
+src = ["models", "tests"]
 target-version = "py314"
 
 [tool.ruff.lint]
@@ -55,7 +57,10 @@ select = [
   "W",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"models/synthesizable_red2_machine/machine.py" = ["N802"]
+
 [tool.mypy]
 python_version = "3.14"
 strict = true
-files = ["models/python", "tests"]
+files = ["models", "tests"]

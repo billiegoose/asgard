@@ -30,9 +30,7 @@ WORKLOAD_DESCRIPTIONS = {
 
 BREAKOUT_BACKEND_NAMES = {
     "thor": "THOR",
-    "red2": "Python RED2",
-    "rust": "Rust RED2",
-    "wasm": "WASM RED2",
+    "abs": "Python RED2",
 }
 
 
@@ -128,7 +126,7 @@ def render_report(
                 "For THOR, the expression and visible definitions are translated "
                 "before timing; each sample times only reducer execution. For "
                 "RED2, a fresh faithful machine is compiled and loaded before "
-                "timing; each sample times only `MuredMachine.run()`. Result "
+                "timing; each sample times only `AbstractRED2Machine.run()`. Result "
                 "reconstruction and `to_source` rendering happen after the timer "
                 "stops. Warmups follow the same execution path but are excluded "
                 "from statistics. Median measured time is the primary timing "
@@ -181,13 +179,12 @@ def render_report(
                 "deterministic 70-tick input stream and controlled latest-value "
                 "clock, followed by `q`. It includes command startup, source "
                 "preparation, IO handling, terminal output, `mise` overhead, and "
-                "backend-specific host/runtime costs across THOR, Python RED2, "
-                "Rust RED2, and WASM RED2."
+                "backend-specific host/runtime costs across THOR and Python RED2."
             ),
             "",
             (
                 "Python RED2 executes the effectful program on one persistent "
-                "faithful `MuredMachine`; UART and CLOCK effects suspend and "
+                "faithful `AbstractRED2Machine`; UART and CLOCK effects suspend and "
                 "resume that same machine. The contraction quantum is a "
                 "scheduler/watchdog budget and is recharged after successful host "
                 "dispatch by default."

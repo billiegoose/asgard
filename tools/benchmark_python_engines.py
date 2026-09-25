@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from thor_compile.red2 import load_faithful_machine
-from thor_engine.golden import _initial_definitions
-from thor_engine.semantics import ThorDefinitionCache, _Reducer, translate
+from thor_interpreter.golden import _initial_definitions
+from thor_interpreter.semantics import ThorDefinitionCache, ThorInterpreter, translate
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -70,7 +70,7 @@ def prepare_benchmark(spec: BenchmarkSpec) -> PreparedBenchmark:
     source = spec.path.read_text()
     program = normalize_program(parse_program(source))
     thor_definitions = _initial_definitions(model="thor")
-    red2_definitions = _initial_definitions(model="red2")
+    red2_definitions = _initial_definitions(model="abs")
     expr: Expr | None = None
 
     for form in program.forms:
@@ -97,7 +97,7 @@ def prepare_benchmark(spec: BenchmarkSpec) -> PreparedBenchmark:
 
 
 def _run_thor(prepared: PreparedBenchmark, *, quantum: int) -> Sample:
-    reducer = _Reducer(prepared.thor_definitions.definitions, quantum)
+    reducer = ThorInterpreter(prepared.thor_definitions.definitions, quantum)
     started = time.perf_counter()
     reduced = reducer.reduce(prepared.thor_expr, (), 0)
     elapsed = time.perf_counter() - started

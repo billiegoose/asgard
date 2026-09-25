@@ -1,3 +1,0 @@
-[workspace]
-members = ["models/rust-red2"]
-resolver = "2"

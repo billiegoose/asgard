@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from red2_engine.io_runtime import (
+from abstract_red2_machine.io_runtime import (
     Red2IoHost,
     Red2IoRuntimeError,
     Red2IoSchedulerStats,
@@ -219,7 +219,7 @@ def test_definitions_and_arithmetic_are_reduced_by_faithful_machine() -> None:
 
 
 def test_red2_io_runtime_is_only_a_machine_scheduler_and_host_dispatcher() -> None:
-    import red2_engine.io_runtime as runtime
+    import abstract_red2_machine.io_runtime as runtime
 
     source = inspect.getsource(runtime)
     runner = inspect.getsource(runtime.run_red2_io_action)
@@ -232,7 +232,7 @@ def test_red2_io_runtime_is_only_a_machine_scheduler_and_host_dispatcher() -> No
         "_prepare_action_argument",
         "_reduce_pure",
         "pure_cache",
-        "thor_engine.semantics",
+        "thor_interpreter.semantics",
         "reduce_expr",
     ):
         assert forbidden not in source
@@ -241,7 +241,7 @@ def test_red2_io_runtime_is_only_a_machine_scheduler_and_host_dispatcher() -> No
 def test_red2_io_compiles_static_definitions_once_per_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import red2_engine.mured as mured
+    import abstract_red2_machine.machine as mured
 
     source = """
     emit == (LAMBDA (n) (UART-TX (+ n 64)))
@@ -306,7 +306,7 @@ def test_red2_io_recharges_same_machine_across_tiny_quantum(
 def test_red2_io_effect_fires_once_across_repeated_quantum_recharges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from red2_engine.mured import MuredMachine
+    from abstract_red2_machine.machine import AbstractRED2Machine
 
     # Several pure contractions must cross scheduler boundaries before the
     # UART effect becomes runnable. Reconstructing/recharging must never replay
@@ -316,15 +316,15 @@ def test_red2_io_effect_fires_once_across_repeated_quantum_recharges(
         "(IO-RETURN (+ (+ (+ (+ 1 2) 3) 4) 5)) "
         "(UART-TX 65))"
     )
-    original = MuredMachine.recharge_quantum
+    original = AbstractRED2Machine.recharge_quantum
     recharges = 0
 
-    def counting_recharge(self: MuredMachine, quantum: int) -> Any:
+    def counting_recharge(self: AbstractRED2Machine, quantum: int) -> Any:
         nonlocal recharges
         recharges += 1
         return original(self, quantum)
 
-    monkeypatch.setattr(MuredMachine, "recharge_quantum", counting_recharge)
+    monkeypatch.setattr(AbstractRED2Machine, "recharge_quantum", counting_recharge)
     host = FakeHost()
 
     result = run_red2_io_action(
@@ -346,26 +346,26 @@ def test_red2_io_effect_fires_once_across_repeated_quantum_recharges(
 def test_red2_io_default_refreshes_roomy_machine_after_host_dispatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from red2_engine.mured import MuredMachine
+    from abstract_red2_machine.machine import AbstractRED2Machine
 
     action, definitions = prepare(
         "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
     )
-    original_refresh = MuredMachine.refresh_quantum
-    original_checkpoint = MuredMachine.checkpoint_quantum
+    original_refresh = AbstractRED2Machine.refresh_quantum
+    original_checkpoint = AbstractRED2Machine.checkpoint_quantum
     refreshes: list[int] = []
     checkpoints: list[int] = []
 
-    def counting_refresh(self: MuredMachine, quantum: int) -> Any:
+    def counting_refresh(self: AbstractRED2Machine, quantum: int) -> Any:
         refreshes.append(quantum)
         return original_refresh(self, quantum)
 
-    def counting_checkpoint(self: MuredMachine, quantum: int) -> Any:
+    def counting_checkpoint(self: AbstractRED2Machine, quantum: int) -> Any:
         checkpoints.append(quantum)
         return original_checkpoint(self, quantum)
 
-    monkeypatch.setattr(MuredMachine, "refresh_quantum", counting_refresh)
-    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", counting_checkpoint)
+    monkeypatch.setattr(AbstractRED2Machine, "refresh_quantum", counting_refresh)
+    monkeypatch.setattr(AbstractRED2Machine, "checkpoint_quantum", counting_checkpoint)
     host = FakeHost()
     result = run_red2_io_action(
         action, definitions=definitions, quantum=20, host=host
@@ -380,19 +380,19 @@ def test_red2_io_default_refreshes_roomy_machine_after_host_dispatch(
 def test_red2_io_checkpoints_small_machine_after_host_dispatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from red2_engine.mured import MuredMachine
+    from abstract_red2_machine.machine import AbstractRED2Machine
 
     action, definitions = prepare(
         "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
     )
-    original = MuredMachine.checkpoint_quantum
+    original = AbstractRED2Machine.checkpoint_quantum
     checkpoints: list[int] = []
 
-    def counting_checkpoint(self: MuredMachine, quantum: int) -> Any:
+    def counting_checkpoint(self: AbstractRED2Machine, quantum: int) -> Any:
         checkpoints.append(quantum)
         return original(self, quantum)
 
-    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", counting_checkpoint)
+    monkeypatch.setattr(AbstractRED2Machine, "checkpoint_quantum", counting_checkpoint)
     host = FakeHost()
     result = run_red2_io_action(
         action,
@@ -482,15 +482,15 @@ def test_host_headroom_uses_free_space_with_valid_higher_saved_env(
     gap: int,
     expected: str,
 ) -> None:
-    from red2_engine.mured import MuredMachine, MuredOpcode, Word
+    from abstract_red2_machine.machine import AbstractRED2Machine, MuredOpcode, Word
 
-    original_resume = MuredMachine.resume_host_call
-    original_checkpoint = MuredMachine.checkpoint_quantum
-    original_refresh = MuredMachine.refresh_quantum
+    original_resume = AbstractRED2Machine.resume_host_call
+    original_checkpoint = AbstractRED2Machine.checkpoint_quantum
+    original_refresh = AbstractRED2Machine.refresh_quantum
     decisions: list[str] = []
-    machines: list[MuredMachine] = []
+    machines: list[AbstractRED2Machine] = []
 
-    def resume(machine: MuredMachine, word: Word) -> Any:
+    def resume(machine: AbstractRED2Machine, word: Word) -> Any:
         result = original_resume(machine, word)
         state = machine.state
         state.free_space = state.fsp + gap
@@ -508,17 +508,17 @@ def test_host_headroom_uses_free_space_with_valid_higher_saved_env(
         machines.append(machine)
         return result
 
-    def checkpoint(machine: MuredMachine, quantum: int) -> Any:
+    def checkpoint(machine: AbstractRED2Machine, quantum: int) -> Any:
         decisions.append("checkpoint")
         return original_checkpoint(machine, quantum)
 
-    def refresh(machine: MuredMachine, quantum: int) -> Any:
+    def refresh(machine: AbstractRED2Machine, quantum: int) -> Any:
         decisions.append("refresh")
         return original_refresh(machine, quantum)
 
-    monkeypatch.setattr(MuredMachine, "resume_host_call", resume)
-    monkeypatch.setattr(MuredMachine, "checkpoint_quantum", checkpoint)
-    monkeypatch.setattr(MuredMachine, "refresh_quantum", refresh)
+    monkeypatch.setattr(AbstractRED2Machine, "resume_host_call", resume)
+    monkeypatch.setattr(AbstractRED2Machine, "checkpoint_quantum", checkpoint)
+    monkeypatch.setattr(AbstractRED2Machine, "refresh_quantum", refresh)
     result, host = run("(UART-TX 65)", memory_words=8192)
     assert result == "NIL"
     assert host.writes == [b"A"]
@@ -689,8 +689,8 @@ def test_named_and_y_clock_recursion_expose_scheduler_memory_pressure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Observe recursive environment growth and scheduler compaction directly."""
-    import red2_engine.io_runtime as runtime
-    from red2_engine.mured import MuredMachine
+    import abstract_red2_machine.io_runtime as runtime
+    from abstract_red2_machine.machine import AbstractRED2Machine
 
     named_source = """
     DOT == 46
@@ -751,13 +751,13 @@ def test_named_and_y_clock_recursion_expose_scheduler_memory_pressure(
         list[tuple[int, int, int, int, int, int]],
     ]:
         action, definitions = prepare(source)
-        original_refresh = MuredMachine.refresh_quantum
-        original_checkpoint = MuredMachine.checkpoint_quantum
+        original_refresh = AbstractRED2Machine.refresh_quantum
+        original_checkpoint = AbstractRED2Machine.checkpoint_quantum
         refreshes: list[tuple[int, int, int, int, int, int]] = []
         checkpoints: list[tuple[int, int, int, int, int, int]] = []
 
         def sample(
-            machine: MuredMachine,
+            machine: AbstractRED2Machine,
             quantum: int,
         ) -> tuple[int, int, int, int, int, int]:
             state = machine.state
@@ -770,17 +770,17 @@ def test_named_and_y_clock_recursion_expose_scheduler_memory_pressure(
                 state.c,
             )
 
-        def refresh(machine: MuredMachine, quantum: int) -> Any:
+        def refresh(machine: AbstractRED2Machine, quantum: int) -> Any:
             refreshes.append(sample(machine, quantum))
             return original_refresh(machine, quantum)
 
-        def checkpoint(machine: MuredMachine, quantum: int) -> Any:
+        def checkpoint(machine: AbstractRED2Machine, quantum: int) -> Any:
             checkpoints.append(sample(machine, quantum))
             return original_checkpoint(machine, quantum)
 
         with monkeypatch.context() as patch:
-            patch.setattr(MuredMachine, "refresh_quantum", refresh)
-            patch.setattr(MuredMachine, "checkpoint_quantum", checkpoint)
+            patch.setattr(AbstractRED2Machine, "refresh_quantum", refresh)
+            patch.setattr(AbstractRED2Machine, "checkpoint_quantum", checkpoint)
             patch.setattr(runtime, "HOST_CHECKPOINT_HEADROOM_WORDS", 128)
             with pytest.raises(ProbeStopError):
                 run_red2_io_action(

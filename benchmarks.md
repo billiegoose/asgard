@@ -25,7 +25,7 @@ This battery compares the pure Python THOR reducer with the faithful Python RED2
 
 Source reading, parsing, normalization, definition preparation, and backend-specific setup happen outside the timed region. The runner performs an untimed parity preflight on THOR and RED2 before warmups or measured samples. If either backend raises, exceeds configured resources, or produces the wrong result, the benchmark command fails and `benchmarks.md` is not replaced.
 
-For THOR, the expression and visible definitions are translated before timing; each sample times only reducer execution. For RED2, a fresh faithful machine is compiled and loaded before timing; each sample times only `MuredMachine.run()`. Result reconstruction and `to_source` rendering happen after the timer stops. Warmups follow the same execution path but are excluded from statistics. Median measured time is the primary timing statistic; best time is diagnostic.
+For THOR, the expression and visible definitions are translated before timing; each sample times only reducer execution. For RED2, a fresh faithful machine is compiled and loaded before timing; each sample times only `AbstractRED2Machine.run()`. Result reconstruction and `to_source` rendering happen after the timer stops. Warmups follow the same execution path but are excluded from statistics. Median measured time is the primary timing statistic; best time is diagnostic.
 
 `thor_contractions` and `mured_cycles` are backend-native work counters and are not directly comparable instruction counts. No backend is expected or required to win every workload.
 
@@ -42,9 +42,9 @@ Recorded `2026-09-07T19:00:08-04:00` on `Darwin x86_64` with Python `3.14.7`. De
 
 ## End-to-end Breakout backend benchmark
 
-This benchmark measures a materially different boundary. It drives `examples/breakout.thor` through subprocesses using a deterministic 70-tick input stream and controlled latest-value clock, followed by `q`. It includes command startup, source preparation, IO handling, terminal output, `mise` overhead, and backend-specific host/runtime costs across THOR, Python RED2, Rust RED2, and WASM RED2.
+This benchmark measures a materially different boundary. It drives `examples/breakout.thor` through subprocesses using a deterministic 70-tick input stream and controlled latest-value clock, followed by `q`. It includes command startup, source preparation, IO handling, terminal output, `mise` overhead, and backend-specific host/runtime costs across THOR and Python RED2.
 
-Python RED2 executes the effectful program on one persistent faithful `MuredMachine`; UART and CLOCK effects suspend and resume that same machine. The contraction quantum is a scheduler/watchdog budget and is recharged after successful host dispatch by default.
+Python RED2 executes the effectful program on one persistent faithful `AbstractRED2Machine`; UART and CLOCK effects suspend and resume that same machine. The contraction quantum is a scheduler/watchdog budget and is recharged after successful host dispatch by default.
 
 Faithful loaders default to 1,048,576 graph/environment words and 8,192 control entries. Environment allocation is currently monotonic and there is no graph/environment garbage collector, so sufficiently long-lived programs can still exhaust the arena.
 
@@ -62,7 +62,5 @@ Recorded as part of the same `2026-09-07T19:00:08-04:00` benchmark run with 3 me
 | --- | ---: | ---: | ---: |
 | THOR | 1.458 s | 1.382 s | 1.00x |
 | Python RED2 | 831.65 ms | 793.02 ms | 1.75x |
-| Rust RED2 | 1.019 s | 1.006 s | 1.43x |
-| WASM RED2 | 792.67 ms | 749.59 ms | 1.84x |
 
 These end-to-end timings are diagnostic rather than a performance contract. Process startup, host load, filesystem state, and terminal/runtime overhead can move them between runs.

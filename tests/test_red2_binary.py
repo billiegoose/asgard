@@ -1,4 +1,4 @@
-from red2_engine.binary import (
+from abstract_red2_machine.binary import (
     MAGIC,
     Red2BinaryError,
     decode_bundle,

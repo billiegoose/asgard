@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from red2_engine.mured import (
+from abstract_red2_machine.machine import (
+    AbstractRED2Machine,
+    AbstractRED2MachineState,
     Direction,
     GraphEnvironmentCollision,
-    MuredMachine,
-    MuredMachineState,
     MuredOpcode,
     Word,
 )
 from thor_compile.red2 import load_faithful_machine
-from thor_engine.golden import _initial_definitions
-from thor_engine.semantics import reduce_expr
+from thor_interpreter.golden import _initial_definitions
+from thor_interpreter.semantics import reduce_expr
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -57,7 +57,7 @@ def test_recursive_user_struct_completes_in_default_faithful_memory(
     depth: int,
     expected: str,
 ) -> None:
-    expr, definitions = _prepare(_recursive_struct_source(depth), model="red2")
+    expr, definitions = _prepare(_recursive_struct_source(depth), model="abs")
     machine = load_faithful_machine(
         expr,
         quantum=5_000_000,
@@ -73,7 +73,7 @@ def test_recursive_user_struct_completes_in_default_faithful_memory(
 def test_recursive_user_struct_depth_four_prefixes_survive_reclaim_poisoning() -> None:
     source = _recursive_struct_source(4)
     thor_expr, thor_definitions = _prepare(source, model="thor")
-    red2_expr, red2_definitions = _prepare(source, model="red2")
+    red2_expr, red2_definitions = _prepare(source, model="abs")
     thor_matching_prefixes = {0, 1, 2, 3, 4, 8}
 
     for quantum in (0, 1, 2, 3, 4, 8, 16, 64, 512, 5_000_000):
@@ -164,7 +164,7 @@ def test_faithful_loader_default_memory_is_one_million_words() -> None:
 
 
 def test_graph_environment_collision_guard_still_rejects_overlap() -> None:
-    state = MuredMachineState(
+    state = AbstractRED2MachineState(
         memory=[None] * 4,
         control_stack=[None] * 2,
         pc=0,
@@ -178,7 +178,7 @@ def test_graph_environment_collision_guard_still_rejects_overlap() -> None:
         argcnt=0,
     )
     state.memory[0] = Word(MuredOpcode.INT, 1, True)
-    machine = MuredMachine(state)
+    machine = AbstractRED2Machine(state)
 
     with pytest.raises(
         GraphEnvironmentCollision, match="graph and environment collide"

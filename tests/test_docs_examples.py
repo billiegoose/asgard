@@ -2,20 +2,24 @@ import json
 from pathlib import Path
 
 
+def _asciinema_embed(alt_text: str, url: str) -> str:
+    return f"[![{alt_text}]({url}.svg)]({url})"
+
+
 def test_traceability_doc_names_models_and_thesis_chapters() -> None:
     text = Path("docs/thor-red2-prototype.md").read_text()
     assert "Chapter 3" in text
     assert "Chapter 4" in text
     assert "THOR interpreter" in text
     assert "RED2 machine" in text
-    assert "PypelineC" in text
+    assert "PipelineC/Pypeline" in text
     assert "faithful research prototype" in text
 
 
 def test_readme_mentions_direct_python_commands() -> None:
     text = Path("README.md").read_text()
     assert "uv run thor --expr" in text
-    assert "uv run red2 --expr" in text
+    assert "uv run abs --expr" in text
     assert "uv run compile --expr" in text
     assert "uv run thor-spec" not in text
 
@@ -42,8 +46,6 @@ def test_readme_links_red2_bytecode_reference() -> None:
     assert "docs/red2-bytecode.md" in text
     bytecode_reference = Path("docs/red2-bytecode.md").read_text()
     assert "RED2 Bytecode Format" in bytecode_reference
-    assert "Rust/WASM VM" in bytecode_reference
-    assert "wasmtime --dir /tmp" in bytecode_reference
 
 
 def test_top_level_examples_are_canonical() -> None:
@@ -108,14 +110,14 @@ def test_docs_describe_red2_owned_io_boundary() -> None:
     prototype = Path("docs/thor-red2-prototype.md").read_text()
     primitives = Path("docs/thor-primitives.md").read_text()
 
-    assert "one persistent `MuredMachine`" in prototype
+    assert "one persistent `AbstractRED2Machine`" in prototype
     assert "returns a `MuredHostCall`" in prototype
     assert "loading replacement machines" in prototype
     assert "every successful host dispatch resets the quantum" in prototype
     assert "1,048,576 graph/environment words" in prototype
     for action in ("UART-RX", "UART-TX", "UART-TX-BYTES", "CLOCK"):
         assert action in primitives
-    assert "native `MuredMachine` suspension points" in primitives
+    assert "native `AbstractRED2Machine` suspension points" in primitives
     assert "same machine resumes without rebuilding" in primitives
     assert "`LEDS` and" in primitives
     assert "`TICKS` remain THOR-host" in primitives
@@ -131,41 +133,10 @@ def test_docs_describe_clock_and_breakout() -> None:
     primitives = Path("docs/thor-primitives.md").read_text()
 
     assert "mise run thor examples/breakout.thor --clock" in readme
-    assert "mise run red2 examples/breakout.thor --clock" in readme
+    assert "mise run abs examples/breakout.thor --clock" in readme
     assert "CLOCK" in primitives
     assert "Unix timestamp" in primitives
     assert "latest-value clock" in primitives
-
-
-def test_docs_describe_rust_wasm_clock_and_breakout() -> None:
-    readme = Path("README.md").read_text()
-    primitives = Path("docs/thor-primitives.md").read_text()
-    bytecode = Path("docs/red2-bytecode.md").read_text()
-    examples = Path("examples/README.md").read_text()
-
-    assert "mise run rust examples/breakout.thor --clock" in readme
-    assert "mise run wasm examples/breakout.thor --clock" in readme
-    assert "Rust/Wasm runners support `--clock <path>`" in primitives
-    assert "--clock /tmp/asgard-clock" in bytecode
-    assert "examples/media/breakout-wasm.cast" in examples
-
-
-def test_wasm_breakout_cast_is_committed_asciicast_v2() -> None:
-    cast = Path("examples/media/breakout-wasm.cast")
-    header = json.loads(cast.read_text().splitlines()[0])
-
-    assert header["version"] == 2
-    assert header["title"] == "Asgard Breakout WASM"
-
-
-def _asciinema_embed(alt_text: str, url: str) -> str:
-    open_paren = chr(40)
-    close_paren = chr(41)
-    return (
-        f"[![{alt_text}]"
-        f"{open_paren}{url}.svg{close_paren}]"
-        f"{open_paren}{url}{close_paren}"
-    )
 
 
 def test_readme_embeds_latest_breakout_recording() -> None:
@@ -188,16 +159,11 @@ def test_examples_readme_embeds_latest_recordings() -> None:
         "Asgard Pong asciicast",
         "https://asciinema.org/a/4O27VEiw9i3E2gjy",
     )
-    wasm_embed = _asciinema_embed(
-        "Asgard Breakout WASM asciicast",
-        "https://asciinema.org/a/FwTtMVlFHcivZAfA",
-    )
 
     assert "mise run generate-video breakout" in readme
     assert "examples/media/breakout.cast" in readme
     assert breakout_embed in readme
     assert pong_embed in readme
-    assert wasm_embed in readme
 
 
 def test_canonical_benchmark_doc_describes_workloads_and_checksums() -> None:
@@ -223,7 +189,7 @@ def test_canonical_benchmark_doc_states_methodology_contract() -> None:
     assert "backend-specific setup happen outside the timed region" in text
     assert "translated before timing" in text
     assert "compiled and loaded before timing" in text
-    assert "times only `MuredMachine.run()`" in text
+    assert "times only `AbstractRED2Machine.run()`" in text
     assert (
         "Result reconstruction and `to_source` rendering happen after the timer stops"
         in text

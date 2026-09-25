@@ -2,8 +2,7 @@
 ;
 ; Run with:
 ;   mise run thor examples/hangman.thor --quantum 5000
-;   mise run red2 examples/hangman.thor --quantum 5000
-;   printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
+;   mise run abs examples/hangman.thor --quantum 5000
 
 ; --- constants ---
 A == 65

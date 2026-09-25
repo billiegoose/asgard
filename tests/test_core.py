@@ -1,6 +1,6 @@
 import pytest
 
-from thor_engine.core import FuelExhaustedError, Machine, MachineStatus, StepResult
+from thor_interpreter.core import FuelExhaustedError, Machine, MachineStatus, StepResult
 
 
 def test_machine_runs_until_halted() -> None:

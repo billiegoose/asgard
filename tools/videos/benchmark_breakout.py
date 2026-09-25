@@ -10,9 +10,7 @@ TICK_MS = 100
 START_MS = 1_700_000_000_000
 MODEL_COMMANDS = {
     "thor": "mise run thor",
-    "red2": "mise run red2",
-    "rust": "mise run rust",
-    "wasm": "mise run wasm",
+    "abs": "mise run abs",
 }
 
 

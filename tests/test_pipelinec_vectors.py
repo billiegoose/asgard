@@ -2,11 +2,10 @@ import math
 
 import pytest
 
-from pypeline_red2 import red2_stepper as abi
-from red2_engine.instructions import Instruction, Opcode, encode_instruction
-from red2_engine.mured import (
+from abstract_red2_machine.instructions import Instruction, Opcode, encode_instruction
+from abstract_red2_machine.machine import (
+    AbstractRED2MachineState,
     Direction,
-    MuredMachineState,
     MuredOpcode,
     Word,
     _EqualityFrame,
@@ -16,7 +15,8 @@ from red2_engine.mured import (
     _SavedQuantum,
     _SubgraphFrame,
 )
-from red2_engine.pipelinec_vectors import RED2ABICodec, emit_stepper_vectors
+from concrete_red2_machine import abi
+from concrete_red2_machine.pipelinec_vectors import RED2ABICodec, emit_stepper_vectors
 
 
 def test_stepper_vectors_include_passive_int_and_stop() -> None:
@@ -152,7 +152,7 @@ def test_red2_abi_round_trips_representative_architectural_state() -> None:
     control[2] = _SavedDefinitionPath(61)
     control[3] = _SubgraphFrame(50, 49, "IF", 2)
     control[4] = _EqualityFrame(5, 8)
-    state = MuredMachineState(
+    state = AbstractRED2MachineState(
         memory=memory,
         control_stack=control,
         pc=3,

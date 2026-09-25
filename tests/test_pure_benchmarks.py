@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from thor_compile.red2 import load_faithful_machine
-from thor_engine.golden import _initial_definitions
-from thor_engine.semantics import reduce_expr
+from thor_interpreter.golden import _initial_definitions
+from thor_interpreter.semantics import reduce_expr
 from thor_lang.ast import Definition, Expr, StructDef
 from thor_lang.normalization import normalize_program
 from thor_lang.parser import parse_program
@@ -49,7 +49,7 @@ def _run_thor(source: str) -> str:
 
 
 def _run_red2(source: str) -> str:
-    expr, definitions = _prepare(source, model="red2")
+    expr, definitions = _prepare(source, model="abs")
     machine = load_faithful_machine(
         expr,
         quantum=5_000_000,

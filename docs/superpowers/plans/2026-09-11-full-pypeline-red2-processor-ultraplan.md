@@ -4,18 +4,18 @@
 
 **Grammar:** claims-v1
 **Claim:** implement the faithful Python RED2 machine as a synthesizable Pypeline processor, first proven by differential simulation and then validated through the real Pypeline/PipelineC hardware flow. (elicited)
-**Goal:** Build a persistent, stateful RED2 processor that owns graph/environment/control memory, matches `MuredMachine` semantics across pure reduction, bounded q=0 residualization, and host-call suspension/resume, and is suitable for Basys 3 deployment under a PC host.
+**Goal:** Build a persistent, stateful RED2 processor that owns graph/environment/control memory, matches `AbstractRED2Machine` semantics across pure reduction, bounded q=0 residualization, and host-call suspension/resume, and is suitable for later FPGA deployment. Basys 3 transport and physical-board integration are explicitly outside this plan.
 **Tech Stack:** Python 3.14+, Pypeline/PipelineC, uv, pytest, ruff, mypy; external HDL/synthesis tooling for the explicit hardware gate.
 **Exam command:** uv run pytest -q {paths}
 **Spec:** `docs/superpowers/specs/2026-09-11-full-pypeline-red2-processor-design.md`
 **Acceptance:** suite — focused transition/memory/program exams, independent peer or adversarial review at declared high-risk boundaries, full Python quality gates, real Pypeline/PipelineC frontend plus HDL/synthesis smoke validation, and archive/thesis preservation are required; missing external hardware tooling blocks the hardware gate rather than silently waiving it.
-**Parallelization rationale:** Tasks 1–3 establish the representation, memory substrate, and first true stateful reducer and therefore serialize. Tasks 4–9 extend semantic coverage in dependency order because each consumes the prior machine substrate. Task 10 establishes the external quantum boundary only after pure reduction is complete; Task 11 then adds host suspension. Tasks 12–13 build whole-program differential proof on the completed semantics. Tasks 14–15 add external toolchain and transport integration after semantic parity exists. Task 16 is a write-nothing gate. Correctness and hardware observability, rather than maximal fanout, determine the dependency graph.
+**Parallelization rationale:** Tasks 1–3 establish the representation, memory substrate, and first true stateful reducer and therefore serialize. Tasks 4–9 extend semantic coverage in dependency order because each consumes the prior machine substrate. Task 10 establishes the external quantum boundary only after pure reduction is complete; Task 11 then adds host suspension. Tasks 12–13 build whole-program differential proof on the completed semantics. Task 14 crosses from simulation into the real Pypeline/PipelineC hardware flow. Task 15 is explicitly deferred from this plan; Basys 3 host transport belongs to later board-integration work after the separate OpenXC7/nextpnr/Project X-Ray Pypeline backend is available. Task 16 is a write-nothing gate over the reducer and synthesis artifact. Correctness and hardware observability, rather than maximal fanout, determine the dependency graph.
 
 **Poor Girl's Codex delegation policy:** Execute this plan through `poor_girls_codex`. **All delegation MUST use Poor Girl's Codex's chatgpt-web `subagent {name,prompt}` tool.** Whenever a task calls for a `peer` or `adversarial` review, or whenever the executing agent delegates implementation, investigation, verification, or any other work to another agent, create that delegate with `subagent`; do not invoke Pi subagents, Paseo subagents, CLI agent runners, or any other agent-spawning mechanism. Give each `subagent` a self-contained prompt naming the task, relevant files, current state, claim/proof obligations, constraints, and requested deliverable. Use separate subagents for genuinely independent work where useful, while respecting the dependency graph above. Subagents report findings/results back to the parent Poor Girl's Codex session; the parent agent remains responsible for integrating changes, resolving conflicts, running the required exams/gates, and determining whether each task is actually complete.
 
 ## Goal
 
-Implement the faithful Python `MuredMachine` execution semantics as a synthesizable Pypeline/PipelineC RED2 processor, using the Python machine as the executable oracle and preserving the architectural boundary required for eventual FPGA operation.
+Implement the faithful Python `AbstractRED2Machine` execution semantics as a synthesizable Pypeline/PipelineC RED2 processor, using the Python machine as the executable oracle and preserving the architectural boundary required for eventual FPGA operation.
 
 The finished artifact must execute non-trivial compiled RED2 programs by repeatedly advancing persistent machine state, mutating graph/environment memory, maintaining the control stack, respecting the semantic contraction quantum, reconstructing a bounded residual graph at q=0, and suspending/resuming for host-dispatched effects. It must not merely classify opcodes or calculate isolated next-register examples.
 
@@ -49,7 +49,7 @@ The Basys 3 deployment model is host-supervised: the PC is the loader/debugger/s
 
 ## Semantic authority and non-negotiable boundaries
 
-1. `models/python/red2_engine/mured.py` is the executable transition oracle. Pypeline does not invent a second RED2 semantics.
+1. `models/abstract_red2_machine/machine.py` is the executable transition oracle. Pypeline does not invent a second RED2 semantics.
 2. Hilton's thesis/archive material remains historical authority when a hardware representation choice exposes an ambiguity. Do not edit `archives/` or `thesis-transcription/`.
 3. One loaded program corresponds to one live RED2 machine state. Host calls and quantum boundaries do not instantiate a replacement evaluator.
 4. `q` is a semantic contraction budget, not an FPGA clock-cycle counter. A contraction may consume many hardware clocks.
@@ -57,7 +57,7 @@ The Basys 3 deployment model is host-supervised: the PC is the loader/debugger/s
 6. Host effects are traps at primitive firing. The host may service the request and return a machine value; it must not evaluate RED2 continuations or monadic sequencing.
 7. Pure RED2 primitives that are practical in hardware remain processor operations. Do not turn arithmetic/comparison/etc. into host calls merely to simplify implementation.
 8. Pypeline source must remain synthesizable: fixed-width values and bounded memories/state machines, with no dynamic Python allocation or Python-object semantics in the hardware path.
-9. Correctness is established by shared state/transition/program traces against `MuredMachine`, not by duplicating expected behavior manually in Pypeline-specific tests.
+9. Correctness is established by shared state/transition/program traces against `AbstractRED2Machine`, not by duplicating expected behavior manually in Pypeline-specific tests.
 
 ## Hardware representation contract
 
@@ -115,19 +115,19 @@ Tests must compare architectural state, not Python-only diagnostic bookkeeping. 
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_stepper.py`
-- Modify: `models/python/pypeline_red2/README.md`
-- Modify: `models/python/red2_engine/pipelinec_vectors.py`
+- Modify: `models/concrete_red2_machine/abi.py`
+- Modify: `models/concrete_red2_machine/README.md`
+- Modify: `models/abstract_red2_machine/pipelinec_vectors.py`
 - Test: `tests/test_pipelinec_vectors.py`
 - Test: `tests/test_pypeline_red2_static.py`
 
-**Claim:** Encode enough RED2 architectural state to represent a loaded `MuredMachine` checkpoint without relying on Python objects or strings inside the synthesizable processor. (derived)
+**Claim:** Encode enough RED2 architectural state to represent a loaded `AbstractRED2Machine` checkpoint without relying on Python objects or strings inside the synthesizable processor. (derived)
 Machine: M1. Every required opcode, direction, status and machine register has a fixed-width encoding with explicit range checks. M2. Word/address/control-stack encodings round-trip representative Python machine states without semantic loss. M3. Hardware state excludes diagnostics and host conveniences that are not part of execution semantics.
 
-**Authorized-by:** Current `MuredMachineState`; current `MuredOpcode`; historical RED2 register/memory model; architectural target above.
+**Authorized-by:** Current `AbstractRED2MachineState`; current `MuredOpcode`; historical RED2 register/memory model; architectural target above.
 
 **Interfaces:**
-- Consumes: `MuredMachineState`
+- Consumes: `AbstractRED2MachineState`
 - Consumes: `Word`
 - Produces: `RED2_ABI_V1`
 
@@ -140,8 +140,8 @@ Machine: M1. Every required opcode, direction, status and machine register has a
 - Legs: (a) Round-trip representative words for every opcode and boundary payload value and require exact encoded widths/range failures [M1]; (b) encode/decode states containing forward/backward traversal, active primitive, saved quantum, definition/subgraph/equality contexts and near-boundary addresses and require exact architectural-state equality with no semantic loss [M2]; (c) static checks reject dynamic containers, unbounded strings and unsupported Python-only state in synthesizable functions [M3].
 
 **Stale-if:**
-- path-absent: `models/python/pypeline_red2/red2_stepper.py`
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/concrete_red2_machine/abi.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 2: Build persistent graph/environment and control-stack memories
 
@@ -149,14 +149,14 @@ Machine: M1. Every required opcode, direction, status and machine register has a
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_stepper.py`
+- Modify: `models/concrete_red2_machine/abi.py`
 - Test: `tests/test_pypeline_red2_memory.py`
 - Test: `tests/test_pipelinec_vectors.py`
 
-**Claim:** Execute memory and stack operations against bounded persistent processor storage with the same graph-up/environment-down collision discipline as `MuredMachine`. (derived)
+**Claim:** Execute memory and stack operations against bounded persistent processor storage with the same graph-up/environment-down collision discipline as `AbstractRED2Machine`. (derived)
 Machine: M1. Graph pushes advance `fsp`; environment allocation lowers `free_space`; logical `env` changes do not themselves allocate. M2. PNP/path bridges and environment blocks use the same committed layout semantics as the Python oracle. M3. Control pushes/pops and collision/overflow/invalid-address cases become deterministic processor faults rather than undefined writes.
 
-**Authorized-by:** `MuredMachine._push_graph`, `_allocate_environment`, `_push_environment_marker`, `_allocate_environment_block`, `_push_control_entry`, `_pop_control_entry`, `_validate_state`.
+**Authorized-by:** `AbstractRED2Machine._push_graph`, `_allocate_environment`, `_push_environment_marker`, `_allocate_environment_block`, `_push_control_entry`, `_pop_control_entry`, `_validate_state`.
 
 **Interfaces:**
 - Consumes: `RED2_ABI_V1`
@@ -170,7 +170,7 @@ Machine: M1. Graph pushes advance `fsp`; environment allocation lowers `free_spa
 - Legs: (a) Differentially execute graph pushes and one-/multiword environment allocations including PNP bridges and compare exact memory/state deltas [M1,M2]; (b) fill arenas to each legal boundary and require the same first illegal allocation to fault without partial writes [M3]; (c) fill/drain typed control storage and compare pointer/tag/payload behavior with normalized Python control entries [M3].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 3: Replace the demonstration stepper with a clocked RED2 transition engine
 
@@ -178,15 +178,15 @@ Machine: M1. Graph pushes advance `fsp`; environment allocation lowers `free_spa
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_stepper.py`
-- Create: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/abi.py`
+- Create: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_transitions.py`
-- Modify: `models/python/red2_engine/pipelinec_vectors.py`
+- Modify: `models/abstract_red2_machine/pipelinec_vectors.py`
 
 **Claim:** Repeated processor clocks commit complete RED2 architectural transitions over persistent state rather than computing isolated opcode examples. (derived)
 Machine: M1. Fetch/decode/microstate/commit sequencing preserves the Python `step()` dispatch boundary. M2. APP, APP_VAR, atomic INT/FLOAT/CHAR, LAMBDA, VAR and STOP transitions match oracle state and memory deltas in both traversal directions where applicable. M3. A stream of committed transitions can execute without reinitializing machine state between steps.
 
-**Authorized-by:** `MuredMachine.step()` and corresponding transition methods.
+**Authorized-by:** `AbstractRED2Machine.step()` and corresponding transition methods.
 
 **Interfaces:**
 - Consumes: `RED2_MEMORY_V1`
@@ -200,7 +200,7 @@ Machine: M1. Fetch/decode/microstate/commit sequencing preserves the Python `ste
 - Legs: (a) Generate pre-state vectors from Python for each first-slice opcode/direction and compare every architectural register plus exact memory/control writes at commit [M1,M2]; (b) execute chained hand-built graphs for at least 50 committed transitions with no hardware-state reinitialization and compare each checkpoint exactly [M3]; (c) deliberately perturb one expected address/direction/head bit in the oracle trace and prove the differential exam detects it [M1].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 4: Implement application, closure, environment-path and JOIN machinery
 
@@ -208,14 +208,14 @@ Machine: M1. Fetch/decode/microstate/commit sequencing preserves the Python `ste
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_transitions.py`
 - Test: `tests/test_pypeline_red2_closures.py`
 
 **Claim:** Execute nested applications and closures while preserving environment paths, child-return frames, JOIN publication and reclaimed boundaries. (derived)
 Machine: M1. CLOSURE, EP, JOIN and PNP-visible path behavior matches normalized Python transitions. M2. Nested subgraph entry/return restores parent state and publishes escaping results without pointers into reclaimed child storage. M3. Repeated bounded application/closure workloads reuse graph/environment space rather than leaking monotonically.
 
-**Authorized-by:** current `MuredMachine` closure/EP/JOIN/subgraph-frame implementation and integrated memory-lifetime semantics.
+**Authorized-by:** current `AbstractRED2Machine` closure/EP/JOIN/subgraph-frame implementation and integrated memory-lifetime semantics.
 
 **Interfaces:**
 - Consumes: `RED2_CORE_V1`
@@ -229,7 +229,7 @@ Machine: M1. CLOSURE, EP, JOIN and PNP-visible path behavior matches normalized 
 - Legs: (a) Differential traces for captured lambdas, nested APP, EP chains and JOIN returns [M1,M2]; (b) poison/reuse equivalent oracle cases and require surviving values to remain exact with no pointers into reclaimed child storage after physical address reuse [M2]; (c) repeat fixed-live-state closure workloads at increasing iteration counts and assert bounded post-warmup `fsp` and `free_space` envelopes [M3].
 
 **Stale-if:**
-- path-absent: `tests/test_mured_memory_lifetimes.py`
+- path-absent: `tests/test_abstract_red2_memory_lifetimes.py`
 
 ### Task 5: Implement symbols, definitions and primitive register sequencing
 
@@ -237,15 +237,15 @@ Machine: M1. CLOSURE, EP, JOIN and PNP-visible path behavior matches normalized 
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
-- Modify: `models/python/pypeline_red2/README.md`
+- Modify: `models/concrete_red2_machine/machine.py`
+- Modify: `models/concrete_red2_machine/README.md`
 - Test: `tests/test_pypeline_red2_primitives.py`
 - Test: `tests/test_pypeline_red2_transitions.py`
 
 **Claim:** Expand encoded definitions and collect/fire primitive arguments with the same `argcnt`, `prim`, `fire`, head and control behavior as Python RED2. (derived)
 Machine: M1. SYM definition lookup uses a finite load-time definition table/image rather than runtime strings. M2. PRIM_0/1/2 partial and ready states preserve primitive sequencing exactly. M3. q=0 does not accidentally fire a contraction or host effect.
 
-**Authorized-by:** `MuredMachine._sym`, `_prim`, primitive saved-state machinery.
+**Authorized-by:** `AbstractRED2Machine._sym`, `_prim`, primitive saved-state machinery.
 
 **Interfaces:**
 - Consumes: `RED2_CLOSURES_V1`
@@ -259,7 +259,7 @@ Machine: M1. SYM definition lookup uses a finite load-time definition table/imag
 - Legs: (a) compare definition expansion traces and nested definition paths [M1]; (b) compare zero-, unary- and binary-primitive collection states including partial/stuck forms [M2]; (c) enter every ready contraction with q=0 and assert no contraction/effect is committed [M3].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 6: Implement hardware-native scalar primitives and strictness
 
@@ -267,14 +267,14 @@ Machine: M1. SYM definition lookup uses a finite load-time definition table/imag
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_primitives.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
 **Claim:** Contract the supported pure scalar primitive set in hardware with Python-equivalent strictness, result representation and quantum accounting. (derived)
 Machine: M1. Integer arithmetic/comparisons/type predicates and practical fixed-width scalar operations produce matching values or deterministic faults/stuck states. M2. Each semantic contraction decrements q exactly where the Python oracle does, independent of physical clock count. M3. Unsupported numeric behavior is explicitly bounded/documented rather than silently inheriting Python arbitrary precision.
 
-**Authorized-by:** current strict primitive implementations and `q` behavior in `MuredMachine`.
+**Authorized-by:** current strict primitive implementations and `q` behavior in `AbstractRED2Machine`.
 
 **Interfaces:**
 - Consumes: `RED2_PRIM_SEQ_V1`
@@ -289,7 +289,7 @@ Machine: M1. Integer arithmetic/comparisons/type predicates and practical fixed-
 - Legs: (a) differential boundary/value tables for every implemented primitive [M1]; (b) record physical clocks and committed q before/after multicycle operations and require the exact q delta to equal semantic contractions only, never physical clocks [M2]; (c) exercise overflow/divide-by-zero/unsupported-float policy and require deterministic documented status [M3].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 7: Implement non-strict IF, Y and lazy control
 
@@ -297,14 +297,14 @@ Machine: M1. Integer arithmetic/comparisons/type predicates and practical fixed-
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_lazy.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
 **Claim:** Execute non-strict branch selection and recursive unfolding without forcing dead branches or leaking scratch state. (derived)
 Machine: M1. IF selects only the demanded branch; compiler-lowered AND/OR inherit equivalent laziness. M2. Y follows the current acyclic code-reuse/scratch-lifetime behavior. M3. q-prefix traces for lazy fixtures agree with Python at committed architectural boundaries.
 
-**Authorized-by:** current `MuredMachine` IF/Y semantics and lockstep parity corpus.
+**Authorized-by:** current `AbstractRED2Machine` IF/Y semantics and lockstep parity corpus.
 
 **Interfaces:**
 - Consumes: `RED2_SCALARS_V1`
@@ -326,7 +326,7 @@ Machine: M1. IF selects only the demanded branch; compiler-lowered AND/OR inheri
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_recursive.py`
 - Test: `tests/test_pypeline_red2_structs.py`
 - Test: `tests/test_pypeline_red2_programs.py`
@@ -334,7 +334,7 @@ Machine: M1. IF selects only the demanded branch; compiler-lowered AND/OR inheri
 **Claim:** Execute RBLOCK/RUP/RECP recursive environments and STRUCT selection with the same lazy/path/lifetime behavior as Python RED2. (derived)
 Machine: M1. Recursive bindings preserve mutually recursive environment layout through forward and reconstruction paths. M2. Structure construction/selection does not force unselected fields and publishes retained fields before reclaim. M3. Real recursive-definition and structure fixtures finish with matching canonical values.
 
-**Authorized-by:** current `MuredMachine` RBLOCK/RUP/RECP/STRUCT implementation and recursive fixture tests.
+**Authorized-by:** current `AbstractRED2Machine` RBLOCK/RUP/RECP/STRUCT implementation and recursive fixture tests.
 
 **Interfaces:**
 - Consumes: `RED2_LAZY_V1`
@@ -358,7 +358,7 @@ Machine: M1. Recursive bindings preserve mutually recursive environment layout t
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_equality.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
@@ -379,7 +379,7 @@ Machine: M1. Atomic and graph equality matches Python results. M2. Nested/shared
 - Legs: (a) differential atomic/nested/shared equality tables [M1]; (b) adversarial deep values within configured memory/control bounds complete without host recursion [M2]; (c) compare control/free-space/q state before and after equality and repeated fixed-size cases [M3].
 
 **Stale-if:**
-- path-absent: `tests/test_mured_equality.py`
+- path-absent: `tests/test_abstract_red2_equality.py`
 
 ### Task 10: Make q=0 reconstruction and quantum exhaustion architectural
 
@@ -387,7 +387,7 @@ Machine: M1. Atomic and graph equality matches Python results. M2. Nested/shared
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_quantum.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
@@ -408,7 +408,7 @@ Machine: M1. q decrements only on semantic contractions. M2. q reaching zero dri
 - Legs: (a) for q=0..N across representative applications, primitives, lazy control, recursive blocks and structures, compare canonical residual graphs and architectural state exactly at exhaustion/completion, with zero q decrements outside semantic contractions [M1,M2]; (b) recharge each exhausted case repeatedly and require an identical final result to a sufficiently large uninterrupted run with no recompilation/reload and the same memory instance [M3]; (c) use operations with differing physical clock counts and require exact semantic q consumption where contraction counts are equal [M1].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ### Task 11: Add host-call trap and same-machine resume
 
@@ -416,14 +416,14 @@ Machine: M1. q decrements only on semantic contractions. M2. q reaching zero dri
 **Review:** adversarial
 
 **Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
+- Modify: `models/concrete_red2_machine/machine.py`
 - Test: `tests/test_pypeline_red2_host_calls.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
 **Claim:** Trap CLOCK/UART host primitives exactly at firing, expose a finite request, and incorporate an atomic returned value into the same graph exactly once. (derived)
 Machine: M1. CLOCK, UART-RX, UART-TX and UART-TX-BYTES reach `HOST_CALL` only when their RED2 primitive fires with positive q. M2. While pending, processor execution is stable and cannot replay the effect. M3. Resume writes the result into the correct redex/result location, decrements q exactly once as required, clears pending status and continues the same machine.
 
-**Authorized-by:** `MuredMachine._suspend_host_call`, `resume_host_call`, current one-machine IO invariant.
+**Authorized-by:** `AbstractRED2Machine._suspend_host_call`, `resume_host_call`, current one-machine IO invariant.
 
 **Interfaces:**
 - Consumes: `RED2_QUANTUM_V1`
@@ -445,15 +445,15 @@ Machine: M1. CLOCK, UART-RX, UART-TX and UART-TX-BYTES reach `HOST_CALL` only wh
 **Review:** peer
 
 **Files:**
-- Modify: `models/python/red2_engine/pipelinec_vectors.py`
-- Create: `models/python/pypeline_red2/oracle.py`
+- Modify: `models/abstract_red2_machine/pipelinec_vectors.py`
+- Create: `models/concrete_red2_machine/oracle.py`
 - Test: `tests/test_pypeline_red2_lockstep.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 
 **Claim:** Load the same compiled RED2 image into Python and Pypeline machines and automatically identify the first divergent committed architectural transition. (derived)
 Machine: M1. Loader relocates/encodes problem and definition images consistently. M2. Trace normalizer compares all architectural registers, live memory writes, control entries, stop reason and host-call data while excluding implementation-only diagnostics/microstates. M3. Corpus includes straight-line, closure, primitive, lazy, recursive, structure, equality, q-exhaustion and IO programs.
 
-**Authorized-by:** common-oracle strategy and current compiler/`MuredMachine.load` behavior.
+**Authorized-by:** common-oracle strategy and current compiler/`AbstractRED2Machine.load` behavior.
 
 **Interfaces:**
 - Consumes: `RED2_HOSTCALL_V1`
@@ -467,7 +467,7 @@ Machine: M1. Loader relocates/encodes problem and definition images consistently
 - Legs: (a) run the committed corpus through deterministic image loading/relocation and require identical encoded images before execution [M1]; (b) mutation-test representative register, memory, control, stop-reason and host-call fields and require the normalizer to report the exact first divergence with no ignored architectural field [M2]; (c) require committed fixtures covering straight-line, closure, primitive, lazy, recursive, structure, equality, q-exhaustion and IO categories to execute through the differential runner [M3].
 
 **Stale-if:**
-- path-absent: `models/python/red2_engine/pipelinec_vectors.py`
+- path-absent: `models/abstract_red2_machine/pipelinec_vectors.py`
 
 ### Task 13: Prove non-trivial THOR programs run wholly on the Pypeline reducer
 
@@ -476,7 +476,7 @@ Machine: M1. Loader relocates/encodes problem and definition images consistently
 
 **Files:**
 - Test: `tests/test_pypeline_red2_programs.py`
-- Modify: `models/python/pypeline_red2/README.md`
+- Modify: `models/concrete_red2_machine/README.md`
 
 **Claim:** Compile and execute representative THOR programs using the Pypeline processor as the evaluator, with the host limited to compilation/loading, scheduling and declared host services. (derived)
 Machine: M1. Pure programs exercise hundreds/thousands of committed transitions and finish with Python-equivalent canonical results. M2. Bounded-loop programs cross multiple quantum exhaustion/recharge boundaries without machine replacement. M3. IO programs preserve exact effect order and exactly-once behavior while computation/continuations remain in RED2.
@@ -503,11 +503,11 @@ Machine: M1. Pure programs exercise hundreds/thousands of committed transitions 
 **Review:** peer
 
 **Files:**
-- Create: `models/python/pypeline_red2/red2_pypeline.py`
-- Modify: `models/python/pypeline_red2/README.md`
+- Create: `models/synthesizable_red2_machine/machine.py`
+- Modify: `models/concrete_red2_machine/README.md`
 - Modify: `.mise.toml`
-- Create: `scripts/check_pypeline_red2.py`
-- Create: `scripts/check_pypeline_red2_sim.py`
+- Create: `scripts/check_syn.py`
+- Create: `scripts/check_syn_sim.py`
 - Test: `tests/test_pypeline_red2_static.py`
 
 **Claim:** Validate the processor with the real installed/cloned Pypeline/PipelineC toolchain and produce a reproducible HDL/synthesis smoke result without making vendor tools mandatory for ordinary Python tests. (derived)
@@ -519,49 +519,32 @@ Machine: M1. The processor source passes the current Pypeline/PipelineC frontend
 - Consumes: `RED2_PROGRAMS_V1`
 - Produces: `RED2_SYNTH_V1`
 
-**Context:** Earlier tool detection timed out; do not hide this behind a skip in the explicit hardware gate. Discover the actual local PipelineC/Pypeline invocation and pin/document the tested revision. `Red2Processor` is the executable simulation/oracle model, not directly synthesizable Pypeline source; Task 14 therefore owns a dedicated hardware top in `red2_pypeline.py` using supported fixed-width `@struct`, `Reg` and RAM constructs while preserving the same architectural contract. Keep generated/vendor artifacts out of source control unless explicitly useful.
+**Context:** Earlier tool detection timed out; do not hide this behind a skip in the explicit hardware gate. Discover the actual local PipelineC/Pypeline invocation and pin/document the tested revision. `ConcreteRED2Machine` is the executable simulation/oracle model, not directly synthesizable Pypeline source; Task 14 therefore owns a dedicated hardware top in `models/synthesizable_red2_machine/machine.py` using supported fixed-width `@struct`, `Reg` and RAM constructs while preserving the same architectural contract. Keep generated/vendor artifacts out of source control unless explicitly useful.
 
 **Proof:**
 - Test: `tests/test_pypeline_red2_static.py`
 - Run: uv run pytest -q tests/test_pypeline_red2_static.py
-- Run: mise run pypeline-red2-check
+- Run: mise run syn-check
 - Legs: (a) frontend translates the actual processor top and reports no unsupported dynamic Python constructs [M1]; (b) HDL elaboration/synthesis smoke reaches a successful tool exit and records target/resource/timing summary when configured [M2]; (c) deliberately hide the external tool and require the explicit hardware command to fail with an exact missing-tool diagnostic rather than a false green, while ordinary pytest remains dependency-light with no vendor-tool requirement [M3].
 
 **Stale-if:**
 - path-absent: `.mise.toml`
 
-### Task 15: Add a minimal Basys 3 host transport shell
+### Task 15: DEFERRED — Basys 3 host transport shell
 
-**Type:** implementation
-**Review:** adversarial
+**Type:** deferred follow-up
+**Review:** none in this plan
 
-**Files:**
-- Modify: `models/python/pypeline_red2/red2_processor.py`
-- Create: `models/python/pypeline_red2/basys3_top.py`
-- Create: `tools/red2_fpga_host.py`
-- Modify: `models/python/pypeline_red2/README.md`
-- Modify: `.mise.toml`
-- Test: `tests/test_red2_fpga_protocol.py`
+**Claim:** Basys 3 host transport, board-level framing, UART/control-channel multiplexing, and physical-board bring-up are deliberately not part of this RED2 processor plan.
 
-**Claim:** Exercise the logical RED2 host ABI through a bounded framed transport suitable for Basys 3 without embedding compilation/evaluation into the FPGA shell. (derived)
-Machine: M1. RESET/LOAD/START/RUN/RECHARGE/RESUME/READ_STATE/READ_MEM have unambiguous bounded encodings and deterministic error responses. M2. Transport backpressure/retries cannot duplicate LOAD writes, RUN commands or host-call resumes. M3. The shell is separable from the RED2 processor core and can be replaced by another transport without changing reducer semantics.
-
-**Authorized-by:** target host ABI and Basys 3 PC-host deployment model.
+**Rationale:** The board-facing path depends on separate Pypeline/PipelineC work adding an open-source Xilinx Artix-7 flow using OpenXC7/nextpnr-xilinx/Project X-Ray. That backend is being developed and reviewed independently. This plan should meet that work in the middle by producing a correct synthesizable RED2 core and stable logical host ABI, not by duplicating or prematurely coupling itself to the board transport layer.
 
 **Interfaces:**
-- Consumes: `RED2_SYNTH_V1`
-- Produces: `RED2_TRANSPORT_V1`
+- Consumes later: `RED2_SYNTH_V1`
+- Produces later: `RED2_TRANSPORT_V1`
+- Produces in this plan: nothing
 
-**Context:** UART is the simplest candidate transport but the protocol is the contract. Do not conflate semantic `UART-TX` RED2 host calls with bytes used by the physical control channel; multiplex/tag them explicitly if they share a wire.
-
-**Proof:**
-- Test: `tests/test_red2_fpga_protocol.py`
-- Run: uv run pytest -q tests/test_red2_fpga_protocol.py
-- Run: mise run pypeline-red2-check
-- Legs: (a) round-trip every command/status including maximum legal addresses/payloads and malformed frames [M1]; (b) inject duplicate/truncated/backpressured transport events and prove command commit/effect resume is exactly once [M2]; (c) run the same processor simulation first through direct API and then protocol shell and compare identical architectural traces [M3].
-
-**Stale-if:**
-- path-absent: `models/python/pypeline_red2/red2_processor.py`
+**Scope rule:** Do not create `basys3_top.py`, `red2_fpga_host.py`, a UART framing protocol, or board-specific transport tests as part of this plan. Those belong to a subsequent explicitly authorized board-integration plan after the required Pypeline synthesis backend is available.
 
 ### Task 16: Run the integrated RED2 processor acceptance gate
 
@@ -572,7 +555,6 @@ Machine: M1. RESET/LOAD/START/RUN/RECHARGE/RESUME/READ_STATE/READ_MEM have unamb
 - Test: `tests/test_pypeline_red2_lockstep.py`
 - Test: `tests/test_pypeline_red2_programs.py`
 - Test: `tests/test_pypeline_red2_host_calls.py`
-- Test: `tests/test_red2_fpga_protocol.py`
 
 **Claim:** The integrated tree contains a synthesizable, stateful RED2 processor that agrees with the Python oracle on the accepted semantic corpus and preserves the historical sources unchanged. (derived)
 Machine: M1. Full Python tests, Ruff and mypy pass with transition/program lockstep green. M2. Explicit Pypeline/PipelineC hardware validation succeeds in the provisioned acceptance environment. M3. Archives/thesis remain byte-for-byte unchanged from execution BASE and no host-side second evaluator is introduced.
@@ -580,23 +562,23 @@ Machine: M1. Full Python tests, Ruff and mypy pass with transition/program locks
 **Authorized-by:** plan-level acceptance.
 
 **Interfaces:**
-- Consumes: `RED2_TRANSPORT_V1`
+- Consumes: `RED2_SYNTH_V1`
 - Produces: `RED2_ACCEPTED_V1`
 
-**Context:** This gate does not authorize push, release, board purchase, archive edits, or a RED2 OS. External hardware-tool absence is a provisioning blocker for M2, not evidence that synthesis passed. If actual Basys 3 hardware is unavailable, synthesis/protocol simulation can satisfy this plan; physical-board bring-up should be a subsequent explicitly authorized task.
+**Context:** This gate does not authorize push, release, board purchase, archive edits, a RED2 OS, Basys 3 transport, or physical-board bring-up. External hardware-tool absence is a provisioning blocker for M2, not evidence that synthesis passed. Board transport and bring-up are subsequent explicitly authorized work once the separate open-source Artix-7 Pypeline backend is available.
 
 **Proof:**
 - Run: uv run pytest -n 4 --dist loadfile
 - Run: uv run ruff check .
-- Run: uv run mypy models/python tests
-- Run: mise run pypeline-red2-check
+- Run: uv run mypy models tests
+- Run: mise run syn-check
 - Run: git diff --exit-code "$ULTRA_BASE" -- archives thesis-transcription
 - Run: git diff --check
 - Legs: (a) require zero differential divergence across transition and program corpus, including q=0 residuals and exact host-call order/count [M1]; (b) require real frontend/HDL/synthesis smoke success and inspect its recorded target/resource result [M2]; (c) inspect host-side Pypeline test/protocol code for RED2 evaluation logic, require archive/thesis diff empty, and reject acceptance if the host computes continuations/primitive semantics on behalf of the processor [M3].
 
 **Stale-if:**
-- path-absent: `models/python/pypeline_red2/red2_stepper.py`
-- path-absent: `models/python/red2_engine/mured.py`
+- path-absent: `models/concrete_red2_machine/abi.py`
+- path-absent: `models/abstract_red2_machine/machine.py`
 
 ## Acceptance
 
@@ -610,7 +592,7 @@ The plan is complete only when all of the following are demonstrated together:
 - Python/Pypeline transition lockstep identifies no divergence across the accepted corpus;
 - non-trivial compiled THOR programs execute wholly through RED2 rather than host evaluation;
 - the actual Pypeline/PipelineC frontend accepts the processor and the explicit hardware gate reaches successful HDL/synthesis validation;
-- the Basys 3 shell implements the logical host ABI without contaminating reducer semantics with transport concerns;
+- Basys 3 transport and physical-board integration remain explicitly deferred rather than being treated as hidden acceptance requirements;
 - `archives/` and `thesis-transcription/` are unchanged from execution BASE.
 
 ## Explicit non-goals
@@ -622,11 +604,11 @@ The plan is complete only when all of the following are demonstrated together:
 - Proving the implementation in Lean as part of this plan; Lean should consume/share the same semantic contracts and vectors in parallel work.
 - Treating every primitive as a host call.
 - One RED2 transition per FPGA clock.
-- Physical Basys 3 board bring-up when no board/toolchain is available in the execution environment.
+- Basys 3 host transport, UART/control framing, board-specific top-level integration, and physical-board bring-up; these are deferred to a later board-integration plan regardless of local board/toolchain availability.
 - Editing Hilton's archived implementation to make comparisons easier.
 
 ## Suggested execution shape
 
-Tasks 1–3 establish the hardware substrate and first true reducer slice. Tasks 4–9 complete pure RED2 semantics. Task 10 establishes the scheduler-visible quantum boundary. Task 11 adds the host trap. Tasks 12–13 turn the Python implementation into a strong differential oracle and prove useful programs. Tasks 14–15 cross from simulation into real Pypeline/PipelineC and host/FPGA integration. Task 16 is the write-nothing integration gate.
+Tasks 1–3 establish the hardware substrate and first true reducer slice. Tasks 4–9 complete pure RED2 semantics. Task 10 establishes the scheduler-visible quantum boundary. Task 11 adds the host trap. Tasks 12–13 turn the Python implementation into a strong differential oracle and prove useful programs. Task 14 crosses from simulation into the real Pypeline/PipelineC hardware flow. Task 15 is explicitly deferred to later Basys 3 board-integration work. Task 16 is the write-nothing reducer/synthesis integration gate.
 
 Prefer small commits/integrations at semantic boundaries and keep every intermediate processor executable under differential tests. A later task must never be used to excuse a known divergence in an earlier semantic slice.

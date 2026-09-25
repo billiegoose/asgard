@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the current source-to-runtime account of memory reclamation in Asgard's faithful Python RED2 path. It connects the functional THOR/RED2 C sources in `archives/THOR/` to the implemented `MuredMachine` transitions and to executable differential/lifetime tests.
+This document is the current source-to-runtime account of memory reclamation in Asgard's faithful Python RED2 path. It connects the functional THOR/RED2 C sources in `archives/THOR/` to the implemented `AbstractRED2Machine` transitions and to executable differential/lifetime tests.
 
 The important distinction is between **incremental lifetime reclamation** performed by ordinary RED2 transitions and **coarse residual reconstruction** performed at an explicit scheduler boundary. They are different mechanisms and are tested separately.
 
@@ -35,7 +35,7 @@ Graph reclamation is separate. Instruction-specific contractions overwrite dead 
 
 ## 2. Current Python state and ownership rules
 
-`MuredMachineState` stores `fsp`, `env`, `free_space`, and `c` explicitly. A typed `_SubgraphFrame` saves the parent logical `env`, saved `free_space`, primitive name, and primitive countdown.
+`AbstractRED2MachineState` stores `fsp`, `env`, `free_space`, and `c` explicitly. A typed `_SubgraphFrame` saves the parent logical `env`, saved `free_space`, primitive name, and primitive countdown.
 
 The current child-return order is deliberately ownership-first:
 
@@ -67,7 +67,7 @@ The main source-to-runtime mapping is:
 | `PRIMS.C:prim_if` | discard condition/primitive/unselected branch spine and contexts | `_select_if_branch()` / `_skip_if_branches()` | `if-true`, `if-false`; lazy selection tests |
 | `PRIMS.C:prim_and`, `prim_or`, `make_result` | decisive short-circuit drops remaining graph/control state | source lowering to lazy `IF` plus faithful IF lifetime behavior | `and-discard`, `or-discard`; parity/lifetime tests |
 | `PRIMS.C:prim_y` | acyclic `Y f` reconstruction reuses code rather than knot-tying a heap object | `_y()` reuses the function graph and bounded scratch | `y-reconstruct`; integrated local-lifetime test |
-| `PRIMS.C:prim_equal`, `prim_equal_star`, `wrap_lambdas`, `nodes_equal` | bounded comparison scratch, recursive structural comparison, lambda wrapping, sharing shortcuts | `_fire_equality()` and equality task/frame machinery reuse local graph/control scratch | `equal-scratch`, `equal-star-wrap`, promotion/UBV cases; `tests/test_mured_equality.py` |
+| `PRIMS.C:prim_equal`, `prim_equal_star`, `wrap_lambdas`, `nodes_equal` | bounded comparison scratch, recursive structural comparison, lambda wrapping, sharing shortcuts | `_fire_equality()` and equality task/frame machinery reuse local graph/control scratch | `equal-scratch`, `equal-star-wrap`, promotion/UBV cases; `tests/test_abstract_red2_equality.py` |
 | `MAIN.C:copy_graph` | destructive source MARKER forwarding preserves repeated PTR aliases while omitting garbage | `_relinearize_graph()` uses an explicit local forwarding map without mutating source memory | `copy-shift`; residual sharing tests |
 | `MAIN.C:shift_memory` | relocate copied graph addresses | faithful loader relocation and residual graph rebuilding rewrite graph-owned addresses | `copy-shift`; relocation tests |
 | `RED.C:reduce` | initialize/recover invocation boundaries and reusable control state | machine initialization/restart and ordinary object lifecycle | `reduce-identity`; CLI/runtime tests |
@@ -90,7 +90,7 @@ A third adapter repair turns an unsupported `nodes_equal` tag fallthrough into a
 
 ## 5. IO-BIND and host effects
 
-The Python RED2 scheduler runs effectful programs on one persistent `MuredMachine`. `CLOCK`, `UART-RX`, `UART-TX`, and `UART-TX-BYTES` suspend the machine with a `MuredHostCall`; the scheduler performs the host operation and resumes that same machine.
+The Python RED2 scheduler runs effectful programs on one persistent `AbstractRED2Machine`. `CLOCK`, `UART-RX`, `UART-TX`, and `UART-TX-BYTES` suspend the machine with a `MuredHostCall`; the scheduler performs the host operation and resumes that same machine.
 
 `IO-BIND` currently accepts only atomic machine values: `INT`, `FLOAT`, `CHAR`, plain `SYM`/`NIL`, or a supported direct `EP` descriptor. The bound value is published through ordinary graph/environment ownership. No persistent executable problem graph is reserved in the upper environment arena.
 
@@ -141,7 +141,7 @@ The known named-definition recursive IO loop can still retain lexical frames acr
 
 ## 8. Diagnostics
 
-Memory diagnostics are opt-in. When disabled (the default), `MuredMachine` does not allocate an event-list buffer; `memory_events()` simply reports an empty tuple. Normal CLI execution remains quiet on stderr.
+Memory diagnostics are opt-in. When disabled (the default), `AbstractRED2Machine` does not allocate an event-list buffer; `memory_events()` simply reports an empty tuple. Normal CLI execution remains quiet on stderr.
 
 When enabled, `MuredMemoryEvent` records lifetime events such as `SUBGRAPH_ENTER`, `JOIN_RETURN`, `GRAPH_REWIND`, `ENV_ALLOC`, `ENV_RECLAIM`, `IO_BIND`, and `CHECKPOINT`. `MuredMemorySnapshot` reports graph and environment occupancy/peaks, minimum arena gap, region restores, graph rewinds, and host checkpoints.
 
@@ -185,7 +185,7 @@ The Task 10 documentation claims are grounded by these executable checks:
 
 ```sh
 uv run pytest -q tests/test_hilton_reference.py \
-  tests/test_mured_memory_lifetimes.py \
+  tests/test_abstract_red2_memory_lifetimes.py \
   tests/test_red2_io_runtime.py
 
 git diff --check
@@ -193,7 +193,7 @@ git diff --check
 
 Task 9 immediately preceding this publication also established:
 
-- 132/132 tests passing across `test_mured_memory_lifetimes.py`, `test_red2_io_runtime.py`, and `test_mured_cli.py`;
+- 132/132 tests passing across `test_abstract_red2_memory_lifetimes.py`, `test_red2_io_runtime.py`, and `test_abstract_red2_cli.py`;
 - 845/845 tests passing in the full repository suite;
 - 68/68 Hilton reference tests passing;
 - Ruff clean on the modified runtime/test files;

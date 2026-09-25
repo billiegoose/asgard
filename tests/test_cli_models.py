@@ -3,9 +3,9 @@ from pathlib import Path
 
 from pytest import CaptureFixture, MonkeyPatch
 
-from red2_engine.cli import main as red2_main
+from abstract_red2_machine.cli import main as abs_main
 from thor_compile.cli import main as compile_main
-from thor_engine.cli import main as thor_main
+from thor_interpreter.cli import main as thor_main
 
 
 def test_thor_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
@@ -14,7 +14,7 @@ def test_thor_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
 
 
 def test_red2_cli_runs_pure_expr(capsys: CaptureFixture[str]) -> None:
-    assert red2_main(["--quantum", "20", "--expr", "(+ 2 3)"]) == 0
+    assert abs_main(["--quantum", "20", "--expr", "(+ 2 3)"]) == 0
     assert capsys.readouterr().out == "5\n"
 
 
@@ -29,12 +29,12 @@ def test_thor_cli_runs_io_quiet_by_default(capsys: CaptureFixture[str]) -> None:
 def test_red2_cli_does_not_dispatch_thor_only_leds_or_ticks(
     capsys: CaptureFixture[str],
 ) -> None:
-    assert red2_main(["--expr", "(LEDS 1)", "--quantum", "20"]) == 0
+    assert abs_main(["--expr", "(LEDS 1)", "--quantum", "20"]) == 0
     captured = capsys.readouterr()
     assert captured.out == "(LEDS 1)\n"
     assert captured.err == ""
 
-    assert red2_main(["--expr", "(TICKS)", "--quantum", "20"]) == 0
+    assert abs_main(["--expr", "(TICKS)", "--quantum", "20"]) == 0
     captured = capsys.readouterr()
     assert captured.out == "TICKS\n"
     assert captured.err == ""
@@ -60,7 +60,7 @@ def test_red2_cli_runs_io_quiet_by_default(
 ) -> None:
     monkeypatch.setattr("sys.stdin", StringIO("B"))
 
-    assert red2_main(["--expr", "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"]) == 0
+    assert abs_main(["--expr", "(IO-BIND (UART-RX) (LAMBDA (b) (UART-TX b)))"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == "B"
@@ -96,7 +96,7 @@ def test_red2_cli_uses_clock_file(
     clock = tmp_path / "clock.txt"
     clock.write_text("1700000000456\n")
 
-    assert red2_main(["--clock", str(clock), "--expr", "(CLOCK)"]) == 0
+    assert abs_main(["--clock", str(clock), "--expr", "(CLOCK)"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == ""
@@ -138,7 +138,7 @@ def test_red2_cli_runs_pure_file(
     source = tmp_path / "add.thor"
     source.write_text("(+ 2 3)\n")
 
-    assert red2_main([str(source), "--quantum", "20"]) == 0
+    assert abs_main([str(source), "--quantum", "20"]) == 0
 
     captured = capsys.readouterr()
     assert captured.out == "5\n"

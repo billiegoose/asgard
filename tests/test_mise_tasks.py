@@ -81,9 +81,9 @@ def test_mise_thor_runs_hangman_quietly() -> None:
     assert result.stderr == ""
 
 
-def test_mise_red2_runs_hangman_quietly() -> None:
+def test_mise_abs_runs_hangman_quietly() -> None:
     result = run_mise_task(
-        "red2",
+        "abs",
         "examples/hangman.thor",
         "--quantum",
         "5000",
@@ -93,176 +93,6 @@ def test_mise_red2_runs_hangman_quietly() -> None:
     assert result.returncode == 0
     assert "WORD: ASGARD\n" in result.stdout
     assert "WIN\n" in result.stdout
-    assert result.stderr == ""
-
-
-def test_mise_rust_runs_hangman_quietly() -> None:
-    result = run_mise_task(
-        "rust",
-        "examples/hangman.thor",
-        "--quantum",
-        "5000",
-        stdin="A\nS\nG\nR\nD\n",
-    )
-
-    assert result.returncode == 0
-    assert "WORD: ASGARD\n" in result.stdout
-    assert "WIN\n" in result.stdout
-    assert result.stderr == ""
-
-
-def test_mise_rust_verbose_reports_io_result() -> None:
-    result = run_mise_task(
-        "rust",
-        "examples/hangman.thor",
-        "--quantum",
-        "5000",
-        "--verbose",
-        stdin="A\nS\nG\nR\nD\n",
-    )
-
-    assert result.returncode == 0
-    assert "WORD: ASGARD\n" in result.stdout
-    assert "WIN\n" in result.stdout
-    assert "io result: NIL\n" in result.stderr
-
-
-def test_mise_wasm_runs_hangman_quietly() -> None:
-    result = run_mise_task(
-        "wasm",
-        "examples/hangman.thor",
-        "--quantum",
-        "5000",
-        stdin="A\nS\nG\nR\nD\n",
-        timeout=60.0,
-    )
-
-    assert result.returncode == 0
-    assert "WORD: ASGARD\n" in result.stdout
-    assert "WIN\n" in result.stdout
-    assert result.stderr == ""
-
-
-def test_mise_rust_accepts_clock_flag(tmp_path: Path) -> None:
-    source = tmp_path / "clock.thor"
-    source.write_text(
-        """
-        (IO-BIND (CLOCK)
-          (LAMBDA (now)
-            (UART-TX (MOD now 256))))
-        """
-    )
-    clock = tmp_path / "clock.txt"
-    clock.write_text("1700000000065\n")
-
-    result = run_mise_task("rust", str(source), "--clock", str(clock))
-
-    assert result.returncode == 0
-    assert result.stdout == "A"
-    assert result.stderr == ""
-
-
-def test_mise_rust_hangman_waits_with_open_stdin_and_no_keys() -> None:
-    stdout, stderr = run_until_stdout_contains(
-        [
-            "mise",
-            "run",
-            "rust",
-            "examples/hangman.thor",
-            "--quantum",
-            "5000",
-        ],
-        "GUESS LETTERS; ESC QUITS\n",
-        timeout=5.0,
-    )
-
-    assert "GUESS LETTERS; ESC QUITS\n" in stdout
-    assert "primitive" not in stderr
-    assert stderr == ""
-
-
-def test_mise_rust_breakout_ball_moves_with_open_stdin_and_no_keys() -> None:
-    stdout, stderr = run_until_stdout_contains(
-        [
-            "mise",
-            "run",
-            "rust",
-            "examples/breakout.thor",
-            "--quantum",
-            "50000",
-        ],
-        "\x1b[11;12Ho",
-        timeout=8.0,
-    )
-
-    assert "BREAKOUT 20x12\n" in stdout
-    assert stdout.count("o") >= 2
-    assert "\x1b[11;12Ho" in stdout
-    assert stderr == ""
-
-
-def test_mise_wasm_runs_recorded_breakout_playthrough_with_controlled_clock(
-    tmp_path: Path,
-) -> None:
-    clock = tmp_path / "breakout-clock.txt"
-    clock.write_text("1700000000000\n")
-    driver = tmp_path / "drive_breakout.py"
-    steps = [
-        (1_700_000_000_000 + (tick * 500), " ", 0.05)
-        for tick in range(1, 11)
-    ] + [(1_700_000_005_500, "q", 0.0)]
-    driver.write_text(
-        "from pathlib import Path\n"
-        "import sys\n"
-        "import time\n"
-        f"clock = Path({str(clock)!r})\n"
-        f"steps = {steps!r}\n"
-        "time.sleep(2.0)\n"
-        "for timestamp, keys, delay in steps:\n"
-        "    clock.write_text(f'{timestamp}\\n')\n"
-        "    sys.stdout.write(keys)\n"
-        "    sys.stdout.flush()\n"
-        "    time.sleep(delay)\n"
-    )
-
-    command = (
-        f"python3 {driver} | "
-        f"mise run wasm examples/breakout.thor --clock {clock} --quantum 50000"
-    )
-    result = subprocess.run(
-        ["bash", "-c", command],
-        check=False,
-        text=True,
-        capture_output=True,
-        timeout=90.0,
-    )
-
-    assert result.returncode == 0
-    assert "BREAKOUT 20x12\n" in result.stdout
-    assert result.stdout.count("o") >= 10
-    assert "QUIT\n" in result.stdout
-    assert result.stderr == ""
-
-
-def test_mise_wasm_runs_breakout_with_controlled_clock(tmp_path: Path) -> None:
-    clock = tmp_path / "breakout-clock.txt"
-    clock.write_text("1700000000200\n")
-
-    result = run_mise_task(
-        "wasm",
-        "examples/breakout.thor",
-        "--quantum",
-        "12000",
-        "--clock",
-        str(clock),
-        stdin=" q",
-        timeout=90.0,
-    )
-
-    assert result.returncode == 0
-    assert "BREAKOUT 20x12\n" in result.stdout
-    assert "QUIT\n" in result.stdout
-    assert "\x1b[" in result.stdout
     assert result.stderr == ""
 
 
@@ -284,16 +114,6 @@ def test_mise_parity_reports_detailed_diagnostics() -> None:
     assert "parity did not reconverge by quantum 75" in result.stderr
 
 
-def test_wasm_task_exits_on_compile_and_build_failures() -> None:
-    mise = Path(".mise.toml").read_text()
-
-    assert (
-        'uv run compile "$INPUT_FILE" --output "$IMAGE_FILE" '
-        ">/dev/null 2>/dev/null || exit $?"
-    ) in mise
-    assert "cargo build -p red2-wasm --target wasm32-wasi --quiet || exit $?" in mise
-
-
 def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:
     source = tmp_path / "clock.thor"
     source.write_text("(IO-BIND (CLOCK) (LAMBDA (now) (UART-TX 65)))\n")
@@ -301,22 +121,22 @@ def test_mise_python_tasks_accept_clock_flag(tmp_path: Path) -> None:
     clock.write_text("1700000000123\n")
 
     thor = run_mise_task("thor", str(source), "--clock", str(clock))
-    red2 = run_mise_task("red2", str(source), "--clock", str(clock))
+    abs_result = run_mise_task("abs", str(source), "--clock", str(clock))
 
     assert thor.returncode == 0
     assert thor.stdout == "A"
     assert thor.stderr == ""
-    assert red2.returncode == 0
-    assert red2.stdout == "A"
-    assert red2.stderr == ""
+    assert abs_result.returncode == 0
+    assert abs_result.stdout == "A"
+    assert abs_result.stderr == ""
 
 
-def test_mise_red2_clock_dots_emits_dot_without_io_action_error() -> None:
+def test_mise_abs_clock_dots_emits_dot_without_io_action_error() -> None:
     stdout, stderr = run_until_stdout_contains(
         [
             "mise",
             "run",
-            "red2",
+            "abs",
             "--quantum",
             "100000",
             "examples/clock-dots.thor",

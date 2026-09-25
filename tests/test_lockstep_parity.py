@@ -1,4 +1,4 @@
-from thor_engine.lockstep import compare_prefixes, format_mismatch_report
+from thor_interpreter.lockstep import compare_prefixes, format_mismatch_report
 
 
 def test_compare_prefixes_reports_all_matching_snapshots() -> None:

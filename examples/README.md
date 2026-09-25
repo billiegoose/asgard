@@ -28,16 +28,6 @@ Replay the committed local cast:
 asciinema play examples/media/breakout.cast
 ```
 
-Watch the WASM Breakout recording:
-
-[![Asgard Breakout WASM asciicast](https://asciinema.org/a/FwTtMVlFHcivZAfA.svg)](https://asciinema.org/a/FwTtMVlFHcivZAfA)
-
-Replay the committed local WASM cast:
-
-```sh
-asciinema play examples/media/breakout-wasm.cast
-```
-
 Regenerate and upload this recording:
 
 ```sh

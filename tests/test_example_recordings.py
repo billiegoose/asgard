@@ -77,26 +77,6 @@ def test_breakout_cast_shows_at_least_six_horizontal_bounces() -> None:
     assert reversals >= 6
 
 
-def test_wasm_breakout_cast_is_real_long_timed_recording_without_trap_output() -> None:
-    cast = Path("examples/media/breakout-wasm.cast")
-    lines = cast.read_text().splitlines()
-    header = json.loads(lines[0])
-    events = [json.loads(line) for line in lines[1:]]
-    output = "".join(event[2] for event in events)
-    ball_draws = len(re.findall(r"\x1b\[(\d+);(\d+)Ho", output))
-
-    assert header["version"] == 2
-    assert header["title"] == "Asgard Breakout WASM"
-    assert len(events) >= 1000
-    assert events[-1][0] >= 5.0
-    assert events[-1][0] <= 6.0
-    assert ball_draws >= 10
-    assert "BREAKOUT 20x12" in output
-    assert "\x1b[?25hQUIT" in output
-    assert "wasm trap" not in output.lower()
-    assert "stack" not in output.lower()
-
-
 def test_pong_cast_is_real_red2_recording() -> None:
     cast = Path("examples/media/pong.cast")
     lines = cast.read_text().splitlines()
@@ -119,15 +99,14 @@ def test_pong_cast_is_real_red2_recording() -> None:
     assert "RecursionError" not in output
 
 
-def test_generate_video_task_supports_red2_games_and_breakout_wasm() -> None:
+def test_generate_video_task_supports_red2_games() -> None:
     mise = Path(".mise.toml").read_text()
     generator = Path("tools/videos/generate.py").read_text()
 
     assert "[tasks.generate-video]" in mise
     assert 'arg "<video>"' in mise
-    assert 'choices "breakout" "breakout-wasm" "pong"' in mise
-    assert 'choices=("breakout", "breakout-wasm", "pong")' in generator
-    assert "generate_breakout_wasm" in generator
+    assert 'choices "breakout" "pong"' in mise
+    assert 'choices=("breakout", "pong")' in generator
     assert "generate_pong" in generator
-    assert 'command_model="red2"' in generator
+    assert 'command_model="abs"' in generator
     assert "generate-videos" not in mise

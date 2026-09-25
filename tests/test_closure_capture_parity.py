@@ -1,9 +1,9 @@
-from thor_engine.golden import run_source
+from thor_interpreter.golden import run_source
 
 
 def assert_parity(source: str, expected: str, quantum: int = 1000) -> None:
     assert run_source(source, model="thor", quantum=quantum) == expected
-    assert run_source(source, model="red2", quantum=quantum) == expected
+    assert run_source(source, model="abs", quantum=quantum) == expected
 
 
 def test_nested_lambda_keeps_outer_binding_in_both_models() -> None:

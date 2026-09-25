@@ -2,7 +2,7 @@
 
 This document defines the first serializable `.red2` bytecode container used by
 Asgard's Python RED2 compiler and machine. The format is intentionally simple so
-a future Rust RED2 VM can read it and compile to WASM before any FPGA flash image
+other RED2 tooling can consume it without making the serialized format the execution model
 is attempted.
 
 ## Status
@@ -22,10 +22,8 @@ Compile THOR source to `.red2`:
 uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
 ```
 
-Run a `.red2` image with the Rust RED2 VM:
 
 ```sh
-cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
 ```
 
 The compiler command serializes the final expression and bundles top-level THOR
@@ -113,53 +111,7 @@ values      repeated value_count times:
   payload   len UTF-8 bytes
 ```
 
-## Rust/WASM VM
 
-The `models/rust-red2/` crate is the first non-Python executor for `.red2`
-bytecode. It supports literals, bundled top-level definitions, simple
-application, strict integer arithmetic/comparison primitives, structures needed
-for PAIR/list values, lambda/beta cases, and simulator UART/CLOCK IO actions.
+## Role of the format
 
-For day-to-day source-file runs, use the canonical `mise run` task surface. The
-Rust and Wasm tasks compile a temporary `.red2` bundle and then execute it with
-the native or Wasmtime RED2 VM:
-
-```sh
-mise run rust examples/uart-caesar-plus4.thor
-mise run wasm examples/uart-caesar-plus4.thor
-printf 'A\nS\nG\nR\nD\n' | mise run rust examples/hangman.thor --quantum 5000
-printf 'A\nS\nG\nR\nD\n' | mise run wasm examples/hangman.thor --quantum 5000
-mise run rust examples/breakout.thor --clock /tmp/asgard-clock --quantum 12000
-mise run wasm examples/breakout.thor --clock /tmp/asgard-clock --quantum 12000
-```
-
-Successful model tasks reserve stdout for simulated UART/device output and are
-quiet on stderr by default. Add `--verbose` to `mise run rust` or
-`mise run wasm` when diagnostics such as `io result: NIL` are needed.
-
-Lower-level commands are useful when inspecting the `.red2` format or debugging
-an executor against a precompiled bytecode bundle:
-
-```sh
-uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
-cargo run -p red2-wasm -- /tmp/add.red2 --quantum 20
-cargo run -p red2-wasm -- /tmp/breakout.red2 --quantum 12000 --clock /tmp/asgard-clock
-```
-
-WASI/Wasmtime direct execution also operates on an existing `.red2` bundle:
-
-```sh
-rustup target add wasm32-wasi
-cargo build -p red2-wasm --target wasm32-wasi
-wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/add.red2 --quantum 20
-wasmtime --dir /tmp target/wasm32-wasi/debug/red2-wasm.wasm /tmp/breakout.red2 --quantum 12000 --clock /tmp/asgard-clock
-```
-
-Wasmtime requires `--dir /tmp` or another preopened directory to grant the WASI
-module access to `.red2` files.
-
-Next VM milestones:
-
-1. Expand Rust VM coverage for `Y`, `LETREC`, and non-PAIR structure behavior.
-2. Add remaining simulator device IO such as LED diagnostics where useful.
-3. Define a flash-oriented image layout for FPGA boards.
+`.red2` is the serialized representation of compiled RED2 instruction data. It is useful for inspection, fixtures, interchange, and future tooling, but it does not define a separate execution model. Canonical execution uses the faithful Python Abstract RED2 Machine directly from compiled graph state rather than round-tripping through this file format.
