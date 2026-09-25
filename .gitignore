@@ -15,3 +15,5 @@ htmlcov/
 .coverage.*
 thesis-transcription/build/
 Hilton_AAI9111882.pdf
+
+tmp.jsonl
