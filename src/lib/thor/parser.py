@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import StrEnum, auto
 from typing import Never
 
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Char,
@@ -19,7 +19,7 @@ from thor_lang.ast import (
     Symbol,
     TopLevel,
 )
-from thor_lang.normalization import desugar_let
+from thor.normalization import desugar_let
 
 
 class ParseError(ValueError):

@@ -1,7 +1,7 @@
 """Fixed-width synthesizable RED2 ABI and legacy word-stepper helpers.
 
 The hardware ABI in this module is intentionally independent from
-``abstract_red2_machine.instructions``' older 32-bit compiler-image encoding.  The
+``red2.instructions``' older 32-bit compiler-image encoding.  The
 faithful ``AbstractRED2Machine`` has additional opcodes and machine-visible metadata
 (``definition`` and ``closure_slot``), and RED2 also uses populated workspace
 cells whose opcode is ``None``.  Hardware therefore receives an explicitly

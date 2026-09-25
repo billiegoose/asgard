@@ -1,7 +1,7 @@
 from thor_interpreter.golden import run_source
-from thor_lang.ast import Char
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from thor.ast import Char
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def assert_model_parity(source: str, expected: str, quantum: int = 50) -> None:

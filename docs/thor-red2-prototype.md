@@ -4,7 +4,7 @@
 
 This project is a faithful research prototype of Hilton's THOR interpreter and RED2 graph-reduction machine. The Python THOR interpreter is the Chapter 3 semantic reference; the Python RED2 path executes the Chapter 4-style μRED graph/environment/register machine directly.
 
-Python RED2 execution is implemented by `models/abstract_red2_machine/machine.py`. `abs`, `mise run abs`, and parity runs using `model="abs"` all execute through `AbstractRED2Machine`.
+Python RED2 execution is implemented by `src/machines/abstract_red2_machine/machine.py`. `abs`, `mise run abs`, and parity runs using `model="abs"` all execute through `AbstractRED2Machine`.
 
 Semantic parity remains distinct from machine fidelity: Chapter 3 reduction is an oracle at test boundaries, not an execution callback from `AbstractRED2Machine.step()` or `run()`.
 
@@ -41,18 +41,15 @@ User-facing faithful loaders default to 1,048,576 graph/environment words in one
 
 ## Bytecode and Rust/WASM boundary
 
-The `.red2` instruction/compiler/binary layer remains in the repository. `abstract_red2_machine.instructions`, `abstract_red2_machine.binary`, and bytecode compilation functions in `thor_compile.red2` are still used as compiler/transport infrastructure for the Rust/WASM paths.
-
-Python binary tests check deterministic encoding and codec/bundle round trips; the bytecode layer is compiler/transport infrastructure rather than the Python execution path.
-
 ## Thesis traceability
 
-- `models/thor_lang/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 syntax, source forms, and named-binder/De Bruijn representation.
-- `models/thor_interpreter/semantics.py` and `models/thor_lang/primitives.py` implement the Chapter 3 semantic reference.
-- `models/abstract_red2_machine/machine.py` implements the faithful graph-memory/register transitions used by Python RED2 execution.
-- `models/thor_compile/red2.py` contains both faithful μRED program layout and the retained `.red2` bytecode compiler used by non-Python targets.
+- `src/lib/thor/ast.py`, `parser.py`, and `pretty.py` cover Chapter 3 syntax, source forms, and named-binder/De Bruijn representation.
+- `src/machines/thor_interpreter/semantics.py` and `src/lib/thor/primitives.py` implement the Chapter 3 semantic reference.
+- `src/machines/abstract_red2_machine/machine.py` implements the faithful graph-memory/register transitions used by Python RED2 execution.
+- `src/lib/red2/compiler.py` contains shared THOR-to-RED2 compilation for live graph words and compiler images.
+- `src/machines/abstract_red2_machine/loader.py` owns Abstract-machine-specific definition relocation and loading.
 - `tests/fixtures/appendix_a/sine_core.thor` and `game_core.thor` provide executable Appendix A parity gates.
-- `models/concrete_red2_machine/pipelinec_vectors.py` and `models/concrete_red2_machine/abi.py` define the fixed-width bridge and ABI used to compare the Concrete RED2 Machine with the synthesizable PipelineC/Pypeline implementation.
+- `src/machines/concrete_red2_machine/pipelinec_vectors.py` and `src/machines/concrete_red2_machine/abi.py` define the fixed-width bridge and ABI used to compare the Concrete RED2 Machine with the synthesizable PipelineC/Pypeline implementation.
 - `tools/vscode-thor/` contains the local VS Code/TextMate syntax support for `.thor` sources.
 
 ## Known omissions and boundaries

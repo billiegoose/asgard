@@ -1,7 +1,7 @@
-from thor_lang.ast import App, Integer, Lambda, Symbol
-from thor_lang.normalization import normalize_expr
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from thor.ast import App, Integer, Lambda, Symbol
+from thor.normalization import normalize_expr
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def test_lowercase_special_forms_normalize_to_core_names() -> None:

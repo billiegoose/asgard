@@ -1,4 +1,4 @@
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Char,

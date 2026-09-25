@@ -1,4 +1,4 @@
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Block,
@@ -16,9 +16,9 @@ from thor_lang.ast import (
     Symbol,
     Var,
 )
-from thor_lang.parser import parse_expr, parse_program
-from thor_lang.pretty import to_source
-from thor_lang.version import __version__
+from thor.parser import parse_expr, parse_program
+from thor.pretty import to_source
+from thor.version import __version__
 
 __all__ = [
     "App",

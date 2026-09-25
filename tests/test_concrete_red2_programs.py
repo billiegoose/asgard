@@ -11,12 +11,12 @@ from abstract_red2_machine.machine import (
 from concrete_red2_machine import abi
 from concrete_red2_machine.machine import RED2_PROGRAMS_V1
 from concrete_red2_machine.oracle import load_compiled_program, run_lockstep
-from thor_compile.red2 import load_faithful_machine
-from thor_lang.ast import Definition, Expr, StructDef
-from thor_lang.normalization import normalize_expr, normalize_program
-from thor_lang.parser import parse_expr, parse_program
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_definition
+from abstract_red2_machine.loader import load_faithful_machine
+from thor.ast import Definition, Expr, StructDef
+from thor.normalization import normalize_expr, normalize_program
+from thor.parser import parse_expr, parse_program
+from thor.pretty import to_source
+from thor.primitives import install_struct_definition
 
 
 def test_red2_programs_v1_is_explicit() -> None:

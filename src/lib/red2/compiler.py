@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING
 
-from abstract_red2_machine.instructions import (
+from red2.instructions import (
     DefinitionImage,
     Instruction,
     Opcode,
     ProgramImage,
 )
-from thor_lang.ast import (
+from red2.representation import MuredOpcode, Word
+from thor.ast import (
     App,
     Char,
     Expr,
@@ -23,8 +23,230 @@ from thor_lang.ast import (
     Var,
 )
 
-if TYPE_CHECKING:
-    from abstract_red2_machine.machine import AbstractRED2Machine, Word
+_STRICT_UNARY_PRIMITIVES = frozenset(
+    {
+        "1-",
+        "1+",
+        "ABS",
+        "CAR",
+        "CDR",
+        "CEILING",
+        "EVEN?",
+        "FLOOR",
+        "MINUS",
+        "NULL?",
+        "NOT",
+        "TAG",
+        "INTEGER?",
+        "FLOAT?",
+        "CHAR?",
+        "SYMBOL?",
+        "STRUCTURE?",
+        "IO-RETURN",
+        "UART-TX",
+        "UART-TX-BYTES",
+    }
+)
+_STRICT_BINARY_PRIMITIVES = frozenset(
+    {
+        "+",
+        "-",
+        "*",
+        "/",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "=",
+        "CONS",
+        "EQUAL?",
+        "EXPT",
+        "MAX",
+        "MIN",
+        "MOD",
+    }
+)
+_NON_STRICT_PRIMITIVES = frozenset(
+    {"IF", "Y", "AND", "OR", "IO-BIND", "IO-THEN", "CLOCK", "UART-RX"}
+)
+
+
+def compile_lambda(
+    expr: Expr,
+    *,
+    definition_names: Collection[str] = (),
+    unary_primitive_names: Collection[str] = (),
+) -> tuple[Word, ...]:
+    words: list[Word] = []
+    visible_definitions = frozenset(definition_names)
+    visible_unary_primitives = _STRICT_UNARY_PRIMITIVES | frozenset(
+        unary_primitive_names
+    )
+
+    def compile_var_index(
+        index: int,
+        scope: tuple[str | None, ...],
+        name: str | None = None,
+    ) -> int:
+        if name is not None and name in scope:
+            return scope.index(name)
+        source_index = 0
+        synthetic_slots = 0
+        for compiled_index, scope_name in enumerate(scope):
+            if scope_name is None:
+                synthetic_slots += 1
+                continue
+            if source_index == index:
+                return compiled_index
+            source_index += 1
+        return index + synthetic_slots
+
+    def compile_inline_argument(
+        node: Expr,
+        scope: tuple[str | None, ...],
+    ) -> int | None:
+        if isinstance(node, Var):
+            return compile_var_index(node.index, scope, node.name)
+        if isinstance(node, Symbol) and node.name in scope:
+            return scope.index(node.name)
+        return None
+
+    def compile_graph(
+        node: Expr,
+        scope: tuple[str | None, ...],
+        *,
+        head: bool,
+    ) -> None:
+        if isinstance(node, Var):
+            words.append(
+                Word(
+                    MuredOpcode.VAR,
+                    compile_var_index(node.index, scope, node.name),
+                    head,
+                )
+            )
+            return
+        if isinstance(node, Symbol):
+            if node.name in scope:
+                words.append(Word(MuredOpcode.VAR, scope.index(node.name), head))
+            elif node.name in visible_definitions:
+                words.append(Word(MuredOpcode.SYM, node.name, head))
+            elif node.name in visible_unary_primitives:
+                words.append(Word(MuredOpcode.PRIM_1, node.name, head))
+            elif node.name in _STRICT_BINARY_PRIMITIVES:
+                words.append(Word(MuredOpcode.PRIM_2, node.name, head))
+            elif node.name in _NON_STRICT_PRIMITIVES:
+                words.append(Word(MuredOpcode.PRIM_0, node.name, head))
+            else:
+                words.append(Word(MuredOpcode.SYM, node.name, head))
+            return
+        if isinstance(node, Integer):
+            words.append(Word(MuredOpcode.INT, node.value, head))
+            return
+        if isinstance(node, Float):
+            words.append(Word(MuredOpcode.FLOAT, node.value, head))
+            return
+        if isinstance(node, Char):
+            words.append(Word(MuredOpcode.CHAR, node.value, head))
+            return
+        if isinstance(node, Lambda):
+            for parameter in node.params:
+                words.append(Word(MuredOpcode.LAMBDA, parameter, False))
+            compile_graph(
+                node.body,
+                tuple(reversed(node.params)) + scope,
+                head=head,
+            )
+            return
+        if isinstance(node, LetRec):
+            names = tuple(binding.name for binding in node.bindings)
+            recursive_scope = tuple(reversed(names)) + scope
+            block_start = len(words)
+            words.extend(Word(MuredOpcode.RBLOCK) for _ in node.bindings)
+            words.append(Word(MuredOpcode.RUP, len(node.bindings), False))
+            compile_graph(node.body, recursive_scope, head=head)
+            for offset, binding in enumerate(node.bindings):
+                binding_address = len(words)
+                words[block_start + offset] = Word(
+                    MuredOpcode.RBLOCK,
+                    binding_address,
+                    False,
+                )
+                words.append(Word(MuredOpcode.SYM, binding.name, False))
+                compile_graph(binding.expr, recursive_scope, head=True)
+            return
+        if isinstance(node, StructLit):
+            words.append(Word(MuredOpcode.STRUCT, node.tag, False))
+            app_start = len(words)
+            fields = tuple(reversed(node.fields))
+            words.extend(Word(MuredOpcode.APP) for _ in fields)
+            words.append(Word(MuredOpcode.VAR, 0, head))
+            field_scope = (None, *scope)
+            for offset, field in enumerate(fields):
+                field_address = len(words)
+                words[app_start + offset] = Word(
+                    MuredOpcode.APP,
+                    field_address,
+                    False,
+                )
+                compile_graph(field, field_scope, head=True)
+            return
+        if isinstance(node, App):
+            if not node.items:
+                words.append(Word(MuredOpcode.PNP, head=head))
+                return
+            operator = node.items[0]
+            if (
+                isinstance(operator, Symbol)
+                and operator.name not in visible_definitions
+                and operator.name in {"AND", "OR"}
+            ):
+                arguments = node.items[1:]
+                identity = Symbol("TRUE" if operator.name == "AND" else "FALSE")
+                short_circuit = Symbol("FALSE" if operator.name == "AND" else "TRUE")
+                expanded: Expr = identity
+                for argument in reversed(arguments):
+                    if operator.name == "AND":
+                        expanded = App(
+                            (Symbol("IF"), argument, expanded, short_circuit)
+                        )
+                    else:
+                        expanded = App(
+                            (Symbol("IF"), argument, short_circuit, expanded)
+                        )
+                compile_graph(expanded, scope, head=head)
+                return
+            if len(node.items) == 1:
+                compile_graph(node.items[0], scope, head=head)
+                return
+            app_start = len(words)
+            arguments = tuple(reversed(node.items[1:]))
+            inline_indices = tuple(
+                compile_inline_argument(argument, scope) for argument in arguments
+            )
+            words.extend(
+                Word(MuredOpcode.APP_VAR, index, False)
+                if index is not None
+                else Word(MuredOpcode.APP)
+                for index in inline_indices
+            )
+            compile_graph(node.items[0], scope, head=True)
+            for offset, argument in enumerate(arguments):
+                if inline_indices[offset] is not None:
+                    continue
+                argument_address = len(words)
+                words[app_start + offset] = Word(
+                    MuredOpcode.APP, argument_address, False
+                )
+                compile_graph(argument, scope, head=True)
+            return
+        raise TypeError(
+            f"pure λ-calculus expression required, got {type(node).__name__}"
+        )
+
+    compile_graph(expr, (), head=True)
+    return tuple(words)
+
 
 Scope = tuple[str, ...]
 
@@ -259,162 +481,3 @@ def compile_definitions(definitions: Mapping[str, Expr]) -> DefinitionImage:
     return DefinitionImage(
         {name: compile_expr(expr) for name, expr in definitions.items()}
     )
-
-
-@dataclass(frozen=True, slots=True)
-class FaithfulDefinitionCache:
-    """Precompiled static μRED definition environment reusable across machine loads."""
-
-    memory_words: int
-    definition_names: frozenset[str]
-    selector_names: frozenset[str]
-    struct_selectors: dict[str, tuple[str, int]]
-    definition_addresses: dict[str, int]
-    static_start: int
-    static_words: tuple[tuple[int, Word], ...]
-
-
-def _relocate_faithful_word(
-    word: Word,
-    *,
-    graph_base: int,
-    definition_addresses: Mapping[str, int],
-) -> Word:
-    """Relocate graph-owned pointers while keeping definition addresses absolute."""
-    from abstract_red2_machine.machine import MuredOpcode, Word
-
-    data = word.data
-    if word.opcode in {MuredOpcode.APP, MuredOpcode.RBLOCK}:
-        if not isinstance(data, int):
-            raise ValueError(f"{word.opcode} requires an address")
-        data += graph_base
-    definition = word.definition
-    if word.opcode is MuredOpcode.SYM and isinstance(word.data, str):
-        definition = definition_addresses.get(word.data)
-    return Word(word.opcode, data, word.head, definition)
-
-
-def prepare_faithful_definitions(
-    definitions: Mapping[str, Expr] | None,
-    *,
-    memory_words: int = 1_048_576,
-) -> FaithfulDefinitionCache:
-    """Compile and relocate the static μRED definition environment once."""
-    from abstract_red2_machine.machine import MuredOpcode, Word, compile_lambda
-
-    definition_exprs = {} if definitions is None else dict(definitions)
-    struct_selectors = {
-        name: selector
-        for name, definition in definition_exprs.items()
-        if (selector := _generated_struct_selector(definition, definition_exprs))
-        is not None
-    }
-    for name in struct_selectors:
-        definition_exprs.pop(name)
-
-    definition_names = frozenset(definition_exprs)
-    selector_names = frozenset(struct_selectors)
-    compiled_definitions = {
-        name: compile_lambda(
-            definition,
-            definition_names=definition_names,
-            unary_primitive_names=selector_names,
-        )
-        for name, definition in definition_exprs.items()
-    }
-    reserved_words = sum(len(words) + 1 for words in compiled_definitions.values())
-    if reserved_words >= memory_words:
-        raise ValueError("faithful definitions exceed μRED memory capacity")
-
-    static_start = memory_words - reserved_words
-    definition_addresses: dict[str, int] = {}
-    cursor = static_start
-    for name, words in compiled_definitions.items():
-        definition_addresses[name] = cursor
-        cursor += len(words) + 1
-
-    static_words: list[tuple[int, Word]] = []
-    cursor = static_start
-    for words in compiled_definitions.values():
-        base = cursor
-        static_words.extend(
-            (
-                base + offset,
-                _relocate_faithful_word(
-                    word,
-                    graph_base=base,
-                    definition_addresses=definition_addresses,
-                ),
-            )
-            for offset, word in enumerate(words)
-        )
-        static_words.append((base + len(words), Word(MuredOpcode.STOP)))
-        cursor += len(words) + 1
-
-    return FaithfulDefinitionCache(
-        memory_words=memory_words,
-        definition_names=definition_names,
-        selector_names=selector_names,
-        struct_selectors=struct_selectors,
-        definition_addresses=definition_addresses,
-        static_start=static_start,
-        static_words=tuple(static_words),
-    )
-
-
-def load_faithful_machine(
-    expr: Expr,
-    *,
-    quantum: int,
-    definitions: Mapping[str, Expr] | FaithfulDefinitionCache | None = None,
-    memory_words: int = 1_048_576,
-    control_words: int = 8_192,
-    memory_diagnostics: bool = False,
-    poison_reclaimed_environment: bool = False,
-) -> AbstractRED2Machine:
-    """Load one expression plus visible top-level definitions into μRED memory."""
-    from abstract_red2_machine.machine import AbstractRED2Machine, compile_lambda
-
-    prepared = (
-        definitions
-        if isinstance(definitions, FaithfulDefinitionCache)
-        else prepare_faithful_definitions(definitions, memory_words=memory_words)
-    )
-    if prepared.memory_words != memory_words:
-        raise ValueError("faithful definition cache memory size does not match machine")
-
-    root_words = compile_lambda(
-        expr,
-        definition_names=prepared.definition_names,
-        unary_primitive_names=prepared.selector_names,
-    )
-    machine = AbstractRED2Machine.load(
-        root_words,
-        quantum=quantum,
-        memory_words=memory_words,
-        control_words=control_words,
-        memory_diagnostics=memory_diagnostics,
-        poison_reclaimed_environment=poison_reclaimed_environment,
-    )
-    root_stop = len(root_words)
-    if prepared.static_start <= root_stop:
-        raise ValueError("faithful program leaves no μRED working memory")
-
-    for address in range(root_stop):
-        word = machine.state.memory[address]
-        if word is None:
-            raise ValueError("faithful root graph contains an uninitialized word")
-        machine.state.memory[address] = _relocate_faithful_word(
-            word,
-            graph_base=0,
-            definition_addresses=prepared.definition_addresses,
-        )
-
-    for address, word in prepared.static_words:
-        machine.state.memory[address] = word
-
-    machine.state.env = prepared.static_start
-    machine.state.free_space = prepared.static_start
-    machine.working_memory_limit = prepared.static_start
-    machine.struct_selectors = prepared.struct_selectors
-    return machine

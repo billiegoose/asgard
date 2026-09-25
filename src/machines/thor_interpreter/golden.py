@@ -1,13 +1,13 @@
 from collections.abc import Mapping
 from typing import Literal
 
-from thor_compile.red2 import load_faithful_machine
+from abstract_red2_machine.loader import load_faithful_machine
 from thor_interpreter.semantics import reduce_expr
-from thor_lang.ast import Definition, Expr, Program, StructDef, Symbol
-from thor_lang.normalization import normalize_program
-from thor_lang.parser import parse_program
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_definition
+from thor.ast import Definition, Expr, Program, StructDef, Symbol
+from thor.normalization import normalize_program
+from thor.parser import parse_program
+from thor.pretty import to_source
+from thor.primitives import install_struct_definition
 
 ModelName = Literal["thor", "abs", "red2"]
 DEFAULT_QUANTUM = 100

@@ -11,11 +11,11 @@ from concrete_red2_machine.machine import (
     ConcreteRED2Machine,
 )
 from concrete_red2_machine.pipelinec_vectors import RED2ABICodec
-from thor_compile.red2 import load_faithful_machine
-from thor_lang.ast import Definition, StructDef
-from thor_lang.normalization import normalize_expr, normalize_program
-from thor_lang.parser import parse_expr, parse_program
-from thor_lang.primitives import install_struct_definition
+from abstract_red2_machine.loader import load_faithful_machine
+from thor.ast import Definition, StructDef
+from thor.normalization import normalize_expr, normalize_program
+from thor.parser import parse_expr, parse_program
+from thor.primitives import install_struct_definition
 
 
 def _processor(machine: AbstractRED2Machine, codec: RED2ABICodec) -> ConcreteRED2Machine:

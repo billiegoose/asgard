@@ -14,11 +14,11 @@ from abstract_red2_machine.io_runtime import (
     Red2RechargeEvent,
     run_red2_io_action,
 )
-from thor_lang.ast import Definition, Expr, StructDef
-from thor_lang.normalization import normalize_program
-from thor_lang.parser import parse_program
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_definition
+from thor.ast import Definition, Expr, StructDef
+from thor.normalization import normalize_program
+from thor.parser import parse_program
+from thor.pretty import to_source
+from thor.primitives import install_struct_definition
 
 
 @dataclass
@@ -241,7 +241,7 @@ def test_red2_io_runtime_is_only_a_machine_scheduler_and_host_dispatcher() -> No
 def test_red2_io_compiles_static_definitions_once_per_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import abstract_red2_machine.machine as mured
+    import red2.compiler as red2_compiler
 
     source = """
     emit == (LAMBDA (n) (UART-TX (+ n 64)))
@@ -249,7 +249,7 @@ def test_red2_io_compiles_static_definitions_once_per_run(
     """
     action, definitions = prepare(source)
     target = definitions["emit"]
-    original = mured.compile_lambda
+    original = red2_compiler.compile_lambda
     compile_count = 0
 
     def counting_compile(expr: Expr, *args: Any, **kwargs: Any) -> Any:
@@ -258,7 +258,8 @@ def test_red2_io_compiles_static_definitions_once_per_run(
             compile_count += 1
         return original(expr, *args, **kwargs)
 
-    monkeypatch.setattr(mured, "compile_lambda", counting_compile)
+    monkeypatch.setattr(red2_compiler, "compile_lambda", counting_compile)
+    monkeypatch.setattr("abstract_red2_machine.loader.compile_lambda", counting_compile)
     host = FakeHost()
     result = run_red2_io_action(
         action,
@@ -275,7 +276,7 @@ def test_red2_io_compiles_static_definitions_once_per_run(
 def test_red2_io_recharges_same_machine_across_tiny_quantum(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import thor_compile.red2 as red2_compile
+    import abstract_red2_machine.loader as red2_compile
 
     action, definitions = prepare(
         "(IO-THEN (UART-TX 65) (IO-THEN (UART-TX 66) (IO-RETURN 7)))"
@@ -443,7 +444,7 @@ def test_red2_io_uses_one_faithful_machine_for_entire_program(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """One program execution owns one μRED machine, including across IO effects."""
-    import thor_compile.red2 as red2_compile
+    import abstract_red2_machine.loader as red2_compile
 
     source = """
     emit == (LAMBDA (n) (UART-TX (+ 64 n)))
@@ -530,7 +531,7 @@ def test_host_headroom_uses_free_space_with_valid_higher_saved_env(
 def test_red2_io_distinguishes_host_checkpoints_from_quantum_recharges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import thor_compile.red2 as red2_compile
+    import abstract_red2_machine.loader as red2_compile
 
     @dataclass
     class RecordingHost:
@@ -625,7 +626,7 @@ def test_memory_diagnostics_are_lazy_and_sink_is_opt_in(
     monkeypatch: pytest.MonkeyPatch,
     capsys: Any,
 ) -> None:
-    import thor_compile.red2 as red2_compile
+    import abstract_red2_machine.loader as red2_compile
 
     action, definitions = prepare(
         "(IO-BIND (CLOCK) (LAMBDA (now) (IO-RETURN now)))"

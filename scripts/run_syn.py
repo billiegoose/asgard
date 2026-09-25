@@ -10,14 +10,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PIPELINEC_ROOT = REPO_ROOT.parent / "PipelineC-pypeline-red2-pinned"
-MODELS_ROOT = REPO_ROOT / "models"
+LIB_ROOT = REPO_ROOT / "src" / "lib"
+MACHINES_ROOT = REPO_ROOT / "src" / "machines"
 
 
 def _bootstrap_import_paths() -> None:
     """Make Asgard and the configured PipelineC checkout importable in-process."""
-    models = str(MODELS_ROOT)
-    if models not in sys.path:
-        sys.path.insert(0, models)
+    for source_root in (LIB_ROOT, MACHINES_ROOT):
+        source = str(source_root)
+        if source not in sys.path:
+            sys.path.insert(0, source)
 
     configured = os.environ.get("PIPELINEC_ROOT")
     root = (
@@ -117,12 +119,12 @@ from synthesizable_red2_machine.machine import (  # noqa: E402
     red2_control_t,
     red2_word_t,
 )
-from thor_compile.red2 import load_faithful_machine  # noqa: E402
-from thor_lang.ast import Definition, Expr, StructDef  # noqa: E402
-from thor_lang.normalization import normalize_program  # noqa: E402
-from thor_lang.parser import ParseError, parse_program  # noqa: E402
-from thor_lang.pretty import to_source  # noqa: E402
-from thor_lang.primitives import install_struct_definition  # noqa: E402
+from abstract_red2_machine.loader import load_faithful_machine  # noqa: E402
+from thor.ast import Definition, Expr, StructDef  # noqa: E402
+from thor.normalization import normalize_program  # noqa: E402
+from thor.parser import ParseError, parse_program  # noqa: E402
+from thor.pretty import to_source  # noqa: E402
+from thor.primitives import install_struct_definition  # noqa: E402
 
 MASK64 = (1 << 64) - 1
 ZERO_WORD = red2_word_t(lo=0, hi=0)

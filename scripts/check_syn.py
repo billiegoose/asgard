@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 PIPELINEC_TESTED_REVISION = "171c52b3f1411f632a07ccfc3dbfb177efa901cd"
-PROCESSOR_SOURCE = Path("models/synthesizable_red2_machine/machine.py")
+PROCESSOR_SOURCE = Path("src/machines/synthesizable_red2_machine/machine.py")
 MISSING_FRONTEND_DIAGNOSTIC = (
     "syn-check: missing PipelineC/Pypeline frontend; "
     f"set PIPELINEC_ROOT to a checkout at {PIPELINEC_TESTED_REVISION} "
@@ -88,7 +88,9 @@ def _pipelinec_environment(root: Path | None, repo: Path) -> dict[str, str]:
         pieces.extend(
             (str(root / "src"), str(root / "include"), str(root / "include" / "pypeline"))
         )
-    pieces.append(str(repo / "models"))
+    pieces.extend(
+        (str(repo / "src" / "lib"), str(repo / "src" / "machines"))
+    )
     inherited = env.get("PYTHONPATH")
     if inherited:
         pieces.append(inherited)

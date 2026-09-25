@@ -1,7 +1,7 @@
 from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr, translate
-from thor_lang.ast import App, Integer, Lambda, Symbol, Var
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from thor.ast import App, Integer, Lambda, Symbol, Var
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def test_translation_converts_bound_symbols_to_debruijn_vars() -> None:

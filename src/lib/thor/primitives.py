@@ -4,7 +4,7 @@ from math import ceil, floor
 from operator import add, mod, mul, sub, truediv
 from typing import Protocol
 
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Char,
     Expr,

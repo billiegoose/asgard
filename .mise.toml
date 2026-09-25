@@ -61,16 +61,17 @@ uv run con "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--ver
 '''
 
 [tasks.syn]
-description = "Run a THOR source file on the Synthesizable RED2 Machine simulator"
+description = "Run THOR source on the Synthesizable RED2 Machine simulator"
 quiet = true
 usage = '''
-arg "<file>" help="THOR source file"
+arg "[file]" help="THOR source file"
+flag "--expr <source>" help="THOR expression or program source"
 flag "--quantum <n>" help="maximum contraction quantum" default="2000"
 flag "--verbose" help="write simulator diagnostics to stderr"
 flag "--clock <path>" help="clock source (accepted now; host resume support is pending)"
 '''
 run = '''
-uv run python scripts/run_syn.py "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
+uv run python scripts/run_syn.py ${usage_file:+"$usage_file"} ${usage_expr:+--expr "$usage_expr"} --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 '''
 
 [tasks.parity]

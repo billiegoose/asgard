@@ -19,7 +19,7 @@ from concrete_red2_machine.machine import (
     ConcreteRED2Machine,
 )
 from concrete_red2_machine.pipelinec_vectors import RED2ABICodec
-from thor_lang.parser import parse_expr
+from thor.parser import parse_expr
 
 
 def _machine(words: list[Word], *, memory_words: int = 64) -> AbstractRED2Machine:

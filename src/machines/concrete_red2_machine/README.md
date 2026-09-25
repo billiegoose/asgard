@@ -127,7 +127,7 @@ PipelineC's later `No synthesis tool install detected ... Skipping synthesis`
 path. `--frontend-only` runs the supported
 `pypelinec --no_synth` path, including normal trim/collapse and VHDL emission for
 `SynthesizableRED2Machine`, and then runs the native Synthesizable RED2 parity checker. The
-hardware top is `models/synthesizable_red2_machine/machine.py`; the separate
+hardware top is `src/machines/synthesizable_red2_machine/machine.py`; the separate
 `ConcreteRED2Machine` class remains the CPython architectural model/oracle.
 
 The RED2 source deliberately keeps the large request and microstate dispatches

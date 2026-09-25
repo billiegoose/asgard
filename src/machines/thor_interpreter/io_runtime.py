@@ -14,7 +14,7 @@ from abstract_red2_machine.io_runtime import (
 )
 from thor_interpreter.golden import ModelName
 from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Block,
@@ -32,10 +32,10 @@ from thor_lang.ast import (
     Symbol,
     Var,
 )
-from thor_lang.normalization import normalize_program
-from thor_lang.parser import parse_program
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_definition
+from thor.normalization import normalize_program
+from thor.parser import parse_program
+from thor.pretty import to_source
+from thor.primitives import install_struct_definition
 
 
 class IoRuntimeError(RuntimeError):

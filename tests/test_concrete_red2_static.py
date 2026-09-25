@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_concrete_red2_abi_has_expected_entry_points() -> None:
-    source = Path("models/concrete_red2_machine/abi.py").read_text()
+    source = Path("src/machines/concrete_red2_machine/abi.py").read_text()
     assert "RED2_ABI_V1 = 1" in source
     assert "def pack_word" in source
     assert "def pack_control_entry" in source
@@ -12,7 +12,7 @@ def test_concrete_red2_abi_has_expected_entry_points() -> None:
 
 
 def test_synthesizable_abi_module_has_no_dynamic_python_state_containers() -> None:
-    path = Path("models/concrete_red2_machine/abi.py")
+    path = Path("src/machines/concrete_red2_machine/abi.py")
     tree = ast.parse(path.read_text())
     forbidden = (ast.List, ast.Dict, ast.Set, ast.ListComp, ast.DictComp, ast.SetComp)
     offenders = [node for node in ast.walk(tree) if isinstance(node, forbidden)]
@@ -20,7 +20,7 @@ def test_synthesizable_abi_module_has_no_dynamic_python_state_containers() -> No
 
 
 def test_synthesizable_abi_module_does_not_import_python_object_helpers() -> None:
-    tree = ast.parse(Path("models/concrete_red2_machine/abi.py").read_text())
+    tree = ast.parse(Path("src/machines/concrete_red2_machine/abi.py").read_text())
     imports = {
         alias.name
         for node in ast.walk(tree)
@@ -37,7 +37,7 @@ def test_synthesizable_abi_module_does_not_import_python_object_helpers() -> Non
 
 
 def test_concrete_red2_readme_names_validation_path_and_fixed_width_contract() -> None:
-    text = Path("models/concrete_red2_machine/README.md").read_text()
+    text = Path("src/machines/concrete_red2_machine/README.md").read_text()
     assert "PipelineC" in text
     assert "RED2_ABI_V1" in text
     assert "16-bit physical RAM cell addresses" in text
@@ -47,7 +47,7 @@ def test_concrete_red2_readme_names_validation_path_and_fixed_width_contract() -
 
 
 def _red2_processor_class() -> ast.ClassDef:
-    tree = ast.parse(Path("models/concrete_red2_machine/machine.py").read_text())
+    tree = ast.parse(Path("src/machines/concrete_red2_machine/machine.py").read_text())
     return next(
         node
         for node in tree.body

@@ -12,8 +12,6 @@ is checked against THOR with parity tests and a small golden corpus. See
 traceability notes and known omissions. See
 [`docs/thor-primitives.md`](docs/thor-primitives.md) for the current primitive
 surface and candidate future additions. See
-[`docs/red2-bytecode.md`](docs/red2-bytecode.md) for the serializable `.red2`
-bytecode format. See
 [`docs/red2-incremental-memory-reclamation.md`](docs/red2-incremental-memory-reclamation.md)
 for the current source-to-runtime account of RED2 graph/environment reclamation,
 coarse residual reconstruction, and the executable Hilton C reference evidence.
@@ -68,7 +66,6 @@ project checks:
 ```sh
 uv run thor --expr "(+ 2 3)" --quantum 20
 uv run abs --expr "(+ 2 3)" --quantum 20
-uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
 mise run thor examples/hangman.thor --quantum 5000
 mise run abs examples/hangman.thor --quantum 5000
 mise run parity examples/fibonacci.thor --quantum 75
@@ -135,28 +132,24 @@ mise run hdl examples/hangman.thor
 mise run verify
 ```
 
-Lower-level bytecode commands remain useful when inspecting the `.red2` format
-or debugging an executor directly:
-
 ```sh
 uv run thor --help
 uv run abs --help
-uv run compile --expr "(+ 2 3)" --output /tmp/add.red2
 ```
 
 ## Prototype Scope
 
-- `models/thor_lang/` implements THOR source syntax, AST nodes,
+- `src/lib/thor/` defines the backend-independent THOR language: AST nodes,
   parsing, pretty-printing, normalization, primitives, and version metadata.
-- `models/thor_interpreter/` implements the Chapter 3-style THOR interpreter,
-  golden/parity helpers, IO runtime, lockstep comparison, and `thor` CLI.
-- `models/abstract_red2_machine/` contains the RED2 instruction contract, binary
-  format, faithful Python machine, primitive execution, and the `abs` CLI.
-- `models/thor_compile/` contains the THOR-to-RED2 compiler and
-  `compile` CLI.
-- `models/concrete_red2_machine/` contains the bounded fixed-width Python machine,
-  RED2 hardware ABI/codec, lockstep oracle, and the `con` CLI.
-- `models/synthesizable_red2_machine/` contains the actual Pypeline/PipelineC
-  hardware machine used by the `syn` simulator and explicit synthesis gate.
+- `src/lib/red2/` defines shared RED2 vocabulary and compilation: live graph
+  words/opcodes, compiler-image instructions, and THOR-to-RED2 compilation.
+- `src/machines/thor_interpreter/` implements direct THOR execution, golden/parity
+  helpers, IO runtime, lockstep comparison, and the `thor` CLI.
+- `src/machines/abstract_red2_machine/` implements the faithful Abstract RED2
+  Machine, its loader/IO runtime, and the `abs` CLI.
+- `src/machines/concrete_red2_machine/` implements the bounded fixed-width Python
+  architectural machine, RED2 hardware ABI/codec, lockstep oracle, and `con` CLI.
+- `src/machines/synthesizable_red2_machine/` contains the synthesizable
+  Pypeline/PipelineC machine used by the `syn` simulator and synthesis gate.
 - `tools/vscode-thor/` contains the local VS Code-compatible THOR syntax
   extension.

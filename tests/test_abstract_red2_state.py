@@ -96,8 +96,8 @@ def test_step_rejects_empty_primitive_register_name() -> None:
 def test_quantum_suspension_finishes_q0_residualization_before_recharge(
 ) -> None:
     from abstract_red2_machine.machine import MuredStopReason
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(+ (+ (+ 1 2) 3) 4)"),
@@ -127,8 +127,8 @@ def test_quantum_suspension_finishes_q0_residualization_before_recharge(
 
 
 def test_checkpoint_quantum_reconstructs_and_restarts_same_machine() -> None:
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(+ (+ 1 2) (+ 3 4))"),
@@ -166,7 +166,7 @@ def test_recharging_quantum_relinearizes_inline_struct_fields() -> None:
         MuredOpcode,
         Word,
     )
-    from thor_lang.pretty import to_source
+    from thor.pretty import to_source
 
     state = AbstractRED2MachineState(
         memory=[None] * 32,
@@ -195,8 +195,8 @@ def test_recharging_quantum_relinearizes_inline_struct_fields() -> None:
 
 
 def test_recharging_quantum_resumes_same_mured_machine() -> None:
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(+ (+ 1 2) 3)"),
@@ -218,12 +218,12 @@ def test_recharging_quantum_resumes_same_mured_machine() -> None:
 
 
 def test_recharging_quantum_preserves_static_faithful_definitions() -> None:
-    from thor_compile.red2 import (
+    from abstract_red2_machine.loader import (
         load_faithful_machine,
         prepare_faithful_definitions,
     )
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     prepared = prepare_faithful_definitions(
         {"F": parse_expr("(LAMBDA (x) (+ x 1))")},
@@ -263,8 +263,8 @@ def test_native_io_combinators_reduce_inside_one_mured_machine(
     source: str,
     expected: str,
 ) -> None:
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr(source),
@@ -281,7 +281,7 @@ def test_native_io_combinators_reduce_inside_one_mured_machine(
 
 
 def test_io_bind_structured_value_is_out_of_scope_for_current_host_io() -> None:
-    from thor_lang.parser import parse_expr
+    from thor.parser import parse_expr
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr(
@@ -300,8 +300,8 @@ def test_io_bind_structured_value_is_out_of_scope_for_current_host_io() -> None:
 
 
 def test_clock_host_primitive_suspends_and_resumes_same_machine() -> None:
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(IO-BIND (CLOCK) (LAMBDA (now) (IO-RETURN now)))"),
@@ -331,8 +331,8 @@ def test_clock_host_primitive_suspends_and_resumes_same_machine() -> None:
 
 
 def test_uart_tx_host_primitive_suspends_after_strict_argument_reduction() -> None:
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(IO-THEN (UART-TX (+ 64 1)) (IO-RETURN 7))"),
@@ -369,8 +369,8 @@ def test_resume_host_call_requires_pending_call() -> None:
 
 def test_run_until_suspend_does_not_expose_internal_if_reconstruction_q_zero() -> None:
     from abstract_red2_machine.machine import MuredStopReason
-    from thor_lang.parser import parse_expr
-    from thor_lang.pretty import to_source
+    from thor.parser import parse_expr
+    from thor.pretty import to_source
 
     machine = AbstractRED2Machine.from_expr(
         parse_expr("(IF TRUE (+ 1 2) (+ 3 4))"),
@@ -440,8 +440,8 @@ def test_direct_state_initializes_free_space_once(explicit: bool) -> None:
 def test_recharge_keeps_free_space_independent_of_env(
     static: bool, halted: bool
 ) -> None:
-    from thor_compile.red2 import load_faithful_machine, prepare_faithful_definitions
-    from thor_lang.parser import parse_expr
+    from abstract_red2_machine.loader import load_faithful_machine, prepare_faithful_definitions
+    from thor.parser import parse_expr
 
     prepared = prepare_faithful_definitions(
         {"F": parse_expr("(LAMBDA (x) (+ x 1))")} if static else {},

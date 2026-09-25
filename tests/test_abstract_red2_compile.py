@@ -6,10 +6,10 @@ from abstract_red2_machine.machine import (
     Word,
     compile_lambda,
 )
-from thor_compile.red2 import load_faithful_machine, prepare_faithful_definitions
-from thor_lang.ast import Binding, Lambda, LetRec, StructLit, Var
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from abstract_red2_machine.loader import load_faithful_machine, prepare_faithful_definitions
+from thor.ast import Binding, Lambda, LetRec, StructLit, Var
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def test_compile_lambda_uses_linear_body_and_operator_layout() -> None:

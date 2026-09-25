@@ -4,7 +4,6 @@ from pathlib import Path
 from pytest import CaptureFixture, MonkeyPatch
 
 from abstract_red2_machine.cli import main as abs_main
-from thor_compile.cli import main as compile_main
 from thor_interpreter.cli import main as thor_main
 
 
@@ -143,30 +142,3 @@ def test_red2_cli_runs_pure_file(
     captured = capsys.readouterr()
     assert captured.out == "5\n"
     assert captured.err == ""
-
-
-def test_compile_cli_file_bundles_top_level_definitions(
-    capsys: CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    source = tmp_path / "inc.thor"
-    source.write_text("inc == (lambda (x) (+ x 1))\n(inc 41)\n")
-    output = tmp_path / "inc.red2"
-
-    assert compile_main([str(source), "--output", str(output)]) == 0
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "wrote RED2 bytecode" in captured.err
-    assert output.read_bytes()[4:6] == b"\x02\x00"
-
-
-def test_compile_cli_rejects_program_without_expression(
-    capsys: CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    output = tmp_path / "bad.red2"
-
-    assert compile_main(["--expr", "answer == 42", "--output", str(output)]) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "compile requires a final expression" in captured.err

@@ -11,9 +11,9 @@ from concrete_red2_machine.machine import (
     ConcreteRED2Machine,
 )
 from concrete_red2_machine.pipelinec_vectors import RED2ABICodec
-from thor_compile.red2 import load_faithful_machine
-from thor_lang.normalization import normalize_expr
-from thor_lang.parser import parse_expr
+from abstract_red2_machine.loader import load_faithful_machine
+from thor.normalization import normalize_expr
+from thor.parser import parse_expr
 
 
 def _machine(source: str, *, quantum: int = 100) -> AbstractRED2Machine:

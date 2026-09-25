@@ -12,9 +12,9 @@ from abstract_red2_machine.machine import (
 )
 from thor_interpreter.golden import run_source
 from thor_interpreter.semantics import reduce_expr
-from thor_lang.ast import App, Expr, Lambda
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from thor.ast import App, Expr, Lambda
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def group_consecutive_lambdas(expr: Expr) -> Expr:
@@ -1293,9 +1293,10 @@ def test_final_mured_conformance_corpus_matches_chapter3(
 
 def test_faithful_machine_files_do_not_use_evaluator_shortcuts() -> None:
     faithful_files = (
-        Path("models/abstract_red2_machine/machine.py"),
-        Path("models/abstract_red2_machine/__init__.py"),
-        Path("models/thor_compile/red2.py"),
+        Path("src/machines/abstract_red2_machine/machine.py"),
+        Path("src/machines/abstract_red2_machine/loader.py"),
+        Path("src/machines/abstract_red2_machine/__init__.py"),
+        Path("src/lib/red2/compiler.py"),
     )
     forbidden = (
         "from red2_engine.machine",

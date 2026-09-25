@@ -11,8 +11,8 @@ from abstract_red2_machine.machine import (
     IllegalTransition,
     InvalidAddress,
     MalformedClosure,
-    Word,
 )
+from red2.representation import Word
 from concrete_red2_machine import abi
 from concrete_red2_machine.machine import (
     PRIM0_ROLE_DEFERRED,
@@ -54,8 +54,8 @@ from concrete_red2_machine.pipelinec_vectors import (
     EncodedProgramImage,
     RED2ABICodec,
 )
-from thor_compile.red2 import FaithfulDefinitionCache, load_faithful_machine
-from thor_lang.ast import Expr
+from abstract_red2_machine.loader import FaithfulDefinitionCache, load_faithful_machine
+from thor.ast import Expr
 
 RED2_LOCKSTEP_V1 = 1
 

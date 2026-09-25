@@ -14,8 +14,8 @@ from abstract_red2_machine.machine import (
     _SubgraphFrame,
     compile_lambda,
 )
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
+from thor.parser import parse_expr
+from thor.pretty import to_source
 
 
 def base_machine() -> AbstractRED2Machine:
@@ -3211,7 +3211,7 @@ def test_join_nonhead_var_result_remains_pointer_backed_like_hilton() -> None:
     assert state.pc == 2
 
 def test_equality_split_uses_typed_join_and_reclaims_generated_scratch() -> None:
-    from thor_compile.red2 import load_faithful_machine
+    from abstract_red2_machine.loader import load_faithful_machine
 
     machine = load_faithful_machine(
         parse_expr("(EQUAL? (F 1 2) (F 1 2))"),
@@ -3247,7 +3247,7 @@ def test_equality_split_uses_typed_join_and_reclaims_generated_scratch() -> None
 
 def test_equality_public_q0_residual_recharges_without_private_state() -> None:
     from abstract_red2_machine.machine import MuredStopReason
-    from thor_compile.red2 import load_faithful_machine
+    from abstract_red2_machine.loader import load_faithful_machine
 
     source = "(EQUAL? (LAMBDA (x) (F x)) (LAMBDA (y) (F y)))"
     machine = load_faithful_machine(
@@ -3279,11 +3279,11 @@ def test_equality_public_q0_residual_recharges_without_private_state() -> None:
 
 def test_repeated_equality_reuses_fixed_scratch_envelope() -> None:
     from abstract_red2_machine.machine import _EqualityFrame
-    from thor_compile.red2 import load_faithful_machine
-    from thor_lang.ast import Definition, StructDef
-    from thor_lang.normalization import normalize_program
-    from thor_lang.parser import parse_program
-    from thor_lang.primitives import install_struct_definition
+    from abstract_red2_machine.loader import load_faithful_machine
+    from thor.ast import Definition, StructDef
+    from thor.normalization import normalize_program
+    from thor.parser import parse_program
+    from thor.primitives import install_struct_definition
 
     source = """
     loop == (lambda (n)

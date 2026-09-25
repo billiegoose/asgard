@@ -9,12 +9,12 @@ from pathlib import Path
 from abstract_red2_machine.machine import AbstractRED2Machine
 from concrete_red2_machine import abi
 from concrete_red2_machine.oracle import load_compiled_program
-from thor_lang.ast import Definition, Expr, StructDef
-from thor_lang.normalization import normalize_program
-from thor_lang.parser import ParseError, parse_program
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_definition
-from thor_lang.version import __version__
+from thor.ast import Definition, Expr, StructDef
+from thor.normalization import normalize_program
+from thor.parser import ParseError, parse_program
+from thor.pretty import to_source
+from thor.primitives import install_struct_definition
+from thor.version import __version__
 
 
 def _prepare_program(source: str) -> tuple[Expr, dict[str, Expr]]:

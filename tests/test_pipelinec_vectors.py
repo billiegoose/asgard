@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from abstract_red2_machine.instructions import Instruction, Opcode, encode_instruction
+from red2.instructions import Instruction, Opcode, encode_instruction
 from abstract_red2_machine.machine import (
     AbstractRED2MachineState,
     Direction,

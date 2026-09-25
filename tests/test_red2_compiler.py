@@ -1,11 +1,11 @@
-from abstract_red2_machine.instructions import (
+from red2.instructions import (
     Instruction,
     Opcode,
     decode_instruction,
     encode_instruction,
 )
-from thor_compile.red2 import compile_expr
-from thor_lang.parser import parse_expr
+from red2.compiler import compile_expr
+from thor.parser import parse_expr
 
 
 def opcodes(source: str) -> list[Opcode]:

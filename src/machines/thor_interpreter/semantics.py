@@ -1,7 +1,7 @@
 from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Block,
@@ -16,7 +16,7 @@ from thor_lang.ast import (
     Symbol,
     Var,
 )
-from thor_lang.primitives import EvalState, ReductionRequest, try_reduce_primitive
+from thor.primitives import EvalState, ReductionRequest, try_reduce_primitive
 
 
 @dataclass(frozen=True, slots=True)

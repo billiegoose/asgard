@@ -2,14 +2,12 @@ from dataclasses import dataclass, fields
 from struct import pack as struct_pack
 from struct import unpack as struct_unpack
 
-from abstract_red2_machine.instructions import Instruction, Opcode, encode_instruction
+from red2.instructions import Instruction, Opcode, encode_instruction
+from red2.representation import Direction, MuredOpcode, Word
 from abstract_red2_machine.machine import (
     AbstractRED2Machine,
     AbstractRED2MachineState,
-    Direction,
     MuredHostCall,
-    MuredOpcode,
-    Word,
     _EqualityFrame,
     _SavedDefinitionPath,
     _SavedFire,

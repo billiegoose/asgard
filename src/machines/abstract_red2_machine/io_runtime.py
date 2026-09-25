@@ -9,11 +9,10 @@ from abstract_red2_machine.machine import (
     AbstractRED2Machine,
     MuredHostCall,
     MuredMemoryEvent,
-    MuredOpcode,
     MuredStopReason,
-    Word,
 )
-from thor_lang.ast import Expr
+from red2.representation import MuredOpcode, Word
+from thor.ast import Expr
 
 
 class Red2IoRuntimeError(RuntimeError):
@@ -62,7 +61,7 @@ def run_red2_io_action(
         raise Red2IoRuntimeError("RED2 IO quantum must be positive")
     recharge_events = frozenset(recharge_on)
 
-    from thor_compile.red2 import load_faithful_machine
+    from abstract_red2_machine.loader import load_faithful_machine
 
     machine = load_faithful_machine(
         action,

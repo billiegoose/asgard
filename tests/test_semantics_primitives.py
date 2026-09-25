@@ -1,8 +1,8 @@
 from thor_interpreter.semantics import reduce_expr
-from thor_lang.ast import Expr, Integer
-from thor_lang.parser import parse_expr
-from thor_lang.pretty import to_source
-from thor_lang.primitives import install_struct_accessors
+from thor.ast import Expr, Integer
+from thor.parser import parse_expr
+from thor.pretty import to_source
+from thor.primitives import install_struct_accessors
 
 
 def reduced(source: str, quantum: int = 20) -> str:

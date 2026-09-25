@@ -8,7 +8,7 @@ from pathlib import Path
 def test_task14_hardware_checker_pins_real_frontend_and_persistent_processor() -> None:
     text = Path("scripts/check_syn.py").read_text()
     assert "171c52b3f1411f632a07ccfc3dbfb177efa901cd" in text
-    assert 'PROCESSOR_SOURCE = Path("models/synthesizable_red2_machine/machine.py")' in text
+    assert 'PROCESSOR_SOURCE = Path("src/machines/synthesizable_red2_machine/machine.py")' in text
     assert "legacy red2_step_word" in text
     assert "--no_synth" in text
     assert "PY_TO_LOGIC.PARSE_FILE" not in text
@@ -94,7 +94,7 @@ def test_task14_mise_exposes_explicit_non_skipping_hardware_gate() -> None:
 
 
 def test_task14_synthesizable_red2_top_has_persistent_hardware_state_contract() -> None:
-    source = Path("models/synthesizable_red2_machine/machine.py").read_text()
+    source = Path("src/machines/synthesizable_red2_machine/machine.py").read_text()
     assert "@MAIN(25.0)" in source
     assert "def SynthesizableRED2Machine" in source
     assert "make_ram(" in source
@@ -106,7 +106,7 @@ def test_task14_synthesizable_red2_top_has_persistent_hardware_state_contract() 
 
 
 def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
-    path = Path("models/synthesizable_red2_machine/machine.py")
+    path = Path("src/machines/synthesizable_red2_machine/machine.py")
     tree = ast.parse(path.read_text())
     top = next(
         node
@@ -149,7 +149,7 @@ def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
 def test_task14_closure_code_validation_keeps_mixed_width_predicates_split() -> None:
     """PipelineC 171c52b collides helper names for the compound mixed-width form."""
 
-    text = Path("models/synthesizable_red2_machine/machine.py").read_text()
+    text = Path("src/machines/synthesizable_red2_machine/machine.py").read_text()
     assert (
         "if not equality_child_left_code_valid or "
         "equality_child_left_code_opcode != MOP_NONE:"
@@ -176,7 +176,7 @@ def test_task14_closure_code_validation_keeps_mixed_width_predicates_split() -> 
 def test_task14_recursive_lambda_metadata_checks_remain_split_for_pipelinec() -> None:
     """PipelineC 171c52b must not lower mixed-width != comparisons at one bool site."""
 
-    text = Path("models/synthesizable_red2_machine/machine.py").read_text()
+    text = Path("src/machines/synthesizable_red2_machine/machine.py").read_text()
     forbidden = (
         "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
         "join_true_literal_id != 0",

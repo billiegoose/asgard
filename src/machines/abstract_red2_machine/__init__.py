@@ -1,4 +1,5 @@
-from abstract_red2_machine.instructions import Instruction, Opcode, ProgramImage
+from red2.instructions import Instruction, Opcode, ProgramImage
+from red2.representation import MuredOpcode, Word
 from abstract_red2_machine.io_runtime import (
     Red2IoHost,
     Red2RechargeEvent,
@@ -7,8 +8,6 @@ from abstract_red2_machine.io_runtime import (
 from abstract_red2_machine.machine import (
     AbstractRED2Machine,
     AbstractRED2MachineState,
-    MuredOpcode,
-    Word,
 )
 
 __all__ = [

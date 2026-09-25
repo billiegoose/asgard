@@ -15,10 +15,10 @@ from abstract_red2_machine.io_runtime import (
 from thor_interpreter.golden import ModelName
 from thor_interpreter.io_runtime import LatestFileClockSource, run_io_source
 from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr
-from thor_lang.ast import Definition, Expr
-from thor_lang.normalization import normalize_program
-from thor_lang.parser import parse_program
-from thor_lang.pretty import to_source
+from thor.ast import Definition, Expr
+from thor.normalization import normalize_program
+from thor.parser import parse_program
+from thor.pretty import to_source
 
 
 class FixedClock:
@@ -156,7 +156,7 @@ def test_red2_y_defined_io_action_preserves_zero_arg_clock_call() -> None:
 
 
 def test_thor_io_pure_reducer_has_no_red2_faithful_machine_branch() -> None:
-    source = Path("models/thor_interpreter/io_runtime.py").read_text()
+    source = Path("src/machines/thor_interpreter/io_runtime.py").read_text()
     pure_start = source.index("    def _pure(self, expr: Expr) -> Expr:")
     pure_end = source.index("    def _integer_arg", pure_start)
     pure_source = source[pure_start:pure_end]

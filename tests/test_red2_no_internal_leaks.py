@@ -21,8 +21,9 @@ def test_red2_partial_recursive_definition_does_not_print_pnp() -> None:
 
 
 def test_structural_equality_private_symbols_are_machine_only() -> None:
-    from thor_compile.red2 import compile_expr, load_faithful_machine
-    from thor_lang.parser import parse_expr
+    from abstract_red2_machine.loader import load_faithful_machine
+    from red2.compiler import compile_expr
+    from thor.parser import parse_expr
 
     source = "(EQUAL? (F 1 2) (F 1 2))"
     image = compile_expr(parse_expr(source))

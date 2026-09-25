@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from thor_interpreter.golden import run_source
-from thor_lang.ast import (
+from thor.ast import (
     App,
     Binding,
     Block,
@@ -16,8 +16,8 @@ from thor_lang.ast import (
     Symbol,
     Var,
 )
-from thor_lang.parser import ParseError, parse_expr
-from thor_lang.pretty import to_source
+from thor.parser import ParseError, parse_expr
+from thor.pretty import to_source
 
 
 @dataclass(frozen=True, slots=True)
