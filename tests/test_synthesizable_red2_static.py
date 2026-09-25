@@ -143,7 +143,7 @@ def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
     source = path.read_text()
     assert "micro_is_commit_entry: uint1_t = microstate == MICRO_COMMIT" in source
     assert "clock_dispatch_handled: uint1_t = 0" in source
-    assert source.count("clock_dispatch_handled = 1") == 117
+    assert source.count("clock_dispatch_handled = 1") == 126
 
 
 def test_task14_closure_code_validation_keeps_mixed_width_predicates_split() -> None:

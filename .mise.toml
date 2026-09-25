@@ -156,8 +156,16 @@ flag "--cycle-limit <n>" help="faithful RED2 cycle limit" default="2000000"
 run = 'uv run python tools/benchmark_python_engines.py --benchmark "${usage_benchmark}" --warmups "${usage_warmups}" --iterations "${usage_iterations}" --quantum "${usage_quantum}" --cycle-limit "${usage_cycle_limit}"'
 
 [tasks.test]
-description = "Run Python tests"
+description = "Run the full Python test suite"
 run = "uv run pytest -n 4 --dist loadfile"
+
+[tasks.test-fast]
+description = "Run Python tests excluding long-horizon stress coverage"
+run = 'uv run pytest -n 4 --dist loadfile -m "not stress"'
+
+[tasks.test-stress]
+description = "Run only long-horizon stress coverage"
+run = 'uv run pytest -n 4 --dist loadfile -m stress'
 
 [tasks.lint]
 description = "Run Ruff"

@@ -257,6 +257,7 @@ def test_io_then_and_io_bind_recursion_record_io_events() -> None:
     assert b"".join(host.writes) == b"....."
 
 
+@pytest.mark.stress
 def test_io_bind_atomic_clock_loop_runs_5000_iterations_without_checkpoint() -> None:
     source = """
     loop ==

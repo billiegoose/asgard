@@ -184,6 +184,7 @@ def _structure_heavy_source(count: int) -> str:
     return expression
 
 
+@pytest.mark.stress
 @pytest.mark.parametrize(
     ("name", "source", "expected"),
     [
@@ -221,6 +222,7 @@ def test_nontrivial_pure_program_runs_wholly_on_concrete_machine(
     assert _concrete_result_source(loaded) == python_result
 
 
+@pytest.mark.stress
 def test_bounded_loop_recharges_same_concrete_machine_and_storage_to_same_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

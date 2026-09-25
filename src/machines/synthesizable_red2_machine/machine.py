@@ -276,6 +276,15 @@ MICRO_STRUCT_SELECTOR_PROMOTE_WRITE = 113
 MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC = 114
 MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ = 115
 MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE = 116
+MICRO_LOOKUP_CLOSURE_CODE_READ = 117
+MICRO_LOOKUP_VAR_EP_CHASE = 118
+MICRO_JOIN_IF_FALSE_READ = 119
+MICRO_JOIN_IF_TRUE_READ = 120
+MICRO_JOIN_IF_TRUE_PATH_READ = 121
+MICRO_JOIN_IF_FALSE_PATH_READ = 122
+MICRO_JOIN_IF_PATH_CLEAR = 123
+MICRO_JOIN_IF_SELECT = 124
+MICRO_JOIN_IF_EP_CHASE = 125
 
 PROMOTE_TASK_NONE = 0
 PROMOTE_TASK_POINTER_DONE = 5
@@ -482,6 +491,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     lookup_address: Reg[uint17_t]
     lookup_remaining: Reg[uint64_t]
     lookup_hops: Reg[uint16_t]
+    lookup_origin_address: Reg[uint17_t]
+    lookup_push_control: Reg[uint1_t]
     rup_count: Reg[uint16_t]
     rup_index: Reg[uint16_t]
     rup_block: Reg[uint16_t]
@@ -629,6 +640,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     join_equal_if_literal_id: Reg[uint32_t]
     join_equality_continue_literal_id: Reg[uint32_t]
     join_equal_stuck_literal_id: Reg[uint32_t]
+    join_if_active: Reg[uint1_t]
+    join_if_false_word: Reg[red2_word_t]
+    join_if_true_word: Reg[red2_word_t]
+    join_if_true_path: Reg[uint17_t]
+    join_if_false_path: Reg[uint17_t]
+    join_if_path_cursor: Reg[uint17_t]
+    join_if_path_count: Reg[uint2_t]
+    join_if_clear_remaining: Reg[uint2_t]
     join_frame_index: Reg[uint17_t]
     join_control_clear_index: Reg[uint17_t]
     join_parent_is_ep: Reg[uint1_t]
@@ -752,6 +771,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_execute: uint1_t = microstate == MICRO_EXECUTE
     micro_is_lookup_read: uint1_t = microstate == MICRO_LOOKUP_READ
     micro_is_lookup_publish: uint1_t = microstate == MICRO_LOOKUP_PUBLISH
+    micro_is_lookup_closure_code_read: uint1_t = microstate == MICRO_LOOKUP_CLOSURE_CODE_READ
+    micro_is_lookup_var_ep_chase: uint1_t = microstate == MICRO_LOOKUP_VAR_EP_CHASE
+    micro_is_join_if_false_read: uint1_t = microstate == MICRO_JOIN_IF_FALSE_READ
+    micro_is_join_if_true_read: uint1_t = microstate == MICRO_JOIN_IF_TRUE_READ
+    micro_is_join_if_true_path_read: uint1_t = microstate == MICRO_JOIN_IF_TRUE_PATH_READ
+    micro_is_join_if_false_path_read: uint1_t = microstate == MICRO_JOIN_IF_FALSE_PATH_READ
+    micro_is_join_if_path_clear: uint1_t = microstate == MICRO_JOIN_IF_PATH_CLEAR
+    micro_is_join_if_select: uint1_t = microstate == MICRO_JOIN_IF_SELECT
+    micro_is_join_if_ep_chase: uint1_t = microstate == MICRO_JOIN_IF_EP_CHASE
     micro_is_lambda_read: uint1_t = microstate == MICRO_LAMBDA_READ
     micro_is_lambda_push: uint1_t = microstate == MICRO_LAMBDA_PUSH
     micro_is_lambda_env: uint1_t = microstate == MICRO_LAMBDA_ENV
@@ -1276,6 +1304,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             memory_req.wr_en = 1
         if micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_lookup_closure_code_read:
+            lookup_code_address_req: uint17_t = lookup_address + 1
+            memory_req.addr = lookup_code_address_req[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_lookup_var_ep_chase:
+            memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_lookup_publish:
             lookup_fsp_in_range: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lookup_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
@@ -1289,10 +1322,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             lookup_before_frontier: uint1_t = lookup_gap_not_wrapped and lookup_gap_nonzero
             lookup_graph_ok: uint1_t = lookup_fsp_in_range and lookup_free_valid
             lookup_graph_ok = lookup_graph_ok and lookup_before_frontier
-            if lookup_graph_ok:
+            lookup_control_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            if lookup_graph_ok and (not lookup_push_control or lookup_control_low):
                 memory_req.addr = lookup_destination[GRAPH_ADDR_BITS - 1 : 0]
                 memory_req.wr_data = lookup_word
                 memory_req.wr_en = 1
+                if lookup_push_control:
+                    control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
+                    control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
+                    control_req.wr_en = 1
         if micro_is_lambda_read:
             memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_lambda_push:
@@ -1416,10 +1454,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             app_join_hi: uint64_t = 77725696
             app_saved_fire_active: uint1_t = fire != 0
             if app_saved_fire_active:
-                if struct_selector_launch_active:
-                    app_join_hi = 77791233
-                else:
-                    app_join_hi = 78315521
+                # Saved-primitive JOIN is encoded solely by definition_valid=1,
+                # definition=1.  closure_slot remains clear, matching Concrete
+                # _enter_subgraph() for both ordinary and selector continuations.
+                app_join_hi = 77791233
             memory_req.addr = app_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = red2_word_t(lo=app_parent_pc_wide, hi=app_join_hi)
             memory_req.wr_en = 1
@@ -1764,10 +1802,26 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             control_req.addr = join_clear_address_req[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+        if micro_is_join_if_false_read:
+            join_if_false_addr_req: uint17_t = join_parent_address - 2
+            memory_req.addr = join_if_false_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_join_if_true_read:
+            join_if_true_addr_req: uint17_t = join_parent_address - 1
+            memory_req.addr = join_if_true_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_join_if_true_path_read or micro_is_join_if_false_path_read:
+            join_if_path_addr_req: uint17_t = join_if_path_cursor - 1
+            control_req.addr = join_if_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
+        if micro_is_join_if_path_clear:
+            join_if_clear_addr_req: uint17_t = join_control_clear_index - 1
+            control_req.addr = join_if_clear_addr_req[CONTROL_ADDR_BITS - 1 : 0]
+            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.wr_en = 1
         if micro_is_join_ep_cache:
             memory_req.addr = join_ep_target[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_cache_word
             memory_req.wr_en = 1
+        if micro_is_join_if_ep_chase:
+            memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_chase:
             memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_result_write:
@@ -2030,6 +2084,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         lookup_address = 0
         lookup_remaining = 0
         lookup_hops = 0
+        lookup_origin_address = 0
+        lookup_push_control = 0
         rup_count = 0
         rup_index = 0
         rup_block = 0
@@ -2165,6 +2221,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         prim0_y_argument_address = 0
         prim0_y_target = 0
         prim0_y_scratch_word = red2_word_t(lo=0, hi=0)
+        join_if_active = 0
+        join_if_false_word = red2_word_t(lo=0, hi=0)
+        join_if_true_word = red2_word_t(lo=0, hi=0)
+        join_if_true_path = 0
+        join_if_false_path = 0
+        join_if_path_cursor = 0
+        join_if_path_count = 0
+        join_if_clear_remaining = 0
         join_special_meta_cursor = 0
         join_true_literal_id = 0
         join_false_literal_id = 0
@@ -2262,6 +2326,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         lookup_address = 0
         lookup_remaining = 0
         lookup_hops = 0
+        lookup_origin_address = 0
+        lookup_push_control = 0
         rup_count = 0
         rup_index = 0
         rup_block = 0
@@ -2397,6 +2463,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         prim0_y_argument_address = 0
         prim0_y_target = 0
         prim0_y_scratch_word = red2_word_t(lo=0, hi=0)
+        join_if_active = 0
+        join_if_false_word = red2_word_t(lo=0, hi=0)
+        join_if_true_word = red2_word_t(lo=0, hi=0)
+        join_if_true_path = 0
+        join_if_false_path = 0
+        join_if_path_cursor = 0
+        join_if_path_count = 0
+        join_if_clear_remaining = 0
         join_special_meta_cursor = 0
         join_true_literal_id = 0
         join_false_literal_id = 0
@@ -2564,6 +2638,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             prim0_y_argument_address = 0
             prim0_y_target = 0
             prim0_y_scratch_word = red2_word_t(lo=0, hi=0)
+            join_if_active = 0
+            join_if_false_word = red2_word_t(lo=0, hi=0)
+            join_if_true_word = red2_word_t(lo=0, hi=0)
+            join_if_true_path = 0
+            join_if_false_path = 0
+            join_if_path_cursor = 0
+            join_if_path_count = 0
+            join_if_clear_remaining = 0
             join_frame_index = 0
             join_control_clear_index = 0
             join_parent_is_ep = 0
@@ -3052,6 +3134,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_equal_if_literal_id = 0
                     join_equality_continue_literal_id = 0
                     join_equal_stuck_literal_id = 0
+                    join_if_active = 0
+                    join_if_false_word = red2_word_t(lo=0, hi=0)
+                    join_if_true_word = red2_word_t(lo=0, hi=0)
+                    join_if_true_path = 0
+                    join_if_false_path = 0
+                    join_if_path_cursor = 0
+                    join_if_path_count = 0
+                    join_if_clear_remaining = 0
                     microstate = MICRO_JOIN_PARENT_READ
             elif opcode_is_closure:
                 if direction_is_reverse:
@@ -3432,6 +3522,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         lookup_address = env
                         lookup_remaining = fetched_word.lo
                         lookup_hops = 0
+                        lookup_origin_address = env
+                        lookup_push_control = 0
                         microstate = MICRO_LOOKUP_READ
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
@@ -5888,12 +5980,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 join_meta_last: uint1_t = join_prim_meta_cursor == LITERAL_META_WORDS - 1
                 if join_meta_matches:
                     join_meta_scalar: uint5_t = literal_meta_out.p0.rd_data.scalar_op
+                    join_meta_prim0_role: uint3_t = literal_meta_out.p0.rd_data.prim0_role
                     join_meta_special: uint16_t = literal_meta_out.p0.rd_data.special_flags
                     join_meta_struct_role: uint2_t = literal_meta_out.p0.rd_data.struct_role
                     join_meta_struct_tag_id: uint32_t = literal_meta_out.p0.rd_data.struct_tag_id
                     join_meta_struct_offset: uint32_t = literal_meta_out.p0.rd_data.struct_offset
                     join_meta_is_struct_selector: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR
                     join_meta_is_struct_selector_result: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR_RESULT
+                    join_meta_is_if: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IF
                     join_meta_equality: uint1_t = join_meta_special[5]
                     join_meta_equality_continue: uint1_t = join_meta_special[6]
                     join_meta_is_dec: uint1_t = join_meta_scalar == SCALAR_OP_DEC
@@ -5945,7 +6039,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_char_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_symbol_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_supported_binary_bool
-                    if join_meta_is_struct_selector_result:
+                    if join_meta_is_if:
+                        # JOIN restores fire==1 and fires lazy IF in the same
+                        # architectural transition, after publishing the child.
+                        join_if_active = 1
+                        join_true_literal_id = 0
+                        join_false_literal_id = 0
+                        join_special_meta_cursor = 0
+                        microstate = MICRO_JOIN_SPECIAL_META_SCAN
+                    elif join_meta_is_struct_selector_result:
                         # __STRUCT_SELECTOR_RESULT__ is a private structural
                         # continuation, not a user contraction.  It runs even at
                         # q==0 and never consumes additional quantum.
@@ -6156,7 +6258,13 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_special_meta_cursor = join_special_meta_cursor + 1
         if not clock_dispatch_handled and micro_is_join_special_meta_done:
             clock_dispatch_handled = 1
-            if equality_continue_active:
+            if join_if_active:
+                if join_true_literal_id == 0 or join_false_literal_id == 0:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    microstate = MICRO_JOIN_TAIL_READ
+            elif equality_continue_active:
                 equality_continue_phase = 0
                 microstate = MICRO_JOIN_SCALAR_LEFT_READ
             elif equality_child_active:
@@ -6766,6 +6874,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     prim_id = 0
                     fire = 0
                     struct_selector_result_active = 0
+                elif join_if_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
                 elif join_saved_primitive:
                     control_top = join_frame_index
                     if join_frame_fire_one_at_restore:
@@ -6783,7 +6895,12 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     control_top = join_frame_index
                     prim_id = 0
                     fire = 0
-                if not struct_selector_launch_active:
+                if join_if_active:
+                    join_if_path_cursor = join_frame_index
+                    join_if_path_count = 0
+                    join_if_clear_remaining = 0
+                    microstate = MICRO_JOIN_IF_FALSE_READ
+                elif not struct_selector_launch_active:
                     if join_needs_ep_cache:
                         microstate = MICRO_JOIN_EP_CACHE
                     elif struct_selector_result_resume_forward:
@@ -6797,6 +6914,251 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         microstate = MICRO_COMMIT
             else:
                 microstate = MICRO_JOIN_CONTROL_CLEAR
+        if not clock_dispatch_handled and micro_is_join_if_false_read:
+            clock_dispatch_handled = 1
+            join_if_parent_too_low: uint1_t = join_parent_address == 0
+            join_if_parent_too_low = join_if_parent_too_low or join_parent_address == 1
+            join_if_false_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            if join_if_parent_too_low:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_if_false_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_if_false_word = memory_out.p0.rd_data
+                microstate = MICRO_JOIN_IF_TRUE_READ
+        if not clock_dispatch_handled and micro_is_join_if_true_read:
+            clock_dispatch_handled = 1
+            join_if_true_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_if_condition_opcode: uint5_t = join_publish_word.hi[25:21]
+            join_if_condition_kind: uint2_t = join_publish_word.hi[18:17]
+            join_if_condition_sym: uint1_t = join_if_condition_opcode == MOP_SYM
+            join_if_condition_literal: uint1_t = join_if_condition_kind == DATA_LITERAL_ID
+            join_if_condition_true: uint1_t = join_publish_word.lo == join_true_literal_id
+            join_if_condition_false: uint1_t = join_publish_word.lo == join_false_literal_id
+            join_if_condition_bool: uint1_t = join_if_condition_sym and join_if_condition_literal
+            join_if_condition_bool = join_if_condition_bool and (join_if_condition_true or join_if_condition_false)
+            join_if_false_opcode: uint5_t = join_if_false_word.hi[25:21]
+            join_if_true_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_if_false_needs_path: uint1_t = join_if_false_opcode == MOP_APP
+            join_if_false_needs_path = join_if_false_needs_path or join_if_false_opcode == MOP_EP
+            join_if_true_needs_path: uint1_t = join_if_true_opcode == MOP_APP
+            join_if_true_needs_path = join_if_true_needs_path or join_if_true_opcode == MOP_EP
+            join_if_selected_opcode: uint5_t = join_if_false_opcode
+            if join_if_condition_true:
+                join_if_selected_opcode = join_if_true_opcode
+            join_if_selected_is_app: uint1_t = join_if_selected_opcode == MOP_APP
+            join_if_selected_is_ep: uint1_t = join_if_selected_opcode == MOP_EP
+            join_if_selected_supported: uint1_t = join_if_selected_is_app or join_if_selected_is_ep
+            join_if_path_count_next: uint2_t = 0
+            if join_if_true_needs_path:
+                join_if_path_count_next = join_if_path_count_next + 1
+            if join_if_false_needs_path:
+                join_if_path_count_next = join_if_path_count_next + 1
+            join_if_q_nonzero: uint1_t = q != 0
+            join_if_selected_unsupported: uint1_t = not join_if_selected_supported
+            join_if_unsupported_contract: uint1_t = join_if_q_nonzero and join_if_selected_unsupported
+            if not join_if_true_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_if_condition_bool:
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            elif join_if_unsupported_contract:
+                hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                microstate = MICRO_FAULT
+            else:
+                join_if_true_word = memory_out.p0.rd_data
+                join_if_path_count = join_if_path_count_next
+                if join_if_true_needs_path:
+                    microstate = MICRO_JOIN_IF_TRUE_PATH_READ
+                elif join_if_false_needs_path:
+                    microstate = MICRO_JOIN_IF_FALSE_PATH_READ
+                elif join_if_path_count_next == 0:
+                    control_top = join_frame_index
+                    microstate = MICRO_JOIN_IF_SELECT
+        if not clock_dispatch_handled and micro_is_join_if_true_path_read:
+            clock_dispatch_handled = 1
+            join_if_path_empty: uint1_t = join_if_path_cursor == 0
+            join_if_path_tag: uint4_t = control_out.p0.rd_data.tag_hi
+            join_if_path_is_address: uint1_t = join_if_path_tag == CONTROL_ADDRESS
+            join_if_path_is_empty: uint1_t = join_if_path_tag == 0
+            join_if_path_lane: uint32_t = control_out.p0.rd_data.lo[31:0]
+            join_if_path_low: uint1_t = join_if_path_lane[31:9] == 0
+            join_if_path_end: uint1_t = join_if_path_lane == GRAPH_WORDS
+            join_if_path_valid: uint1_t = join_if_path_low or join_if_path_end
+            join_if_false_opcode_now: uint5_t = join_if_false_word.hi[25:21]
+            join_if_false_needs_path_now: uint1_t = join_if_false_opcode_now == MOP_APP
+            join_if_false_needs_path_now = join_if_false_needs_path_now or join_if_false_opcode_now == MOP_EP
+            if join_if_path_empty or join_if_path_is_empty:
+                red2_fault = FAULT_CONTROL_UNDERFLOW
+                microstate = MICRO_FAULT
+            elif not join_if_path_is_address:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif not join_if_path_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_if_true_path = join_if_path_lane[16:0]
+                join_if_path_cursor = join_if_path_cursor - 1
+                if join_if_false_needs_path_now:
+                    microstate = MICRO_JOIN_IF_FALSE_PATH_READ
+                else:
+                    join_if_clear_remaining = join_if_path_count
+                    join_control_clear_index = join_frame_index
+                    microstate = MICRO_JOIN_IF_PATH_CLEAR
+        if not clock_dispatch_handled and micro_is_join_if_false_path_read:
+            clock_dispatch_handled = 1
+            join_if_path_empty_f: uint1_t = join_if_path_cursor == 0
+            join_if_path_tag_f: uint4_t = control_out.p0.rd_data.tag_hi
+            join_if_path_is_address_f: uint1_t = join_if_path_tag_f == CONTROL_ADDRESS
+            join_if_path_is_empty_f: uint1_t = join_if_path_tag_f == 0
+            join_if_path_lane_f: uint32_t = control_out.p0.rd_data.lo[31:0]
+            join_if_path_low_f: uint1_t = join_if_path_lane_f[31:9] == 0
+            join_if_path_end_f: uint1_t = join_if_path_lane_f == GRAPH_WORDS
+            join_if_path_valid_f: uint1_t = join_if_path_low_f or join_if_path_end_f
+            if join_if_path_empty_f or join_if_path_is_empty_f:
+                red2_fault = FAULT_CONTROL_UNDERFLOW
+                microstate = MICRO_FAULT
+            elif not join_if_path_is_address_f:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif not join_if_path_valid_f:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_if_false_path = join_if_path_lane_f[16:0]
+                join_if_path_cursor = join_if_path_cursor - 1
+                join_if_clear_remaining = join_if_path_count
+                join_control_clear_index = join_frame_index
+                microstate = MICRO_JOIN_IF_PATH_CLEAR
+        if not clock_dispatch_handled and micro_is_join_if_path_clear:
+            clock_dispatch_handled = 1
+            join_if_clear_next: uint17_t = join_control_clear_index - 1
+            join_control_clear_index = join_if_clear_next
+            if join_if_clear_remaining == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif join_if_clear_remaining == 1:
+                join_if_clear_remaining = 0
+                control_top = join_if_clear_next
+                microstate = MICRO_JOIN_IF_SELECT
+            else:
+                join_if_clear_remaining = join_if_clear_remaining - 1
+        if not clock_dispatch_handled and micro_is_join_if_select:
+            clock_dispatch_handled = 1
+            join_if_false_slot: uint17_t = join_parent_address - 2
+            join_if_condition_true_sel: uint1_t = join_publish_word.lo == join_true_literal_id
+            if q == 0:
+                pc = join_if_false_slot - 1
+                join_if_active = 0
+                prim_id = 0
+                fire = 0
+                microstate = MICRO_COMMIT
+            else:
+                join_if_selected_word: red2_word_t = join_if_false_word
+                join_if_selected_path: uint17_t = join_if_false_path
+                if join_if_condition_true_sel:
+                    join_if_selected_word = join_if_true_word
+                    join_if_selected_path = join_if_true_path
+                join_if_selected_kind: uint2_t = join_if_selected_word.hi[18:17]
+                join_if_selected_opcode_exec: uint5_t = join_if_selected_word.hi[25:21]
+                join_if_selected_negative: uint1_t = join_if_selected_word.lo[63]
+                join_if_selected_is_app_exec: uint1_t = join_if_selected_opcode_exec == MOP_APP
+                join_if_selected_is_ep_exec: uint1_t = join_if_selected_opcode_exec == MOP_EP
+                join_if_selected_supported_exec: uint1_t = join_if_selected_is_app_exec or join_if_selected_is_ep_exec
+                if not join_if_selected_supported_exec:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                elif join_if_selected_kind != DATA_SIGNED:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_if_selected_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_if_selected_opcode_exec == MOP_EP:
+                    env = join_if_selected_path
+                    join_ep_chase_target = join_if_selected_word.lo
+                    join_ep_hops = 0
+                    q = q - 1
+                    prim_id = 0
+                    fire = 0
+                    join_if_active = 0
+                    microstate = MICRO_JOIN_IF_EP_CHASE
+                else:
+                    fsp = join_if_false_slot - 1
+                    env = join_if_selected_path
+                    pc = join_if_selected_word.lo[15:0]
+                    direction = DIRECTION_FORWARD
+                    q = q - 1
+                    prim_id = 0
+                    fire = 0
+                    join_if_active = 0
+                    microstate = MICRO_COMMIT
+        if not clock_dispatch_handled and micro_is_join_if_ep_chase:
+            clock_dispatch_handled = 1
+            join_if_ep_target_in_range: uint1_t = join_ep_chase_target[63:GRAPH_ADDR_BITS] == 0
+            join_if_ep_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_if_ep_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_if_ep_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_if_ep_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
+            join_if_ep_is_ep: uint1_t = join_if_ep_opcode == MOP_EP
+            join_if_ep_is_int: uint1_t = join_if_ep_opcode == MOP_INT
+            join_if_ep_is_float: uint1_t = join_if_ep_opcode == MOP_FLOAT
+            join_if_ep_is_char: uint1_t = join_if_ep_opcode == MOP_CHAR
+            join_if_ep_is_sym: uint1_t = join_if_ep_opcode == MOP_SYM
+            join_if_ep_sym_shareable: uint1_t = join_if_ep_is_sym and not join_if_ep_definition_valid
+            join_if_ep_atomic: uint1_t = join_if_ep_is_int or join_if_ep_is_float
+            join_if_ep_atomic = join_if_ep_atomic or join_if_ep_is_char
+            join_if_ep_atomic = join_if_ep_atomic or join_if_ep_sym_shareable
+            join_if_ep_is_closure: uint1_t = join_if_ep_opcode == MOP_CLOSURE
+            join_if_ep_false_slot: uint17_t = join_parent_address - 2
+            if not join_if_ep_target_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_if_ep_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif join_if_ep_is_ep:
+                join_if_ep_signed: uint1_t = join_if_ep_kind == DATA_SIGNED
+                join_if_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                join_if_ep_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                join_if_ep_hop_limit: uint1_t = join_ep_hops == GRAPH_WORDS - 1
+                if not join_if_ep_signed:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_if_ep_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_if_ep_upper_nonzero:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif join_if_ep_hop_limit:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    join_ep_chase_target = memory_out.p0.rd_data.lo
+                    join_ep_hops = join_ep_hops + 1
+            elif join_if_ep_atomic:
+                join_if_ep_atomic_hi: uint64_t = memory_out.p0.rd_data.hi & 132644863
+                join_if_ep_atomic_hi = join_if_ep_atomic_hi | 1048576
+                memory_req.addr = join_if_ep_false_slot[GRAPH_ADDR_BITS - 1 : 0]
+                memory_req.wr_data = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=join_if_ep_atomic_hi)
+                memory_req.wr_en = 1
+                fsp = join_if_ep_false_slot[15:0]
+                pc = join_if_ep_false_slot[15:0]
+                direction = DIRECTION_REVERSE
+                microstate = MICRO_COMMIT
+            elif join_if_ep_is_closure:
+                fsp = join_if_ep_false_slot - 1
+                pc = join_ep_chase_target[15:0]
+                direction = DIRECTION_FORWARD
+                microstate = MICRO_COMMIT
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
         if not clock_dispatch_handled and micro_is_join_ep_cache:
             clock_dispatch_handled = 1
             pc = join_parent_address - 1
@@ -10245,6 +10607,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             binding_is_pnp: uint1_t = binding_opcode == MOP_PNP
             binding_is_rec: uint1_t = binding_opcode == MOP_REC
             binding_is_closure: uint1_t = binding_opcode == MOP_CLOSURE
+            binding_is_ep: uint1_t = binding_opcode == MOP_EP
             lookup_address_in_range: uint1_t = lookup_address[16:GRAPH_ADDR_BITS] == 0
             lookup_has_remaining: uint1_t = lookup_remaining != 0
             binding_is_int: uint1_t = binding_opcode == MOP_INT
@@ -10314,6 +10677,60 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     s_d = 1
                     pc = lookup_address[15:0]
                     microstate = MICRO_COMMIT
+                elif binding_is_closure and not binding_closure_slot:
+                    s_a = lookup_address + 1
+                    s_d = 1
+                    pc = lookup_address[15:0]
+                    microstate = MICRO_COMMIT
+                elif binding_is_rec and opcode_is_var:
+                    rec_lookup_kind_signed: uint1_t = binding_kind == DATA_SIGNED
+                    rec_lookup_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    rec_lookup_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    rec_lookup_end: uint17_t = lookup_address + 2
+                    rec_lookup_end_oob: uint1_t = rec_lookup_end[16:GRAPH_ADDR_BITS] != 0
+                    if not rec_lookup_kind_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif rec_lookup_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif rec_lookup_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif rec_lookup_end_oob:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        rec_lookup_address64: uint64_t = lookup_address
+                        # Architectural s_a/s_d use the ABI optional-address
+                        # encoding: internal address N is stored as N+1, and
+                        # internal distance 0 is stored as 1.
+                        s_a = lookup_address + 1
+                        s_d = 1
+                        # valid | RECP | head | DATA_SIGNED
+                        fetched_word = red2_word_t(lo=rec_lookup_address64, hi=106037248)
+                        recp_binding = 0
+                        recp_context = 0
+                        recp_block = 0
+                        microstate = MICRO_RECP_VALIDATE_REC
+                elif binding_is_ep:
+                    ep_binding_signed: uint1_t = binding_kind == DATA_SIGNED
+                    ep_binding_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    ep_binding_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    if not ep_binding_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif ep_binding_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif ep_binding_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        lookup_origin_address = lookup_address
+                        lookup_address = memory_out.p0.rd_data.lo[16:0]
+                        lookup_hops = 0
+                        microstate = MICRO_LOOKUP_VAR_EP_CHASE
                 elif binding_shareable_atomic:
                     if not lookup_graph_ok_exec:
                         red2_fault = FAULT_GRAPH_ENV_COLLISION
@@ -10357,6 +10774,47 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             lo=memory_out.p0.rd_data.lo,
                             hi=detached_app_var_hi,
                         )
+                        lookup_push_control = 0
+                        microstate = MICRO_LOOKUP_PUBLISH
+                elif binding_is_closure and not binding_closure_slot:
+                    closure_binding_signed: uint1_t = binding_kind == DATA_SIGNED
+                    closure_binding_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    closure_binding_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    lookup_code_address_wide: uint17_t = lookup_address + 1
+                    lookup_code_address_oob: uint1_t = lookup_code_address_wide[16:GRAPH_ADDR_BITS] != 0
+                    if not closure_binding_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif closure_binding_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif closure_binding_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif lookup_code_address_oob:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        microstate = MICRO_LOOKUP_CLOSURE_CODE_READ
+                elif binding_is_ep:
+                    app_ep_signed: uint1_t = binding_kind == DATA_SIGNED
+                    app_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    app_ep_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    if not app_ep_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif app_ep_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif app_ep_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif not lookup_graph_ok_exec:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        lookup_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=75628544)
+                        lookup_push_control = 1
                         microstate = MICRO_LOOKUP_PUBLISH
                 else:
                     hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
@@ -10364,6 +10822,160 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
+        if not clock_dispatch_handled and micro_is_lookup_var_ep_chase:
+            clock_dispatch_handled = 1
+            chase_address_in_range: uint1_t = lookup_address[16:GRAPH_ADDR_BITS] == 0
+            chase_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            chase_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            chase_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            chase_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
+            chase_is_ep: uint1_t = chase_opcode == MOP_EP
+            chase_is_ubv: uint1_t = chase_opcode == MOP_UBV
+            chase_is_closure: uint1_t = chase_opcode == MOP_CLOSURE
+            chase_is_int: uint1_t = chase_opcode == MOP_INT
+            chase_is_float: uint1_t = chase_opcode == MOP_FLOAT
+            chase_is_char: uint1_t = chase_opcode == MOP_CHAR
+            chase_is_sym: uint1_t = chase_opcode == MOP_SYM
+            chase_sym_undefined: uint1_t = chase_definition_valid == 0
+            chase_shareable_sym: uint1_t = chase_is_sym and chase_sym_undefined
+            chase_shareable_atomic: uint1_t = chase_is_int or chase_is_float
+            chase_shareable_atomic = chase_shareable_atomic or chase_is_char
+            chase_shareable_atomic = chase_shareable_atomic or chase_shareable_sym
+            chase_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            chase_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+            chase_next_hops: uint16_t = lookup_hops + 1
+            # lookup_hops only advances one EP at a time from zero, so testing
+            # the pre-increment terminal value is equivalent to >= GRAPH_WORDS
+            # and avoids PipelineC's generic ordered comparator.
+            chase_hop_limit: uint1_t = lookup_hops == GRAPH_WORDS - 1
+            chase_fsp_ok: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+            chase_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+            chase_free_end: uint1_t = free_space == GRAPH_WORDS
+            chase_free_valid: uint1_t = chase_free_low or chase_free_end
+            chase_destination: uint17_t = fsp + 1
+            chase_gap: uint17_t = free_space - chase_destination
+            chase_graph_ok: uint1_t = chase_fsp_ok and chase_free_valid
+            chase_gap_not_wrapped: uint1_t = chase_gap[16] == 0
+            chase_gap_nonzero: uint1_t = chase_gap != 0
+            chase_graph_ok = chase_graph_ok and chase_gap_not_wrapped
+            chase_graph_ok = chase_graph_ok and chase_gap_nonzero
+            if not chase_address_in_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not chase_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif chase_is_ep:
+                if chase_kind != DATA_SIGNED:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif chase_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif chase_upper_nonzero:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif chase_hop_limit:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    lookup_address = memory_out.p0.rd_data.lo[16:0]
+                    lookup_hops = chase_next_hops
+            elif chase_is_ubv:
+                chase_phi_wide: uint64_t = phi
+                chase_var_payload: uint64_t = chase_phi_wide - memory_out.p0.rd_data.lo
+                chase_var_payload_negative: uint1_t = chase_var_payload[63]
+                if chase_kind != DATA_SIGNED:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif chase_negative:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif chase_var_payload_negative:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif not chase_graph_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    lookup_word = red2_word_t(lo=chase_var_payload, hi=112328704)
+                    lookup_address = lookup_origin_address
+                    lookup_push_control = 0
+                    microstate = MICRO_LOOKUP_PUBLISH
+            elif chase_is_closure:
+                s_a = lookup_origin_address + 1
+                s_d = 1
+                pc = lookup_address[15:0]
+                microstate = MICRO_COMMIT
+            elif chase_shareable_atomic:
+                if not chase_graph_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    chase_detached_hi: uint64_t = memory_out.p0.rd_data.hi & 132644863
+                    chase_detached_hi = chase_detached_hi | 1048576
+                    lookup_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=chase_detached_hi)
+                    lookup_address = lookup_origin_address
+                    lookup_push_control = 0
+                    microstate = MICRO_LOOKUP_PUBLISH
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+        if not clock_dispatch_handled and micro_is_lookup_closure_code_read:
+            clock_dispatch_handled = 1
+            lookup_code_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            lookup_code_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            lookup_code_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            lookup_code_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            lookup_code_target_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+            lookup_control_low_exec: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            lookup_control_end_exec: uint1_t = control_top == CONTROL_WORDS
+            lookup_control_valid_exec: uint1_t = lookup_control_low_exec or lookup_control_end_exec
+            lookup_fsp_valid_exec2: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
+            lookup_free_low_exec2: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
+            lookup_free_end_exec2: uint1_t = free_space == GRAPH_WORDS
+            lookup_free_valid_exec2: uint1_t = lookup_free_low_exec2 or lookup_free_end_exec2
+            lookup_destination_exec2: uint17_t = fsp + 1
+            lookup_gap_exec2: uint17_t = free_space - lookup_destination_exec2
+            lookup_graph_ok_exec2: uint1_t = lookup_fsp_valid_exec2 and lookup_free_valid_exec2
+            lookup_gap_not_wrapped_exec2: uint1_t = lookup_gap_exec2[16] == 0
+            lookup_gap_nonzero_exec2: uint1_t = lookup_gap_exec2 != 0
+            lookup_graph_ok_exec2 = lookup_graph_ok_exec2 and lookup_gap_not_wrapped_exec2
+            lookup_graph_ok_exec2 = lookup_graph_ok_exec2 and lookup_gap_nonzero_exec2
+            if not lookup_code_valid:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif lookup_code_opcode != MOP_NONE:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif lookup_code_kind != DATA_SIGNED:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif lookup_code_negative:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif lookup_code_target_upper_nonzero:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif not lookup_control_valid_exec:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not lookup_control_low_exec:
+                red2_fault = FAULT_CONTROL_OVERFLOW
+                microstate = MICRO_FAULT
+            elif not lookup_fsp_valid_exec2:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not lookup_free_valid_exec2:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            elif not lookup_graph_ok_exec2:
+                red2_fault = FAULT_GRAPH_ENV_COLLISION
+                microstate = MICRO_FAULT
+            else:
+                lookup_word = red2_word_t(lo=lookup_address, hi=75628544)
+                lookup_push_control = 1
+                microstate = MICRO_LOOKUP_PUBLISH
         if not clock_dispatch_handled and micro_is_lookup_publish:
             clock_dispatch_handled = 1
             publish_fsp_ok: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
@@ -10378,7 +10990,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             publish_before_frontier: uint1_t = publish_gap_not_wrapped and publish_gap_nonzero
             publish_graph_ok: uint1_t = publish_fsp_ok and publish_free_valid
             publish_graph_ok = publish_graph_ok and publish_before_frontier
-            if not publish_graph_ok:
+            publish_control_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
+            publish_control_end: uint1_t = control_top == CONTROL_WORDS
+            publish_control_valid: uint1_t = publish_control_low or publish_control_end
+            if lookup_push_control and not publish_control_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif lookup_push_control and not publish_control_low:
+                red2_fault = FAULT_CONTROL_OVERFLOW
+                microstate = MICRO_FAULT
+            elif not publish_graph_ok:
                 red2_fault = FAULT_GRAPH_ENV_COLLISION
                 microstate = MICRO_FAULT
             else:
@@ -10386,6 +11007,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 argcnt = argcnt + 1
                 s_a = lookup_address + 1
                 s_d = 1
+                if lookup_push_control:
+                    control_top = control_top + 1
                 if opcode_is_var:
                     pc = publish_destination[15:0] - 1
                     direction = DIRECTION_REVERSE

@@ -38,6 +38,9 @@ packages = [
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
 testpaths = ["tests"]
+markers = [
+  "stress: long-horizon, benchmark, or large-workload regression coverage",
+]
 
 [tool.ruff]
 line-length = 88

@@ -151,5 +151,12 @@ uv run abs --help
   architectural machine, RED2 hardware ABI/codec, lockstep oracle, and `con` CLI.
 - `src/machines/synthesizable_red2_machine/` contains the synthesizable
   Pypeline/PipelineC machine used by the `syn` simulator and synthesis gate.
+  It can execute recursive, closure-using, primitive-using pure THOR programs
+  through at least `examples/fibonacci.thor` entirely on the Synthesizable RED2
+  state machine (`fib 6` => `8`). This is a milestone rather than a claim of
+  complete RED2 hardware semantics: quantum-exhaustion recharge/resume,
+  host-call `CMD_RESUME`, and remaining explicitly unimplemented semantic paths
+  are still outside that proven boundary, so `RED2_SYNTH_SEMANTICS_COMPLETE`
+  remains `0`.
 - `tools/vscode-thor/` contains the local VS Code-compatible THOR syntax
   extension.

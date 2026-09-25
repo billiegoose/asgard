@@ -11,6 +11,12 @@ from dataclasses import replace
 
 from pypeline import sim_call, sim_reset
 
+from run_syn import (
+    _literal_metadata as _program_literal_metadata,
+    _prepare_program as _prepare_thor_program,
+)
+
+from abstract_red2_machine.loader import load_faithful_machine
 from abstract_red2_machine.machine import (
     AbstractRED2Machine,
     AbstractRED2MachineState,
@@ -359,6 +365,185 @@ def _run_encoded_to_same_fault(
     assert int(result.hw_fault) == HW_FAULT_NONE
     _assert_scalar_checkpoint(result, expected)
     return result, expected, expected_fault
+
+
+def _program_concrete_kwargs(codec, image, metadata) -> dict[str, object]:
+    """Translate hardware semantic metadata into the Concrete oracle tables."""
+    max_id = max((item["literal_id"] for item in metadata), default=0)
+    for hidden in (
+        "__IF_RECONSTRUCT__",
+        "CONS",
+        "PAIR",
+        "__STRUCT_SELECTOR_RESULT__",
+    ):
+        max_id = max(max_id, codec.literal_id(hidden))
+    size = max_id + 1
+    prim0_roles = [0] * size
+    scalar_ops = [0] * size
+    host_ops = [0] * size
+    struct_selector_tags = [0] * size
+    struct_selector_offsets = [0] * size
+    specials: dict[int, int] = {}
+    for item in metadata:
+        literal_id = item["literal_id"]
+        prim0_roles[literal_id] = item["prim0_role"]
+        scalar_ops[literal_id] = item["scalar_op"]
+        host_ops[literal_id] = item["host_op"]
+        if item["struct_role"] == STRUCT_ROLE_SELECTOR:
+            struct_selector_tags[literal_id] = item["struct_tag_id"]
+            struct_selector_offsets[literal_id] = item["struct_offset"]
+        flags = item["special_flags"]
+        for flag in (
+            LITERAL_SPECIAL_TRUE,
+            LITERAL_SPECIAL_FALSE,
+            LITERAL_SPECIAL_NIL,
+            LITERAL_SPECIAL_EQUALITY,
+            LITERAL_SPECIAL_EQUAL_STAR,
+            LITERAL_SPECIAL_EQUAL_IF,
+            LITERAL_SPECIAL_EQUALITY_CONTINUE,
+            LITERAL_SPECIAL_EQUAL_STUCK,
+        ):
+            if flags & flag:
+                specials[flag] = literal_id
+
+    return {
+        "prim0_roles": tuple(prim0_roles),
+        "scalar_ops": tuple(scalar_ops),
+        "host_ops": tuple(host_ops),
+        "true_literal_id": specials.get(LITERAL_SPECIAL_TRUE, 0),
+        "false_literal_id": specials.get(LITERAL_SPECIAL_FALSE, 0),
+        "nil_literal_id": specials.get(LITERAL_SPECIAL_NIL, 0),
+        "if_reconstruct_literal_id": codec.literal_id("__IF_RECONSTRUCT__"),
+        "struct_selector_tags": tuple(struct_selector_tags),
+        "struct_selector_offsets": tuple(struct_selector_offsets),
+        "struct_selector_result_literal_id": codec.literal_id("__STRUCT_SELECTOR_RESULT__"),
+        "cons_literal_id": codec.literal_id("CONS"),
+        "pair_literal_id": codec.literal_id("PAIR"),
+        "equality_literal_id": specials.get(LITERAL_SPECIAL_EQUALITY, 0),
+        "equal_star_literal_id": specials.get(LITERAL_SPECIAL_EQUAL_STAR, 0),
+        "equal_if_literal_id": specials.get(LITERAL_SPECIAL_EQUAL_IF, 0),
+        "equality_continue_literal_id": specials.get(LITERAL_SPECIAL_EQUALITY_CONTINUE, 0),
+        "equal_stuck_literal_id": specials.get(LITERAL_SPECIAL_EQUAL_STUCK, 0),
+        "working_memory_limit": image.working_memory_limit,
+    }
+
+
+def _load_program_hardware(encoded, metadata) -> None:
+    _load_hardware(encoded)
+    for slot, item in enumerate(metadata):
+        _load_literal_meta(
+            slot,
+            item["literal_id"],
+            scalar_op=item["scalar_op"],
+            prim0_role=item["prim0_role"],
+            host_op=item["host_op"],
+            special_flags=item["special_flags"],
+            struct_role=item["struct_role"],
+            struct_tag_id=item["struct_tag_id"],
+            struct_offset=item["struct_offset"],
+        )
+
+
+def _run_program_lockstep(
+    source: str,
+    *,
+    quantum: int = 2000,
+    max_commits: int = 4096,
+    max_clocks_per_commit: int = 1024,
+) -> tuple[EncodedArchitecturalState, int]:
+    """Run one THOR program Concrete↔Synth at every committed transition."""
+    action, definitions = _prepare_thor_program(source)
+    machine = load_faithful_machine(
+        action,
+        quantum=quantum,
+        definitions=definitions,
+        memory_words=256,
+        control_words=256,
+    )
+    codec = RED2ABICodec()
+    image = codec.encode_program(machine)
+    metadata = _program_literal_metadata(codec, image.struct_selectors)
+    processor = ConcreteRED2Machine(
+        image.state,
+        **_program_concrete_kwargs(codec, image, metadata),
+    )
+    _load_program_hardware(image.state, metadata)
+
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP))
+    commits = 0
+    while processor.status() == abi.STATUS_RUNNING:
+        if commits >= max_commits:
+            raise AssertionError(f"program lockstep exceeded {max_commits} commits")
+        before = processor.checkpoint()
+        assert processor.run_to_commit(), (
+            f"Concrete oracle faulted before commit {commits + 1}: {processor.fault}"
+        )
+        expected = processor.checkpoint()
+
+        for _ in range(max_clocks_per_commit):
+            result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+            assert int(result.status) != STATUS_FAULT, (
+                f"hardware faulted before program commit {commits + 1}: "
+                f"red2={int(result.red2_fault)} hw={int(result.hw_fault)} "
+                f"micro={int(result.microstate)} pc={int(result.pc)}"
+            )
+            if int(result.committed):
+                break
+        else:
+            raise AssertionError(
+                f"hardware did not reach program commit {commits + 1} within "
+                f"{max_clocks_per_commit} clocks"
+            )
+
+        commits += 1
+        _assert_scalar_checkpoint(result, expected)
+        assert int(result.status) == processor.status(), (
+            f"status mismatch at program commit {commits}: "
+            f"hardware={int(result.status)} concrete={processor.status()}"
+        )
+
+        changed_memory = [
+            address
+            for address, (old, new) in enumerate(zip(before.memory, expected.memory))
+            if old != new
+        ]
+        changed_control = [
+            address
+            for address, (old, new) in enumerate(
+                zip(before.control_stack, expected.control_stack)
+            )
+            if old != new
+        ]
+        for address in changed_memory:
+            readback = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(readback) == expected.memory[address], (
+                f"graph mutation mismatch at commit {commits}, address {address}"
+            )
+        for address in changed_control:
+            readback = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_control_read(readback) == expected.control_stack[address], (
+                f"control mutation mismatch at commit {commits}, address {address}"
+            )
+
+    final = processor.checkpoint()
+    assert int(result.status) == processor.status()
+    # Final full-RAM equality catches any persistent write the oracle never made,
+    # complementing the expected-mutation checks above.
+    for address, packed in enumerate(final.memory):
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(readback) == packed, (
+            f"final graph mismatch at address {address}"
+        )
+    for address, packed in enumerate(final.control_stack):
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_control_read(readback) == packed, (
+            f"final control mismatch at address {address}"
+        )
+    return final, commits
 
 
 def _direct_lookup_machine(
@@ -5684,6 +5869,141 @@ def check() -> None:
     assert expected.pc == 10
     assert expected.fsp == 1
 
+    # A plain CLOSURE binding is executable graph state, not a detachable value.
+    # VAR redirects pc to the closure descriptor so the normal CLOSURE transition
+    # can enter its code on the following committed step.
+    codec = RED2ABICodec()
+    machine = _direct_lookup_machine(MuredOpcode.VAR, Word(MuredOpcode.CLOSURE, 31))
+    _, expected = _run_bounded_to_same_commit(machine, codec)
+    assert expected.pc == 10
+    assert expected.fsp == 1
+    assert expected.direction == abi.DIRECTION_FORWARD
+
+    # Direct VAR -> EP chases the environment pointer after lexical lookup.
+    # A terminal CLOSURE redirects pc to the closure descriptor while s_a/s_d
+    # still describe the original environment binding cell.
+    codec = RED2ABICodec()
+    var_ep_memory: list[Word | None] = [None] * 64
+    var_ep_memory[0] = Word(MuredOpcode.VAR, 0, True)
+    var_ep_memory[20] = Word(MuredOpcode.EP, 30, False)
+    var_ep_memory[30] = Word(MuredOpcode.CLOSURE, 40, False)
+    var_ep_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=var_ep_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=0,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=8,
+            phi=5,
+            free_space=40,
+            argcnt=0,
+        )
+    )
+    _, expected = _run_bounded_to_same_commit(var_ep_machine, codec)
+    assert expected.pc == 30
+    assert expected.fsp == 0
+    assert expected.s_a == 21
+    assert expected.s_d == 1
+
+    # Direct APP_VAR -> CLOSURE validates the following NONE code descriptor,
+    # publishes EP(closure-address), pushes the caller environment path, and
+    # advances pc.  Graph and control publication are one committed transition.
+    codec = RED2ABICodec()
+    closure_lookup_memory: list[Word | None] = [None] * 64
+    closure_lookup_memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    closure_lookup_memory[1] = Word(MuredOpcode.STOP)
+    closure_lookup_memory[20] = Word(MuredOpcode.CLOSURE, 30, False)
+    closure_lookup_memory[21] = Word(None, 8, False)
+    closure_lookup_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=closure_lookup_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=1,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=8,
+            phi=5,
+            free_space=40,
+            argcnt=0,
+        )
+    )
+    result, expected = _run_bounded_to_same_commit(closure_lookup_machine, codec)
+    assert expected.pc == 1
+    assert expected.fsp == 2
+    assert expected.c == 1
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=expected.fsp))
+    assert _packed_memory_read(result) == expected.memory[expected.fsp]
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(result) == expected.control_stack[0]
+
+    # Direct VAR -> REC delegates to head-RECP execution: validate the REC triple,
+    # install its saved context as an environment marker, jump to the binding,
+    # and consume one unit of quantum in the same committed transition.
+    codec = RED2ABICodec()
+    rec_memory: list[Word | None] = [None] * 64
+    rec_memory[0] = Word(MuredOpcode.VAR, 0, True)
+    rec_memory[1] = Word(MuredOpcode.STOP)
+    rec_memory[20] = Word(MuredOpcode.REC, 31)
+    rec_memory[21] = Word(None, 20)
+    rec_memory[22] = Word(None, 4)
+    rec_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=rec_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=1,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=8,
+            phi=0,
+            free_space=40,
+            argcnt=0,
+        )
+    )
+    _, expected = _run_bounded_to_same_commit(rec_machine, codec)
+    assert expected.pc == 31
+    assert expected.env == 39
+    assert expected.free_space == 39
+    assert expected.q == 7
+
+    # Direct APP_VAR -> EP publishes the detached EP target, pushes the current
+    # environment path, and advances pc.  This is the recursive multi-argument
+    # call shape used by the Fibonacci iterator.
+    codec = RED2ABICodec()
+    app_ep_memory: list[Word | None] = [None] * 64
+    app_ep_memory[0] = Word(MuredOpcode.APP_VAR, 0, False)
+    app_ep_memory[1] = Word(MuredOpcode.STOP)
+    app_ep_memory[20] = Word(MuredOpcode.EP, 30, False)
+    app_ep_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=app_ep_memory,
+            control_stack=[None] * 32,
+            pc=0,
+            fsp=1,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=8,
+            phi=0,
+            free_space=40,
+            argcnt=0,
+        )
+    )
+    result, expected = _run_bounded_to_same_commit(app_ep_machine, codec)
+    assert expected.pc == 1
+    assert expected.fsp == 2
+    assert expected.c == 1
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=expected.fsp))
+    assert _packed_memory_read(result) == expected.memory[expected.fsp]
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(result) == expected.control_stack[0]
+
     # Direct APP_VAR -> shareable atomic publishes a detached non-head value and
     # advances the source pc.
     codec = RED2ABICodec()
@@ -8783,6 +9103,27 @@ def check() -> None:
         phi=1,
         expect_fault=abi.FAULT_ILLEGAL_TRANSITION,
     )
+
+    # Program-level milestone: compile/load once, then compare every committed
+    # architectural transition from the exact same encoded image.  Fibonacci is
+    # deliberately last because it composes closures, IF, scalar primitives,
+    # recursive environment records, EP paths, and changing accumulators.
+    fibonacci_source = """
+fib == (lambda (n)
+  (letrec ((fib-iter
+            (lambda (i current next)
+              (if (= i 0)
+                  current
+                  (fib-iter (1- i) next (+ current next))))))
+    (fib-iter n 0 1)))
+
+fib-six == (fib 6)
+
+fib-six
+"""
+    fibonacci_final, fibonacci_commits = _run_program_lockstep(fibonacci_source)
+    assert fibonacci_commits > 0
+    assert fibonacci_final.halted == 1
 
 
 if __name__ == "__main__":

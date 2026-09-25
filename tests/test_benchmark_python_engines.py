@@ -20,6 +20,7 @@ def _rows(text: str) -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(text)))
 
 
+@pytest.mark.stress
 def test_all_benchmarks_emit_adjacent_backend_pairs(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
