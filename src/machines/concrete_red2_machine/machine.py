@@ -294,6 +294,12 @@ class ConcreteRED2Machine:
         self._task_pub_closure_result = [0] * memory_words
         self._task_pub_rec_valid = [0] * memory_words
         self._task_pub_rec_result = [0] * memory_words
+        self._task_pub_root_touched = [0] * memory_words
+        self._task_pub_root_touched_count = 0
+        self._task_pub_closure_touched = [0] * memory_words
+        self._task_pub_closure_touched_count = 0
+        self._task_pub_rec_touched = [0] * memory_words
+        self._task_pub_rec_touched_count = 0
         self._task_mat_words = [0] * memory_words
         self._task_mat_valid = [0] * memory_words
         self._task_mat_visit_address = [0] * memory_words
@@ -1917,6 +1923,18 @@ class ConcreteRED2Machine:
         self.env = frame_env
         return True
 
+    def _task4_reset_memos(self) -> None:
+        """Invalidate only transaction memo entries touched since the last reset."""
+        for slot in range(self._task_pub_root_touched_count):
+            self._task_pub_root_state[self._task_pub_root_touched[slot]] = 0
+        self._task_pub_root_touched_count = 0
+        for slot in range(self._task_pub_closure_touched_count):
+            self._task_pub_closure_valid[self._task_pub_closure_touched[slot]] = 0
+        self._task_pub_closure_touched_count = 0
+        for slot in range(self._task_pub_rec_touched_count):
+            self._task_pub_rec_valid[self._task_pub_rec_touched[slot]] = 0
+        self._task_pub_rec_touched_count = 0
+
     def _task4_begin(self, kind: int, next_phase: int) -> None:
         self._task_pc = self.pc
         self._task_fsp = self.fsp
@@ -1936,12 +1954,20 @@ class ConcreteRED2Machine:
         self._task_halted = self.halted
         self._task_pending_host_op = self.pending_host_op
         self._task_pending_host_argument = self.pending_host_argument
+        # Concrete is the CPython architectural model, not the synthesizable RAM
+        # implementation.  Preserve the same failure-atomic full-shadow semantics,
+        # but snapshot the bounded memories and clear transaction scratch with bulk
+        # list operations instead of burning one Python-level simulated clock per
+        # word.  Syn retains the explicit serialized hardware transaction machinery.
+        self._task_memory[:] = self.memory
+        self._task_control[:] = self.control_stack
+        self._task4_reset_memos()
         self._task_sp = -1
         self._task_mat_count = 0
         self._task_mat_visit_count = 0
         self._task4_active = 1
         self._task4_kind = kind
-        self._task4_phase = TASK4_COPY_MEMORY
+        self._task4_phase = next_phase
         self._task_next_phase = next_phase
         self._task_copy_index = 0
         self._task_pub_value = 0
@@ -1952,10 +1978,8 @@ class ConcreteRED2Machine:
         # must not replace those architectural storage objects.  Copy the fully
         # validated shadow contents in place at the commit boundary; the next
         # Task-4 transaction refreshes its shadows from live state before use.
-        for index in range(len(self.memory)):
-            self.memory[index] = self._task_memory[index]
-        for index in range(len(self.control_stack)):
-            self.control_stack[index] = self._task_control[index]
+        self.memory[:] = self._task_memory
+        self.control_stack[:] = self._task_control
         self.pc = self._task_pc
         self.fsp = self._task_fsp
         self.env = self._task_env
@@ -2834,6 +2858,10 @@ class ConcreteRED2Machine:
             if root < 0 or root >= len(self._task_pub_root_state):
                 self._fault(abi.FAULT_INVALID_ADDRESS)
                 return
+            if self._task_pub_root_state[root] == 0:
+                slot = self._task_pub_root_touched_count
+                self._task_pub_root_touched[slot] = root
+                self._task_pub_root_touched_count = slot + 1
             self._task_pub_root_state[root] = 2
             self._task_pub_root_result[root] = self._task_pub_value
             self._task_sp -= 1
@@ -2856,6 +2884,9 @@ class ConcreteRED2Machine:
             if word == 0:
                 self._fault(abi.FAULT_INVALID_ADDRESS)
                 return
+            slot = self._task_pub_root_touched_count
+            self._task_pub_root_touched[slot] = address
+            self._task_pub_root_touched_count = slot + 1
             self._task_pub_root_state[address] = 1
             self._task_sp -= 1
             if not self._task4_push(TASK4_PUB_ROOT_DONE, address):
@@ -3288,8 +3319,15 @@ class ConcreteRED2Machine:
                     1,
                 )
                 self._task_fsp = last
+                slot = self._task_pub_rec_touched_count
+                self._task_pub_rec_touched[slot] = rec_address
+                self._task_pub_rec_touched_count = slot + 1
                 self._task_pub_rec_valid[rec_address] = 1
                 self._task_pub_rec_result[rec_address] = destination
+                if self._task_pub_root_state[destination] == 0:
+                    slot = self._task_pub_root_touched_count
+                    self._task_pub_root_touched[slot] = destination
+                    self._task_pub_root_touched_count = slot + 1
                 self._task_pub_root_state[destination] = 2
                 self._task_pub_root_result[destination] = destination
                 self._task_pub_value = destination
@@ -3849,8 +3887,15 @@ class ConcreteRED2Machine:
                 self._task_stack_c[sp] = index + 1
                 return
             self._task_fsp = last
+            slot = self._task_pub_closure_touched_count
+            self._task_pub_closure_touched[slot] = closure_address
+            self._task_pub_closure_touched_count = slot + 1
             self._task_pub_closure_valid[closure_address] = 1
             self._task_pub_closure_result[closure_address] = destination
+            if self._task_pub_root_state[destination] == 0:
+                slot = self._task_pub_root_touched_count
+                self._task_pub_root_touched[slot] = destination
+                self._task_pub_root_touched_count = slot + 1
             self._task_pub_root_state[destination] = 2
             self._task_pub_root_result[destination] = destination
             self._task_pub_value = destination
@@ -6007,6 +6052,10 @@ class ConcreteRED2Machine:
         if kind == TASK10_POINTER_DONE:
             address = self._task_stack_a[sp]
             target = self._task_stack_b[sp]
+            if self._task_pub_root_state[address] == 0:
+                slot = self._task_pub_root_touched_count
+                self._task_pub_root_touched[slot] = address
+                self._task_pub_root_touched_count = slot + 1
             self._task_pub_root_state[address] = 2
             self._task_pub_root_result[address] = target
             self._task_pub_value = target
@@ -6975,12 +7024,7 @@ class ConcreteRED2Machine:
             return
 
         if self._task4_phase == TASK4_STRUCT_PROMOTE_CLEAR:
-            index = self._task_quantum_cursor
-            if index < len(self._task_pub_root_state):
-                self._task_pub_root_state[index] = 0
-                self._task_pub_root_result[index] = 0
-                self._task_quantum_cursor = index + 1
-                return
+            self._task4_reset_memos()
             self._task_quantum_cursor = 0
             if not self._task4_push(TASK10_GRAPH, self._task_struct_source, 1):
                 return
