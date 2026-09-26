@@ -98,13 +98,13 @@ Frontend/VHDL elaboration was not rerun specifically for slice 3 in this accepta
 
 ## Remaining generic-publication gaps
 
-This slice intentionally implements only the existing narrow closure materializer as the first generic allocation producer. It does not yet provide the fully general material graph traversal planned for A4.
+This slice intentionally implements only the existing narrow closure materializer as the first generic allocation producer. It does not yet provide fully general material-graph traversal; that remains follow-on publication-engine work within the existing ultraplan rather than a separate `A4` task.
 
 Notably:
 
 - generic `EP -> REC` remains an explicit `HW_FAULT_EXECUTION_NOT_IMPLEMENTED` gap;
 - unsupported closure bodies beyond the narrow lambda-spine/VAR form remain explicit gaps;
-- general allocation-producing graph publication belongs to A4 rather than expanding this slice ad hoc.
+- general allocation-producing graph publication remains follow-on publication-engine work rather than expanding this accepted slice ad hoc.
 
 ## Working-tree caution
 

@@ -89,4 +89,4 @@ A3 slice 2 should add transactional existing-address rewrites before any allocat
 - nested APP containing EP and repeated/shared EP descriptors;
 - late EP failure after staged patches proving architectural atomicity.
 
-Do not fold closure materialization or REC publication into that first transactional-journal slice. Closure materialization is A4 / the subsequent materialized-output slice; REC/RBLOCK rewriting is A5.
+Do not fold closure materialization or REC publication into that first transactional-journal slice. Closure materialization is the subsequent materialized-output slice of this publication work; REC/RBLOCK rewriting belongs to later recursive-publication work supporting ultraplan Task 8.

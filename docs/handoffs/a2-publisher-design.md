@@ -1,5 +1,7 @@
 Design for Project A2: replace the current shape-specific JOIN/selector publication machinery with one bounded publication engine built around three fixed scratch memories: a generation-tagged root memo, a materialization buffer, and an explicit task stack. Do not shadow architectural graph RAM or control RAM.
 
+**Nomenclature note:** `A2`/`A3` in this design and its implementation handoffs are local publication-work labels, not numbered tasks in the authoritative `2026-09-11-full-pypeline-red2-processor-ultraplan.md`. This machinery primarily completes the publication/lifetime obligations of ultraplan Task 4; REC/RBLOCK publication also supports the recursive semantics of ultraplan Task 8. Later work below is therefore named by semantic slice rather than inventing `A4`, `A5`, etc. plan tasks.
+
 ## 1. Architectural model
 
 Treat publication as an internal transaction:
@@ -414,7 +416,7 @@ PUB_TASK_MAT_STRUCT_PROCESS = 39
 
 A3 only implements 1–9 and perhaps 10–15 incrementally.
 
-The point is to freeze the ABI now so A4–A8 extend it rather than inventing parallel machines.
+The point is to freeze the ABI now so later publication and recursive-value slices extend it rather than inventing parallel machines.
 
 ---
 
@@ -876,7 +878,7 @@ General closure materialization is separate and uses `MAT_LAMBDA_SCAN`.
 
 # 13. Closure materialization
 
-A4 can directly reuse the generic materializer.
+The closure-materialization slice can directly reuse the generic materializer.
 
 `CLOSURE(address)`:
 
@@ -1127,7 +1129,7 @@ shared allocating root referenced twice
 capacity failure on last allocation
 ```
 
-At this point A4 closure materialization is largely a new task family rather than new transaction machinery.
+At this point closure materialization is largely a new publisher task family rather than new transaction machinery.
 
 ---
 
