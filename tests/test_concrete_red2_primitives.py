@@ -8,11 +8,13 @@ from abstract_red2_machine.machine import (
     Word,
     _SavedDefinitionPath,
 )
+from concrete_red2_machine import abi
 from concrete_red2_machine.machine import (
     PRIM0_ROLE_IF,
     PRIM0_ROLE_IO_SEQUENCE,
     RED2_PRIM_SEQ_V1,
     RED2_SCALARS_V1,
+    RED2_FLOAT_V1,
     SCALAR_OP_ABS,
     SCALAR_OP_ADD,
     SCALAR_OP_CEILING,
@@ -631,3 +633,141 @@ def test_task6_binary_integer_contractions_match_oracle_exactly(
 
 def test_red2_scalars_v1_is_explicit() -> None:
     assert RED2_SCALARS_V1 == 1
+
+
+def test_red2_float_v1_is_explicit() -> None:
+    assert RED2_FLOAT_V1 == 1
+
+
+def _assert_scalar_fire_matches_oracle(
+    name: str,
+    scalar_op: int,
+    operands: tuple[Word, ...],
+) -> None:
+    assert 1 <= len(operands) <= 2
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=2 + len(operands),
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=5,
+        phi=0,
+        argcnt=len(operands),
+        prim=name,
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    # RED2's reduced strict argument spine stores the right/last argument at pc.
+    for offset, operand in enumerate(reversed(operands)):
+        state.memory[2 + offset] = operand
+    machine = AbstractRED2Machine(state)
+    codec = RED2ABICodec()
+    processor = _processor(
+        machine,
+        codec,
+        scalar_name=name,
+        scalar_op=scalar_op,
+    )
+
+    machine.step()
+    assert processor.run_to_commit()
+    assert processor.checkpoint() == codec.encode_state(machine.state)
+
+
+@pytest.mark.parametrize(
+    ("name", "scalar_op", "operands"),
+    [
+        ("1+", SCALAR_OP_INC, (Word(MuredOpcode.FLOAT, 1.5),)),
+        ("MINUS", SCALAR_OP_NEGATE, (Word(MuredOpcode.FLOAT, 1.5),)),
+        ("ABS", SCALAR_OP_ABS, (Word(MuredOpcode.FLOAT, -1.5),)),
+        ("FLOOR", SCALAR_OP_FLOOR, (Word(MuredOpcode.FLOAT, -3.75),)),
+        ("CEILING", SCALAR_OP_CEILING, (Word(MuredOpcode.FLOAT, -3.75),)),
+        ("+", SCALAR_OP_ADD, (Word(MuredOpcode.FLOAT, 1.5), Word(MuredOpcode.FLOAT, 2.25))),
+        ("+", SCALAR_OP_ADD, (Word(MuredOpcode.INT, 2), Word(MuredOpcode.FLOAT, 1.5))),
+        ("-", SCALAR_OP_SUB, (Word(MuredOpcode.FLOAT, 5.5), Word(MuredOpcode.INT, 2))),
+        ("*", SCALAR_OP_MUL, (Word(MuredOpcode.FLOAT, 1.5), Word(MuredOpcode.FLOAT, 2.5))),
+        ("/", SCALAR_OP_DIV, (Word(MuredOpcode.INT, 7), Word(MuredOpcode.INT, 2))),
+        ("/", SCALAR_OP_DIV, (Word(MuredOpcode.FLOAT, 7.0), Word(MuredOpcode.INT, 2))),
+        ("<", SCALAR_OP_LT, (Word(MuredOpcode.INT, 2), Word(MuredOpcode.FLOAT, 2.5))),
+        (">", SCALAR_OP_GT, (Word(MuredOpcode.FLOAT, 3.5), Word(MuredOpcode.INT, 2))),
+        ("<=", SCALAR_OP_LE, (Word(MuredOpcode.FLOAT, 2.0), Word(MuredOpcode.INT, 2))),
+        (">=", SCALAR_OP_GE, (Word(MuredOpcode.INT, 2), Word(MuredOpcode.FLOAT, 2.0))),
+        ("=", SCALAR_OP_EQ, (Word(MuredOpcode.FLOAT, 2.0), Word(MuredOpcode.FLOAT, 2.0))),
+        ("=", SCALAR_OP_EQ, (Word(MuredOpcode.INT, 2), Word(MuredOpcode.FLOAT, 2.0))),
+        ("MAX", SCALAR_OP_MAX, (Word(MuredOpcode.FLOAT, 2.5), Word(MuredOpcode.INT, 2))),
+        ("MIN", SCALAR_OP_MIN, (Word(MuredOpcode.FLOAT, 2.5), Word(MuredOpcode.INT, 2))),
+        ("EXPT", SCALAR_OP_EXPT, (Word(MuredOpcode.INT, 2), Word(MuredOpcode.INT, -1))),
+    ],
+)
+def test_red2_float_v1_common_case_primitives_match_abstract_exactly(
+    name: str,
+    scalar_op: int,
+    operands: tuple[Word, ...],
+) -> None:
+    _assert_scalar_fire_matches_oracle(name, scalar_op, operands)
+
+
+def test_chapter4_float_add_and_mixed_coercion_gap_is_closed() -> None:
+    # Chapter 4 lines 1356-1360 (thesis p.78) explicitly require floating ADD
+    # and implicit INT/FLOAT coercion. RED2_FLOAT_V1 now executes both paths
+    # rather than treating them as a known Concrete semantic divergence.
+    _assert_scalar_fire_matches_oracle(
+        "+",
+        SCALAR_OP_ADD,
+        (Word(MuredOpcode.FLOAT, 1.5), Word(MuredOpcode.FLOAT, 2.25)),
+    )
+    _assert_scalar_fire_matches_oracle(
+        "+",
+        SCALAR_OP_ADD,
+        (Word(MuredOpcode.INT, 2), Word(MuredOpcode.FLOAT, 1.5)),
+    )
+
+
+def test_signed_64_add_overflow_remains_an_atomic_bounded_refinement() -> None:
+    state = AbstractRED2MachineState(
+        memory=[None] * 8,
+        control_stack=[None] * 4,
+        pc=2,
+        fsp=3,
+        env=8,
+        c=-1,
+        direction=Direction.B,
+        q=5,
+        phi=0,
+        argcnt=2,
+        prim="+",
+        fire=1,
+    )
+    state.memory[1] = Word(MuredOpcode.STOP)
+    state.memory[2] = Word(MuredOpcode.INT, 1)
+    state.memory[3] = Word(MuredOpcode.INT, abi.SIGNED_DATA_MAX)
+    codec = RED2ABICodec()
+    processor = _processor(
+        AbstractRED2Machine(state),
+        codec,
+        scalar_name="+",
+        scalar_op=SCALAR_OP_ADD,
+    )
+    before = processor.checkpoint()
+
+    assert processor.run_to_commit() is False
+    assert processor.fault == abi.FAULT_UNSUPPORTED_VALUE
+    after = processor.checkpoint()
+    # Primitive firing consumes the countdown latch before scalar evaluation;
+    # the bounded overflow must not partially commit graph/traversal state.
+    assert after.memory == before.memory
+    assert after.control_stack == before.control_stack
+    assert after.pc == before.pc
+    assert after.fsp == before.fsp
+    assert after.env == before.env
+    assert after.free_space == before.free_space
+    assert after.c == before.c
+    assert after.direction == before.direction
+    assert after.q == before.q
+    assert after.phi == before.phi
+    assert after.argcnt == before.argcnt
+    assert after.prim_id == before.prim_id
+    assert after.fire == 0

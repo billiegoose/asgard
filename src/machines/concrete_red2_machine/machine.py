@@ -8,12 +8,14 @@ fault instead of approximating Python behavior.
 """
 
 from concrete_red2_machine import abi
+from concrete_red2_machine import float_profile
 from concrete_red2_machine.pipelinec_vectors import EncodedArchitecturalState
 
 RED2_CORE_V1 = 1
 RED2_CLOSURES_V1 = 1
 RED2_PRIM_SEQ_V1 = 1
 RED2_SCALARS_V1 = 1
+RED2_FLOAT_V1 = float_profile.RED2_FLOAT_V1
 RED2_LAZY_V1 = 1
 RED2_RECURSIVE_V1 = 1
 RED2_PURE_V1 = 1
@@ -838,6 +840,52 @@ class ConcreteRED2Machine:
             abi.MOP_INT, abi.DATA_SIGNED, abi.signed_to_payload(value), 1
         )
 
+    def _float_bits(self, word: int) -> int | None:
+        if (
+            self._opcode(word) != abi.MOP_FLOAT
+            or self._data_kind(word) != abi.DATA_FLOAT64
+        ):
+            return None
+        bits = self._payload(word)
+        if not float_profile.is_supported(bits):
+            self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+            return None
+        return bits
+
+    def _float_result(self, bits: int | None) -> int | None:
+        if bits is None or not float_profile.is_supported(bits):
+            self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+            return None
+        return self._make_word(abi.MOP_FLOAT, abi.DATA_FLOAT64, bits, 1)
+
+    def _float_number_result(self, bits: int | None) -> int | None:
+        """Match Abstract `_number_result_word` inside RED2_FLOAT_V1.
+
+        EXPT/MAX/MIN and several unary primitives collapse an exactly integral
+        FLOAT to INT. Arithmetic +,-,*,/ does not use this helper because RED2
+        preserves FLOAT result type whenever either arithmetic operand is FLOAT.
+        """
+
+        if bits is None or not float_profile.is_supported(bits):
+            self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+            return None
+        integral = float_profile.integral_value(bits)
+        if integral is not None:
+            return self._checked_int_result(integral)
+        return self._float_result(bits)
+
+    def _number_as_float_bits(self, word: int) -> int | None:
+        opcode = self._opcode(word)
+        if opcode == abi.MOP_FLOAT:
+            return self._float_bits(word)
+        if opcode == abi.MOP_INT:
+            value = self._signed_data(word)
+            if value is None:
+                self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+                return None
+            return float_profile.int_to_bits(value)
+        return None
+
     def _finish_scalar_result(self, result: int | None) -> None:
         self.prim_id = 0
         self.fire = 0
@@ -872,9 +920,6 @@ class ConcreteRED2Machine:
             SCALAR_OP_CEILING,
             SCALAR_OP_EVEN,
         ):
-            if right_opcode == abi.MOP_FLOAT:
-                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
-                return None
             if right_opcode == abi.MOP_INT and right_int is not None:
                 if op == SCALAR_OP_DEC:
                     result = self._checked_int_result(right_int - 1)
@@ -888,6 +933,26 @@ class ConcreteRED2Machine:
                     result = self._checked_int_result(right_int)
                 else:
                     result = self._bool_word(right_int % 2 == 0)
+                return result
+            if right_opcode == abi.MOP_FLOAT:
+                bits = self._float_bits(right)
+                if bits is None:
+                    return None
+                if op == SCALAR_OP_DEC or op == SCALAR_OP_EVEN:
+                    # Abstract RED2 defines 1- and EVEN? for INT only.
+                    return None
+                if op == SCALAR_OP_INC:
+                    result = self._float_number_result(
+                        float_profile.add(bits, float_profile.FLOAT64_ONE)
+                    )
+                elif op == SCALAR_OP_NEGATE:
+                    result = self._float_number_result(float_profile.negate(bits))
+                elif op == SCALAR_OP_ABS:
+                    result = self._float_number_result(float_profile.absolute(bits))
+                elif op == SCALAR_OP_FLOOR:
+                    result = self._checked_int_result(float_profile.floor_to_int(bits))
+                else:
+                    result = self._checked_int_result(float_profile.ceil_to_int(bits))
             return result
 
         if op == SCALAR_OP_NULL:
@@ -933,11 +998,14 @@ class ConcreteRED2Machine:
         left_int = self._signed_data(left)
 
         if op == SCALAR_OP_EQ:
-            if left_opcode == abi.MOP_FLOAT or right_opcode == abi.MOP_FLOAT:
-                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
-                return None
             if left_opcode == abi.MOP_INT and right_opcode == abi.MOP_INT:
                 result = self._bool_word(left_int == right_int)
+            elif left_opcode == abi.MOP_FLOAT and right_opcode == abi.MOP_FLOAT:
+                left_bits = self._float_bits(left)
+                right_bits = self._float_bits(right)
+                if left_bits is None or right_bits is None:
+                    return None
+                result = self._bool_word(float_profile.compare(left_bits, right_bits) == 0)
             elif left_opcode == abi.MOP_CHAR and right_opcode == abi.MOP_CHAR:
                 result = self._bool_word(self._payload(left) == self._payload(right))
             elif self._is_symbol_value(left) and self._is_symbol_value(right):
@@ -946,58 +1014,110 @@ class ConcreteRED2Machine:
                 left_opcode not in (abi.MOP_APP, abi.MOP_APP_VAR, abi.MOP_VAR)
                 and right_opcode not in (abi.MOP_APP, abi.MOP_APP_VAR, abi.MOP_VAR)
             ):
+                # Abstract constant equality is type-sensitive: INT 1 != FLOAT 1.0.
                 result = self._bool_word(False)
             return result
 
-        if left_opcode == abi.MOP_FLOAT or right_opcode == abi.MOP_FLOAT:
-            self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+        left_numeric = left_opcode in (abi.MOP_INT, abi.MOP_FLOAT)
+        right_numeric = right_opcode in (abi.MOP_INT, abi.MOP_FLOAT)
+        if not left_numeric or not right_numeric:
             return None
-        if left_opcode != abi.MOP_INT or right_opcode != abi.MOP_INT:
+
+        both_int = left_opcode == abi.MOP_INT and right_opcode == abi.MOP_INT
+        if both_int:
+            assert left_int is not None and right_int is not None
+            if op == SCALAR_OP_ADD:
+                return self._checked_int_result(left_int + right_int)
+            if op == SCALAR_OP_SUB:
+                return self._checked_int_result(left_int - right_int)
+            if op == SCALAR_OP_MUL:
+                return self._checked_int_result(left_int * right_int)
+            if op == SCALAR_OP_DIV:
+                if right_int == 0:
+                    self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+                    return None
+                if left_int % right_int == 0:
+                    return self._checked_int_result(left_int // right_int)
+                return self._float_result(
+                    float_profile.div(
+                        float_profile.int_to_bits(left_int),
+                        float_profile.int_to_bits(right_int),
+                    )
+                )
+            if op == SCALAR_OP_LT:
+                return self._bool_word(left_int < right_int)
+            if op == SCALAR_OP_GT:
+                return self._bool_word(left_int > right_int)
+            if op == SCALAR_OP_LE:
+                return self._bool_word(left_int <= right_int)
+            if op == SCALAR_OP_GE:
+                return self._bool_word(left_int >= right_int)
+            if op == SCALAR_OP_MAX:
+                return self._checked_int_result(max(left_int, right_int))
+            if op == SCALAR_OP_MIN:
+                return self._checked_int_result(min(left_int, right_int))
+            if op == SCALAR_OP_MOD:
+                if right_int == 0:
+                    self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+                    return None
+                return self._checked_int_result(left_int % right_int)
+            if op == SCALAR_OP_EXPT and right_int >= 0:
+                # Every non-trivial positive integer power above this exponent
+                # is outside signed-64 RED2 range. Reject before constructing it.
+                if abs(left_int) >= 2 and right_int > 63:
+                    self._fault(abi.FAULT_UNSUPPORTED_VALUE)
+                    return None
+                return self._checked_int_result(pow(left_int, right_int))
+
+        if op == SCALAR_OP_MOD:
+            # MOD is integer-only in Abstract RED2.
             return None
-        assert left_int is not None and right_int is not None
+
+        left_bits = self._number_as_float_bits(left)
+        right_bits = self._number_as_float_bits(right)
+        if left_bits is None or right_bits is None:
+            return None
 
         if op == SCALAR_OP_ADD:
-            result = self._checked_int_result(left_int + right_int)
+            result = self._float_result(float_profile.add(left_bits, right_bits))
         elif op == SCALAR_OP_SUB:
-            result = self._checked_int_result(left_int - right_int)
+            result = self._float_result(float_profile.sub(left_bits, right_bits))
         elif op == SCALAR_OP_MUL:
-            result = self._checked_int_result(left_int * right_int)
+            result = self._float_result(float_profile.mul(left_bits, right_bits))
         elif op == SCALAR_OP_DIV:
-            if right_int == 0:
+            if float_profile.is_zero(right_bits):
                 self._fault(abi.FAULT_UNSUPPORTED_VALUE)
                 return None
-            if left_int % right_int != 0:
-                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
-                return None
-            result = self._checked_int_result(left_int // right_int)
-        elif op == SCALAR_OP_LT:
-            result = self._bool_word(left_int < right_int)
-        elif op == SCALAR_OP_GT:
-            result = self._bool_word(left_int > right_int)
-        elif op == SCALAR_OP_LE:
-            result = self._bool_word(left_int <= right_int)
-        elif op == SCALAR_OP_GE:
-            result = self._bool_word(left_int >= right_int)
-        elif op == SCALAR_OP_MAX:
-            result = self._checked_int_result(max(left_int, right_int))
-        elif op == SCALAR_OP_MIN:
-            result = self._checked_int_result(min(left_int, right_int))
-        elif op == SCALAR_OP_MOD:
-            if right_int == 0:
-                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
-                return None
-            result = self._checked_int_result(left_int % right_int)
+            result = self._float_result(float_profile.div(left_bits, right_bits))
+        elif op in (SCALAR_OP_LT, SCALAR_OP_GT, SCALAR_OP_LE, SCALAR_OP_GE):
+            ordering = float_profile.compare(left_bits, right_bits)
+            if op == SCALAR_OP_LT:
+                result = self._bool_word(ordering < 0)
+            elif op == SCALAR_OP_GT:
+                result = self._bool_word(ordering > 0)
+            elif op == SCALAR_OP_LE:
+                result = self._bool_word(ordering <= 0)
+            else:
+                result = self._bool_word(ordering >= 0)
+        elif op in (SCALAR_OP_MAX, SCALAR_OP_MIN):
+            ordering = float_profile.compare(left_bits, right_bits)
+            choose_left = ordering >= 0 if op == SCALAR_OP_MAX else ordering <= 0
+            chosen = left if choose_left else right
+            if self._opcode(chosen) == abi.MOP_INT:
+                chosen_int = self._signed_data(chosen)
+                assert chosen_int is not None
+                result = self._checked_int_result(chosen_int)
+            else:
+                chosen_bits = self._float_bits(chosen)
+                result = self._float_number_result(chosen_bits)
         elif op == SCALAR_OP_EXPT:
-            if right_int < 0:
+            exponent = float_profile.integral_value(right_bits)
+            if exponent is None:
                 self._fault(abi.FAULT_UNSUPPORTED_VALUE)
                 return None
-            # Every non-trivial power above this exponent is outside signed
-            # 64-bit RED2 range. Reject it before Python can construct an
-            # arbitrarily large intermediate integer.
-            if abs(left_int) >= 2 and right_int > 63:
-                self._fault(abi.FAULT_UNSUPPORTED_VALUE)
-                return None
-            result = self._checked_int_result(pow(left_int, right_int))
+            result = self._float_number_result(
+                float_profile.pow_integral(left_bits, exponent)
+            )
         else:
             self._fault(abi.FAULT_ILLEGAL_TRANSITION)
             return None

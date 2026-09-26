@@ -12,7 +12,13 @@ from typing import NamedTuple
 from pypeline import (
     MAIN,
     Reg,
+    concat,
     hw_func,
+    int14_t,
+    int54_t,
+    int55_t,
+    int64_t,
+    make_uint_t,
     struct,
     uint1_t,
     uint2_t,
@@ -21,12 +27,27 @@ from pypeline import (
     uint5_t,
     uint6_t,
     uint7_t,
+    uint8_t,
+    uint11_t,
+    uint13_t,
     uint16_t,
     uint17_t,
     uint32_t,
+    uint52_t,
+    uint53_t,
+    uint54_t,
     uint64_t,
 )
+from bits import make_clz, make_shifter_sl, make_shifter_sr
+from floating_point import float64_t
 from ram import make_ram
+
+
+# RED2_FLOAT_V1 uses Pypeline's binary64 representation and common-case
+# algorithms, with fixed-width local specializations where the pinned frontend
+# cannot recover factory-local annotation aliases.  RED2 adds the stricter
+# operand/result-domain contract: finite normals plus signed zero only, with no
+# subnormals, infinities, NaNs, or full IEEE exceptional/rounding semantics.
 
 RED2_SYNTH_TOP_V1 = 1
 RED2_SYNTH_SEMANTICS_COMPLETE = 0
@@ -285,6 +306,51 @@ MICRO_JOIN_IF_FALSE_PATH_READ = 122
 MICRO_JOIN_IF_PATH_CLEAR = 123
 MICRO_JOIN_IF_SELECT = 124
 MICRO_JOIN_IF_EP_CHASE = 125
+MICRO_PUB_EXEC = 126
+MICRO_PUB_STACK = 127
+
+PUB_TASK_NONE = 0
+PUB_TASK_GRAPH = 1
+PUB_TASK_ROOT_DONE = 2
+PUB_TASK_APP_SCAN = 3
+PUB_TASK_APP_REWRITE = 4
+PUB_TASK_APP_OPERATOR_DONE = 5
+PUB_TASK_LAMBDA_SCAN = 6
+PUB_TASK_LAMBDA_DONE = 7
+PUB_TASK_EP_CHASE = 8
+PUB_TASK_EP_RESULT = 9
+PUB_TASK_STRUCT_SCAN = 10
+PUB_TASK_CLOSURE = 11
+PUB_TASK_CLOSURE_DONE = 12
+PUB_TASK_CLOSURE_CODE = 13
+PUB_TASK_CLOSURE_SCAN = 14
+PUB_TASK_CLOSURE_BODY = 15
+PUB_TASK_CLOSURE_ENV = 16
+
+PUB_ROOT_EMPTY = 0
+PUB_ROOT_VISITING = 1
+PUB_ROOT_DONE = 2
+PUB_ROOT_RESERVED = 3
+
+PUB_RESUME_NONE = 0
+PUB_RESUME_JOIN = 1
+
+PUB_STACK_IDLE = 0
+PUB_STACK_WRITE_PENDING = 1
+PUB_STACK_LOAD_TOP = 2
+PUB_STACK_WRITE_MEMO = 3
+PUB_STACK_WRITE_PATCH = 4
+PUB_STACK_APPEND_PATCH = 5
+PUB_STACK_COMMIT_ADDR = 6
+PUB_STACK_COMMIT_ROW = 7
+PUB_STACK_COMMIT_GRAPH = 8
+PUB_STACK_WRITE_MAT = 9
+PUB_STACK_VALIDATE_MAT = 10
+PUB_STACK_COMMIT_MAT = 11
+PUB_STACK_COMMIT_MAT_GRAPH = 12
+
+PUB_TASK_WORDS = GRAPH_WORDS * 4
+PUB_TASK_ADDR_BITS = 10
 
 PROMOTE_TASK_NONE = 0
 PROMOTE_TASK_POINTER_DONE = 5
@@ -311,6 +377,38 @@ class red2_promote_forward_t(NamedTuple):
     state: uint2_t
     target: uint17_t
     generation: uint32_t
+
+
+@struct
+class red2_pub_mat_t(NamedTuple):
+    word: red2_word_t
+    generation: uint32_t
+
+
+@struct
+class red2_pub_root_t(NamedTuple):
+    generation: uint32_t
+    state: uint2_t
+    result: uint17_t
+    aux: uint17_t
+
+
+@struct
+class red2_pub_task_t(NamedTuple):
+    kind: uint6_t
+    a: uint17_t
+    b: uint17_t
+    c: uint17_t
+    d: uint17_t
+    e: uint17_t
+    f: uint17_t
+    flags: uint8_t
+
+
+@struct
+class red2_pub_patch_t(NamedTuple):
+    generation: uint32_t
+    word: red2_word_t
 
 
 @struct
@@ -379,6 +477,510 @@ def red2_u64_divmod(dividend: uint64_t, divisor: uint64_t) -> red2_u64_divmod_t:
             remainder = remainder - divisor
             quotient = quotient | 1
     return red2_u64_divmod_t(q=quotient, r=remainder)
+
+
+@struct
+class red2_float_checked_t(NamedTuple):
+    value: float64_t
+    valid: uint1_t
+
+
+@struct
+class red2_float_i64_t(NamedTuple):
+    payload: uint64_t
+    fits: uint1_t
+    exact: uint1_t
+
+
+@hw_func
+def red2_float64_from_bits(bits: uint64_t) -> float64_t:
+    return float64_t(sign=bits[63], exp=bits[62:52], man=bits[51:0])
+
+
+@hw_func
+def red2_float64_to_bits(value: float64_t) -> uint64_t:
+    bits: uint64_t = concat(value.sign, value.exp, value.man)
+    return bits
+
+
+@hw_func
+def red2_float64_supported(value: float64_t) -> uint1_t:
+    exp_all_ones: uint1_t = value.exp == 2047
+    exp_zero: uint1_t = value.exp == 0
+    man_nonzero: uint1_t = value.man != 0
+    subnormal: uint1_t = exp_zero and man_nonzero
+    return not exp_all_ones and not subnormal
+
+
+@hw_func
+def red2_float64_zero(value: float64_t) -> uint1_t:
+    return value.exp == 0 and value.man == 0
+
+
+@hw_func
+def red2_float64_compare(left: float64_t, right: float64_t) -> uint2_t:
+    """Return 0/1/2 for LT/EQ/GT over supported finite values."""
+
+    result: uint2_t = 0
+    left_zero: uint1_t = red2_float64_zero(left)
+    right_zero: uint1_t = red2_float64_zero(right)
+    if left_zero and right_zero:
+        result = 1
+    elif left.sign != right.sign:
+        if left.sign:
+            result = 0
+        else:
+            result = 2
+    else:
+        left_bits: uint64_t = red2_float64_to_bits(left) & 9223372036854775807
+        right_bits: uint64_t = red2_float64_to_bits(right) & 9223372036854775807
+        if left_bits == right_bits:
+            result = 1
+        else:
+            left_ge: uint1_t = red2_u64_ge(left_bits, right_bits)
+            if left.sign:
+                if left_ge:
+                    result = 0
+                else:
+                    result = 2
+            elif left_ge:
+                result = 2
+            else:
+                result = 0
+    return result
+
+
+@hw_func
+def red2_float64_i64_info(value: float64_t) -> red2_float_i64_t:
+    """Truncate binary64 to signed64 and report in-range/exact status.
+
+    This is deliberately field-level RED2 logic rather than Pypeline's generic
+    float->int cast.  Besides making the RED2_FLOAT_V1 boundary explicit, it
+    avoids depending on a generated signed-comparison helper that the pinned
+    frontend cannot elaborate for the generic 64-bit converter.
+    """
+
+    exp_wide: uint64_t = value.exp
+    exp_ge_bias: uint1_t = red2_u64_ge(exp_wide, 1023)
+    exp_ge_1086: uint1_t = red2_u64_ge(exp_wide, 1086)
+    fits: uint1_t = not exp_ge_1086
+    if value.sign and value.exp == 1086 and value.man == 0:
+        # -2**63 is the one true-exp==63 binary64 value in signed64 range.
+        fits = 1
+
+    magnitude: uint64_t = 0
+    exact: uint1_t = 0
+    if value.exp == 0:
+        # Both signed zeros collapse exactly to integer zero.
+        exact = 1
+    elif fits and exp_ge_bias:
+        man_wide: uint64_t = value.man
+        hidden: uint64_t = 4503599627370496 | man_wide
+        true_exp: uint64_t = exp_wide - 1023
+        true_exp_ge_52: uint1_t = red2_u64_ge(true_exp, 52)
+        if true_exp_ge_52:
+            left_shift: uint64_t = true_exp - 52
+            magnitude = hidden << left_shift
+            exact = 1
+        else:
+            right_shift: uint64_t = 52 - true_exp
+            magnitude = hidden >> right_shift
+            one: uint64_t = 1
+            discarded_mask: uint64_t = (one << right_shift) - 1
+            discarded: uint64_t = hidden & discarded_mask
+            exact = discarded == 0
+
+    payload: uint64_t = magnitude
+    if value.sign:
+        payload = 0 - magnitude
+    exact = exact and fits
+    return red2_float_i64_t(payload=payload, fits=fits, exact=exact)
+
+
+@struct
+class red2_float_word_checked_t(NamedTuple):
+    word: red2_word_t
+    valid: uint1_t
+
+
+@hw_func
+def red2_float64_integral(value: float64_t) -> uint1_t:
+    """Whether a supported binary64 value denotes an exact mathematical integer."""
+
+    integral: uint1_t = 0
+    if value.exp == 0:
+        integral = 1
+    else:
+        exp_wide: uint64_t = value.exp
+        exp_ge_bias: uint1_t = red2_u64_ge(exp_wide, 1023)
+        if exp_ge_bias:
+            true_exp: uint64_t = exp_wide - 1023
+            true_exp_ge_52: uint1_t = red2_u64_ge(true_exp, 52)
+            if true_exp_ge_52:
+                integral = 1
+            else:
+                man_wide: uint64_t = value.man
+                hidden: uint64_t = 4503599627370496 | man_wide
+                right_shift: uint64_t = 52 - true_exp
+                one: uint64_t = 1
+                discarded_mask: uint64_t = (one << right_shift) - 1
+                integral = (hidden & discarded_mask) == 0
+    return integral
+
+
+@hw_func
+def red2_float64_number_word(value: float64_t) -> red2_float_word_checked_t:
+    """Concrete `_float_number_result`: collapse exact FLOAT integers to INT."""
+
+    valid: uint1_t = red2_float64_supported(value)
+    result_word: red2_word_t = red2_word_t(
+        lo=red2_float64_to_bits(value),
+        hi=87293952,
+    )
+    if valid:
+        integral: uint1_t = red2_float64_integral(value)
+        if integral:
+            info: red2_float_i64_t = red2_float64_i64_info(value)
+            if info.fits:
+                result_word = red2_word_t(lo=info.payload, hi=85065728)
+            else:
+                # Concrete first recognizes the mathematical integer and then
+                # applies the signed-64 result bound; it does not preserve an
+                # out-of-range integral value as FLOAT.
+                valid = 0
+    return red2_float_word_checked_t(word=result_word, valid=valid)
+
+
+@hw_func
+def red2_float64_floor_ceil_i64(
+    value: float64_t, ceiling: uint1_t
+) -> red2_float_i64_t:
+    """RED2 floor/ceiling using truncation plus one sign-directed adjustment."""
+
+    info: red2_float_i64_t = red2_float64_i64_info(value)
+    payload: uint64_t = info.payload
+    fits: uint1_t = info.fits
+    if fits and not info.exact:
+        if ceiling:
+            if not value.sign:
+                if payload == 9223372036854775807:
+                    fits = 0
+                else:
+                    payload = payload + 1
+        elif value.sign:
+            if payload == 9223372036854775808:
+                fits = 0
+            else:
+                payload = payload - 1
+    return red2_float_i64_t(payload=payload, fits=fits, exact=fits)
+
+
+# The generic Pypeline float64 factories are the semantic source for these
+# datapaths, but the pinned frontend cannot recover several factory-local type
+# aliases used only in annotations.  Keep the RED2 hardware shim fixed-width and
+# mechanically equivalent to those common-case operators instead of teaching the
+# reducer about a second floating-point model.
+red2_uint106_t = make_uint_t(106)
+red2_uint116_t = make_uint_t(116)
+red2_f64_clz53 = make_clz(uint53_t)
+red2_f64_clz64 = make_clz(uint64_t)
+red2_f64_sr54_by6 = make_shifter_sr(int54_t, uint6_t)
+red2_f64_sl53_by6 = make_shifter_sl(uint53_t, uint6_t)
+red2_f64_sl116_by7 = make_shifter_sl(red2_uint116_t, uint7_t)
+
+
+@hw_func
+def red2_int64_to_float64(value: int64_t) -> float64_t:
+    """Pypeline int64 -> float64 conversion specialized to concrete widths."""
+
+    sign: uint1_t = value[63]
+    magnitude: uint64_t = value
+    if sign:
+        magnitude = 0 - magnitude
+
+    out_exp: uint11_t
+    out_man: uint52_t
+    if magnitude == 0:
+        out_exp = 0
+        out_man = 0
+    else:
+        leading_zeros: uint7_t = red2_f64_clz64(magnitude)
+        true_exp: uint11_t = 63 - leading_zeros
+        out_exp = true_exp + 1023
+        pad: uint52_t = 0
+        wide: red2_uint116_t = concat(magnitude, pad)
+        shifted: red2_uint116_t = red2_f64_sl116_by7(wide, leading_zeros)
+        out_man = shifted[114:63]
+
+    return float64_t(sign=sign, exp=out_exp, man=out_man)
+
+
+@hw_func
+def red2_u11_gt(a: uint11_t, b: uint11_t) -> uint1_t:
+    """Unsigned 11-bit greater-than without the generic comparator registry."""
+
+    gt: uint1_t = 0
+    decided: uint1_t = 0
+    for _cmp_step in range(11):
+        _cmp_bit = 10 - _cmp_step
+        a_bit: uint1_t = a[_cmp_bit]
+        b_bit: uint1_t = b[_cmp_bit]
+        if not decided:
+            if a_bit and not b_bit:
+                gt = 1
+                decided = 1
+            elif b_bit and not a_bit:
+                decided = 1
+    return gt
+
+
+@hw_func
+def red2_float64_add_raw(left: float64_t, right: float64_t) -> float64_t:
+    """Pypeline float64 common-case adder specialized to concrete widths."""
+
+    x: float64_t
+    y: float64_t
+    if red2_u11_gt(right.exp, left.exp):
+        x = right
+        y = left
+    else:
+        x = left
+        y = right
+
+    x_hidden: uint1_t = 1
+    if x.exp == 0:
+        x_hidden = 0
+    y_hidden: uint1_t = 1
+    if y.exp == 0:
+        y_hidden = 0
+    x_man_h: uint53_t = concat(x_hidden, x.man)
+    y_man_h: uint53_t = concat(y_hidden, y.man)
+
+    x_signed: int54_t = int54_t(x_man_h)
+    if x.sign:
+        x_signed = 0 - x_signed
+    y_signed: int54_t = int54_t(y_man_h)
+    if y.sign:
+        y_signed = 0 - y_signed
+
+    diff: uint11_t = x.exp - y.exp
+    shift_amount: uint6_t = diff
+    shift_limit: uint11_t = 54
+    if red2_u11_gt(diff, shift_limit):
+        shift_amount = 54
+    y_aligned: int54_t = red2_f64_sr54_by6(y_signed, shift_amount)
+    sum_man: int55_t = x_signed + y_aligned
+    sum_sign: uint1_t = sum_man[54]
+    sum_abs: uint54_t = sum_man
+    if sum_sign:
+        sum_abs = 0 - sum_man
+
+    result_exp: uint11_t
+    result_man: uint52_t
+    if sum_abs[53]:
+        result_exp = x.exp + 1
+        result_man = sum_abs[52:1]
+    elif sum_abs == 0:
+        result_exp = 0
+        result_man = 0
+    else:
+        narrow: uint53_t = sum_abs[52:0]
+        leading_zeros: uint6_t = red2_f64_clz53(narrow)
+        leading_zeros_wide: uint11_t = leading_zeros
+        result_exp = x.exp - leading_zeros_wide
+        shifted: uint53_t = red2_f64_sl53_by6(narrow, leading_zeros)
+        result_man = shifted[51:0]
+
+    return float64_t(sign=sum_sign, exp=result_exp, man=result_man)
+
+
+@hw_func
+def red2_float64_sub_raw(left: float64_t, right: float64_t) -> float64_t:
+    """Pypeline subtraction: flip the right sign and reuse the fixed adder."""
+
+    neg_right: float64_t = float64_t(
+        sign=right.sign ^ 1,
+        exp=right.exp,
+        man=right.man,
+    )
+    return red2_float64_add_raw(left, neg_right)
+
+
+@hw_func
+def red2_float64_mul_raw(left: float64_t, right: float64_t) -> float64_t:
+    """Pypeline float64 common-case multiplier specialized to concrete widths."""
+
+    sign: uint1_t = left.sign ^ right.sign
+    result_exp: uint11_t
+    result_man: uint52_t
+    if left.exp == 0 or right.exp == 0:
+        result_exp = 0
+        result_man = 0
+    else:
+        left_hidden_bit: uint1_t = 1
+        right_hidden_bit: uint1_t = 1
+        left_hidden: uint53_t = concat(left_hidden_bit, left.man)
+        right_hidden: uint53_t = concat(right_hidden_bit, right.man)
+        product: red2_uint106_t = left_hidden * right_hidden
+        combined_exp: int14_t = left.exp + right.exp
+        combined_exp = combined_exp + (-1023)
+        if product[105]:
+            result_exp = combined_exp + 1
+            result_man = product[104:53]
+        else:
+            result_exp = combined_exp
+            result_man = product[103:52]
+
+    return float64_t(sign=sign, exp=result_exp, man=result_man)
+
+
+@hw_func
+def red2_float64_div_raw(left: float64_t, right: float64_t) -> float64_t:
+    """Pypeline restoring float64 divider specialized to concrete widths."""
+
+    sign: uint1_t = left.sign ^ right.sign
+    result_exp: uint11_t
+    result_man: uint52_t
+    if left.exp == 0 or right.exp == 0:
+        result_exp = 0
+        result_man = 0
+    else:
+        left_hidden_bit: uint1_t = 1
+        right_hidden_bit: uint1_t = 1
+        left_hidden: uint53_t = concat(left_hidden_bit, left.man)
+        right_hidden: uint53_t = concat(right_hidden_bit, right.man)
+        right_wide: uint54_t = right_hidden
+
+        remainder: uint54_t = 0
+        quotient: uint54_t = 0
+        for _div_step in range(106):
+            next_bit: uint1_t = 0
+            if _div_step < 53:
+                _div_bit = 52 - _div_step
+                next_bit = left_hidden[_div_bit]
+            shifted_remainder: uint54_t = (remainder << 1) | next_bit
+            shifted_wide: uint64_t = shifted_remainder
+            divisor_wide: uint64_t = right_wide
+            remainder_ge_divisor: uint1_t = red2_u64_ge(
+                shifted_wide, divisor_wide
+            )
+            q_bit: uint1_t = 0
+            if remainder_ge_divisor:
+                remainder = shifted_remainder - right_wide
+                q_bit = 1
+            else:
+                remainder = shifted_remainder
+            quotient = (quotient << 1) | q_bit
+
+        lhs_plus_bias: uint13_t = left.exp + 1023
+        lhs_plus_bias_wide: uint64_t = lhs_plus_bias
+        right_exp_wide: uint64_t = right.exp
+        lhs_lt_right: uint1_t = not red2_u64_ge(
+            lhs_plus_bias_wide, right_exp_wide
+        )
+        biased_exp: uint13_t = 0
+        if lhs_lt_right:
+            biased_exp = 0
+        else:
+            biased_exp = lhs_plus_bias - right.exp
+
+        hidden_man: uint53_t
+        final_exp: uint13_t
+        if quotient[53]:
+            hidden_man = quotient[53:1]
+            final_exp = biased_exp
+        else:
+            hidden_man = quotient[52:0]
+            final_exp = biased_exp + (-1)
+
+        result_exp = final_exp
+        result_man = hidden_man[51:0]
+
+    return float64_t(sign=sign, exp=result_exp, man=result_man)
+
+
+@hw_func
+def red2_float64_mul_checked(left: float64_t, right: float64_t) -> red2_float_checked_t:
+    result: float64_t = red2_float64_mul_raw(left, right)
+    valid: uint1_t = red2_float64_supported(result)
+    left_zero: uint1_t = red2_float64_zero(left)
+    right_zero: uint1_t = red2_float64_zero(right)
+    if not left_zero and not right_zero:
+        left_exp: int14_t = left.exp
+        right_exp: int14_t = right.exp
+        combined_exp: int14_t = left_exp + right_exp
+        combined_exp = combined_exp + (-1023)
+        combined_low: uint11_t = combined_exp
+        top_bit: uint1_t = result.exp != combined_low
+        final_exp: int14_t = combined_exp
+        if top_bit:
+            final_exp = final_exp + 1
+        final_exp_negative: uint1_t = final_exp[13]
+        final_exp_nonzero: uint1_t = final_exp != 0
+        final_exp_wide: uint64_t = final_exp
+        final_exp_ge_2047: uint1_t = red2_u64_ge(final_exp_wide, 2047)
+        range_ok: uint1_t = not final_exp_negative and final_exp_nonzero
+        range_ok = range_ok and not final_exp_ge_2047
+        valid = valid and range_ok
+    checked: red2_float_checked_t = red2_float_checked_t(value=result, valid=valid)
+    return checked
+
+
+@hw_func
+def red2_float64_div_checked(left: float64_t, right: float64_t) -> red2_float_checked_t:
+    result: float64_t = red2_float64_div_raw(left, right)
+    right_zero: uint1_t = red2_float64_zero(right)
+    left_zero: uint1_t = red2_float64_zero(left)
+    valid: uint1_t = red2_float64_supported(result)
+    if right_zero:
+        valid = 0
+    elif not left_zero:
+        left_exp: int14_t = left.exp
+        right_exp: int14_t = right.exp
+        biased_exp: int14_t = left_exp + 1023
+        biased_exp = biased_exp - right_exp
+        biased_low: uint11_t = biased_exp
+        final_exp: int14_t = biased_exp
+        if result.exp != biased_low:
+            final_exp = final_exp + (-1)
+        final_exp_negative: uint1_t = final_exp[13]
+        final_exp_nonzero: uint1_t = final_exp != 0
+        final_exp_wide: uint64_t = final_exp
+        final_exp_ge_2047: uint1_t = red2_u64_ge(final_exp_wide, 2047)
+        range_ok: uint1_t = not final_exp_negative and final_exp_nonzero
+        range_ok = range_ok and not final_exp_ge_2047
+        valid = valid and range_ok
+    checked: red2_float_checked_t = red2_float_checked_t(value=result, valid=valid)
+    return checked
+
+
+@hw_func
+def red2_float64_pow63(
+    base: float64_t, exponent: uint6_t, invert: uint1_t
+) -> red2_float_checked_t:
+    """Integral-exponent RED2_FLOAT_V1 power for |exponent| <= 63."""
+
+    one: float64_t = float64_t(sign=0, exp=1023, man=0)
+    result: float64_t = one
+    factor: float64_t = base
+    remaining: uint6_t = exponent
+    valid: uint1_t = 1
+    for _pow_bit in range(6):
+        if remaining[0]:
+            step: red2_float_checked_t = red2_float64_mul_checked(result, factor)
+            result = step.value
+            valid = valid and step.valid
+        remaining = remaining >> 1
+        if _pow_bit != 5:
+            if remaining != 0:
+                square: red2_float_checked_t = red2_float64_mul_checked(factor, factor)
+                factor = square.value
+                valid = valid and square.valid
+    if invert:
+        reciprocal: red2_float_checked_t = red2_float64_div_checked(one, result)
+        result = reciprocal.value
+        valid = valid and reciprocal.valid
+    return red2_float_checked_t(value=result, valid=valid)
 
 
 @struct
@@ -460,6 +1062,21 @@ promote_mat_ram, promote_mat_ram_out_t = make_ram(
 )
 promote_forward_ram, promote_forward_ram_out_t = make_ram(
     red2_promote_forward_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+)
+pub_task_ram, pub_task_ram_out_t = make_ram(
+    red2_pub_task_t, PUB_TASK_WORDS, ports=("rw",), read_latency=0
+)
+pub_root_ram, pub_root_ram_out_t = make_ram(
+    red2_pub_root_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+)
+pub_patch_ram, pub_patch_ram_out_t = make_ram(
+    red2_pub_patch_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+)
+pub_patch_addr_ram, pub_patch_addr_ram_out_t = make_ram(
+    uint17_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+)
+pub_mat_ram, pub_mat_ram_out_t = make_ram(
+    red2_pub_mat_t, GRAPH_WORDS, ports=("rw",), read_latency=0
 )
 
 
@@ -544,6 +1161,49 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     promote_write_index: Reg[uint17_t]
     promote_write_word: Reg[red2_word_t]
     promote_validate_active: Reg[uint1_t]
+    # A2 generic publication scratch. Generation survives architectural resets;
+    # all active transaction state is cleared by RESET/LOAD_STATE/START.
+    pub_generation: Reg[uint32_t]
+    pub_sp: Reg[uint16_t]
+    pub_value: Reg[uint17_t]
+    pub_launch_root: Reg[uint17_t]
+    pub_interval_start: Reg[uint17_t]
+    pub_interval_stop: Reg[uint17_t]
+    pub_phi: Reg[uint32_t]
+    pub_resume_kind: Reg[uint2_t]
+    pub_current_task: Reg[red2_pub_task_t]
+    pub_current_valid: Reg[uint1_t]
+    pub_pending_count: Reg[uint2_t]
+    pub_pending0: Reg[red2_pub_task_t]
+    pub_pending1: Reg[red2_pub_task_t]
+    pub_pending2: Reg[red2_pub_task_t]
+    pub_stack_phase: Reg[uint4_t]
+    pub_stack_index: Reg[uint2_t]
+    pub_stack_base: Reg[uint16_t]
+    pub_stack_new_sp: Reg[uint16_t]
+    pub_memo_write_pending: Reg[uint1_t]
+    pub_memo_write_address: Reg[uint17_t]
+    pub_memo_write_data: Reg[red2_pub_root_t]
+    # Transactional existing-address rewrite journal. Rows are generation-tagged;
+    # the compact address list lets commit touch only addresses staged this launch.
+    pub_patch_count: Reg[uint17_t]
+    pub_patch_commit_index: Reg[uint17_t]
+    pub_patch_stage_pending: Reg[uint1_t]
+    pub_patch_stage_append: Reg[uint1_t]
+    pub_patch_stage_address: Reg[uint17_t]
+    pub_patch_stage_word: Reg[red2_word_t]
+    pub_patch_commit_address: Reg[uint17_t]
+    pub_patch_commit_word: Reg[red2_word_t]
+    pub_patch_commit_pending: Reg[uint1_t]
+    # Generation-tagged materialization scratch. Addresses stored in APP rows are
+    # relative to pub_destination until the validated commit pass relocates them.
+    pub_mat_count: Reg[uint17_t]
+    pub_destination: Reg[uint17_t]
+    pub_mat_stage_pending: Reg[uint1_t]
+    pub_mat_stage_index: Reg[uint17_t]
+    pub_mat_stage_word: Reg[red2_word_t]
+    pub_mat_validate_index: Reg[uint17_t]
+    pub_mat_commit_index: Reg[uint17_t]
     lambda_word: Reg[red2_word_t]
     lambda_path: Reg[uint32_t]
     app_parent_env: Reg[uint32_t]
@@ -750,6 +1410,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     promote_forward_req.wr_en = 0
     promote_forward_req.valid = 1
 
+    pub_task_req: pub_task_ram.p0_in_t
+    pub_task_req.addr = 0
+    pub_task_req.wr_data = red2_pub_task_t(
+        kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0
+    )
+    pub_task_req.wr_en = 0
+    pub_task_req.valid = 1
+
+    pub_root_req: pub_root_ram.p0_in_t
+    pub_root_req.addr = 0
+    pub_root_req.wr_data = red2_pub_root_t(
+        generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+    )
+    pub_root_req.wr_en = 0
+    pub_root_req.valid = 1
+
+    pub_patch_req: pub_patch_ram.p0_in_t
+    pub_patch_req.addr = 0
+    pub_patch_req.wr_data = red2_pub_patch_t(
+        generation=0, word=red2_word_t(lo=0, hi=0)
+    )
+    pub_patch_req.wr_en = 0
+    pub_patch_req.valid = 1
+
+    pub_patch_addr_req: pub_patch_addr_ram.p0_in_t
+    pub_patch_addr_req.addr = 0
+    pub_patch_addr_req.wr_data = 0
+    pub_patch_addr_req.wr_en = 0
+    pub_patch_addr_req.valid = 1
+
+    pub_mat_req: pub_mat_ram.p0_in_t
+    pub_mat_req.addr = 0
+    pub_mat_req.wr_data = red2_pub_mat_t(
+        word=red2_word_t(lo=0, hi=0), generation=0
+    )
+    pub_mat_req.wr_en = 0
+    pub_mat_req.valid = 1
+
     memory_address_in_range: uint1_t = command.address[15:GRAPH_ADDR_BITS] == 0
     control_address_in_range: uint1_t = command.address[15:CONTROL_ADDR_BITS] == 0
     literal_meta_address_in_range: uint1_t = command.address[15:LITERAL_META_ADDR_BITS] == 0
@@ -780,6 +1478,22 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_join_if_path_clear: uint1_t = microstate == MICRO_JOIN_IF_PATH_CLEAR
     micro_is_join_if_select: uint1_t = microstate == MICRO_JOIN_IF_SELECT
     micro_is_join_if_ep_chase: uint1_t = microstate == MICRO_JOIN_IF_EP_CHASE
+    micro_is_pub_exec: uint1_t = microstate == MICRO_PUB_EXEC
+    micro_is_pub_stack: uint1_t = microstate == MICRO_PUB_STACK
+    pub_current_is_graph: uint1_t = pub_current_task.kind == PUB_TASK_GRAPH
+    pub_current_is_root_done: uint1_t = pub_current_task.kind == PUB_TASK_ROOT_DONE
+    pub_current_is_app_scan: uint1_t = pub_current_task.kind == PUB_TASK_APP_SCAN
+    pub_current_is_app_rewrite: uint1_t = pub_current_task.kind == PUB_TASK_APP_REWRITE
+    pub_current_is_app_operator_done: uint1_t = pub_current_task.kind == PUB_TASK_APP_OPERATOR_DONE
+    pub_current_is_ep_chase: uint1_t = pub_current_task.kind == PUB_TASK_EP_CHASE
+    pub_current_is_ep_result: uint1_t = pub_current_task.kind == PUB_TASK_EP_RESULT
+    pub_current_is_struct_scan: uint1_t = pub_current_task.kind == PUB_TASK_STRUCT_SCAN
+    pub_current_is_closure: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE
+    pub_current_is_closure_done: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE_DONE
+    pub_current_is_closure_code: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE_CODE
+    pub_current_is_closure_scan: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE_SCAN
+    pub_current_is_closure_body: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE_BODY
+    pub_current_is_closure_env: uint1_t = pub_current_task.kind == PUB_TASK_CLOSURE_ENV
     micro_is_lambda_read: uint1_t = microstate == MICRO_LAMBDA_READ
     micro_is_lambda_push: uint1_t = microstate == MICRO_LAMBDA_PUSH
     micro_is_lambda_env: uint1_t = microstate == MICRO_LAMBDA_ENV
@@ -1793,7 +2507,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             # Reverse-EP fire==1 borrows the JOIN scalar evaluator only for
             # transactional preflight.  Its parent write is serialized later by
             # MICRO_EP_REVERSE_PUBLISH together with the caller-path pop.
-            if ep_scalar_active:
+            if ep_scalar_active or pub_patch_commit_pending:
                 memory_req.wr_en = 0
             else:
                 memory_req.wr_en = join_publish_preflight_ready
@@ -1831,6 +2545,29 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             memory_req.wr_en = join_ep_write_preflight_ready
         if micro_is_join_app_scan:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_pub_exec:
+            if pub_current_is_graph:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_app_scan:
+                memory_req.addr = pub_current_task.b[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_struct_scan:
+                memory_req.addr = pub_current_task.b[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_app_rewrite:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_ep_chase:
+                memory_req.addr = pub_current_task.b[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_ep_result:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure_code:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure_scan:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure_body:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure_env:
+                memory_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_app_target_read:
             memory_req.addr = join_app_shared_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_multi_target_read:
@@ -1907,6 +2644,71 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
             memory_req.wr_data = join_app_rewrite_word
             memory_req.wr_en = 1
+        if micro_is_pub_stack and pub_stack_phase == PUB_STACK_COMMIT_GRAPH:
+            memory_req.addr = pub_patch_commit_address[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = pub_patch_commit_word
+            memory_req.wr_en = 1
+        if micro_is_pub_stack and pub_stack_phase == PUB_STACK_COMMIT_MAT_GRAPH:
+            pub_mat_commit_address_req: uint17_t = pub_destination + pub_mat_commit_index
+            memory_req.addr = pub_mat_commit_address_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.wr_data = pub_mat_stage_word
+            memory_req.wr_en = 1
+
+    if command_is_clock:
+        if micro_is_pub_exec:
+            if pub_current_is_graph:
+                pub_root_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_root_done:
+                pub_root_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_closure or pub_current_is_closure_done:
+                pub_root_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_app_rewrite:
+                pub_patch_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_current_is_ep_chase or pub_current_is_ep_result:
+                pub_patch_req.addr = pub_current_task.a[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_pub_stack:
+            if pub_stack_phase == PUB_STACK_WRITE_MEMO:
+                pub_root_req.addr = pub_memo_write_address[GRAPH_ADDR_BITS - 1 : 0]
+                pub_root_req.wr_data = pub_memo_write_data
+                pub_root_req.wr_en = pub_memo_write_pending
+            if pub_stack_phase == PUB_STACK_WRITE_PENDING:
+                pub_stack_write_addr_req: uint16_t = pub_stack_base + pub_stack_index
+                pub_stack_write_task_req: red2_pub_task_t = pub_pending0
+                if pub_stack_index == 1:
+                    pub_stack_write_task_req = pub_pending1
+                if pub_stack_index == 2:
+                    pub_stack_write_task_req = pub_pending2
+                pub_task_req.addr = pub_stack_write_addr_req[PUB_TASK_ADDR_BITS - 1 : 0]
+                pub_task_req.wr_data = pub_stack_write_task_req
+                pub_task_req.wr_en = 1
+            if pub_stack_phase == PUB_STACK_LOAD_TOP:
+                if pub_stack_new_sp != 0:
+                    pub_stack_top_addr_req: uint16_t = pub_stack_new_sp - 1
+                    pub_task_req.addr = pub_stack_top_addr_req[PUB_TASK_ADDR_BITS - 1 : 0]
+            if pub_stack_phase == PUB_STACK_WRITE_PATCH:
+                pub_patch_req.addr = pub_patch_stage_address[GRAPH_ADDR_BITS - 1 : 0]
+                pub_patch_req.wr_data = red2_pub_patch_t(
+                    generation=pub_generation, word=pub_patch_stage_word
+                )
+                pub_patch_req.wr_en = pub_patch_stage_pending
+            if pub_stack_phase == PUB_STACK_APPEND_PATCH:
+                pub_patch_addr_req.addr = pub_patch_count[GRAPH_ADDR_BITS - 1 : 0]
+                pub_patch_addr_req.wr_data = pub_patch_stage_address
+                pub_patch_addr_req.wr_en = pub_patch_stage_append
+            if pub_stack_phase == PUB_STACK_COMMIT_ADDR:
+                pub_patch_addr_req.addr = pub_patch_commit_index[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_stack_phase == PUB_STACK_COMMIT_ROW:
+                pub_patch_req.addr = pub_patch_commit_address[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_stack_phase == PUB_STACK_WRITE_MAT:
+                pub_mat_req.addr = pub_mat_stage_index[GRAPH_ADDR_BITS - 1 : 0]
+                pub_mat_req.wr_data = red2_pub_mat_t(
+                    word=pub_mat_stage_word, generation=pub_generation
+                )
+                pub_mat_req.wr_en = pub_mat_stage_pending
+            if pub_stack_phase == PUB_STACK_VALIDATE_MAT:
+                pub_mat_req.addr = pub_mat_validate_index[GRAPH_ADDR_BITS - 1 : 0]
+            if pub_stack_phase == PUB_STACK_COMMIT_MAT:
+                pub_mat_req.addr = pub_mat_commit_index[GRAPH_ADDR_BITS - 1 : 0]
 
     if command.op == CMD_LOAD_LITERAL_META:
         literal_meta_req.wr_en = literal_meta_address_in_range
@@ -2058,6 +2860,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     promote_mat_out = promote_mat_ram(
         promote_mat_read_req, promote_mat_write1_req, promote_mat_write2_req
     )
+    pub_task_out = pub_task_ram(pub_task_req)
+    pub_root_out = pub_root_ram(pub_root_req)
+    pub_patch_out = pub_patch_ram(pub_patch_req)
+    pub_patch_addr_out = pub_patch_addr_ram(pub_patch_addr_req)
+    pub_mat_out = pub_mat_ram(pub_mat_req)
 
     if command.op == CMD_RESET:
         pc = 0
@@ -2133,6 +2940,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         promote_write_index = 0
         promote_write_word = red2_word_t(lo=0, hi=0)
         promote_validate_active = 0
+        pub_sp = 0
+        pub_value = 0
+        pub_launch_root = 0
+        pub_interval_start = 0
+        pub_interval_stop = 0
+        pub_phi = 0
+        pub_resume_kind = PUB_RESUME_NONE
+        pub_current_task = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_current_valid = 0
+        pub_pending_count = 0
+        pub_pending0 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_pending1 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_pending2 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_stack_phase = PUB_STACK_IDLE
+        pub_stack_index = 0
+        pub_stack_base = 0
+        pub_stack_new_sp = 0
+        pub_memo_write_pending = 0
+        pub_memo_write_address = 0
+        pub_memo_write_data = red2_pub_root_t(
+            generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+        )
+        pub_patch_count = 0
+        pub_patch_commit_index = 0
+        pub_patch_stage_pending = 0
+        pub_patch_stage_append = 0
+        pub_patch_stage_address = 0
+        pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+        pub_patch_commit_address = 0
+        pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+        pub_patch_commit_pending = 0
+        pub_mat_count = 0
+        pub_destination = 0
+        pub_mat_stage_pending = 0
+        pub_mat_stage_index = 0
+        pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+        pub_mat_validate_index = 0
+        pub_mat_commit_index = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2375,6 +3220,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         promote_write_index = 0
         promote_write_word = red2_word_t(lo=0, hi=0)
         promote_validate_active = 0
+        pub_sp = 0
+        pub_value = 0
+        pub_launch_root = 0
+        pub_interval_start = 0
+        pub_interval_stop = 0
+        pub_phi = 0
+        pub_resume_kind = PUB_RESUME_NONE
+        pub_current_task = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_current_valid = 0
+        pub_pending_count = 0
+        pub_pending0 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_pending1 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_pending2 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+        pub_stack_phase = PUB_STACK_IDLE
+        pub_stack_index = 0
+        pub_stack_base = 0
+        pub_stack_new_sp = 0
+        pub_memo_write_pending = 0
+        pub_memo_write_address = 0
+        pub_memo_write_data = red2_pub_root_t(
+            generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+        )
+        pub_patch_count = 0
+        pub_patch_commit_index = 0
+        pub_patch_stage_pending = 0
+        pub_patch_stage_append = 0
+        pub_patch_stage_address = 0
+        pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+        pub_patch_commit_address = 0
+        pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+        pub_patch_commit_pending = 0
+        pub_mat_count = 0
+        pub_destination = 0
+        pub_mat_stage_pending = 0
+        pub_mat_stage_index = 0
+        pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+        pub_mat_validate_index = 0
+        pub_mat_commit_index = 0
         lambda_word = red2_word_t(lo=0, hi=0)
         lambda_path = 0
         app_parent_env = 0
@@ -2595,6 +3478,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             promote_write_index = 0
             promote_write_word = red2_word_t(lo=0, hi=0)
             promote_validate_active = 0
+            pub_sp = 0
+            pub_value = 0
+            pub_launch_root = 0
+            pub_interval_start = 0
+            pub_interval_stop = 0
+            pub_phi = 0
+            pub_resume_kind = PUB_RESUME_NONE
+            pub_current_task = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+            pub_current_valid = 0
+            pub_pending_count = 0
+            pub_pending0 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+            pub_pending1 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+            pub_pending2 = red2_pub_task_t(kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0)
+            pub_stack_phase = PUB_STACK_IDLE
+            pub_stack_index = 0
+            pub_stack_base = 0
+            pub_stack_new_sp = 0
+            pub_memo_write_pending = 0
+            pub_memo_write_address = 0
+            pub_memo_write_data = red2_pub_root_t(
+                generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+            )
+            pub_patch_count = 0
+            pub_patch_commit_index = 0
+            pub_patch_stage_pending = 0
+            pub_patch_stage_append = 0
+            pub_patch_stage_address = 0
+            pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+            pub_patch_commit_address = 0
+            pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+            pub_patch_commit_pending = 0
+            pub_mat_count = 0
+            pub_destination = 0
+            pub_mat_stage_pending = 0
+            pub_mat_stage_index = 0
+            pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+            pub_mat_validate_index = 0
+            pub_mat_commit_index = 0
             lambda_word = red2_word_t(lo=0, hi=0)
             lambda_path = 0
             app_parent_env = 0
@@ -6689,8 +7610,60 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_FAULT
                 elif join_scalar_numeric:
                     if join_scalar_is_float:
-                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                        microstate = MICRO_FAULT
+                        join_scalar_float_kind_ok: uint1_t = join_scalar_kind == DATA_FLOAT64
+                        if not join_scalar_float_kind_ok:
+                            join_scalar_contract = 0
+                            join_scalar_preflight_done = 1
+                        else:
+                            join_scalar_float_value: float64_t = red2_float64_from_bits(join_publish_word.lo)
+                            if not red2_float64_supported(join_scalar_float_value):
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            elif join_scalar_is_dec:
+                                join_scalar_contract = 0
+                                join_scalar_preflight_done = 1
+                            elif join_scalar_is_inc:
+                                join_scalar_float_one: float64_t = float64_t(sign=0, exp=1023, man=0)
+                                join_scalar_float_inc: float64_t = red2_float64_add_raw(join_scalar_float_value, join_scalar_float_one)
+                                join_scalar_float_number: red2_float_word_checked_t = red2_float64_number_word(join_scalar_float_inc)
+                                if not join_scalar_float_number.valid:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = join_scalar_float_number.word
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
+                            elif join_scalar_is_negate or join_scalar_is_abs:
+                                join_scalar_float_sign: uint1_t = join_scalar_float_value.sign ^ 1
+                                if join_scalar_is_abs:
+                                    join_scalar_float_sign = 0
+                                join_scalar_float_signed: float64_t = float64_t(
+                                    sign=join_scalar_float_sign,
+                                    exp=join_scalar_float_value.exp,
+                                    man=join_scalar_float_value.man,
+                                )
+                                join_scalar_float_number2: red2_float_word_checked_t = red2_float64_number_word(join_scalar_float_signed)
+                                if not join_scalar_float_number2.valid:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = join_scalar_float_number2.word
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
+                            else:
+                                join_scalar_float_rounded: red2_float_i64_t = red2_float64_floor_ceil_i64(
+                                    join_scalar_float_value, join_scalar_is_ceiling
+                                )
+                                if not join_scalar_float_rounded.fits:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = red2_word_t(
+                                        lo=join_scalar_float_rounded.payload,
+                                        hi=85065728,
+                                    )
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
                     elif join_scalar_int_contract:
                         if join_scalar_overflow:
                             red2_fault = FAULT_UNSUPPORTED_VALUE
@@ -6713,8 +7686,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         join_scalar_preflight_done = 1
                 elif join_scalar_is_even:
                     if join_scalar_is_float:
-                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                        microstate = MICRO_FAULT
+                        join_scalar_even_float_kind_ok: uint1_t = join_scalar_kind == DATA_FLOAT64
+                        if not join_scalar_even_float_kind_ok:
+                            join_scalar_contract = 0
+                            join_scalar_preflight_done = 1
+                        else:
+                            join_scalar_even_float_value: float64_t = red2_float64_from_bits(join_publish_word.lo)
+                            if not red2_float64_supported(join_scalar_even_float_value):
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            else:
+                                join_scalar_contract = 0
+                                join_scalar_preflight_done = 1
                     elif join_scalar_int_contract:
                         join_scalar_even: uint1_t = join_publish_word.lo[0] == 0
                         join_scalar_bool_id: uint32_t = join_false_literal_id
@@ -6798,7 +7781,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             join_scalar_contract = 1
                             join_scalar_preflight_done = 1
             else:
-                if ep_scalar_active:
+                if pub_patch_commit_pending:
+                    # Generic publication validation is complete, and any JOIN scalar
+                    # continuation has now preflighted without fault. Existing-address
+                    # patches commit first, followed by materialized allocation rows.
+                    if pub_patch_count != 0:
+                        pub_patch_commit_index = 0
+                        pub_stack_phase = PUB_STACK_COMMIT_ADDR
+                    else:
+                        pub_mat_commit_index = 0
+                        pub_stack_phase = PUB_STACK_COMMIT_MAT
+                    microstate = MICRO_PUB_STACK
+                elif ep_scalar_active:
                     # Scalar preflight is complete and no architectural EP state has
                     # changed yet.  Hand the preflighted result back to the ordinary
                     # reverse-EP marker/pop/publication sequence.
@@ -7302,20 +8296,63 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             join_needs_ep_cache = 0
                             microstate = MICRO_JOIN_EP_RESULT_WRITE
                     elif join_ep_target_is_closure:
-                        join_closure_kind_signed: uint1_t = join_ep_target_kind == DATA_SIGNED
-                        join_closure_env_negative_at_dispatch: uint1_t = memory_out.p0.rd_data.lo[63]
-                        if not join_closure_kind_signed:
-                            red2_fault = FAULT_INVALID_ADDRESS
-                            microstate = MICRO_FAULT
-                        elif join_closure_env_negative_at_dispatch:
-                            red2_fault = FAULT_INVALID_ADDRESS
+                        # Closure publication allocates graph-owned output. Restart the
+                        # complete JOIN result through the generic transaction engine so
+                        # source reads, APP retargets, and allocation are all preflighted
+                        # before the first architectural write.
+                        pub_next_generation_join_closure: uint32_t = pub_generation + 1
+                        if pub_next_generation_join_closure == 0:
+                            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                             microstate = MICRO_FAULT
                         else:
-                            join_closure_address = join_ep_target17
-                            join_closure_env = memory_out.p0.rd_data.lo
-                            join_closure_lambda_count = 0
-                            join_closure_write_index = 0
-                            microstate = MICRO_JOIN_CLOSURE_CODE_READ
+                            pub_generation = pub_next_generation_join_closure
+                            pub_sp = 1
+                            pub_value = 0
+                            pub_launch_root = join_result_address
+                            pub_interval_start = free_space
+                            pub_interval_stop = join_frame_free_space
+                            pub_phi = phi
+                            pub_resume_kind = PUB_RESUME_JOIN
+                            pub_current_task = red2_pub_task_t(
+                                kind=PUB_TASK_GRAPH,
+                                a=join_result_address,
+                                b=0,
+                                c=0,
+                                d=0,
+                                e=0,
+                                f=0,
+                                flags=0,
+                            )
+                            pub_current_valid = 1
+                            pub_pending_count = 0
+                            pub_stack_phase = PUB_STACK_IDLE
+                            pub_stack_index = 0
+                            pub_stack_base = 0
+                            pub_stack_new_sp = 1
+                            pub_memo_write_pending = 0
+                            pub_memo_write_address = 0
+                            pub_memo_write_data = red2_pub_root_t(
+                                generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                            )
+                            pub_patch_count = 0
+                            pub_patch_commit_index = 0
+                            pub_patch_stage_pending = 0
+                            pub_patch_stage_append = 0
+                            pub_patch_stage_address = 0
+                            pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                            pub_patch_commit_address = 0
+                            pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                            pub_patch_commit_pending = 0
+                            pub_mat_count = 0
+                            pub_destination = fsp + 1
+                            pub_mat_stage_pending = 0
+                            pub_mat_stage_index = 0
+                            pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                            pub_mat_validate_index = 0
+                            pub_mat_commit_index = 0
+                            join_preserve_fsp = 1
+                            join_published_root = join_result_address
+                            microstate = MICRO_PUB_EXEC
                     elif join_ep_target_is_rec:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
@@ -7418,8 +8455,60 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     microstate = MICRO_FAULT
                 elif join_ep_scalar_numeric:
                     if join_ep_scalar_is_float:
-                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                        microstate = MICRO_FAULT
+                        join_ep_scalar_float_kind_ok: uint1_t = join_ep_scalar_kind == DATA_FLOAT64
+                        if not join_ep_scalar_float_kind_ok:
+                            join_scalar_contract = 0
+                            join_scalar_preflight_done = 1
+                        else:
+                            join_ep_scalar_float_value: float64_t = red2_float64_from_bits(join_publish_word.lo)
+                            if not red2_float64_supported(join_ep_scalar_float_value):
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            elif join_ep_scalar_is_dec:
+                                join_scalar_contract = 0
+                                join_scalar_preflight_done = 1
+                            elif join_ep_scalar_is_inc:
+                                join_ep_scalar_float_one: float64_t = float64_t(sign=0, exp=1023, man=0)
+                                join_ep_scalar_float_inc: float64_t = red2_float64_add_raw(join_ep_scalar_float_value, join_ep_scalar_float_one)
+                                join_ep_scalar_float_number: red2_float_word_checked_t = red2_float64_number_word(join_ep_scalar_float_inc)
+                                if not join_ep_scalar_float_number.valid:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = join_ep_scalar_float_number.word
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
+                            elif join_ep_scalar_is_negate or join_ep_scalar_is_abs:
+                                join_ep_scalar_float_sign: uint1_t = join_ep_scalar_float_value.sign ^ 1
+                                if join_ep_scalar_is_abs:
+                                    join_ep_scalar_float_sign = 0
+                                join_ep_scalar_float_signed: float64_t = float64_t(
+                                    sign=join_ep_scalar_float_sign,
+                                    exp=join_ep_scalar_float_value.exp,
+                                    man=join_ep_scalar_float_value.man,
+                                )
+                                join_ep_scalar_float_number2: red2_float_word_checked_t = red2_float64_number_word(join_ep_scalar_float_signed)
+                                if not join_ep_scalar_float_number2.valid:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = join_ep_scalar_float_number2.word
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
+                            else:
+                                join_ep_scalar_float_rounded: red2_float_i64_t = red2_float64_floor_ceil_i64(
+                                    join_ep_scalar_float_value, join_ep_scalar_is_ceiling
+                                )
+                                if not join_ep_scalar_float_rounded.fits:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_publish_word = red2_word_t(
+                                        lo=join_ep_scalar_float_rounded.payload,
+                                        hi=85065728,
+                                    )
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
                     elif join_ep_scalar_int_contract:
                         if join_ep_scalar_overflow:
                             red2_fault = FAULT_UNSUPPORTED_VALUE
@@ -7442,8 +8531,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         join_scalar_preflight_done = 1
                 elif join_ep_scalar_is_even:
                     if join_ep_scalar_is_float:
-                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                        microstate = MICRO_FAULT
+                        join_ep_scalar_even_float_kind_ok: uint1_t = join_ep_scalar_kind == DATA_FLOAT64
+                        if not join_ep_scalar_even_float_kind_ok:
+                            join_scalar_contract = 0
+                            join_scalar_preflight_done = 1
+                        else:
+                            join_ep_scalar_even_float_value: float64_t = red2_float64_from_bits(join_publish_word.lo)
+                            if not red2_float64_supported(join_ep_scalar_even_float_value):
+                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                microstate = MICRO_FAULT
+                            else:
+                                join_scalar_contract = 0
+                                join_scalar_preflight_done = 1
                     elif join_ep_scalar_int_contract:
                         join_ep_scalar_even: uint1_t = join_publish_word.lo[0] == 0
                         join_ep_scalar_bool_id: uint32_t = join_false_literal_id
@@ -8899,23 +9998,40 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 equality_atomic_active = 0
                                 microstate = join_scalar_resume
                     elif join_scalar_op_eq:
-                        if join_scalar_any_float:
-                            red2_fault = FAULT_UNSUPPORTED_VALUE
-                            microstate = MICRO_FAULT
-                        else:
-                            join_scalar_eq_contract: uint1_t = 0
-                            join_scalar_eq_value: uint1_t = 0
-                            if join_scalar_left_is_int and join_scalar_right_is_int:
-                                join_scalar_eq_contract = 1
-                                join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
-                            elif join_scalar_left_is_char and join_scalar_right_is_char:
-                                join_scalar_eq_contract = 1
-                                join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
-                            elif join_scalar_left_symbol and join_scalar_right_symbol:
-                                join_scalar_eq_contract = 1
-                                join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
-                            elif not join_scalar_left_blocked and not join_scalar_right_blocked:
-                                join_scalar_eq_contract = 1
+                        join_scalar_eq_contract: uint1_t = 0
+                        join_scalar_eq_value: uint1_t = 0
+                        join_scalar_eq_fault: uint1_t = 0
+                        if join_scalar_left_is_int and join_scalar_right_is_int:
+                            join_scalar_eq_contract = 1
+                            join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
+                        elif join_scalar_left_is_float and join_scalar_right_is_float:
+                            join_scalar_eq_float_kinds: uint1_t = join_scalar_left_kind == DATA_FLOAT64
+                            join_scalar_eq_float_kinds = join_scalar_eq_float_kinds and join_scalar_right_kind == DATA_FLOAT64
+                            if join_scalar_eq_float_kinds:
+                                join_scalar_eq_left_float: float64_t = red2_float64_from_bits(memory_out.p0.rd_data.lo)
+                                join_scalar_eq_right_float: float64_t = red2_float64_from_bits(join_scalar_right_word.lo)
+                                join_scalar_eq_left_supported: uint1_t = red2_float64_supported(join_scalar_eq_left_float)
+                                join_scalar_eq_right_supported: uint1_t = red2_float64_supported(join_scalar_eq_right_float)
+                                if not join_scalar_eq_left_supported or not join_scalar_eq_right_supported:
+                                    join_scalar_eq_fault = 1
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_scalar_eq_ordering: uint2_t = red2_float64_compare(
+                                        join_scalar_eq_left_float, join_scalar_eq_right_float
+                                    )
+                                    join_scalar_eq_contract = 1
+                                    join_scalar_eq_value = join_scalar_eq_ordering == 1
+                        elif join_scalar_left_is_char and join_scalar_right_is_char:
+                            join_scalar_eq_contract = 1
+                            join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
+                        elif join_scalar_left_symbol and join_scalar_right_symbol:
+                            join_scalar_eq_contract = 1
+                            join_scalar_eq_value = memory_out.p0.rd_data.lo == join_scalar_right_word.lo
+                        elif not join_scalar_left_blocked and not join_scalar_right_blocked:
+                            # Scalar '=' is type-sensitive: e.g. INT 1 != FLOAT 1.0.
+                            join_scalar_eq_contract = 1
+                        if not join_scalar_eq_fault:
                             if join_scalar_eq_contract:
                                 join_scalar_eq_bool_id: uint32_t = join_false_literal_id
                                 if join_scalar_eq_value:
@@ -8933,8 +10049,218 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 join_scalar_preflight_done = 1
                                 microstate = join_scalar_resume
                     elif join_scalar_any_float:
-                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                        microstate = MICRO_FAULT
+                        if join_scalar_op_mod:
+                            # Concrete checks MOD applicability before decoding a
+                            # FLOAT payload: every FLOAT-opcode MOD is simply stuck.
+                            join_scalar_contract = 0
+                            join_scalar_preflight_done = 1
+                            microstate = join_scalar_resume
+                        else:
+                            join_scalar_float_ready: uint1_t = 1
+                            join_scalar_float_fault: uint1_t = 0
+                            join_scalar_left_float_value: float64_t = float64_t(sign=0, exp=0, man=0)
+                            join_scalar_right_float_value: float64_t = float64_t(sign=0, exp=0, man=0)
+
+                            if join_scalar_left_is_float:
+                                if join_scalar_left_kind != DATA_FLOAT64:
+                                    join_scalar_float_ready = 0
+                                else:
+                                    join_scalar_left_float_value = red2_float64_from_bits(memory_out.p0.rd_data.lo)
+                                    if not red2_float64_supported(join_scalar_left_float_value):
+                                        join_scalar_float_fault = 1
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                            elif join_scalar_left_is_int:
+                                if not join_scalar_left_signed:
+                                    join_scalar_float_fault = 1
+                                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_scalar_left_i64: int64_t = int64_t(memory_out.p0.rd_data.lo)
+                                    join_scalar_left_float_value = red2_int64_to_float64(join_scalar_left_i64)
+                            else:
+                                join_scalar_float_ready = 0
+
+                            if not join_scalar_float_fault:
+                                if join_scalar_right_is_float:
+                                    if join_scalar_right_kind != DATA_FLOAT64:
+                                        join_scalar_float_ready = 0
+                                    else:
+                                        join_scalar_right_float_value = red2_float64_from_bits(join_scalar_right_word.lo)
+                                        if not red2_float64_supported(join_scalar_right_float_value):
+                                            join_scalar_float_fault = 1
+                                            red2_fault = FAULT_UNSUPPORTED_VALUE
+                                            microstate = MICRO_FAULT
+                                elif join_scalar_right_is_int:
+                                    if not join_scalar_right_signed:
+                                        join_scalar_float_fault = 1
+                                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_scalar_right_i64: int64_t = int64_t(join_scalar_right_word.lo)
+                                        join_scalar_right_float_value = red2_int64_to_float64(join_scalar_right_i64)
+                                else:
+                                    join_scalar_float_ready = 0
+
+                            if not join_scalar_float_fault:
+                                if not join_scalar_float_ready:
+                                    join_scalar_contract = 0
+                                    join_scalar_preflight_done = 1
+                                    microstate = join_scalar_resume
+                                elif join_scalar_op_add or join_scalar_op_sub:
+                                    join_scalar_float_addsub: float64_t = red2_float64_add_raw(
+                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    )
+                                    if join_scalar_op_sub:
+                                        join_scalar_float_addsub = red2_float64_sub_raw(
+                                            join_scalar_left_float_value, join_scalar_right_float_value
+                                        )
+                                    if not red2_float64_supported(join_scalar_float_addsub):
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_publish_word = red2_word_t(
+                                            lo=red2_float64_to_bits(join_scalar_float_addsub),
+                                            hi=87293952,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
+                                elif join_scalar_op_mul:
+                                    join_scalar_float_mul: red2_float_checked_t = red2_float64_mul_checked(
+                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    )
+                                    if not join_scalar_float_mul.valid:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_publish_word = red2_word_t(
+                                            lo=red2_float64_to_bits(join_scalar_float_mul.value),
+                                            hi=87293952,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
+                                elif join_scalar_op_div:
+                                    join_scalar_float_div: red2_float_checked_t = red2_float64_div_checked(
+                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    )
+                                    if not join_scalar_float_div.valid:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_publish_word = red2_word_t(
+                                            lo=red2_float64_to_bits(join_scalar_float_div.value),
+                                            hi=87293952,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
+                                elif join_scalar_op_lt or join_scalar_op_gt or join_scalar_op_le or join_scalar_op_ge:
+                                    join_scalar_float_ordering: uint2_t = red2_float64_compare(
+                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    )
+                                    join_scalar_float_compare_value: uint1_t = 0
+                                    if join_scalar_op_lt:
+                                        join_scalar_float_compare_value = join_scalar_float_ordering == 0
+                                    elif join_scalar_op_gt:
+                                        join_scalar_float_compare_value = join_scalar_float_ordering == 2
+                                    elif join_scalar_op_le:
+                                        join_scalar_float_compare_value = join_scalar_float_ordering != 2
+                                    else:
+                                        join_scalar_float_compare_value = join_scalar_float_ordering != 0
+                                    join_scalar_float_bool_id: uint32_t = join_false_literal_id
+                                    if join_scalar_float_compare_value:
+                                        join_scalar_float_bool_id = join_true_literal_id
+                                    if join_scalar_float_bool_id == 0:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_publish_word = red2_word_t(
+                                            lo=join_scalar_float_bool_id,
+                                            hi=91619328,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
+                                elif join_scalar_op_max or join_scalar_op_min:
+                                    join_scalar_float_select_ordering: uint2_t = red2_float64_compare(
+                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    )
+                                    join_scalar_float_choose_left: uint1_t = join_scalar_float_select_ordering != 0
+                                    if join_scalar_op_min:
+                                        join_scalar_float_choose_left = join_scalar_float_select_ordering != 2
+                                    join_scalar_float_chosen_is_int: uint1_t = join_scalar_right_is_int
+                                    join_scalar_float_chosen_word: red2_word_t = join_scalar_right_word
+                                    join_scalar_float_chosen_value: float64_t = join_scalar_right_float_value
+                                    if join_scalar_float_choose_left:
+                                        join_scalar_float_chosen_is_int = join_scalar_left_is_int
+                                        join_scalar_float_chosen_word = memory_out.p0.rd_data
+                                        join_scalar_float_chosen_value = join_scalar_left_float_value
+                                    if join_scalar_float_chosen_is_int:
+                                        join_publish_word = red2_word_t(
+                                            lo=join_scalar_float_chosen_word.lo,
+                                            hi=85065728,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
+                                    else:
+                                        join_scalar_float_selected_number: red2_float_word_checked_t = red2_float64_number_word(
+                                            join_scalar_float_chosen_value
+                                        )
+                                        if not join_scalar_float_selected_number.valid:
+                                            red2_fault = FAULT_UNSUPPORTED_VALUE
+                                            microstate = MICRO_FAULT
+                                        else:
+                                            join_publish_word = join_scalar_float_selected_number.word
+                                            join_scalar_contract = 1
+                                            join_scalar_preflight_done = 1
+                                            microstate = join_scalar_resume
+                                elif join_scalar_op_expt:
+                                    join_scalar_float_exp_integral: uint1_t = red2_float64_integral(
+                                        join_scalar_right_float_value
+                                    )
+                                    join_scalar_float_exp_info: red2_float_i64_t = red2_float64_i64_info(
+                                        join_scalar_right_float_value
+                                    )
+                                    if not join_scalar_float_exp_integral or not join_scalar_float_exp_info.fits:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_scalar_float_exp_negative: uint1_t = join_scalar_float_exp_info.payload[63]
+                                        join_scalar_float_exp_magnitude: uint64_t = join_scalar_float_exp_info.payload
+                                        if join_scalar_float_exp_negative:
+                                            join_scalar_float_exp_magnitude = 0 - join_scalar_float_exp_info.payload
+                                        join_scalar_float_exp_large: uint1_t = join_scalar_float_exp_magnitude[63:6] != 0
+                                        if join_scalar_float_exp_large:
+                                            red2_fault = FAULT_UNSUPPORTED_VALUE
+                                            microstate = MICRO_FAULT
+                                        else:
+                                            join_scalar_float_exp6: uint6_t = join_scalar_float_exp_magnitude
+                                            join_scalar_float_pow: red2_float_checked_t = red2_float64_pow63(
+                                                join_scalar_left_float_value,
+                                                join_scalar_float_exp6,
+                                                join_scalar_float_exp_negative,
+                                            )
+                                            if not join_scalar_float_pow.valid:
+                                                red2_fault = FAULT_UNSUPPORTED_VALUE
+                                                microstate = MICRO_FAULT
+                                            else:
+                                                join_scalar_float_pow_number: red2_float_word_checked_t = red2_float64_number_word(
+                                                    join_scalar_float_pow.value
+                                                )
+                                                if not join_scalar_float_pow_number.valid:
+                                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                                    microstate = MICRO_FAULT
+                                                else:
+                                                    join_publish_word = join_scalar_float_pow_number.word
+                                                    join_scalar_contract = 1
+                                                    join_scalar_preflight_done = 1
+                                                    microstate = join_scalar_resume
+                                else:
+                                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                                    microstate = MICRO_FAULT
                     elif not join_scalar_int_pair:
                         join_scalar_contract = 0
                         join_scalar_preflight_done = 1
@@ -9030,9 +10356,28 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 join_scalar_div_negative: uint1_t = join_scalar_signs_differ
                                 join_scalar_div_positive_overflow: uint1_t = join_scalar_div_result.q[63]
                                 join_scalar_div_positive_overflow = join_scalar_div_positive_overflow and not join_scalar_div_negative
-                                if join_scalar_div_inexact or join_scalar_div_positive_overflow:
+                                if join_scalar_div_positive_overflow:
                                     red2_fault = FAULT_UNSUPPORTED_VALUE
                                     microstate = MICRO_FAULT
+                                elif join_scalar_div_inexact:
+                                    join_scalar_div_left_i64: int64_t = int64_t(memory_out.p0.rd_data.lo)
+                                    join_scalar_div_right_i64: int64_t = int64_t(join_scalar_right_word.lo)
+                                    join_scalar_div_left_float: float64_t = red2_int64_to_float64(join_scalar_div_left_i64)
+                                    join_scalar_div_right_float: float64_t = red2_int64_to_float64(join_scalar_div_right_i64)
+                                    join_scalar_div_float_result: red2_float_checked_t = red2_float64_div_checked(
+                                        join_scalar_div_left_float, join_scalar_div_right_float
+                                    )
+                                    if not join_scalar_div_float_result.valid:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_publish_word = red2_word_t(
+                                            lo=red2_float64_to_bits(join_scalar_div_float_result.value),
+                                            hi=87293952,
+                                        )
+                                        join_scalar_contract = 1
+                                        join_scalar_preflight_done = 1
+                                        microstate = join_scalar_resume
                                 else:
                                     join_scalar_div_payload: uint64_t = join_scalar_div_result.q
                                     if join_scalar_div_negative:
@@ -9070,8 +10415,35 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 microstate = join_scalar_resume
                         elif join_scalar_op_expt:
                             if join_scalar_right_negative:
-                                red2_fault = FAULT_UNSUPPORTED_VALUE
-                                microstate = MICRO_FAULT
+                                join_scalar_neg_pow_magnitude: uint64_t = 0 - join_scalar_right_word.lo
+                                join_scalar_neg_pow_large: uint1_t = join_scalar_neg_pow_magnitude[63:6] != 0
+                                if join_scalar_neg_pow_large:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    join_scalar_neg_pow_base_i64: int64_t = int64_t(memory_out.p0.rd_data.lo)
+                                    join_scalar_neg_pow_base: float64_t = red2_int64_to_float64(join_scalar_neg_pow_base_i64)
+                                    join_scalar_neg_pow_exp6: uint6_t = join_scalar_neg_pow_magnitude
+                                    join_scalar_neg_pow_result: red2_float_checked_t = red2_float64_pow63(
+                                        join_scalar_neg_pow_base,
+                                        join_scalar_neg_pow_exp6,
+                                        1,
+                                    )
+                                    if not join_scalar_neg_pow_result.valid:
+                                        red2_fault = FAULT_UNSUPPORTED_VALUE
+                                        microstate = MICRO_FAULT
+                                    else:
+                                        join_scalar_neg_pow_number: red2_float_word_checked_t = red2_float64_number_word(
+                                            join_scalar_neg_pow_result.value
+                                        )
+                                        if not join_scalar_neg_pow_number.valid:
+                                            red2_fault = FAULT_UNSUPPORTED_VALUE
+                                            microstate = MICRO_FAULT
+                                        else:
+                                            join_publish_word = join_scalar_neg_pow_number.word
+                                            join_scalar_contract = 1
+                                            join_scalar_preflight_done = 1
+                                            microstate = join_scalar_resume
                             else:
                                 join_scalar_pow_base_magnitude: uint64_t = memory_out.p0.rd_data.lo
                                 if join_scalar_left_negative:
@@ -9472,10 +10844,54 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_app_has_second_target = 1
                     join_app_cursor = join_app_cursor + 1
                 else:
-                    # A third unique target needs the generic publication stack.
-                    # No graph publication writes have occurred at this point.
-                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-                    microstate = MICRO_FAULT
+                    # Restart the complete result APP through the generic walker;
+                    # bounded preflight scratch is private and may be discarded.
+                    pub_next_generation_third: uint32_t = pub_generation + 1
+                    if pub_next_generation_third == 0:
+                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_generation = pub_next_generation_third
+                        pub_sp = 1
+                        pub_value = 0
+                        pub_launch_root = join_result_address
+                        pub_interval_start = free_space
+                        pub_interval_stop = join_frame_free_space
+                        pub_phi = phi
+                        pub_resume_kind = PUB_RESUME_JOIN
+                        pub_current_task = red2_pub_task_t(
+                            kind=PUB_TASK_GRAPH, a=join_result_address, b=0, c=0, d=0, e=0, f=0, flags=0
+                        )
+                        pub_current_valid = 1
+                        pub_pending_count = 0
+                        pub_stack_phase = PUB_STACK_IDLE
+                        pub_stack_index = 0
+                        pub_stack_base = 0
+                        pub_stack_new_sp = 1
+                        pub_memo_write_pending = 0
+                        pub_memo_write_address = 0
+                        pub_memo_write_data = red2_pub_root_t(
+                            generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                        )
+                        pub_patch_count = 0
+                        pub_patch_commit_index = 0
+                        pub_patch_stage_pending = 0
+                        pub_patch_stage_append = 0
+                        pub_patch_stage_address = 0
+                        pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                        pub_patch_commit_address = 0
+                        pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                        pub_patch_commit_pending = 0
+                        pub_mat_count = 0
+                        pub_destination = fsp + 1
+                        pub_mat_stage_pending = 0
+                        pub_mat_stage_index = 0
+                        pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                        pub_mat_validate_index = 0
+                        pub_mat_commit_index = 0
+                        join_preserve_fsp = 1
+                        join_published_root = join_result_address
+                        microstate = MICRO_PUB_EXEC
             elif join_app_is_app_var:
                 # PUB_APP_SCAN treats APP_VAR as a transparent prefix entry.
                 if join_app_at_fsp:
@@ -9519,6 +10935,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_app_target_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
             join_app_target_head: uint1_t = memory_out.p0.rd_data.hi[20]
             join_app_target_is_ep: uint1_t = join_app_target_opcode == MOP_EP
+            join_app_target_is_app: uint1_t = join_app_target_opcode == MOP_APP
             join_app_target_is_var: uint1_t = join_app_target_opcode == MOP_VAR
             join_app_target_is_ubv: uint1_t = join_app_target_opcode == MOP_UBV
             join_app_target_is_int: uint1_t = join_app_target_opcode == MOP_INT
@@ -9552,6 +10969,53 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 join_needs_ep_cache = 0
                 join_preserve_fsp = 1
                 microstate = MICRO_JOIN_PUBLISH
+            elif join_app_target_is_app:
+                pub_next_generation_single_nested: uint32_t = pub_generation + 1
+                if pub_next_generation_single_nested == 0:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_generation = pub_next_generation_single_nested
+                    pub_sp = 1
+                    pub_value = 0
+                    pub_launch_root = join_result_address
+                    pub_interval_start = free_space
+                    pub_interval_stop = join_frame_free_space
+                    pub_phi = phi
+                    pub_resume_kind = PUB_RESUME_JOIN
+                    pub_current_task = red2_pub_task_t(
+                        kind=PUB_TASK_GRAPH, a=join_result_address, b=0, c=0, d=0, e=0, f=0, flags=0
+                    )
+                    pub_current_valid = 1
+                    pub_pending_count = 0
+                    pub_stack_phase = PUB_STACK_IDLE
+                    pub_stack_index = 0
+                    pub_stack_base = 0
+                    pub_stack_new_sp = 1
+                    pub_memo_write_pending = 0
+                    pub_memo_write_address = 0
+                    pub_memo_write_data = red2_pub_root_t(
+                        generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                    )
+                    pub_patch_count = 0
+                    pub_patch_commit_index = 0
+                    pub_patch_stage_pending = 0
+                    pub_patch_stage_append = 0
+                    pub_patch_stage_address = 0
+                    pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_address = 0
+                    pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_pending = 0
+                    pub_mat_count = 0
+                    pub_destination = fsp + 1
+                    pub_mat_stage_pending = 0
+                    pub_mat_stage_index = 0
+                    pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_mat_validate_index = 0
+                    pub_mat_commit_index = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_PUB_EXEC
             elif not join_app_target_is_ep:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
@@ -9582,6 +11046,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_multi_root_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
             join_multi_root_head: uint1_t = memory_out.p0.rd_data.hi[20]
             join_multi_root_is_ep: uint1_t = join_multi_root_opcode == MOP_EP
+            join_multi_root_is_app: uint1_t = join_multi_root_opcode == MOP_APP
             join_multi_root_is_var: uint1_t = join_multi_root_opcode == MOP_VAR
             join_multi_root_is_ubv: uint1_t = join_multi_root_opcode == MOP_UBV
             join_multi_root_is_int: uint1_t = join_multi_root_opcode == MOP_INT
@@ -9612,6 +11077,53 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 else:
                     join_app_first_write_needed = 0
                 microstate = MICRO_JOIN_MULTI_TARGET_ADVANCE
+            elif join_multi_root_is_app:
+                pub_next_generation_multi_nested: uint32_t = pub_generation + 1
+                if pub_next_generation_multi_nested == 0:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_generation = pub_next_generation_multi_nested
+                    pub_sp = 1
+                    pub_value = 0
+                    pub_launch_root = join_result_address
+                    pub_interval_start = free_space
+                    pub_interval_stop = join_frame_free_space
+                    pub_phi = phi
+                    pub_resume_kind = PUB_RESUME_JOIN
+                    pub_current_task = red2_pub_task_t(
+                        kind=PUB_TASK_GRAPH, a=join_result_address, b=0, c=0, d=0, e=0, f=0, flags=0
+                    )
+                    pub_current_valid = 1
+                    pub_pending_count = 0
+                    pub_stack_phase = PUB_STACK_IDLE
+                    pub_stack_index = 0
+                    pub_stack_base = 0
+                    pub_stack_new_sp = 1
+                    pub_memo_write_pending = 0
+                    pub_memo_write_address = 0
+                    pub_memo_write_data = red2_pub_root_t(
+                        generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                    )
+                    pub_patch_count = 0
+                    pub_patch_commit_index = 0
+                    pub_patch_stage_pending = 0
+                    pub_patch_stage_append = 0
+                    pub_patch_stage_address = 0
+                    pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_address = 0
+                    pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_pending = 0
+                    pub_mat_count = 0
+                    pub_destination = fsp + 1
+                    pub_mat_stage_pending = 0
+                    pub_mat_stage_index = 0
+                    pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_mat_validate_index = 0
+                    pub_mat_commit_index = 0
+                    join_preserve_fsp = 1
+                    join_published_root = join_result_address
+                    microstate = MICRO_PUB_EXEC
             elif join_multi_root_is_ep:
                 join_multi_root_signed: uint1_t = join_multi_root_kind == DATA_SIGNED
                 join_multi_root_negative: uint1_t = memory_out.p0.rd_data.lo[63]
@@ -11019,6 +12531,1129 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 else:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
+        if not clock_dispatch_handled and micro_is_pub_exec:
+            clock_dispatch_handled = 1
+            pub_none_task_exec: red2_pub_task_t = red2_pub_task_t(
+                kind=PUB_TASK_NONE, a=0, b=0, c=0, d=0, e=0, f=0, flags=0
+            )
+            pub_exec_pending_count: uint2_t = 0
+            pub_exec_pending0: red2_pub_task_t = pub_none_task_exec
+            pub_exec_pending1: red2_pub_task_t = pub_none_task_exec
+            pub_exec_pending2: red2_pub_task_t = pub_none_task_exec
+            pub_exec_memo_pending: uint1_t = 0
+            pub_exec_memo_address: uint17_t = 0
+            pub_exec_memo_data: red2_pub_root_t = red2_pub_root_t(
+                generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+            )
+            pub_exec_stage_stack: uint1_t = 0
+            pub_exec_patch_pending: uint1_t = 0
+            pub_exec_patch_append: uint1_t = 0
+            pub_exec_patch_address: uint17_t = 0
+            pub_exec_patch_word: red2_word_t = red2_word_t(lo=0, hi=0)
+            pub_exec_mat_pending: uint1_t = 0
+            pub_exec_mat_index: uint17_t = 0
+            pub_exec_mat_word: red2_word_t = red2_word_t(lo=0, hi=0)
+
+            if not pub_current_valid or pub_sp == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif pub_current_is_graph:
+                pub_graph_root: uint17_t = pub_current_task.a
+                pub_graph_root_in_range: uint1_t = pub_graph_root[16:GRAPH_ADDR_BITS] == 0
+                pub_graph_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_graph_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_graph_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                pub_graph_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_graph_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
+                pub_graph_memo_generation_hit: uint1_t = pub_root_out.p0.rd_data.generation == pub_generation
+                pub_graph_memo_visiting: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_VISITING
+                pub_graph_memo_done: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_DONE
+                pub_graph_memo_visiting = pub_graph_memo_visiting and pub_graph_memo_generation_hit
+                pub_graph_memo_done = pub_graph_memo_done and pub_graph_memo_generation_hit
+                pub_graph_is_app: uint1_t = pub_graph_opcode == MOP_APP
+                pub_graph_is_ep: uint1_t = pub_graph_opcode == MOP_EP
+                pub_graph_is_struct: uint1_t = pub_graph_opcode == MOP_STRUCT
+                pub_graph_is_int: uint1_t = pub_graph_opcode == MOP_INT
+                pub_graph_is_float: uint1_t = pub_graph_opcode == MOP_FLOAT
+                pub_graph_is_char: uint1_t = pub_graph_opcode == MOP_CHAR
+                pub_graph_is_sym: uint1_t = pub_graph_opcode == MOP_SYM
+                pub_graph_is_var: uint1_t = pub_graph_opcode == MOP_VAR
+                pub_graph_is_ubv: uint1_t = pub_graph_opcode == MOP_UBV
+                pub_graph_int_stable: uint1_t = pub_graph_is_int and pub_graph_head
+                pub_graph_int_stable = pub_graph_int_stable and pub_graph_kind == DATA_SIGNED
+                pub_graph_float_stable: uint1_t = pub_graph_is_float and pub_graph_head
+                pub_graph_float_stable = pub_graph_float_stable and pub_graph_kind == DATA_FLOAT64
+                pub_graph_char_stable: uint1_t = pub_graph_is_char and pub_graph_head
+                pub_graph_char_stable = pub_graph_char_stable and pub_graph_kind == DATA_LITERAL_ID
+                pub_graph_sym_stable: uint1_t = pub_graph_is_sym and pub_graph_head
+                pub_graph_sym_stable = pub_graph_sym_stable and pub_graph_kind == DATA_LITERAL_ID
+                pub_graph_sym_stable = pub_graph_sym_stable and not pub_graph_definition_valid
+                pub_graph_var_stable: uint1_t = pub_graph_is_var and pub_graph_kind == DATA_SIGNED
+                pub_graph_ubv_stable: uint1_t = pub_graph_is_ubv and pub_graph_kind == DATA_SIGNED
+                pub_graph_stable: uint1_t = pub_graph_int_stable or pub_graph_float_stable
+                pub_graph_stable = pub_graph_stable or pub_graph_char_stable
+                pub_graph_stable = pub_graph_stable or pub_graph_sym_stable
+                pub_graph_stable = pub_graph_stable or pub_graph_var_stable
+                pub_graph_stable = pub_graph_stable or pub_graph_ubv_stable
+                if not pub_graph_root_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_graph_word_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_graph_memo_done:
+                    pub_value = pub_root_out.p0.rd_data.result
+                    pub_exec_stage_stack = 1
+                elif pub_graph_memo_visiting:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif pub_graph_is_ep:
+                    pub_graph_ep_signed: uint1_t = pub_graph_kind == DATA_SIGNED
+                    pub_graph_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_graph_ep_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:17] != 0
+                    if not pub_graph_ep_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_graph_ep_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_graph_ep_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_memo_pending = 1
+                        pub_exec_memo_address = pub_graph_root
+                        pub_exec_memo_data = red2_pub_root_t(
+                            generation=pub_generation,
+                            state=PUB_ROOT_VISITING,
+                            result=0,
+                            aux=0,
+                        )
+                        pub_graph_ep_flags: uint8_t = 0
+                        if pub_graph_head:
+                            pub_graph_ep_flags = 2
+                        pub_exec_pending_count = 2
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_ROOT_DONE, a=pub_graph_root,
+                            b=0, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_EP_CHASE,
+                            a=pub_graph_root,
+                            b=memory_out.p0.rd_data.lo[16:0],
+                            c=0,
+                            d=memory_out.p0.rd_data.hi[16:0],
+                            e=0,
+                            f=0,
+                            flags=pub_graph_ep_flags,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_graph_is_app:
+                    pub_graph_app_signed: uint1_t = pub_graph_kind == DATA_SIGNED
+                    pub_graph_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_graph_app_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    if not pub_graph_app_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_graph_app_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_graph_app_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_memo_pending = 1
+                        pub_exec_memo_address = pub_graph_root
+                        pub_exec_memo_data = red2_pub_root_t(
+                            generation=pub_generation,
+                            state=PUB_ROOT_VISITING,
+                            result=0,
+                            aux=0,
+                        )
+                        pub_exec_pending_count = 2
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_ROOT_DONE, a=pub_graph_root,
+                            b=0, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_graph_live_root: uint1_t = pub_graph_root == pub_launch_root
+                        pub_graph_scan_flags: uint8_t = 0
+                        if pub_graph_live_root:
+                            pub_graph_scan_flags = 1
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_APP_SCAN, a=pub_graph_root,
+                            b=pub_graph_root, c=0, d=0, e=0, f=0,
+                            flags=pub_graph_scan_flags,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_graph_is_struct:
+                    pub_exec_memo_pending = 1
+                    pub_exec_memo_address = pub_graph_root
+                    pub_exec_memo_data = red2_pub_root_t(
+                        generation=pub_generation,
+                        state=PUB_ROOT_VISITING,
+                        result=0,
+                        aux=0,
+                    )
+                    pub_exec_pending_count = 2
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_ROOT_DONE, a=pub_graph_root,
+                        b=0, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_pending1 = red2_pub_task_t(
+                        kind=PUB_TASK_STRUCT_SCAN, a=pub_graph_root,
+                        b=pub_graph_root + 1, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+                elif pub_graph_stable:
+                    pub_exec_memo_pending = 1
+                    pub_exec_memo_address = pub_graph_root
+                    pub_exec_memo_data = red2_pub_root_t(
+                        generation=pub_generation,
+                        state=PUB_ROOT_VISITING,
+                        result=0,
+                        aux=0,
+                    )
+                    pub_value = pub_graph_root
+                    pub_exec_pending_count = 1
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_ROOT_DONE, a=pub_graph_root,
+                        b=0, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+                else:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+            elif pub_current_is_root_done:
+                pub_done_root: uint17_t = pub_current_task.a
+                pub_done_root_in_range: uint1_t = pub_done_root[16:GRAPH_ADDR_BITS] == 0
+                pub_done_generation_hit: uint1_t = pub_root_out.p0.rd_data.generation == pub_generation
+                pub_done_visiting: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_VISITING
+                pub_done_visiting = pub_done_visiting and pub_done_generation_hit
+                if not pub_done_root_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_done_visiting:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_memo_pending = 1
+                    pub_exec_memo_address = pub_done_root
+                    pub_exec_memo_data = red2_pub_root_t(
+                        generation=pub_generation,
+                        state=PUB_ROOT_DONE,
+                        result=pub_value,
+                        aux=0,
+                    )
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_app_scan:
+                pub_scan_root: uint17_t = pub_current_task.a
+                pub_scan_cursor: uint17_t = pub_current_task.b
+                pub_scan_live: uint1_t = pub_current_task.flags[0]
+                pub_scan_cursor_in_range: uint1_t = pub_scan_cursor[16:GRAPH_ADDR_BITS] == 0
+                pub_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_scan_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_scan_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                pub_scan_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
+                pub_scan_is_app: uint1_t = pub_scan_opcode == MOP_APP
+                pub_scan_is_app_var: uint1_t = pub_scan_opcode == MOP_APP_VAR
+                pub_scan_is_int: uint1_t = pub_scan_opcode == MOP_INT
+                pub_scan_is_float: uint1_t = pub_scan_opcode == MOP_FLOAT
+                pub_scan_is_char: uint1_t = pub_scan_opcode == MOP_CHAR
+                pub_scan_is_sym: uint1_t = pub_scan_opcode == MOP_SYM
+                pub_scan_is_prim0: uint1_t = pub_scan_opcode == MOP_PRIM_0
+                pub_scan_is_prim1: uint1_t = pub_scan_opcode == MOP_PRIM_1
+                pub_scan_is_prim2: uint1_t = pub_scan_opcode == MOP_PRIM_2
+                pub_scan_is_var: uint1_t = pub_scan_opcode == MOP_VAR
+                pub_scan_is_ubv: uint1_t = pub_scan_opcode == MOP_UBV
+                pub_scan_inline: uint1_t = pub_scan_is_int or pub_scan_is_float
+                pub_scan_inline = pub_scan_inline or pub_scan_is_char
+                pub_scan_inline = pub_scan_inline or pub_scan_is_sym
+                pub_scan_inline = pub_scan_inline or pub_scan_is_prim0
+                pub_scan_inline = pub_scan_inline or pub_scan_is_prim1
+                pub_scan_inline = pub_scan_inline or pub_scan_is_prim2
+                pub_scan_nonhead_inline: uint1_t = pub_scan_inline and not pub_scan_head
+                pub_scan_at_fsp: uint1_t = pub_scan_cursor == fsp
+                pub_scan_live_at_fsp: uint1_t = pub_scan_live and pub_scan_at_fsp
+                pub_scan_int_stable: uint1_t = pub_scan_is_int and pub_scan_head
+                pub_scan_int_stable = pub_scan_int_stable and pub_scan_kind == DATA_SIGNED
+                pub_scan_float_stable: uint1_t = pub_scan_is_float and pub_scan_head
+                pub_scan_float_stable = pub_scan_float_stable and pub_scan_kind == DATA_FLOAT64
+                pub_scan_char_stable: uint1_t = pub_scan_is_char and pub_scan_head
+                pub_scan_char_stable = pub_scan_char_stable and pub_scan_kind == DATA_LITERAL_ID
+                pub_scan_sym_stable: uint1_t = pub_scan_is_sym and pub_scan_head
+                pub_scan_sym_stable = pub_scan_sym_stable and pub_scan_kind == DATA_LITERAL_ID
+                pub_scan_sym_stable = pub_scan_sym_stable and not pub_scan_definition_valid
+                pub_scan_var_stable: uint1_t = pub_scan_is_var and pub_scan_kind == DATA_SIGNED
+                pub_scan_ubv_stable: uint1_t = pub_scan_is_ubv and pub_scan_kind == DATA_SIGNED
+                pub_scan_terminal_stable: uint1_t = pub_scan_int_stable or pub_scan_float_stable
+                pub_scan_terminal_stable = pub_scan_terminal_stable or pub_scan_char_stable
+                pub_scan_terminal_stable = pub_scan_terminal_stable or pub_scan_sym_stable
+                pub_scan_terminal_stable = pub_scan_terminal_stable or pub_scan_var_stable
+                pub_scan_terminal_stable = pub_scan_terminal_stable or pub_scan_ubv_stable
+                if not pub_scan_cursor_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_scan_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_scan_is_app:
+                    pub_scan_app_signed: uint1_t = pub_scan_kind == DATA_SIGNED
+                    pub_scan_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_scan_app_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    if not pub_scan_app_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_scan_app_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_scan_app_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_scan_live_at_fsp:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_scan_target: uint17_t = memory_out.p0.rd_data.lo[16:0]
+                        pub_scan_next_cursor: uint17_t = pub_scan_cursor + 1
+                        pub_exec_pending_count = 3
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_APP_SCAN, a=pub_scan_root,
+                            b=pub_scan_next_cursor, c=0, d=0, e=0, f=0,
+                            flags=pub_current_task.flags,
+                        )
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_APP_REWRITE, a=pub_scan_cursor,
+                            b=pub_scan_target, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_pending2 = red2_pub_task_t(
+                            kind=PUB_TASK_GRAPH, a=pub_scan_target,
+                            b=0, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_scan_is_app_var or pub_scan_nonhead_inline:
+                    if pub_scan_live_at_fsp:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_scan_next_cursor2: uint17_t = pub_scan_cursor + 1
+                        pub_exec_pending_count = 1
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_APP_SCAN, a=pub_scan_root,
+                            b=pub_scan_next_cursor2, c=0, d=0, e=0, f=0,
+                            flags=pub_current_task.flags,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_scan_terminal_stable:
+                    pub_exec_pending_count = 2
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_APP_OPERATOR_DONE, a=pub_scan_root,
+                        b=pub_scan_cursor, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_pending1 = red2_pub_task_t(
+                        kind=PUB_TASK_GRAPH, a=pub_scan_cursor,
+                        b=0, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+                else:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+            elif pub_current_is_struct_scan:
+                pub_struct_root: uint17_t = pub_current_task.a
+                pub_struct_cursor: uint17_t = pub_current_task.b
+                pub_struct_cursor_in_range: uint1_t = pub_struct_cursor[16:GRAPH_ADDR_BITS] == 0
+                pub_struct_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_struct_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_struct_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                pub_struct_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_struct_is_app: uint1_t = pub_struct_opcode == MOP_APP
+                pub_struct_is_ep: uint1_t = pub_struct_opcode == MOP_EP
+                pub_struct_is_app_var: uint1_t = pub_struct_opcode == MOP_APP_VAR
+                pub_struct_is_var: uint1_t = pub_struct_opcode == MOP_VAR
+                pub_struct_is_int: uint1_t = pub_struct_opcode == MOP_INT
+                pub_struct_is_float: uint1_t = pub_struct_opcode == MOP_FLOAT
+                pub_struct_is_char: uint1_t = pub_struct_opcode == MOP_CHAR
+                pub_struct_is_sym: uint1_t = pub_struct_opcode == MOP_SYM
+                pub_struct_is_prim0: uint1_t = pub_struct_opcode == MOP_PRIM_0
+                pub_struct_is_prim1: uint1_t = pub_struct_opcode == MOP_PRIM_1
+                pub_struct_is_prim2: uint1_t = pub_struct_opcode == MOP_PRIM_2
+                pub_struct_inline: uint1_t = pub_struct_is_int or pub_struct_is_float
+                pub_struct_inline = pub_struct_inline or pub_struct_is_char
+                pub_struct_inline = pub_struct_inline or pub_struct_is_sym
+                pub_struct_inline = pub_struct_inline or pub_struct_is_prim0
+                pub_struct_inline = pub_struct_inline or pub_struct_is_prim1
+                pub_struct_inline = pub_struct_inline or pub_struct_is_prim2
+                pub_struct_nonhead_inline: uint1_t = pub_struct_inline and not pub_struct_head
+                if not pub_struct_cursor_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_struct_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_struct_is_app:
+                    pub_struct_app_signed: uint1_t = pub_struct_kind == DATA_SIGNED
+                    pub_struct_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_struct_app_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] != 0
+                    if not pub_struct_app_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_struct_app_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_struct_app_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_struct_app_target: uint17_t = memory_out.p0.rd_data.lo[16:0]
+                        pub_exec_pending_count = 3
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_STRUCT_SCAN, a=pub_struct_root,
+                            b=pub_struct_cursor + 1, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_APP_REWRITE, a=pub_struct_cursor,
+                            b=pub_struct_app_target, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_pending2 = red2_pub_task_t(
+                            kind=PUB_TASK_GRAPH, a=pub_struct_app_target,
+                            b=0, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_struct_is_ep:
+                    pub_struct_ep_signed: uint1_t = pub_struct_kind == DATA_SIGNED
+                    pub_struct_ep_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_struct_ep_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:17] != 0
+                    if not pub_struct_ep_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_struct_ep_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_struct_ep_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_struct_ep_flags: uint8_t = 1
+                        if pub_struct_head:
+                            pub_struct_ep_flags = 3
+                        pub_exec_pending_count = 2
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_STRUCT_SCAN, a=pub_struct_root,
+                            b=pub_struct_cursor + 1, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_EP_CHASE,
+                            a=pub_struct_cursor,
+                            b=memory_out.p0.rd_data.lo[16:0],
+                            c=0,
+                            d=memory_out.p0.rd_data.hi[16:0],
+                            e=0,
+                            f=0,
+                            flags=pub_struct_ep_flags,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_struct_is_app_var or pub_struct_nonhead_inline:
+                    pub_exec_pending_count = 1
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_STRUCT_SCAN, a=pub_struct_root,
+                        b=pub_struct_cursor + 1, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+                elif pub_struct_is_var and pub_struct_kind == DATA_SIGNED and memory_out.p0.rd_data.lo == 0:
+                    pub_value = pub_struct_root
+                    pub_exec_stage_stack = 1
+                else:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+            elif pub_current_is_ep_chase:
+                pub_ep_descriptor_address: uint17_t = pub_current_task.a
+                pub_ep_target_address: uint17_t = pub_current_task.b
+                pub_ep_hops: uint17_t = pub_current_task.c
+                pub_ep_descriptor_meta: uint17_t = pub_current_task.d
+                pub_ep_embedded: uint1_t = pub_current_task.flags[0]
+                pub_ep_descriptor_head: uint1_t = pub_current_task.flags[1]
+                pub_ep_descriptor_in_range: uint1_t = pub_ep_descriptor_address[16:GRAPH_ADDR_BITS] == 0
+                pub_ep_target_in_range: uint1_t = pub_ep_target_address[16:GRAPH_ADDR_BITS] == 0
+                pub_ep_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_ep_target_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_ep_target_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_ep_target_definition_valid: uint1_t = memory_out.p0.rd_data.hi[16]
+                pub_ep_target_is_ep: uint1_t = pub_ep_target_opcode == MOP_EP
+                pub_ep_target_is_int: uint1_t = pub_ep_target_opcode == MOP_INT
+                pub_ep_target_is_float: uint1_t = pub_ep_target_opcode == MOP_FLOAT
+                pub_ep_target_is_char: uint1_t = pub_ep_target_opcode == MOP_CHAR
+                pub_ep_target_is_sym: uint1_t = pub_ep_target_opcode == MOP_SYM
+                pub_ep_target_sym_shareable: uint1_t = pub_ep_target_is_sym and not pub_ep_target_definition_valid
+                pub_ep_target_atomic: uint1_t = pub_ep_target_is_int or pub_ep_target_is_float
+                pub_ep_target_atomic = pub_ep_target_atomic or pub_ep_target_is_char
+                pub_ep_target_atomic = pub_ep_target_atomic or pub_ep_target_sym_shareable
+                pub_ep_target_is_ubv: uint1_t = pub_ep_target_opcode == MOP_UBV
+                pub_ep_target_is_closure: uint1_t = pub_ep_target_opcode == MOP_CLOSURE
+                pub_ep_target_is_rec: uint1_t = pub_ep_target_opcode == MOP_REC
+                pub_ep_patch_hit: uint1_t = pub_patch_out.p0.rd_data.generation == pub_generation
+                pub_ep_patch_capacity: uint1_t = pub_patch_count != GRAPH_WORDS
+                if not pub_ep_descriptor_in_range or not pub_ep_target_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_ep_target_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_ep_target_is_ep:
+                    pub_ep_next_signed: uint1_t = pub_ep_target_kind == DATA_SIGNED
+                    pub_ep_next_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_ep_next_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[62:17] != 0
+                    pub_ep_hop_limit: uint1_t = pub_ep_hops == GRAPH_WORDS - 1
+                    if not pub_ep_next_signed:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_ep_next_negative:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_ep_next_upper_nonzero:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_ep_hop_limit:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_pending_count = 1
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_EP_CHASE,
+                            a=pub_ep_descriptor_address,
+                            b=memory_out.p0.rd_data.lo[16:0],
+                            c=pub_ep_hops + 1,
+                            d=pub_ep_descriptor_meta,
+                            e=0,
+                            f=0,
+                            flags=pub_current_task.flags,
+                        )
+                        pub_exec_stage_stack = 1
+                else:
+                    pub_ep_after_start_gap: uint17_t = pub_ep_target_address - pub_interval_start
+                    pub_ep_after_start: uint1_t = pub_ep_after_start_gap[16] == 0
+                    pub_ep_before_stop_gap: uint17_t = pub_interval_stop - pub_ep_target_address
+                    pub_ep_before_stop: uint1_t = pub_ep_before_stop_gap[16] == 0
+                    pub_ep_before_stop_nonzero: uint1_t = pub_ep_before_stop_gap != 0
+                    pub_ep_before_stop = pub_ep_before_stop and pub_ep_before_stop_nonzero
+                    pub_ep_inside_interval: uint1_t = pub_ep_after_start and pub_ep_before_stop
+                    if not pub_ep_inside_interval:
+                        pub_value = pub_ep_descriptor_address
+                        pub_exec_stage_stack = 1
+                    elif pub_ep_target_atomic:
+                        if not pub_ep_patch_hit and not pub_ep_patch_capacity:
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+                        else:
+                            pub_ep_atomic_hi: uint64_t = memory_out.p0.rd_data.hi & 132644863
+                            if pub_ep_descriptor_head:
+                                pub_ep_atomic_hi = pub_ep_atomic_hi | 1048576
+                            pub_exec_patch_pending = 1
+                            pub_exec_patch_append = not pub_ep_patch_hit
+                            pub_exec_patch_address = pub_ep_descriptor_address
+                            pub_exec_patch_word = red2_word_t(
+                                lo=memory_out.p0.rd_data.lo,
+                                hi=pub_ep_atomic_hi,
+                            )
+                            pub_value = pub_ep_descriptor_address
+                            pub_exec_stage_stack = 1
+                    elif pub_ep_target_is_ubv:
+                        pub_ep_ubv_signed: uint1_t = pub_ep_target_kind == DATA_SIGNED
+                        pub_ep_phi64: uint64_t = pub_phi
+                        pub_ep_ubv_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                        pub_ep_ubv_index: uint64_t = pub_ep_phi64 - memory_out.p0.rd_data.lo
+                        if pub_ep_ubv_negative:
+                            pub_ep_ubv_magnitude: uint64_t = 0 - memory_out.p0.rd_data.lo
+                            pub_ep_ubv_index = pub_ep_phi64 + pub_ep_ubv_magnitude
+                        pub_ep_ubv_index_negative: uint1_t = pub_ep_ubv_index[63]
+                        if not pub_ep_ubv_signed:
+                            red2_fault = FAULT_INVALID_ADDRESS
+                            microstate = MICRO_FAULT
+                        elif not pub_ep_ubv_negative and pub_ep_ubv_index_negative:
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+                        elif not pub_ep_patch_hit and not pub_ep_patch_capacity:
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+                        else:
+                            pub_ep_descriptor_meta64: uint64_t = pub_ep_descriptor_meta
+                            pub_ep_ubv_hi: uint64_t = 111280128
+                            if pub_ep_embedded:
+                                pub_ep_ubv_hi = 71434240
+                            if pub_ep_descriptor_head:
+                                pub_ep_ubv_hi = pub_ep_ubv_hi | 1048576
+                            pub_ep_ubv_hi = pub_ep_ubv_hi | pub_ep_descriptor_meta64
+                            pub_exec_patch_pending = 1
+                            pub_exec_patch_append = not pub_ep_patch_hit
+                            pub_exec_patch_address = pub_ep_descriptor_address
+                            pub_exec_patch_word = red2_word_t(
+                                lo=pub_ep_ubv_index,
+                                hi=pub_ep_ubv_hi,
+                            )
+                            pub_value = pub_ep_descriptor_address
+                            pub_exec_stage_stack = 1
+                    elif pub_ep_target_is_closure:
+                        pub_exec_pending_count = 2
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_EP_RESULT,
+                            a=pub_ep_descriptor_address,
+                            b=0, c=0, d=0, e=0, f=0,
+                            flags=pub_current_task.flags,
+                        )
+                        pub_exec_pending1 = red2_pub_task_t(
+                            kind=PUB_TASK_CLOSURE,
+                            a=pub_ep_target_address,
+                            b=0, c=0, d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+                    elif pub_ep_target_is_rec:
+                        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                        microstate = MICRO_FAULT
+                    else:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+            elif pub_current_is_ep_result:
+                pub_ep_result_address: uint17_t = pub_current_task.a
+                pub_ep_result_embedded: uint1_t = pub_current_task.flags[0]
+                pub_ep_result_in_range: uint1_t = pub_ep_result_address[16:GRAPH_ADDR_BITS] == 0
+                pub_ep_result_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_ep_result_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_ep_result_patch_hit: uint1_t = pub_patch_out.p0.rd_data.generation == pub_generation
+                pub_ep_result_patch_capacity: uint1_t = pub_patch_count != GRAPH_WORDS
+                if not pub_ep_result_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_ep_result_valid or pub_ep_result_opcode != MOP_EP:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif pub_ep_result_embedded:
+                    if not pub_ep_result_patch_hit and not pub_ep_result_patch_capacity:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_ep_result_meta64: uint64_t = memory_out.p0.rd_data.hi & 1179647
+                        pub_exec_patch_pending = 1
+                        pub_exec_patch_append = not pub_ep_result_patch_hit
+                        pub_exec_patch_address = pub_ep_result_address
+                        pub_exec_patch_word = red2_word_t(
+                            lo=pub_value,
+                            hi=69337088 | pub_ep_result_meta64,
+                        )
+                        pub_exec_stage_stack = 1
+                else:
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_closure:
+                pub_closure_address: uint17_t = pub_current_task.a
+                pub_closure_in_range: uint1_t = pub_closure_address[16:GRAPH_ADDR_BITS] == 0
+                pub_closure_has_code: uint1_t = pub_closure_address != GRAPH_WORDS - 1
+                pub_closure_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_closure_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_closure_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_closure_env_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                pub_closure_env_low: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                pub_closure_env_end: uint1_t = memory_out.p0.rd_data.lo == GRAPH_WORDS
+                pub_closure_env_ok: uint1_t = pub_closure_env_low or pub_closure_env_end
+                pub_closure_memo_generation: uint1_t = pub_root_out.p0.rd_data.generation == pub_generation
+                pub_closure_memo_done: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_DONE
+                pub_closure_memo_busy: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_RESERVED
+                pub_closure_memo_done = pub_closure_memo_done and pub_closure_memo_generation
+                pub_closure_memo_busy = pub_closure_memo_busy and pub_closure_memo_generation
+                if not pub_closure_in_range or not pub_closure_has_code:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_memo_done:
+                    pub_value = pub_root_out.p0.rd_data.result
+                    pub_exec_stage_stack = 1
+                elif pub_closure_memo_busy:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif not pub_closure_valid or pub_closure_opcode != MOP_CLOSURE:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif pub_closure_kind != DATA_SIGNED or pub_closure_env_negative or not pub_closure_env_ok:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_memo_pending = 1
+                    pub_exec_memo_address = pub_closure_address
+                    pub_exec_memo_data = red2_pub_root_t(
+                        generation=pub_generation, state=PUB_ROOT_RESERVED, result=0, aux=pub_mat_count
+                    )
+                    pub_exec_pending_count = 2
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_CLOSURE_DONE, a=pub_closure_address,
+                        b=pub_mat_count, c=0, d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_pending1 = red2_pub_task_t(
+                        kind=PUB_TASK_CLOSURE_CODE, a=pub_closure_address + 1,
+                        b=memory_out.p0.rd_data.lo[16:0], c=pub_mat_count,
+                        d=0, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_closure_done:
+                pub_closure_done_generation: uint1_t = pub_root_out.p0.rd_data.generation == pub_generation
+                pub_closure_done_reserved: uint1_t = pub_root_out.p0.rd_data.state == PUB_ROOT_RESERVED
+                pub_closure_done_reserved = pub_closure_done_reserved and pub_closure_done_generation
+                pub_closure_done_expected: uint17_t = pub_destination + pub_current_task.b
+                if not pub_closure_done_reserved:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif pub_value != pub_closure_done_expected:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_memo_pending = 1
+                    pub_exec_memo_address = pub_current_task.a
+                    pub_exec_memo_data = red2_pub_root_t(
+                        generation=pub_generation, state=PUB_ROOT_DONE,
+                        result=pub_value, aux=pub_current_task.b,
+                    )
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_closure_code:
+                pub_closure_code_slot: uint17_t = pub_current_task.a
+                pub_closure_code_in_range: uint1_t = pub_closure_code_slot[16:GRAPH_ADDR_BITS] == 0
+                pub_closure_code_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_closure_code_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_closure_code_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_closure_code_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                pub_closure_code_target_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                if not pub_closure_code_in_range or not pub_closure_code_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_code_opcode != MOP_NONE:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_code_kind != DATA_SIGNED or pub_closure_code_negative or not pub_closure_code_target_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_pending_count = 1
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_CLOSURE_SCAN,
+                        a=memory_out.p0.rd_data.lo[16:0], b=pub_current_task.b,
+                        c=0, d=pub_current_task.c, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_closure_scan:
+                pub_closure_scan_cursor: uint17_t = pub_current_task.a
+                pub_closure_scan_in_range: uint1_t = pub_closure_scan_cursor[16:GRAPH_ADDR_BITS] == 0
+                pub_closure_scan_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_closure_scan_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                if not pub_closure_scan_in_range or not pub_closure_scan_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_scan_opcode == MOP_LAMBDA:
+                    pub_closure_scan_capacity: uint1_t = pub_mat_count != GRAPH_WORDS
+                    if not pub_closure_scan_capacity:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_mat_pending = 1
+                        pub_exec_mat_index = pub_mat_count
+                        pub_exec_mat_word = red2_word_t(
+                            lo=memory_out.p0.rd_data.lo,
+                            hi=memory_out.p0.rd_data.hi & 132644863,
+                        )
+                        pub_mat_count = pub_mat_count + 1
+                        pub_exec_pending_count = 1
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_CLOSURE_SCAN, a=pub_closure_scan_cursor + 1,
+                            b=pub_current_task.b, c=pub_current_task.c + 1,
+                            d=pub_current_task.d, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_current_task.c == 0:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_pending_count = 1
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_CLOSURE_BODY, a=pub_closure_scan_cursor,
+                        b=pub_current_task.b, c=pub_current_task.c, d=pub_current_task.d,
+                        e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+            elif pub_current_is_closure_body:
+                pub_closure_body_cursor: uint17_t = pub_current_task.a
+                pub_closure_body_in_range: uint1_t = pub_closure_body_cursor[16:GRAPH_ADDR_BITS] == 0
+                pub_closure_body_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_closure_body_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_closure_body_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_closure_body_head: uint1_t = memory_out.p0.rd_data.hi[20]
+                pub_closure_body_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                pub_closure_body_upper: uint1_t = memory_out.p0.rd_data.lo[62:17] != 0
+                if not pub_closure_body_in_range or not pub_closure_body_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_body_opcode != MOP_VAR:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                elif pub_closure_body_kind != DATA_SIGNED or pub_closure_body_negative or pub_closure_body_upper:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_closure_body_head:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_closure_body_index64: uint64_t = memory_out.p0.rd_data.lo
+                    pub_closure_body_depth64: uint64_t = pub_current_task.c
+                    pub_closure_body_gap64: uint64_t = pub_closure_body_index64 - pub_closure_body_depth64
+                    pub_closure_body_local: uint1_t = pub_closure_body_gap64[63]
+                    if pub_closure_body_local:
+                        pub_closure_body_capacity: uint1_t = pub_mat_count != GRAPH_WORDS
+                        if not pub_closure_body_capacity:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            pub_exec_mat_pending = 1
+                            pub_exec_mat_index = pub_mat_count
+                            pub_exec_mat_word = red2_word_t(
+                                lo=memory_out.p0.rd_data.lo,
+                                hi=(memory_out.p0.rd_data.hi & 132644863) | 1048576,
+                            )
+                            pub_mat_count = pub_mat_count + 1
+                            pub_value = pub_destination + pub_current_task.d
+                            pub_exec_stage_stack = 1
+                    else:
+                        pub_exec_pending_count = 1
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_CLOSURE_ENV, a=pub_current_task.b,
+                            b=pub_closure_body_gap64[16:0], c=pub_current_task.d,
+                            d=0, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+            elif pub_current_is_closure_env:
+                pub_closure_env_cursor: uint17_t = pub_current_task.a
+                pub_closure_env_in_range: uint1_t = pub_closure_env_cursor[16:GRAPH_ADDR_BITS] == 0
+                pub_closure_env_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_closure_env_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_closure_env_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                pub_closure_env_defvalid: uint1_t = memory_out.p0.rd_data.hi[16]
+                pub_closure_env_is_pnp: uint1_t = pub_closure_env_opcode == MOP_PNP
+                pub_closure_env_is_int: uint1_t = pub_closure_env_opcode == MOP_INT
+                pub_closure_env_is_float: uint1_t = pub_closure_env_opcode == MOP_FLOAT
+                pub_closure_env_is_char: uint1_t = pub_closure_env_opcode == MOP_CHAR
+                pub_closure_env_is_sym: uint1_t = pub_closure_env_opcode == MOP_SYM
+                pub_closure_env_sym_shareable: uint1_t = pub_closure_env_is_sym and not pub_closure_env_defvalid
+                pub_closure_env_atomic: uint1_t = pub_closure_env_is_int or pub_closure_env_is_float
+                pub_closure_env_atomic = pub_closure_env_atomic or pub_closure_env_is_char
+                pub_closure_env_atomic = pub_closure_env_atomic or pub_closure_env_sym_shareable
+                if not pub_closure_env_in_range or not pub_closure_env_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif pub_closure_env_is_pnp:
+                    pub_closure_env_pnp_signed: uint1_t = pub_closure_env_kind == DATA_SIGNED
+                    pub_closure_env_pnp_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                    pub_closure_env_pnp_range: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] == 0
+                    pub_closure_env_hop_limit: uint1_t = pub_current_task.d == GRAPH_WORDS - 1
+                    if not pub_closure_env_pnp_signed or pub_closure_env_pnp_negative or not pub_closure_env_pnp_range:
+                        red2_fault = FAULT_INVALID_ADDRESS
+                        microstate = MICRO_FAULT
+                    elif pub_closure_env_hop_limit:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_pending_count = 1
+                        pub_exec_pending0 = red2_pub_task_t(
+                            kind=PUB_TASK_CLOSURE_ENV, a=memory_out.p0.rd_data.lo[16:0],
+                            b=pub_current_task.b, c=pub_current_task.c,
+                            d=pub_current_task.d + 1, e=0, f=0, flags=0,
+                        )
+                        pub_exec_stage_stack = 1
+                elif pub_current_task.b != 0:
+                    pub_closure_env_is_rec: uint1_t = pub_closure_env_opcode == MOP_REC
+                    pub_closure_env_is_closure: uint1_t = pub_closure_env_opcode == MOP_CLOSURE
+                    pub_closure_env_is_closure_slot: uint1_t = memory_out.p0.rd_data.hi[19]
+                    pub_closure_env_step: uint17_t = 1
+                    if pub_closure_env_is_rec:
+                        pub_closure_env_step = 3
+                    elif pub_closure_env_is_closure or pub_closure_env_is_closure_slot:
+                        pub_closure_env_step = 2
+                    pub_exec_pending_count = 1
+                    pub_exec_pending0 = red2_pub_task_t(
+                        kind=PUB_TASK_CLOSURE_ENV, a=pub_closure_env_cursor + pub_closure_env_step,
+                        b=pub_current_task.b - 1, c=pub_current_task.c,
+                        d=pub_current_task.d, e=0, f=0, flags=0,
+                    )
+                    pub_exec_stage_stack = 1
+                elif pub_closure_env_atomic:
+                    pub_closure_env_capacity: uint1_t = pub_mat_count != GRAPH_WORDS
+                    if not pub_closure_env_capacity:
+                        red2_fault = FAULT_GRAPH_ENV_COLLISION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_mat_pending = 1
+                        pub_exec_mat_index = pub_mat_count
+                        pub_exec_mat_word = red2_word_t(
+                            lo=memory_out.p0.rd_data.lo,
+                            hi=(memory_out.p0.rd_data.hi & 132644863) | 1048576,
+                        )
+                        pub_mat_count = pub_mat_count + 1
+                        pub_value = pub_destination + pub_current_task.c
+                        pub_exec_stage_stack = 1
+                else:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+            elif pub_current_is_app_rewrite:
+                pub_rewrite_address: uint17_t = pub_current_task.a
+                pub_rewrite_address_in_range: uint1_t = pub_rewrite_address[16:GRAPH_ADDR_BITS] == 0
+                pub_rewrite_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+                pub_rewrite_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                pub_rewrite_not_app: uint1_t = pub_rewrite_opcode != MOP_APP
+                if not pub_rewrite_address_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not pub_rewrite_valid or pub_rewrite_not_app:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif pub_value == pub_current_task.b:
+                    pub_exec_stage_stack = 1
+                else:
+                    pub_rewrite_patch_hit: uint1_t = pub_patch_out.p0.rd_data.generation == pub_generation
+                    pub_rewrite_patch_capacity: uint1_t = pub_patch_count != GRAPH_WORDS
+                    if not pub_rewrite_patch_hit and not pub_rewrite_patch_capacity:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_exec_patch_pending = 1
+                        pub_exec_patch_append = not pub_rewrite_patch_hit
+                        pub_exec_patch_address = pub_rewrite_address
+                        pub_exec_patch_word = red2_word_t(
+                            lo=pub_value,
+                            hi=memory_out.p0.rd_data.hi,
+                        )
+                        pub_exec_stage_stack = 1
+            elif pub_current_is_app_operator_done:
+                if pub_value != pub_current_task.b:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_value = pub_current_task.a
+                    pub_exec_stage_stack = 1
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+
+            if pub_exec_stage_stack:
+                pub_sp_high_nonzero: uint1_t = pub_sp[15:PUB_TASK_ADDR_BITS] != 0
+                pub_sp_is_limit: uint1_t = pub_sp == PUB_TASK_WORDS
+                pub_sp_invalid: uint1_t = pub_sp_high_nonzero and not pub_sp_is_limit
+                if pub_sp_invalid:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    pub_exec_base: uint16_t = pub_sp - 1
+                    pub_exec_pending_count16: uint16_t = pub_exec_pending_count
+                    pub_exec_new_sp: uint16_t = pub_exec_base + pub_exec_pending_count16
+                    pub_exec_new_sp_high: uint1_t = pub_exec_new_sp[15:PUB_TASK_ADDR_BITS] != 0
+                    pub_exec_new_sp_is_limit: uint1_t = pub_exec_new_sp == PUB_TASK_WORDS
+                    pub_exec_overflow: uint1_t = pub_exec_new_sp_high and not pub_exec_new_sp_is_limit
+                    if pub_exec_overflow:
+                        red2_fault = FAULT_CONTROL_OVERFLOW
+                        microstate = MICRO_FAULT
+                    else:
+                        pub_pending_count = pub_exec_pending_count
+                        pub_pending0 = pub_exec_pending0
+                        pub_pending1 = pub_exec_pending1
+                        pub_pending2 = pub_exec_pending2
+                        pub_stack_base = pub_exec_base
+                        pub_stack_new_sp = pub_exec_new_sp
+                        pub_stack_index = 0
+                        pub_memo_write_pending = pub_exec_memo_pending
+                        pub_memo_write_address = pub_exec_memo_address
+                        pub_memo_write_data = pub_exec_memo_data
+                        pub_patch_stage_pending = pub_exec_patch_pending
+                        pub_patch_stage_append = pub_exec_patch_append
+                        pub_patch_stage_address = pub_exec_patch_address
+                        pub_patch_stage_word = pub_exec_patch_word
+                        pub_mat_stage_pending = pub_exec_mat_pending
+                        pub_mat_stage_index = pub_exec_mat_index
+                        pub_mat_stage_word = pub_exec_mat_word
+                        if pub_exec_mat_pending:
+                            pub_stack_phase = PUB_STACK_WRITE_MAT
+                        elif pub_exec_memo_pending:
+                            pub_stack_phase = PUB_STACK_WRITE_MEMO
+                        elif pub_exec_patch_pending:
+                            pub_stack_phase = PUB_STACK_WRITE_PATCH
+                        elif pub_exec_pending_count != 0:
+                            pub_stack_phase = PUB_STACK_WRITE_PENDING
+                        else:
+                            pub_stack_phase = PUB_STACK_LOAD_TOP
+                        microstate = MICRO_PUB_STACK
+        if not clock_dispatch_handled and micro_is_pub_stack:
+            clock_dispatch_handled = 1
+            if pub_stack_phase == PUB_STACK_WRITE_MAT:
+                pub_mat_stage_pending = 0
+                if pub_memo_write_pending:
+                    pub_stack_phase = PUB_STACK_WRITE_MEMO
+                elif pub_patch_stage_pending:
+                    pub_stack_phase = PUB_STACK_WRITE_PATCH
+                elif pub_pending_count != 0:
+                    pub_stack_phase = PUB_STACK_WRITE_PENDING
+                    pub_stack_index = 0
+                else:
+                    pub_stack_phase = PUB_STACK_LOAD_TOP
+            elif pub_stack_phase == PUB_STACK_WRITE_MEMO:
+                pub_memo_write_pending = 0
+                if pub_patch_stage_pending:
+                    pub_stack_phase = PUB_STACK_WRITE_PATCH
+                elif pub_pending_count != 0:
+                    pub_stack_phase = PUB_STACK_WRITE_PENDING
+                    pub_stack_index = 0
+                else:
+                    pub_stack_phase = PUB_STACK_LOAD_TOP
+            elif pub_stack_phase == PUB_STACK_WRITE_PATCH:
+                pub_patch_stage_pending = 0
+                if pub_patch_stage_append:
+                    pub_stack_phase = PUB_STACK_APPEND_PATCH
+                elif pub_pending_count != 0:
+                    pub_stack_phase = PUB_STACK_WRITE_PENDING
+                    pub_stack_index = 0
+                else:
+                    pub_stack_phase = PUB_STACK_LOAD_TOP
+            elif pub_stack_phase == PUB_STACK_APPEND_PATCH:
+                pub_patch_stage_append = 0
+                pub_patch_count = pub_patch_count + 1
+                if pub_pending_count != 0:
+                    pub_stack_phase = PUB_STACK_WRITE_PENDING
+                    pub_stack_index = 0
+                else:
+                    pub_stack_phase = PUB_STACK_LOAD_TOP
+            elif pub_stack_phase == PUB_STACK_WRITE_PENDING:
+                pub_stack_next_index: uint2_t = pub_stack_index + 1
+                if pub_stack_next_index == pub_pending_count:
+                    pub_stack_phase = PUB_STACK_LOAD_TOP
+                else:
+                    pub_stack_index = pub_stack_next_index
+            elif pub_stack_phase == PUB_STACK_LOAD_TOP:
+                pub_sp = pub_stack_new_sp
+                pub_pending_count = 0
+                pub_stack_index = 0
+                pub_stack_phase = PUB_STACK_IDLE
+                if pub_stack_new_sp == 0:
+                    pub_current_valid = 0
+                    if pub_resume_kind != PUB_RESUME_JOIN:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    elif pub_mat_count != 0:
+                        pub_destination_in_range: uint1_t = pub_destination[16:GRAPH_ADDR_BITS] == 0
+                        pub_mat_last: uint17_t = pub_destination + pub_mat_count - 1
+                        pub_mat_last_in_range: uint1_t = pub_mat_last[16:GRAPH_ADDR_BITS] == 0
+                        pub_mat_frontier_gap: uint17_t = free_space - pub_mat_last
+                        pub_mat_frontier_wrapped: uint1_t = pub_mat_frontier_gap[16]
+                        pub_mat_frontier_nonzero: uint1_t = pub_mat_frontier_gap != 0
+                        pub_mat_fits: uint1_t = pub_mat_frontier_wrapped == 0
+                        pub_mat_fits = pub_mat_fits and pub_mat_frontier_nonzero
+                        if not pub_destination_in_range or not pub_mat_last_in_range or not pub_mat_fits:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            pub_mat_validate_index = 0
+                            pub_stack_phase = PUB_STACK_VALIDATE_MAT
+                            microstate = MICRO_PUB_STACK
+                    else:
+                        join_publish_word = red2_word_t(lo=pub_value, hi=69337088)
+                        join_needs_ep_cache = 0
+                        join_preserve_fsp = 1
+                        join_published_root = pub_value[15:0]
+                        if pub_patch_count != 0:
+                            pub_patch_commit_pending = 1
+                        else:
+                            pub_resume_kind = PUB_RESUME_NONE
+                        microstate = MICRO_JOIN_PUBLISH
+                else:
+                    pub_current_task = pub_task_out.p0.rd_data
+                    pub_current_valid = 1
+                    microstate = MICRO_PUB_EXEC
+            elif pub_stack_phase == PUB_STACK_VALIDATE_MAT:
+                pub_mat_validate_generation_ok: uint1_t = pub_mat_out.p0.rd_data.generation == pub_generation
+                pub_mat_validate_word: red2_word_t = pub_mat_out.p0.rd_data.word
+                pub_mat_validate_word_valid: uint1_t = pub_mat_validate_word.hi[26]
+                pub_mat_validate_opcode: uint5_t = pub_mat_validate_word.hi[25:21]
+                pub_mat_validate_ok: uint1_t = pub_mat_validate_generation_ok and pub_mat_validate_word_valid
+                if pub_mat_validate_opcode == MOP_APP:
+                    pub_mat_validate_kind: uint2_t = pub_mat_validate_word.hi[18:17]
+                    pub_mat_validate_signed: uint1_t = pub_mat_validate_kind == DATA_SIGNED
+                    pub_mat_validate_negative: uint1_t = pub_mat_validate_word.lo[63]
+                    pub_mat_validate_relative_range: uint1_t = pub_mat_validate_word.lo[63:GRAPH_ADDR_BITS] == 0
+                    pub_mat_validate_relative: uint17_t = pub_mat_validate_word.lo[16:0]
+                    pub_mat_validate_relative_gap: uint17_t = pub_mat_count - pub_mat_validate_relative
+                    pub_mat_validate_relative_wrapped: uint1_t = pub_mat_validate_relative_gap[16]
+                    pub_mat_validate_relative_nonzero: uint1_t = pub_mat_validate_relative_gap != 0
+                    pub_mat_validate_relative_ok: uint1_t = pub_mat_validate_relative_wrapped == 0
+                    pub_mat_validate_relative_ok = pub_mat_validate_relative_ok and pub_mat_validate_relative_nonzero
+                    pub_mat_validate_absolute: uint17_t = pub_destination + pub_mat_validate_relative
+                    pub_mat_validate_absolute_ok: uint1_t = pub_mat_validate_absolute[16:GRAPH_ADDR_BITS] == 0
+                    pub_mat_validate_ok = pub_mat_validate_ok and pub_mat_validate_signed
+                    pub_mat_validate_ok = pub_mat_validate_ok and not pub_mat_validate_negative
+                    pub_mat_validate_ok = pub_mat_validate_ok and pub_mat_validate_relative_range
+                    pub_mat_validate_ok = pub_mat_validate_ok and pub_mat_validate_relative_ok
+                    pub_mat_validate_ok = pub_mat_validate_ok and pub_mat_validate_absolute_ok
+                if not pub_mat_validate_ok:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                else:
+                    pub_mat_validate_next: uint17_t = pub_mat_validate_index + 1
+                    if pub_mat_validate_next == pub_mat_count:
+                        pub_mat_validate_index = 0
+                        pub_stack_phase = PUB_STACK_IDLE
+                        join_publish_word = red2_word_t(lo=pub_value, hi=69337088)
+                        join_needs_ep_cache = 0
+                        join_preserve_fsp = 1
+                        join_published_root = pub_value[15:0]
+                        pub_patch_commit_pending = 1
+                        microstate = MICRO_JOIN_PUBLISH
+                    else:
+                        pub_mat_validate_index = pub_mat_validate_next
+            elif pub_stack_phase == PUB_STACK_COMMIT_MAT:
+                pub_mat_commit_word: red2_word_t = pub_mat_out.p0.rd_data.word
+                pub_mat_commit_opcode: uint5_t = pub_mat_commit_word.hi[25:21]
+                pub_mat_commit_relocated: red2_word_t = pub_mat_commit_word
+                if pub_mat_commit_opcode == MOP_APP:
+                    pub_mat_commit_relative: uint17_t = pub_mat_commit_word.lo[16:0]
+                    pub_mat_commit_absolute: uint17_t = pub_destination + pub_mat_commit_relative
+                    pub_mat_commit_absolute64: uint64_t = pub_mat_commit_absolute
+                    pub_mat_commit_relocated = red2_word_t(
+                        lo=pub_mat_commit_absolute64, hi=pub_mat_commit_word.hi
+                    )
+                pub_mat_stage_word = pub_mat_commit_relocated
+                pub_stack_phase = PUB_STACK_COMMIT_MAT_GRAPH
+            elif pub_stack_phase == PUB_STACK_COMMIT_MAT_GRAPH:
+                pub_mat_commit_next: uint17_t = pub_mat_commit_index + 1
+                if pub_mat_commit_next == pub_mat_count:
+                    pub_mat_final_fsp: uint17_t = pub_destination + pub_mat_count - 1
+                    fsp = pub_mat_final_fsp[15:0]
+                    pub_mat_commit_index = 0
+                    pub_stack_phase = PUB_STACK_IDLE
+                    pub_patch_commit_pending = 0
+                    pub_resume_kind = PUB_RESUME_NONE
+                    microstate = MICRO_JOIN_PUBLISH
+                else:
+                    pub_mat_commit_index = pub_mat_commit_next
+                    pub_stack_phase = PUB_STACK_COMMIT_MAT
+            elif pub_stack_phase == PUB_STACK_COMMIT_ADDR:
+                pub_patch_commit_address = pub_patch_addr_out.p0.rd_data
+                pub_stack_phase = PUB_STACK_COMMIT_ROW
+            elif pub_stack_phase == PUB_STACK_COMMIT_ROW:
+                pub_patch_commit_word = pub_patch_out.p0.rd_data.word
+                pub_stack_phase = PUB_STACK_COMMIT_GRAPH
+            elif pub_stack_phase == PUB_STACK_COMMIT_GRAPH:
+                pub_patch_commit_next: uint17_t = pub_patch_commit_index + 1
+                if pub_patch_commit_next == pub_patch_count:
+                    pub_patch_commit_index = 0
+                    if pub_mat_count != 0:
+                        pub_mat_commit_index = 0
+                        pub_stack_phase = PUB_STACK_COMMIT_MAT
+                    else:
+                        pub_stack_phase = PUB_STACK_IDLE
+                        pub_patch_commit_pending = 0
+                        pub_resume_kind = PUB_RESUME_NONE
+                        microstate = MICRO_JOIN_PUBLISH
+                else:
+                    pub_patch_commit_index = pub_patch_commit_next
+                    pub_stack_phase = PUB_STACK_COMMIT_ADDR
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
         if not clock_dispatch_handled and micro_is_commit_entry:
             clock_dispatch_handled = 1
             committed = 1

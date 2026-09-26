@@ -34,19 +34,24 @@ processor. Task 5 stops at the ready-to-contract boundary: scalar contractions,
 lazy IF/Y semantics and host effects are implemented only by later slices.
 
 `RED2_SCALARS_V1` adds a bounded literal-ID-indexed scalar-op image supplied by
-the host loader. The core never dispatches on primitive strings. Native scalar
-execution is signed 64-bit integer arithmetic/comparison plus boolean and type
-predicates. Integer overflow, divide/modulo by zero, integer division requiring
-a fractional FLOAT result, negative-exponent `EXPT`, and arithmetic/comparison
-that would require floating-point execution fault deterministically with
-`FAULT_UNSUPPORTED_VALUE`; they never inherit Python arbitrary precision or
-Python float arithmetic. Ordinary strict type mismatch remains an unreduced
-(stuck) RED2 spine, matching `AbstractRED2Machine`. Each successful scalar contraction
-decrements `q` exactly once regardless of processor clock count.
+the host loader. The core never dispatches on primitive strings. Integer
+execution remains signed 64-bit, so overflow and divide/modulo by zero fault
+deterministically with `FAULT_UNSUPPORTED_VALUE`; ordinary strict type mismatch
+remains an unreduced (stuck) RED2 spine, matching `AbstractRED2Machine`. Each
+successful scalar contraction decrements `q` exactly once regardless of
+processor clock count.
 
-Float values retain their IEEE-754 binary64 ABI representation, and predicates
-such as `FLOAT?` may inspect the opcode, but Task 6 intentionally provides no
-native floating-point execution unit.
+`RED2_FLOAT_V1` closes the former Chapter-4 FLOAT/mixed-numeric gap with an
+explicit binary64 hardware profile modeled on Pypeline's existing
+`floating_point.py` operators. It supports finite normal values and signed zero,
+mixed INT/FLOAT coercion, `+`, `-`, `*`, `/`, numeric comparisons, `MAX`/`MIN`,
+unary numeric operations, `FLOOR`/`CEILING`, and integral-exponent `EXPT`. The
+profile intentionally does **not** promise full IEEE-754 behavior: subnormals,
+infinities, NaNs, IEEE rounding guarantees, and arbitrary fractional-exponent
+`EXPT` are outside the hardware contract. Concrete models this profile with
+bit-level integer operations rather than Python host floating arithmetic so
+Synth can reproduce the same execution contract using Pypeline's float64
+operators.
 
 `RED2_LAZY_V1` adds non-strict `IF` and `Y`. Boolean `IF` splices only the
 selected branch, including bounded EP-chain chase, without creating a JOIN or

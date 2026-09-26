@@ -708,6 +708,55 @@ def test_typed_join_publishes_shared_app_target_before_reclaim() -> None:
     assert processor.env == 32
 
 
+def test_join_publication_walks_lambda_with_multiple_nested_app_targets_before_reclaim() -> None:
+    codec = RED2ABICodec()
+    machine = _machine([Word(MuredOpcode.INT, 0, True)])
+    state = machine.state
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+    state.memory[5] = Word(MuredOpcode.LAMBDA, "z", False)
+    state.memory[6] = Word(MuredOpcode.APP, 12, False)
+    state.memory[7] = Word(MuredOpcode.APP, 14, False)
+    state.memory[8] = Word(MuredOpcode.SYM, "F", True)
+    state.memory[12] = Word(MuredOpcode.APP, 16, False)
+    state.memory[13] = Word(MuredOpcode.SYM, "G", True)
+    state.memory[14] = Word(MuredOpcode.EP, 29, True)
+    state.memory[16] = Word(MuredOpcode.INT, 7, True)
+    state.memory[29] = Word(MuredOpcode.UBV, 3, False)
+    state.pc = 4
+    state.fsp = 16
+    state.env = 28
+    state.free_space = 28
+    state.phi = 7
+    state.direction = Direction.B
+    state.control_stack[0] = _SubgraphFrame(
+        env=32, free_space=32, prim=None, fire=0
+    )
+    state.c = 0
+    processor = _processor(machine, codec)
+
+    _step_both(machine, processor, codec)
+
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[5] == Word(MuredOpcode.LAMBDA, "z", False)
+    assert state.memory[6] == Word(MuredOpcode.APP, 12, False)
+    assert state.memory[7] == Word(MuredOpcode.APP, 14, False)
+    assert state.memory[12] == Word(MuredOpcode.APP, 16, False)
+    assert state.memory[14] == Word(MuredOpcode.VAR, 4, True)
+    assert state.memory[16] == Word(MuredOpcode.INT, 7, True)
+    assert state.free_space == 32
+    assert state.env == 32
+    assert not machine._graph_references_environment_interval(5, 28, 32)
+
+    published = tuple(processor.memory[3:17])
+    for address in range(28, 32):
+        poison = Word(MuredOpcode.INT, 9000 + address, False)
+        state.memory[address] = poison
+        processor.memory[address] = codec.encode_word(poison)
+    assert tuple(processor.memory[3:17]) == published
+
+
 def test_typed_join_multiword_result_remains_graph_owned() -> None:
     codec = RED2ABICodec()
     machine = _machine([Word(MuredOpcode.INT, 0, True)])
@@ -1076,6 +1125,97 @@ def test_nested_real_app_subgraph_join_sequence_matches_oracle() -> None:
     assert state.env == parent_env
     assert state.free_space == parent_env
     assert state.c == -1
+
+
+def test_nested_subgraphs_restore_environment_frontiers_in_gross_lifo_order() -> None:
+    codec = RED2ABICodec()
+    machine = _machine(
+        [
+            Word(MuredOpcode.INT, 0, False),
+            Word(MuredOpcode.APP, 8, False),
+            Word(MuredOpcode.INT, 1, True),
+        ]
+    )
+    state = machine.state
+    parent_env = state.env
+    state.direction = Direction.B
+    state.pc = 1
+    state.fsp = 2
+    state.control_stack[0] = parent_env
+    state.c = 0
+    state.memory[8] = Word(MuredOpcode.APP, 12, False)
+    state.memory[9] = Word(MuredOpcode.INT, 7, True)
+    state.memory[12] = Word(MuredOpcode.INT, 42, True)
+    processor = _processor(machine, codec)
+
+    # Enter outer child, then run far enough to expose its copied APP.
+    _step_both(machine, processor, codec)
+    _step_both(machine, processor, codec)
+    _step_both(machine, processor, codec)
+    # The outer subgraph frame is at control[0]; evaluating its copied APP has
+    # also pushed the ordinary saved environment path at control[1].
+    assert (state.pc, state.direction, state.c) == (4, Direction.B, 1)
+
+    # Allocate one real environment cell owned by the outer child.
+    outer_owned = Word(MuredOpcode.INT, 111, False)
+    outer_address = machine._allocate_environment(outer_owned)
+    processor.memory[outer_address] = codec.encode_word(outer_owned)
+    processor.env = state.env
+    processor.free_space = state.free_space
+    assert outer_address == parent_env - 1
+    outer_frontier = state.free_space
+    assert processor.checkpoint() == codec.encode_state(state)
+
+    # The copied APP enters a nested subgraph while the logical parent path (64)
+    # differs from the physical frontier (63). RED2 therefore inserts a one-word
+    # PNP bridge at 62 and saves that normalized frontier in the inner frame.
+    _step_both(machine, processor, codec)
+    assert state.c == 1
+    assert isinstance(state.control_stack[1], _SubgraphFrame)
+    inner_frame = state.control_stack[1]
+    bridge_address = outer_frontier - 1
+    assert inner_frame.env == bridge_address
+    assert inner_frame.free_space == bridge_address
+    assert state.memory[bridge_address] == Word(MuredOpcode.PNP, parent_env, False)
+
+    # Allocate one real environment cell owned only by the inner child. It lies
+    # immediately below the bridge, so physical allocation is still strict LIFO.
+    inner_owned = Word(MuredOpcode.INT, 222, False)
+    inner_address = machine._allocate_environment(inner_owned)
+    processor.memory[inner_address] = codec.encode_word(inner_owned)
+    processor.env = state.env
+    processor.free_space = state.free_space
+    assert inner_address == bridge_address - 1
+    assert inner_address < bridge_address < outer_address
+    assert processor.checkpoint() == codec.encode_state(state)
+
+    # Evaluate inner child then JOIN: the inner binding is reclaimed first and
+    # the machine restores exactly to its saved normalized/bridge frontier.
+    _step_both(machine, processor, codec)
+    _step_both(machine, processor, codec)
+    assert state.c == 0
+    assert state.env == bridge_address
+    assert state.free_space == bridge_address
+
+    inner_poison = Word(MuredOpcode.INT, 9222, False)
+    state.memory[inner_address] = inner_poison
+    processor.memory[inner_address] = codec.encode_word(inner_poison)
+    assert processor.checkpoint() == codec.encode_state(state)
+
+    # Outer JOIN then releases the older allocation and restores the parent.
+    _step_both(machine, processor, codec)
+    assert state.c == -1
+    assert state.env == parent_env
+    assert state.free_space == parent_env
+    assert state.memory[1] == Word(MuredOpcode.APP, 4, False)
+    assert state.memory[4] == Word(MuredOpcode.INT, 42, False)
+    assert state.memory[5] == Word(MuredOpcode.INT, 7, True)
+
+    published = tuple(processor.memory[1:6])
+    outer_poison = Word(MuredOpcode.INT, 9111, False)
+    state.memory[outer_address] = outer_poison
+    processor.memory[outer_address] = codec.encode_word(outer_poison)
+    assert tuple(processor.memory[1:6]) == published
 
 
 def test_app_var_malformed_ep_fault_is_architecturally_atomic() -> None:

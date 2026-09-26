@@ -8,6 +8,7 @@ semantics must remain explicit rather than approximated.
 """
 
 from dataclasses import replace
+import sys
 
 from pypeline import sim_call, sim_reset
 
@@ -613,6 +614,551 @@ def _assert_hardware_fault_without_publication(
             _command(CMD_NOP, address=destination),
         )
         assert _packed_memory_read(readback) == encoded.memory[destination]
+
+
+def check_generic_ep_patch_journal() -> None:
+    """Focused A3 slice-2 parity for transactional generic EP publication."""
+
+    codec = RED2ABICodec()
+
+    def simple_join_encoded(
+        parent_word: int,
+        result_word: int,
+        *,
+        parent_address: int = 2,
+        join_address: int = 5,
+        result_address: int = 6,
+        env: int = 30,
+        free_space: int = 30,
+        frame_env: int = 20,
+        frame_free_space: int = 40,
+        frame_tag: int = abi.CONTROL_SUBGRAPH,
+        frame_prim_id: int = 0,
+        frame_fire: int = 0,
+        memory_words: int = 64,
+    ):
+        memory: list[Word | None] = [None] * memory_words
+        memory[parent_address] = Word(MuredOpcode.APP, 9, False)
+        memory[join_address] = Word(MuredOpcode.JOIN, parent_address)
+        machine = AbstractRED2Machine(
+            AbstractRED2MachineState(
+                memory=memory,
+                control_stack=[None] * 32,
+                pc=join_address,
+                fsp=result_address,
+                env=env,
+                c=-1,
+                direction=Direction.B,
+                q=8,
+                phi=5,
+                free_space=free_space,
+                argcnt=1,
+            )
+        )
+        encoded = codec.encode_state(machine.state)
+        packed_memory = list(encoded.memory)
+        packed_memory[parent_address] = parent_word
+        packed_memory[join_address] = abi.pack_word(
+            1, abi.MOP_JOIN, abi.DATA_SIGNED, parent_address, 0, 0, 0, 0
+        )
+        packed_memory[result_address] = result_word
+        controls = list(encoded.control_stack)
+        controls[0] = abi.pack_control_entry(
+            frame_tag, frame_env, frame_free_space, frame_prim_id, frame_fire
+        )
+        return replace(
+            encoded,
+            memory=tuple(packed_memory),
+            control_stack=tuple(controls),
+            c=1,
+        )
+
+    def generic_ep_join_encoded(
+        terminal_word: int,
+        *,
+        ep_target: int = 29,
+        memory_words: int = 64,
+    ):
+        encoded = simple_join_encoded(
+            abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+            abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+            parent_address=3,
+            join_address=4,
+            result_address=5,
+            env=28,
+            free_space=28,
+            frame_env=32,
+            frame_free_space=32,
+            memory_words=memory_words,
+        )
+        memory = list(encoded.memory)
+        memory[6] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0
+        )
+        memory[7] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0
+        )
+        memory[8] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+        )
+        memory[20] = abi.pack_word(
+            1, abi.MOP_EP, abi.DATA_SIGNED, ep_target, 1, 0, 1, 12
+        )
+        memory[21] = abi.pack_word(
+            1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+        )
+        memory[22] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 77, 1, 0, 0, 0
+        )
+        memory[ep_target] = terminal_word
+        return replace(
+            encoded,
+            memory=tuple(memory),
+            fsp=8,
+            q=0,
+            phi=7,
+            argcnt=0,
+        )
+
+    generic_ep_atomic = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 41, 0, 0, 0, 0)
+    )
+    generic_ep_atomic_original = generic_ep_atomic.memory[20]
+    result, expected = _run_encoded_to_same_commit(
+        generic_ep_atomic, max_clocks=1200
+    )
+    assert expected.memory[20] != generic_ep_atomic_original
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 22, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic EP->atomic publication mismatch at {address}"
+        )
+
+    generic_ep_ubv = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_UBV, abi.DATA_SIGNED, 3, 0, 0, 0, 0)
+    )
+    generic_ep_ubv_original = generic_ep_ubv.memory[20]
+    result, expected = _run_encoded_to_same_commit(
+        generic_ep_ubv, max_clocks=1200
+    )
+    assert expected.memory[20] != generic_ep_ubv_original
+    for address in (3, 5, 6, 7, 8, 20, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic EP->UBV publication mismatch at {address}"
+        )
+
+    generic_ep_outside = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 99, 0, 0, 0, 0),
+        ep_target=27,
+    )
+    generic_ep_outside_original = generic_ep_outside.memory[20]
+    result, expected = _run_encoded_to_same_commit(
+        generic_ep_outside, max_clocks=1200
+    )
+    assert expected.memory[20] == generic_ep_outside_original
+    for address in (3, 5, 6, 7, 8, 20, 27):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic outside-interval EP publication mismatch at {address}"
+        )
+
+    generic_ep_late_bad = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 41, 0, 0, 0, 0)
+    )
+    generic_ep_late_bad_memory = list(generic_ep_late_bad.memory)
+    generic_ep_late_bad_memory[22] = abi.pack_word(
+        1, abi.MOP_EP, abi.DATA_SIGNED, 300, 1, 0, 0, 0
+    )
+    generic_ep_late_bad = replace(
+        generic_ep_late_bad, memory=tuple(generic_ep_late_bad_memory)
+    )
+    generic_ep_late_bad_initial_memory = tuple(generic_ep_late_bad.memory)
+    generic_ep_late_bad_initial_control = tuple(generic_ep_late_bad.control_stack)
+    result, expected, fault = _run_encoded_to_same_fault(
+        generic_ep_late_bad, max_clocks=1600
+    )
+    assert fault == abi.FAULT_INVALID_ADDRESS
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 22, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == generic_ep_late_bad_initial_memory[address], (
+            f"generic late-EP fault leaked publication at {address}"
+        )
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == generic_ep_late_bad_initial_control[0]
+
+    # Two APP descriptors may share one EP descriptor. Keep three distinct target
+    # roots overall so this cannot use the older bounded two-target publisher.
+    generic_ep_shared = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 41, 0, 0, 0, 0)
+    )
+    generic_ep_shared_memory = list(generic_ep_shared.memory)
+    generic_ep_shared_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0
+    )
+    generic_ep_shared_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0
+    )
+    generic_ep_shared_memory[8] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0
+    )
+    generic_ep_shared_memory[9] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    generic_ep_shared = replace(
+        generic_ep_shared, memory=tuple(generic_ep_shared_memory), fsp=9
+    )
+    generic_ep_shared_original = generic_ep_shared.memory[20]
+    result, expected = _run_encoded_to_same_commit(
+        generic_ep_shared, max_clocks=1800
+    )
+    assert expected.memory[20] != generic_ep_shared_original
+    for address in (3, 5, 6, 7, 8, 9, 20, 21, 22, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic shared-EP publication mismatch at {address}"
+        )
+
+    # A generic APP target may recursively contain an EP target. This proves the
+    # journal composes with nested APP traversal rather than only direct EP roots.
+    generic_ep_nested = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 55, 0, 0, 0, 0)
+    )
+    generic_ep_nested_memory = list(generic_ep_nested.memory)
+    generic_ep_nested_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0
+    )
+    generic_ep_nested_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 23, 0, 0, 0, 0
+    )
+    generic_ep_nested_memory[20] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 24, 0, 0, 0, 0
+    )
+    generic_ep_nested_memory[21] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 5, 1, 0, 0, 0
+    )
+    generic_ep_nested_memory[22] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+    )
+    generic_ep_nested_memory[23] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 77, 1, 0, 0, 0
+    )
+    generic_ep_nested_memory[24] = abi.pack_word(
+        1, abi.MOP_EP, abi.DATA_SIGNED, 29, 1, 0, 1, 9
+    )
+    generic_ep_nested = replace(
+        generic_ep_nested, memory=tuple(generic_ep_nested_memory)
+    )
+    generic_ep_nested_original = generic_ep_nested.memory[24]
+    result, expected = _run_encoded_to_same_commit(
+        generic_ep_nested, max_clocks=1800
+    )
+    assert expected.memory[24] != generic_ep_nested_original
+    for address in (3, 5, 6, 7, 8, 20, 21, 22, 23, 24, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic nested APP->EP publication mismatch at {address}"
+        )
+
+    # STRUCT is the semantic source of embedded EP publication. Force the generic
+    # publisher with three distinct APP roots, then place an EP->UBV descriptor in
+    # the STRUCT. Concrete must rewrite that descriptor to APP_VAR, not root VAR.
+    generic_struct_ep = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3,
+        join_address=4,
+        result_address=5,
+        env=28,
+        free_space=28,
+        frame_env=32,
+        frame_free_space=32,
+        memory_words=64,
+    )
+    generic_struct_ep_memory = list(generic_struct_ep.memory)
+    generic_struct_ep_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 23, 0, 0, 0, 0
+    )
+    generic_struct_ep_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 24, 0, 0, 0, 0
+    )
+    generic_struct_ep_memory[8] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    generic_struct_ep_memory[20] = abi.pack_word(
+        1, abi.MOP_STRUCT, abi.DATA_LITERAL_ID, 700, 1, 0, 0, 0
+    )
+    generic_struct_ep_memory[21] = abi.pack_word(
+        1, abi.MOP_EP, abi.DATA_SIGNED, 29, 1, 0, 1, 12
+    )
+    generic_struct_ep_memory[22] = abi.pack_word(
+        1, abi.MOP_VAR, abi.DATA_SIGNED, 0, 0, 0, 0, 0
+    )
+    generic_struct_ep_memory[23] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+    )
+    generic_struct_ep_memory[24] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 77, 1, 0, 0, 0
+    )
+    generic_struct_ep_memory[29] = abi.pack_word(
+        1, abi.MOP_UBV, abi.DATA_SIGNED, 3, 0, 0, 0, 0
+    )
+    generic_struct_ep = replace(
+        generic_struct_ep,
+        memory=tuple(generic_struct_ep_memory),
+        fsp=8,
+        q=0,
+        phi=7,
+        argcnt=0,
+    )
+    generic_struct_ep_original = generic_struct_ep.memory[21]
+    result, expected = _run_encoded_to_same_commit(
+        generic_struct_ep, max_clocks=2000
+    )
+    assert expected.memory[21] != generic_struct_ep_original
+    assert expected.memory[21] == abi.pack_word(
+        1, abi.MOP_APP_VAR, abi.DATA_SIGNED, 4, 1, 0, 1, 12
+    )
+    for address in (3, 5, 6, 7, 8, 20, 21, 22, 23, 24, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"generic embedded STRUCT EP publication mismatch at {address}"
+        )
+
+    # Use a 256-word encoded image so Concrete and hardware have the same exact
+    # EP hop bound. A two-node cycle must hit that bound without graph/control
+    # publication escaping the transaction.
+    generic_ep_cycle = generic_ep_join_encoded(
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 1, 0, 0, 0, 0),
+        memory_words=256,
+    )
+    generic_ep_cycle_memory = list(generic_ep_cycle.memory)
+    generic_ep_cycle_memory[29] = abi.pack_word(
+        1, abi.MOP_EP, abi.DATA_SIGNED, 30, 0, 0, 0, 0
+    )
+    generic_ep_cycle_memory[30] = abi.pack_word(
+        1, abi.MOP_EP, abi.DATA_SIGNED, 29, 0, 0, 0, 0
+    )
+    generic_ep_cycle = replace(
+        generic_ep_cycle, memory=tuple(generic_ep_cycle_memory)
+    )
+    generic_ep_cycle_initial_memory = tuple(generic_ep_cycle.memory)
+    generic_ep_cycle_initial_control = tuple(generic_ep_cycle.control_stack)
+    result, expected, fault = _run_encoded_to_same_fault(
+        generic_ep_cycle, max_clocks=6000
+    )
+    assert fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 22, 29, 30):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == generic_ep_cycle_initial_memory[address], (
+            f"generic EP cycle leaked publication at {address}"
+        )
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == generic_ep_cycle_initial_control[0]
+
+
+def check_generic_closure_materialization() -> None:
+    """Focused A3 slice-3 parity for transactional closure allocation."""
+
+    codec = RED2ABICodec()
+
+    def direct_join_closure_encoded(
+        *,
+        fsp: int = 21,
+        lambda_count: int = 1,
+        body_index: int = 1,
+    ):
+        memory: list[Word | None] = [None] * 64
+        memory[3] = Word(MuredOpcode.APP, 9, False)
+        memory[4] = Word(MuredOpcode.JOIN, 3)
+        machine = AbstractRED2Machine(
+            AbstractRED2MachineState(
+                memory=memory,
+                control_stack=[None] * 32,
+                pc=4,
+                fsp=5,
+                env=28,
+                c=-1,
+                direction=Direction.B,
+                q=8,
+                phi=5,
+                free_space=28,
+                argcnt=1,
+            )
+        )
+        encoded = codec.encode_state(machine.state)
+        packed = list(encoded.memory)
+        packed[3] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0
+        )
+        packed[4] = abi.pack_word(
+            1, abi.MOP_JOIN, abi.DATA_SIGNED, 3, 0, 0, 0, 0
+        )
+        packed[5] = abi.pack_word(
+            1, abi.MOP_EP, abi.DATA_SIGNED, 28, 1, 0, 0, 0
+        )
+        for lambda_index in range(lambda_count):
+            packed[20 + lambda_index] = abi.pack_word(
+                1,
+                abi.MOP_LAMBDA,
+                abi.DATA_LITERAL_ID,
+                lambda_index + 1,
+                0,
+                0,
+                1 if lambda_index == 0 else 0,
+                13 if lambda_index == 0 else 0,
+            )
+        packed[20 + lambda_count] = abi.pack_word(
+            1, abi.MOP_VAR, abi.DATA_SIGNED, body_index, 1, 0, 0, 0
+        )
+        packed[28] = abi.pack_word(
+            1, abi.MOP_CLOSURE, abi.DATA_SIGNED, 30, 0, 0, 0, 0
+        )
+        packed[29] = abi.pack_word(
+            1, abi.MOP_NONE, abi.DATA_SIGNED, 20, 0, 0, 0, 0
+        )
+        packed[30] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 42, 0, 0, 0, 0
+        )
+        packed[31] = abi.pack_word(
+            1, abi.MOP_PNP, abi.DATA_SIGNED, 64, 0, 0, 0, 0
+        )
+        controls = list(encoded.control_stack)
+        controls[0] = abi.pack_control_entry(
+            abi.CONTROL_SUBGRAPH, 32, 32, 0, 0
+        )
+        return replace(
+            encoded,
+            memory=tuple(packed),
+            control_stack=tuple(controls),
+            c=1,
+            fsp=fsp,
+        )
+
+    # One allocating root through the normal one-target JOIN path. Two lambdas make
+    # source 20..22 overlap destination 22..24, proving scratch-before-commit.
+    overlap = direct_join_closure_encoded(fsp=21, lambda_count=2, body_index=0)
+    result, expected = _run_encoded_to_same_commit(overlap, max_clocks=3000)
+    assert expected.fsp == 24
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 5, 20, 21, 22, 23, 24, 28, 29, 30, 31):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"slice-3 overlap mismatch at {address}"
+        )
+
+    # The final allocated row may occupy exactly free_space-1.
+    frontier = direct_join_closure_encoded(fsp=25, body_index=0)
+    result, expected = _run_encoded_to_same_commit(frontier, max_clocks=3000)
+    assert expected.fsp == 27
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 5, 20, 21, 26, 27, 28, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"slice-3 exact-frontier mismatch at {address}"
+        )
+
+    # Moving the same two-row allocation one word forward would consume free_space.
+    # The transaction must fault before graph/control publication.
+    overflow = direct_join_closure_encoded(fsp=26, body_index=0)
+    initial_memory = tuple(overflow.memory)
+    initial_control = tuple(overflow.control_stack)
+    result, expected, fault = _run_encoded_to_same_fault(
+        overflow, max_clocks=3000
+    )
+    assert fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 5, 20, 21, 27, 28, 29):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == initial_memory[address], (
+            f"slice-3 overflow leaked graph publication at {address}"
+        )
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == initial_control[0]
+
+    # Two distinct EP roots share one CLOSURE target. Four APP targets force the
+    # generic walker, and closure memoization must allocate the lambda graph once.
+    memory = [None] * 64
+    memory[3] = Word(MuredOpcode.APP, 9, False)
+    memory[4] = Word(MuredOpcode.JOIN, 3)
+    machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=memory,
+            control_stack=[None] * 32,
+            pc=4,
+            fsp=5,
+            env=28,
+            c=-1,
+            direction=Direction.B,
+            q=0,
+            phi=7,
+            free_space=28,
+            argcnt=0,
+        )
+    )
+    shared = codec.encode_state(machine.state)
+    packed = list(shared.memory)
+    packed[3] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0)
+    packed[4] = abi.pack_word(1, abi.MOP_JOIN, abi.DATA_SIGNED, 3, 0, 0, 0, 0)
+    packed[5] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0)
+    packed[6] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0)
+    packed[7] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0)
+    packed[8] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 23, 0, 0, 0, 0)
+    packed[9] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0)
+    packed[20] = abi.pack_word(1, abi.MOP_EP, abi.DATA_SIGNED, 29, 1, 0, 0, 0)
+    packed[21] = abi.pack_word(1, abi.MOP_EP, abi.DATA_SIGNED, 29, 1, 0, 0, 0)
+    packed[22] = abi.pack_word(1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0)
+    packed[23] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 77, 1, 0, 0, 0)
+    packed[24] = abi.pack_word(1, abi.MOP_LAMBDA, abi.DATA_LITERAL_ID, 1, 0, 0, 0, 0)
+    packed[25] = abi.pack_word(1, abi.MOP_VAR, abi.DATA_SIGNED, 1, 1, 0, 0, 0)
+    packed[29] = abi.pack_word(1, abi.MOP_CLOSURE, abi.DATA_SIGNED, 31, 0, 0, 0, 0)
+    packed[30] = abi.pack_word(1, abi.MOP_NONE, abi.DATA_SIGNED, 24, 0, 0, 0, 0)
+    packed[31] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 42, 0, 0, 0, 0)
+    controls = list(shared.control_stack)
+    controls[0] = abi.pack_control_entry(abi.CONTROL_SUBGRAPH, 32, 32, 0, 0)
+    shared = replace(
+        shared,
+        memory=tuple(packed),
+        control_stack=tuple(controls),
+        c=1,
+        fsp=9,
+    )
+    result, expected = _run_encoded_to_same_commit(shared, max_clocks=5000)
+    assert expected.fsp == 11
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (
+        3, 5, 6, 7, 8, 9, 10, 11, 20, 21, 22, 23, 24, 25, 29, 30, 31
+    ):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected.memory[address], (
+            f"slice-3 shared-closure mismatch at {address}"
+        )
 
 
 def check() -> None:
@@ -2731,6 +3277,56 @@ def check() -> None:
     result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
     assert _packed_control_read(result) == expected.control_stack[0]
 
+    # A1 frozen gap witness: EP -> REC inside the reclaim interval must publish
+    # the recursive residual before JOIN restores the frame. Current Synth stops
+    # at the explicit REC terminal gap before any architectural publication.
+    rec_state = AbstractRED2MachineState(
+        memory=[None] * 64, control_stack=[None] * 8,
+        pc=4, fsp=21, env=28, free_space=28, c=0,
+        direction=Direction.B, q=0, phi=0,
+    )
+    rec_state.memory[2] = Word(MuredOpcode.STOP)
+    rec_state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    rec_state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+    rec_state.memory[5] = Word(MuredOpcode.EP, 28, True)
+    rec_state.memory[10] = Word(MuredOpcode.RBLOCK, 20, False)
+    rec_state.memory[11] = Word(MuredOpcode.RUP, 1, False)
+    rec_state.memory[12] = Word(MuredOpcode.VAR, 0, True)
+    rec_state.memory[20] = Word(MuredOpcode.SYM, "x", False)
+    rec_state.memory[21] = Word(MuredOpcode.INT, 7, True)
+    rec_state.memory[28] = Word(MuredOpcode.REC, 21, False)
+    rec_state.memory[29] = Word(None, 28, False)
+    rec_state.memory[30] = Word(None, 10, False)
+    rec_state.memory[31] = Word(MuredOpcode.PNP, 64, False)
+    rec_state.control_stack[0] = _SubgraphFrame(
+        env=32, free_space=32, prim=None, fire=0
+    )
+    join_ep_rec = codec.encode_state(rec_state)
+    rec_oracle = ConcreteRED2Machine(join_ep_rec)
+    assert rec_oracle.run_to_commit(), rec_oracle.fault
+    rec_expected = rec_oracle.checkpoint()
+    assert rec_expected.pc == 2
+    assert rec_expected.fsp == 24
+    assert rec_expected.env == 32 and rec_expected.free_space == 32
+    rec_initial_memory = tuple(join_ep_rec.memory)
+    rec_initial_control = tuple(join_ep_rec.control_stack)
+    _load_hardware(join_ep_rec)
+    rec_result = None
+    for _ in range(96):
+        rec_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+        if int(rec_result.status) == STATUS_FAULT:
+            break
+    else:
+        raise AssertionError("EP-to-REC witness did not reach hardware gap")
+    assert rec_result is not None
+    assert int(rec_result.red2_fault) == abi.FAULT_NONE
+    assert int(rec_result.hw_fault) == HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+    for address in (3, 4, 5, 10, 11, 12, 20, 21, 28, 29, 30, 31):
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(readback) == rec_initial_memory[address]
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == rec_initial_control[0]
+
     join_ep_cycle = join_ep_result_encoded(
         abi.pack_word(1, abi.MOP_EP, abi.DATA_SIGNED, 30, 0, 0, 0, 0),
         extra_words={
@@ -2900,7 +3496,7 @@ def check() -> None:
         return replace(encoded, memory=tuple(memory), fsp=fsp)
 
     join_closure_captured = join_closure_encoded()
-    result, expected = _run_encoded_to_same_commit(join_closure_captured)
+    result, expected = _run_encoded_to_same_commit(join_closure_captured, max_clocks=300)
     assert expected.pc == 2
     assert expected.fsp == 23
     assert expected.env == 32
@@ -2915,7 +3511,7 @@ def check() -> None:
     assert _packed_control_read(result) == expected.control_stack[0]
 
     join_closure_local = join_closure_encoded(body_index=0)
-    result, expected = _run_encoded_to_same_commit(join_closure_local)
+    result, expected = _run_encoded_to_same_commit(join_closure_local, max_clocks=300)
     assert expected.fsp == 23
     for address in (3, 22, 23):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
@@ -2931,7 +3527,7 @@ def check() -> None:
         lambda_definition_valid=1,
         lambda_definition=13,
     )
-    result, expected = _run_encoded_to_same_commit(join_closure_char)
+    result, expected = _run_encoded_to_same_commit(join_closure_char, max_clocks=300)
     for address in (3, 22, 23):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
         assert _packed_memory_read(result) == expected.memory[address], (
@@ -2946,7 +3542,7 @@ def check() -> None:
             32: abi.pack_word(1, abi.MOP_PNP, abi.DATA_SIGNED, 64, 0, 0, 0, 0),
         },
     )
-    result, expected = _run_encoded_to_same_commit(join_closure_var2)
+    result, expected = _run_encoded_to_same_commit(join_closure_var2, max_clocks=300)
     result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=23))
     assert _packed_memory_read(result) == expected.memory[23]
 
@@ -2957,13 +3553,13 @@ def check() -> None:
             41: abi.pack_word(1, abi.MOP_PNP, abi.DATA_SIGNED, 64, 0, 0, 0, 0),
         }
     )
-    result, expected = _run_encoded_to_same_commit(join_closure_pnp)
+    result, expected = _run_encoded_to_same_commit(join_closure_pnp, max_clocks=300)
     result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=23))
     assert _packed_memory_read(result) == expected.memory[23]
 
     # Malformed closure inputs must fail before any publication write.
     join_closure_missing_env = join_closure_encoded(env_words={})
-    result, expected, fault = _run_encoded_to_same_fault(join_closure_missing_env)
+    result, expected, fault = _run_encoded_to_same_fault(join_closure_missing_env, max_clocks=300)
     assert fault == abi.FAULT_INVALID_ADDRESS
     for address in (3, 5, 22, 23, 30):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
@@ -2979,7 +3575,7 @@ def check() -> None:
     join_closure_bad_code = replace(
         join_closure_bad_code, memory=tuple(bad_code_memory)
     )
-    result, expected, fault = _run_encoded_to_same_fault(join_closure_bad_code)
+    result, expected, fault = _run_encoded_to_same_fault(join_closure_bad_code, max_clocks=300)
     assert fault == abi.FAULT_INVALID_ADDRESS
     for address in (3, 5, 22, 23, 29):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
@@ -2991,7 +3587,7 @@ def check() -> None:
         }
     )
     result, expected, fault = _run_encoded_to_same_fault(
-        join_closure_pnp_cycle, max_clocks=300
+        join_closure_pnp_cycle, max_clocks=1200
     )
     assert fault == abi.FAULT_ILLEGAL_TRANSITION
     for address in (3, 5, 22, 23, 30):
@@ -3001,35 +3597,24 @@ def check() -> None:
     assert _packed_control_read(result) == expected.control_stack[0]
 
     # Two leading lambdas make this compact fixture's source 20..22 overlap the
-    # destination 22..24.  The oracle is safe because it materializes into scratch;
-    # until hardware has equivalent scratch, this case must fail explicitly before
-    # the first write rather than corrupting the source while copying it.
+    # destination 22..24. Generic materialization reads the complete source into
+    # private scratch before commit, so overlap is now safe and must match Concrete.
     join_closure_overlap = join_closure_encoded(lambda_count=2, body_index=0)
-    overlap_initial_memory = tuple(join_closure_overlap.memory)
-    overlap_initial_control = tuple(join_closure_overlap.control_stack)
-    _load_hardware(join_closure_overlap)
-    overlap_result = None
-    for _ in range(64):
-        overlap_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-        if int(overlap_result.status) == STATUS_FAULT:
-            break
-    else:
-        raise AssertionError("overlapping closure materialization did not fault")
-    assert overlap_result is not None
-    assert int(overlap_result.red2_fault) == abi.FAULT_NONE
-    assert int(overlap_result.hw_fault) == HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-    for address in (3, 5, 20, 21, 22, 23, 24):
-        overlap_result = sim_call(
-            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+    result, expected = _run_encoded_to_same_commit(join_closure_overlap, max_clocks=3000)
+    assert expected.fsp == 24
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 5, 20, 21, 22, 23, 24, 28, 29, 30, 31):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address], (
+            f"overlapping closure materialization mismatch at {address}"
         )
-        assert _packed_memory_read(overlap_result) == overlap_initial_memory[address]
-    overlap_result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
-    assert _packed_control_read(overlap_result) == overlap_initial_control[0]
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(result) == expected.control_stack[0]
 
     # The oracle materializes into scratch first and only then capacity-checks.
     # Hardware must therefore fault before publishing any graph/control mutation.
     join_closure_no_space = join_closure_encoded(fsp=26)
-    result, expected, fault = _run_encoded_to_same_fault(join_closure_no_space)
+    result, expected, fault = _run_encoded_to_same_fault(join_closure_no_space, max_clocks=300)
     assert fault == abi.FAULT_GRAPH_ENV_COLLISION
     for address in (3, 22, 23, 27):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
@@ -3192,7 +3777,7 @@ def check() -> None:
         1, abi.MOP_PNP, abi.DATA_SIGNED, 64, 0, 0, 0, 0
     )
     mixed_closure = replace(mixed_closure, memory=tuple(mixed_closure_memory), fsp=22)
-    result, expected = _run_encoded_to_same_commit(mixed_closure)
+    result, expected = _run_encoded_to_same_commit(mixed_closure, max_clocks=1200)
     for address in (5, 7, 8, 9, 20, 23, 24):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
         assert _packed_memory_read(result) == expected.memory[address], (
@@ -3227,7 +3812,7 @@ def check() -> None:
     shared_app_closure = replace(
         shared_app_closure, memory=tuple(shared_closure_memory), fsp=21
     )
-    result, expected = _run_encoded_to_same_commit(shared_app_closure)
+    result, expected = _run_encoded_to_same_commit(shared_app_closure, max_clocks=1200)
     assert expected.fsp == 23
     assert expected.s_a == 8
     for address in (5, 7, 8, 9, 10, 22, 23, 28, 29, 30, 31):
@@ -3293,6 +3878,325 @@ def check() -> None:
             )
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
         assert _packed_control_read(result) == expected.control_stack[0]
+
+    # A3 slice-1 regression: generic publication has no two-target cardinality
+    # limit. Three distinct APP targets must now commit identically to Concrete.
+    third_target = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    third_memory = list(third_target.memory)
+    third_memory[6] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0)
+    third_memory[7] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0)
+    third_memory[8] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0)
+    third_memory[20] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 41, 1, 0, 0, 0)
+    third_memory[21] = abi.pack_word(1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0)
+    third_memory[22] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 77, 1, 0, 0, 0)
+    third_target = replace(third_target, memory=tuple(third_memory), fsp=8, q=0, phi=7, argcnt=0)
+    third_oracle = ConcreteRED2Machine(third_target)
+    assert third_oracle.run_to_commit(), third_oracle.fault
+    third_expected = third_oracle.checkpoint()
+    assert third_expected.pc == 2 and third_expected.fsp == 8
+    assert third_expected.env == 32 and third_expected.free_space == 32
+    assert third_expected.s_a == 6
+    third_result, third_expected = _run_encoded_to_same_commit(third_target, max_clocks=600)
+    assert third_expected.pc == 2 and third_expected.fsp == 8
+    assert third_expected.env == 32 and third_expected.free_space == 32
+    assert third_expected.s_a == 6
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 22):
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(readback) == third_expected.memory[address], (
+            f"three-target generic publication mismatch at {address}"
+        )
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == third_expected.control_stack[0]
+
+    # A3 slice-2 transactional generic EP publication. Keep these proof legs in a
+    # separately runnable helper so they can be exercised without paying for the
+    # complete native parity suite's elaboration/runtime on every publisher edit.
+    check_generic_ep_patch_journal()
+
+    # A3 slice-1 regression: an APP target may itself be an APP graph. The
+    # generic walker recursively publishes it before JOIN reclaims the child.
+    nested_target = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    nested_memory = list(nested_target.memory)
+    nested_memory[6] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0)
+    nested_memory[7] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0)
+    nested_memory[20] = abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 24, 0, 0, 0, 0)
+    nested_memory[21] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 42, 1, 0, 0, 0)
+    nested_memory[24] = abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 7, 1, 0, 0, 0)
+    nested_target = replace(nested_target, memory=tuple(nested_memory), fsp=7, q=0, phi=7, argcnt=0)
+    nested_oracle = ConcreteRED2Machine(nested_target)
+    assert nested_oracle.run_to_commit(), nested_oracle.fault
+    nested_expected = nested_oracle.checkpoint()
+    assert nested_expected.pc == 2 and nested_expected.fsp == 7
+    assert nested_expected.env == 32 and nested_expected.free_space == 32
+    assert nested_expected.s_a == 6
+    nested_result, nested_expected = _run_encoded_to_same_commit(nested_target, max_clocks=600)
+    assert nested_expected.pc == 2 and nested_expected.fsp == 7
+    assert nested_expected.env == 32 and nested_expected.free_space == 32
+    assert nested_expected.s_a == 6
+    for address in (3, 4, 5, 6, 7, 20, 21, 24):
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(readback) == nested_expected.memory[address], (
+            f"nested APP generic publication mismatch at {address}"
+        )
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == nested_expected.control_stack[0]
+
+    # A3 slice-1 proof leg: the generic stack is independent of target cardinality.
+    # Five distinct roots exercise a deeper serialized task-stack walk than the frozen
+    # three-target witness above.
+    five_target = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    five_memory = list(five_target.memory)
+    for address, target in zip((6, 7, 8, 9), (21, 22, 23, 24)):
+        five_memory[address] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, target, 0, 0, 0, 0
+        )
+    five_memory[10] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    for target, payload in zip((20, 21, 22, 23, 24), (41, 42, 43, 44, 45)):
+        five_memory[target] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, payload, 1, 0, 0, 0
+        )
+    five_target = replace(
+        five_target, memory=tuple(five_memory), fsp=10, q=0, phi=7, argcnt=0
+    )
+    result, expected = _run_encoded_to_same_commit(five_target, max_clocks=1200)
+    for address in (3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 22, 23, 24):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address], (
+            f"five-target generic publication mismatch at {address}"
+        )
+
+    # A3 slice-1 proof leg: cover the one-target nested-APP fallback specifically.
+    # The earlier nested fixture has two unique roots and therefore enters through the
+    # multi-target fallback instead.
+    one_nested = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    one_nested_memory = list(one_nested.memory)
+    one_nested_memory[6] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    one_nested_memory[20] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 24, 0, 0, 0, 0
+    )
+    one_nested_memory[21] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 5, 1, 0, 0, 0
+    )
+    one_nested_memory[24] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+    )
+    one_nested = replace(
+        one_nested, memory=tuple(one_nested_memory), fsp=6, q=0, phi=7, argcnt=0
+    )
+    result, expected = _run_encoded_to_same_commit(one_nested, max_clocks=800)
+    for address in (3, 4, 5, 6, 20, 21, 24):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address], (
+            f"one-target nested generic publication mismatch at {address}"
+        )
+
+    # A3 slice-1 proof leg: a nested APP reuses a target already completed by its
+    # parent. The second visit must consume the generation-tagged DONE memo row rather
+    # than being mistaken for a recursion cycle.
+    shared_nested = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    shared_nested_memory = list(shared_nested.memory)
+    shared_nested_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0
+    )
+    shared_nested_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 25, 0, 0, 0, 0
+    )
+    shared_nested_memory[8] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    shared_nested_memory[20] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 41, 1, 0, 0, 0
+    )
+    shared_nested_memory[21] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0
+    )
+    shared_nested_memory[22] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 7, 1, 0, 0, 0
+    )
+    shared_nested_memory[25] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 88, 1, 0, 0, 0
+    )
+    shared_nested = replace(
+        shared_nested, memory=tuple(shared_nested_memory), fsp=8, q=0, phi=7, argcnt=0
+    )
+    result, expected = _run_encoded_to_same_commit(shared_nested, max_clocks=1200)
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 22, 25):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address], (
+            f"memoized nested-sharing publication mismatch at {address}"
+        )
+
+    # A3 slice-1 proof leg: APP_VAR and non-head inline entries must stay transparent
+    # after the bounded scanner falls back and the complete prefix is replayed by the
+    # generic walker.
+    generic_transparent = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    generic_transparent_memory = list(generic_transparent.memory)
+    generic_transparent_memory[6] = abi.pack_word(
+        1, abi.MOP_APP_VAR, abi.DATA_SIGNED, 4, 0, 0, 0, 0
+    )
+    generic_transparent_memory[7] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 7, 0, 0, 0, 0
+    )
+    generic_transparent_memory[8] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0
+    )
+    generic_transparent_memory[9] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 22, 0, 0, 0, 0
+    )
+    generic_transparent_memory[10] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    for target, payload in ((20, 41), (21, 42), (22, 43)):
+        generic_transparent_memory[target] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, payload, 1, 0, 0, 0
+        )
+    generic_transparent = replace(
+        generic_transparent,
+        memory=tuple(generic_transparent_memory),
+        fsp=10,
+        q=0,
+        phi=7,
+        argcnt=0,
+    )
+    result, expected = _run_encoded_to_same_commit(generic_transparent, max_clocks=1200)
+    for address in (3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 22):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == expected.memory[address], (
+            f"generic transparent-prefix mismatch at {address}"
+        )
+
+    # A3 slice-1 proof leg: VISITING is an actual recursion marker, not merely an
+    # implementation detail. A nested APP that directly points back to its own root
+    # must fault exactly like Concrete without touching architectural graph/control.
+    app_cycle = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    app_cycle_memory = list(app_cycle.memory)
+    app_cycle_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 24, 0, 0, 0, 0
+    )
+    app_cycle_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 25, 0, 0, 0, 0
+    )
+    app_cycle_memory[8] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    app_cycle_memory[20] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0
+    )
+    app_cycle_memory[21] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 7, 1, 0, 0, 0
+    )
+    app_cycle_memory[24] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 41, 1, 0, 0, 0
+    )
+    app_cycle_memory[25] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+    )
+    app_cycle = replace(
+        app_cycle, memory=tuple(app_cycle_memory), fsp=8, q=0, phi=7, argcnt=0
+    )
+    app_cycle_initial_memory = tuple(app_cycle.memory)
+    app_cycle_initial_control = tuple(app_cycle.control_stack)
+    result, expected, fault = _run_encoded_to_same_fault(app_cycle, max_clocks=1200)
+    assert fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 4, 5, 6, 7, 8, 20, 21, 24, 25):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == app_cycle_initial_memory[address]
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(result) == app_cycle_initial_control[0]
+
+    # A3 slice-1 proof leg: discover a malformed target only after earlier roots have
+    # been walked and memoized. Scratch may be dirty, but architectural state must be
+    # byte-for-byte unchanged when the late INVALID_ADDRESS is reported.
+    late_bad_target = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 20, 0, 0, 0, 0),
+        parent_address=3, join_address=4, result_address=5,
+        env=28, free_space=28, frame_env=32, frame_free_space=32,
+        memory_words=64,
+    )
+    late_bad_memory = list(late_bad_target.memory)
+    late_bad_memory[6] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 21, 0, 0, 0, 0
+    )
+    late_bad_memory[7] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 300, 0, 0, 0, 0
+    )
+    late_bad_memory[8] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
+    )
+    late_bad_memory[20] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 41, 1, 0, 0, 0
+    )
+    late_bad_memory[21] = abi.pack_word(
+        1, abi.MOP_CHAR, abi.DATA_LITERAL_ID, 65, 1, 0, 0, 0
+    )
+    late_bad_target = replace(
+        late_bad_target,
+        memory=tuple(late_bad_memory),
+        fsp=8,
+        q=0,
+        phi=7,
+        argcnt=0,
+    )
+    late_bad_initial_memory = tuple(late_bad_target.memory)
+    late_bad_initial_control = tuple(late_bad_target.control_stack)
+    result, expected, fault = _run_encoded_to_same_fault(
+        late_bad_target, max_clocks=1200
+    )
+    assert fault == abi.FAULT_INVALID_ADDRESS
+    assert int(result.hw_fault) == HW_FAULT_NONE
+    for address in (3, 4, 5, 6, 7, 8, 20, 21):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
+        assert _packed_memory_read(result) == late_bad_initial_memory[address]
+    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(result) == late_bad_initial_control[0]
 
     # If the second target needs allocation, both targets must remain untouched:
     # the bounded two-target transaction rejects it during preflight, before the
@@ -3613,8 +4517,16 @@ def check() -> None:
     assert_configured_inc_fault(
         abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, (1 << 63) - 1, 1, 0, 0, 0)
     )
-    assert_configured_inc_fault(
-        abi.pack_word(1, abi.MOP_FLOAT, abi.DATA_FLOAT64, 0x4000000000000000, 1, 0, 0, 0)
+    inc_float = saved_primitive_join_encoded(dynamic_inc_id, 1)
+    inc_float_memory = list(inc_float.memory)
+    inc_float_memory[5] = abi.pack_word(
+        1, abi.MOP_FLOAT, abi.DATA_FLOAT64, 0x4000000000000000, 1, 0, 0, 0
+    )
+    inc_float = replace(inc_float, memory=tuple(inc_float_memory))
+    result, expected = run_configured_inc(inc_float)
+    assert expected.q == 7 and expected.prim_id == 0 and expected.fire == 0
+    assert expected.memory[3] == abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 3, 1, 0, 0, 0
     )
 
     # The same transactional path covers the rest of the unary integer family.
@@ -3841,47 +4753,16 @@ def check() -> None:
     )
     assert ep_even.q == 7
 
-    # FLOAT is a typed error for EVEN? and must fault before any publication.
-    even_float_id = 181
-    even_float_ops = [0] * (max(even_float_id, bool_true_id, bool_false_id, bool_nil_id) + 1)
-    even_float_ops[even_float_id] = SCALAR_OP_EVEN
-    even_float = saved_primitive_join_encoded(even_float_id, 1)
-    even_float_memory = list(even_float.memory)
-    even_float_memory[5] = abi.pack_word(
-        1, abi.MOP_FLOAT, abi.DATA_FLOAT64, 0x4004000000000000, 1, 0, 0, 0
+    # FLOAT is outside EVEN?'s INT-only contract: it is stuck, consumes no
+    # quantum, and preserves the reconstructed operand.
+    even_float_stuck = run_configured_bool_unary(
+        SCALAR_OP_EVEN,
+        181,
+        abi.pack_word(
+            1, abi.MOP_FLOAT, abi.DATA_FLOAT64, 0x4004000000000000, 1, 0, 0, 0
+        ),
     )
-    even_float = replace(even_float, memory=tuple(even_float_memory))
-    initial_memory = tuple(even_float.memory)
-    initial_control = tuple(even_float.control_stack)
-    processor = ConcreteRED2Machine(
-        even_float,
-        scalar_ops=tuple(even_float_ops),
-        true_literal_id=bool_true_id,
-        false_literal_id=bool_false_id,
-        nil_literal_id=bool_nil_id,
-    )
-    assert not processor.run_to_commit()
-    assert processor.fault == abi.FAULT_UNSUPPORTED_VALUE
-    expected = processor.checkpoint()
-    _load_hardware(even_float)
-    _load_literal_meta(27, even_float_id, scalar_op=SCALAR_OP_EVEN)
-    load_bool_specials()
-    result = None
-    for _ in range(220):
-        result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-        if int(result.status) == STATUS_FAULT:
-            break
-    else:
-        raise AssertionError("EVEN? FLOAT did not fault")
-    assert result is not None
-    assert int(result.red2_fault) == abi.FAULT_UNSUPPORTED_VALUE
-    assert int(result.hw_fault) == HW_FAULT_NONE
-    _assert_scalar_checkpoint(result, expected)
-    for address in (3, 4, 5):
-        result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
-        assert _packed_memory_read(result) == initial_memory[address]
-    result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
-    assert _packed_control_read(result) == initial_control[0]
+    assert even_float_stuck.q == 8
 
     # Missing TRUE/FALSE metadata must fail before JOIN publication.  This is the
     # hardware equivalent of _bool_word() rejecting an absent semantic literal.
@@ -4012,6 +4893,11 @@ def check() -> None:
             1, abi.MOP_INT, abi.DATA_SIGNED, value & MASK64, head, 0, 0, 0
         )
 
+    def f64(bits: int, *, head: int = 0) -> int:
+        return abi.pack_word(
+            1, abi.MOP_FLOAT, abi.DATA_FLOAT64, bits, head, 0, 0, 0
+        )
+
     # Arithmetic and signed comparisons, including negative ordering.
     binary_success_cases = (
         (SCALAR_OP_ADD, 211, sint(7), sint(2, head=1), False, False),
@@ -4040,12 +4926,14 @@ def check() -> None:
         assert expected.prim_id == 0 and expected.fire == 0
 
     # Remaining integer binary operators use the same pre-publication left-read
-    # path.  Division is exact-only; MOD follows Python/floor-division sign rules.
+    # path.  Inexact DIV and negative EXPT cross into RED2_FLOAT_V1; MOD keeps
+    # Python/floor-division sign rules.
     remaining_binary_success = (
         (SCALAR_OP_MUL, 331, sint(7), sint(-3, head=1), False),
         (SCALAR_OP_MUL, 337, sint(-7), sint(-3, head=1), False),
         (SCALAR_OP_DIV, 347, sint(-6), sint(2, head=1), False),
         (SCALAR_OP_DIV, 349, sint(6), sint(-2, head=1), True),
+        (SCALAR_OP_DIV, 351, sint(7), sint(2, head=1), False),
         (SCALAR_OP_MOD, 353, sint(7), sint(3, head=1), False),
         (SCALAR_OP_MOD, 359, sint(-7), sint(3, head=1), False),
         (SCALAR_OP_MOD, 367, sint(7), sint(-3, head=1), False),
@@ -4054,6 +4942,7 @@ def check() -> None:
         (SCALAR_OP_EXPT, 383, sint(-2), sint(63, head=1), False),
         (SCALAR_OP_EXPT, 389, sint(0), sint(0, head=1), False),
         (SCALAR_OP_EXPT, 397, sint(-1), sint(101, head=1), False),
+        (SCALAR_OP_EXPT, 399, sint(2), sint(-1, head=1), False),
     )
     for scalar_op, primitive_id, left, right, ep_backed in remaining_binary_success:
         expected = run_binary_scalar(
@@ -4085,6 +4974,122 @@ def check() -> None:
             SCALAR_OP_EQ, primitive_id, left, right, expect_bool_metadata=True
         )
         assert expected.q == 7 and expected.fsp == 3
+
+    # RED2_FLOAT_V1 binary coverage.  Ordinary arithmetic preserves FLOAT when
+    # either operand is FLOAT; MAX/MIN and EXPT may collapse an exact FLOAT integer.
+    float_binary_cases = (
+        (SCALAR_OP_ADD, 601, f64(0x3FF8000000000000), f64(0x4000000000000000, head=1), False),
+        (SCALAR_OP_SUB, 607, f64(0x400C000000000000), f64(0x3FF0000000000000, head=1), False),
+        (SCALAR_OP_MUL, 613, f64(0x3FF8000000000000), f64(0x4000000000000000, head=1), False),
+        (SCALAR_OP_DIV, 617, f64(0x401C000000000000), f64(0x4000000000000000, head=1), False),
+        (SCALAR_OP_ADD, 619, sint(1), f64(0x3FF8000000000000, head=1), False),
+        (SCALAR_OP_EXPT, 631, f64(0x4000000000000000), sint(-1, head=1), False),
+        (SCALAR_OP_EXPT, 633, f64(0x4000000000000000), sint(-3, head=1), False),
+        # Integral FLOAT exponent through the EP-backed right-operand path.
+        (SCALAR_OP_EXPT, 635, f64(0x4000000000000000), f64(0xC008000000000000, head=1), True),
+        (SCALAR_OP_MAX, 641, sint(2), f64(0x4004000000000000, head=1), False),
+        (SCALAR_OP_MIN, 643, sint(2), f64(0x4004000000000000, head=1), False),
+        # Selected FLOAT 2.0 collapses through _float_number_result to INT 2.
+        (SCALAR_OP_MAX, 647, f64(0x4000000000000000), sint(1, head=1), False),
+    )
+    for scalar_op, primitive_id, left, right, ep_backed in float_binary_cases:
+        expected = run_binary_scalar(
+            scalar_op, primitive_id, left, right, ep_backed=ep_backed
+        )
+        assert expected.q == 7 and expected.fsp == 3
+
+    float_compare_cases = (
+        (SCALAR_OP_LT, 653, f64(0x3FF8000000000000), f64(0x4000000000000000, head=1)),
+        (SCALAR_OP_GT, 659, f64(0x4004000000000000), sint(2, head=1)),
+        (SCALAR_OP_LE, 661, f64(0x8000000000000000), f64(0x0000000000000000, head=1)),
+        (SCALAR_OP_GE, 673, sint(3), f64(0x4004000000000000, head=1)),
+    )
+    for scalar_op, primitive_id, left, right in float_compare_cases:
+        expected = run_binary_scalar(
+            scalar_op, primitive_id, left, right, expect_bool_metadata=True
+        )
+        assert expected.q == 7 and expected.fsp == 3
+
+    float_eq = run_binary_scalar(
+        SCALAR_OP_EQ,
+        677,
+        f64(0x0000000000000000),
+        f64(0x8000000000000000, head=1),
+        expect_bool_metadata=True,
+    )
+    assert float_eq.q == 7 and float_eq.memory[3] == abi.pack_word(
+        1, abi.MOP_SYM, abi.DATA_LITERAL_ID, binary_true_id, 1, 0, 0, 0
+    )
+
+    float_mod_stuck = run_binary_scalar(
+        SCALAR_OP_MOD,
+        683,
+        f64(0x4004000000000000),
+        sint(2, head=1),
+    )
+    assert float_mod_stuck.q == 8 and float_mod_stuck.fsp == 4
+
+    # Unsupported FLOAT payloads remain typed and failure-atomic.
+    run_binary_scalar(
+        SCALAR_OP_ADD,
+        691,
+        f64(0x0000000000000001),
+        f64(0x3FF0000000000000, head=1),
+        expect_fault=abi.FAULT_UNSUPPORTED_VALUE,
+    )
+    # MOD is rejected by opcode applicability before FLOAT payload decoding,
+    # so even an excluded FLOAT64 encoding remains stuck rather than faulting.
+    excluded_float_mod_stuck = run_binary_scalar(
+        SCALAR_OP_MOD,
+        693,
+        f64(0x0000000000000001),
+        sint(2, head=1),
+    )
+    assert excluded_float_mod_stuck.q == 8 and excluded_float_mod_stuck.fsp == 4
+
+    # Proper finite FLOATs still enforce divide-by-zero and integral EXPT.
+    run_binary_scalar(
+        SCALAR_OP_DIV,
+        697,
+        f64(0x3FF0000000000000),
+        f64(0x0000000000000000, head=1),
+        expect_fault=abi.FAULT_UNSUPPORTED_VALUE,
+    )
+    run_binary_scalar(
+        SCALAR_OP_EXPT,
+        701,
+        f64(0x4000000000000000),
+        f64(0x3FE0000000000000, head=1),
+        expect_fault=abi.FAULT_UNSUPPORTED_VALUE,
+    )
+
+    # A FLOAT opcode with the wrong data kind is malformed rather than a proper
+    # FLOAT64 value, so arithmetic is simply non-applicable and consumes no q.
+    malformed_float_stuck = run_binary_scalar(
+        SCALAR_OP_ADD,
+        709,
+        abi.pack_word(1, abi.MOP_FLOAT, abi.DATA_SIGNED, 0x4004000000000000, 0, 0, 0, 0),
+        sint(2, head=1),
+    )
+    assert malformed_float_stuck.q == 8 and malformed_float_stuck.fsp == 4
+
+    # By contrast, Concrete `_number_as_float_bits` treats an INT opcode with a
+    # non-signed data kind as an illegal numeric representation once FLOAT
+    # conversion is required. Cover both operand positions.
+    run_binary_scalar(
+        SCALAR_OP_ADD,
+        719,
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_LITERAL_ID, 2, 0, 0, 0, 0),
+        f64(0x3FF0000000000000, head=1),
+        expect_fault=abi.FAULT_ILLEGAL_TRANSITION,
+    )
+    run_binary_scalar(
+        SCALAR_OP_ADD,
+        727,
+        f64(0x3FF0000000000000),
+        abi.pack_word(1, abi.MOP_INT, abi.DATA_LITERAL_ID, 2, 1, 0, 0, 0),
+        expect_fault=abi.FAULT_ILLEGAL_TRANSITION,
+    )
 
     # Non-applicable binary contracts complete the JOIN but do not consume q.
     stuck_add = run_binary_scalar(
@@ -4118,24 +5123,25 @@ def check() -> None:
         sint(1, head=1),
         expect_fault=abi.FAULT_UNSUPPORTED_VALUE,
     )
-    run_binary_scalar(
+    mixed_eq = run_binary_scalar(
         SCALAR_OP_EQ,
         313,
         abi.pack_word(1, abi.MOP_FLOAT, abi.DATA_FLOAT64, 0, 0, 0, 0, 0),
         sint(1, head=1),
-        expect_fault=abi.FAULT_UNSUPPORTED_VALUE,
         expect_bool_metadata=True,
+    )
+    assert mixed_eq.q == 7
+    assert mixed_eq.memory[3] == abi.pack_word(
+        1, abi.MOP_SYM, abi.DATA_LITERAL_ID, binary_false_id, 1, 0, 0, 0
     )
 
     # Remaining arithmetic failures are typed and failure-atomic too.
     for scalar_op, primitive_id, left, right in (
         (SCALAR_OP_MUL, 401, sint((1 << 63) - 1), sint(2, head=1)),
-        (SCALAR_OP_DIV, 409, sint(7), sint(2, head=1)),
         (SCALAR_OP_DIV, 419, sint(-(1 << 63)), sint(-1, head=1)),
         (SCALAR_OP_DIV, 421, sint(1), sint(0, head=1)),
         (SCALAR_OP_MOD, 431, sint(1), sint(0, head=1)),
         (SCALAR_OP_EXPT, 433, sint(2), sint(63, head=1)),
-        (SCALAR_OP_EXPT, 439, sint(2), sint(-1, head=1)),
     ):
         run_binary_scalar(
             scalar_op, primitive_id, left, right,
@@ -9127,5 +10133,17 @@ fib-six
 
 
 if __name__ == "__main__":
-    check()
-    print("PipelineC native RED2 first-slice parity: PASS")
+    if len(sys.argv) == 1:
+        check()
+        print("PipelineC native RED2 first-slice parity: PASS")
+    elif sys.argv[1:] == ["--generic-ep-patch-journal-only"]:
+        check_generic_ep_patch_journal()
+        print("PipelineC native RED2 generic EP patch-journal parity: PASS")
+    elif sys.argv[1:] == ["--generic-closure-materialization-only"]:
+        check_generic_closure_materialization()
+        print("PipelineC native RED2 generic closure materialization parity: PASS")
+    else:
+        raise SystemExit(
+            "usage: check_syn_sim.py "
+            "[--generic-ep-patch-journal-only|--generic-closure-materialization-only]"
+        )

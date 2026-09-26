@@ -273,9 +273,15 @@ def test_struct_reverse_restores_quantum_and_binder_depth_exactly() -> None:
 
     _step_both(machine, processor, codec)
 
+    # The Chapter 4 transcription prints pc <- pc+1 for reverse STRUCT, but
+    # reverse traversal everywhere else moves toward lower addresses.  Preserve
+    # the coherent Abstract/Concrete rule here rather than treating that apparent
+    # transcription typo as an oracle.
     assert processor.q == 9
     assert processor.phi == 0
     assert processor.c == -1
+    assert processor.direction == abi.DIRECTION_REVERSE
+    assert processor.pc == copied_struct - 1
 
 
 def test_join_publishes_lazy_struct_ep_field_before_reclaim_and_reuse() -> None:
@@ -325,6 +331,68 @@ def test_join_publishes_lazy_struct_ep_field_before_reclaim_and_reuse() -> None:
             Word(MuredOpcode.INT, 9000 + address, False)
         )
     assert tuple(processor.memory[3:8]) == published
+
+
+def test_join_publication_preserves_struct_field_referencing_recursive_rec_before_reclaim() -> None:
+    codec = RED2ABICodec()
+    state = AbstractRED2MachineState(
+        memory=[None] * 64,
+        control_stack=[None] * 8,
+        pc=4,
+        fsp=21,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+    )
+    state.memory[2] = Word(MuredOpcode.STOP)
+    state.memory[3] = Word(MuredOpcode.APP, 9, False)
+    state.memory[4] = Word(MuredOpcode.JOIN, 3, False)
+    state.memory[5] = Word(MuredOpcode.STRUCT, "PAIR", False)
+    state.memory[6] = Word(MuredOpcode.INT, 41, False)
+    state.memory[7] = Word(MuredOpcode.EP, 28, False)
+    state.memory[8] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[10] = Word(MuredOpcode.RBLOCK, 20, False)
+    state.memory[11] = Word(MuredOpcode.RUP, 1, False)
+    state.memory[12] = Word(MuredOpcode.VAR, 0, True)
+    state.memory[20] = Word(MuredOpcode.SYM, "x", False)
+    state.memory[21] = Word(MuredOpcode.INT, 7, True)
+    state.memory[28] = Word(MuredOpcode.REC, 21, False)
+    state.memory[29] = Word(None, 28, False)
+    state.memory[30] = Word(None, 10, False)
+    state.memory[31] = Word(MuredOpcode.PNP, 64, False)
+    state.control_stack[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim=None,
+        fire=0,
+    )
+    machine = AbstractRED2Machine(state)
+    processor = _processor(machine, codec)
+
+    _step_both(machine, processor, codec)
+
+    residual = 22
+    assert state.memory[3] == Word(MuredOpcode.APP, 5, False)
+    assert state.memory[5] == Word(MuredOpcode.STRUCT, "PAIR", False)
+    assert state.memory[6] == Word(MuredOpcode.INT, 41, False)
+    assert state.memory[7] == Word(MuredOpcode.APP, residual, False)
+    assert state.memory[8] == Word(MuredOpcode.VAR, 0, True)
+    assert state.memory[residual] == Word(MuredOpcode.RBLOCK, 20, False)
+    assert state.memory[residual + 1] == Word(MuredOpcode.RUP, 1, False)
+    assert state.memory[residual + 2] == Word(MuredOpcode.VAR, 0, True)
+    assert state.free_space == 32
+    assert state.env == 32
+    assert not machine._graph_references_environment_interval(5, 28, 32)
+
+    published = tuple(processor.memory[3:25])
+    for address in range(28, 32):
+        poison = Word(MuredOpcode.INT, 9000 + address, False)
+        state.memory[address] = poison
+        processor.memory[address] = codec.encode_word(poison)
+    assert tuple(processor.memory[3:25]) == published
 
 
 def test_join_late_malformed_struct_descriptor_is_architecturally_atomic() -> None:
