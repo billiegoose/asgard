@@ -47,6 +47,7 @@ def _bootstrap_import_paths() -> None:
 
 _bootstrap_import_paths()
 
+import pypeline as _pypeline  # noqa: E402
 from pypeline import sim_call, sim_reset  # noqa: E402
 
 from abstract_red2_machine.machine import AbstractRED2Machine  # noqa: E402
@@ -55,6 +56,7 @@ from concrete_red2_machine.pipelinec_vectors import (  # noqa: E402
     EncodedArchitecturalState,
     RED2ABICodec,
 )
+import synthesizable_red2_machine.machine as _syn_machine  # noqa: E402
 from synthesizable_red2_machine.machine import (  # noqa: E402
     CMD_CLOCK,
     CMD_LOAD_CONTROL,
@@ -117,6 +119,7 @@ from synthesizable_red2_machine.machine import (  # noqa: E402
     red2_arch_state_t,
     red2_command_t,
     red2_control_t,
+    red2_literal_meta_t,
     red2_word_t,
 )
 from abstract_red2_machine.loader import load_faithful_machine  # noqa: E402
@@ -211,6 +214,104 @@ _HOST_NAMES = {
     abi.HOST_UART_TX: "UART-TX",
     abi.HOST_UART_TX_BYTES: "UART-TX-BYTES",
 }
+
+_FAST_RAM_NAMES = (
+    "graph_ram",
+    "control_ram",
+    "literal_meta_ram",
+    "promote_mat_ram",
+    "promote_forward_ram",
+    "pub_task_ram",
+    "pub_root_ram",
+    "pub_patch_ram",
+    "pub_patch_addr_ram",
+    "pub_mat_ram",
+)
+
+
+def _identity(value):
+    return value
+
+
+def _install_fast_native_ram_simulation() -> None:
+    """Specialize Pypeline's generic RAM simulation for RED2's CLI runner.
+
+    ``run_syn`` performs exactly one top-level ``sim_call`` per modeled clock and
+    does not run a wire-convergence loop.  The generic Pypeline RAM model therefore
+    pays for convergence safety that this runner cannot use: it deep-copies model
+    state on every RAM invocation and deep-copies immutable RED2 struct payloads
+    on every read/write bundle.  Keep the same read-first edge semantics by
+    applying writes staged by the previous call before evaluating the next call,
+    but retain RAM state in place and share immutable payload values directly.
+
+    Every RED2 RAM target is a distinct single hardware instance, so model call-site
+    capture carries no disambiguating information here.  Replacing it with one
+    stable location avoids frame/line lookup overhead without merging instances.
+    Hardware elaboration is unaffected; this changes only native Python simulation.
+    """
+
+    _pypeline._sim_capture_call_loc = lambda caller_f: ("<red2-ram>", 0, None, None)
+
+    for name in _FAST_RAM_NAMES:
+        ram = getattr(_syn_machine, name)
+        cell = getattr(ram, "_sim_model_cell", None)
+        if cell is None or cell[0] is None:
+            raise RuntimeError(f"{name} has no Pypeline RAM simulation model")
+        model_class, kind, _copy_state = cell[0]
+        if kind != "class":
+            raise RuntimeError(f"{name} uses unexpected simulation model kind {kind!r}")
+
+        if not getattr(model_class, "_red2_fast_native_sim", False):
+            original_call = model_class.__call__
+            closure = dict(
+                zip(original_call.__code__.co_freevars, original_call.__closure__ or ())
+            )
+            for owner_name in ("own", "write_value"):
+                owner_cell = closure.get(owner_name)
+                if owner_cell is None:
+                    raise RuntimeError(
+                        f"{name} RAM model is missing expected {owner_name!r} closure"
+                    )
+                owner_cell.cell_contents = _identity
+
+            def fast_call(self, *args, __original_call=original_call, **kwargs):
+                _commit_native_ram_pending(self)
+                return __original_call(self, *args, **kwargs)
+
+            model_class.__call__ = fast_call
+            model_class._red2_fast_native_sim = True
+
+        # Plain run_syn has one evaluation per clock, so mutating the committed RAM
+        # model in place is equivalent to Pypeline's deepcopy/buffer path once the
+        # previous call's staged writes are applied above.
+        cell[0] = (model_class, kind, False)
+
+
+_install_fast_native_ram_simulation()
+
+
+def _native_ram_model(name: str):
+    """Return the committed native-simulation model for one RED2 RAM instance."""
+    ram = getattr(_syn_machine, name)
+    qualname = ram.__qualname__
+    for path, state in _pypeline._sim_reg_state.items():
+        if path and path[-1][0] == qualname:
+            model = state.get("__sim_model__")
+            if model is not None:
+                return model
+    raise RuntimeError(f"native RAM model {name!r} is not instantiated")
+
+
+def _commit_native_ram_pending(model) -> None:
+    """Apply writes staged by the preceding native-simulation clock."""
+    if not model.pending:
+        return
+    memory = model.mem
+    for address, value, mask in model.pending:
+        if mask is not None:
+            raise RuntimeError("RED2 fast RAM simulation does not support byte masks")
+        memory[address] = value
+    model.pending = []
 
 
 def _word_struct(packed: int) -> red2_word_t:
@@ -356,6 +457,20 @@ def _literal_metadata(codec: RED2ABICodec, selectors) -> list[dict[str, int]]:
     return values
 
 
+def _literal_meta_struct(meta: dict[str, int]) -> red2_literal_meta_t:
+    return red2_literal_meta_t(
+        literal_id=meta["literal_id"],
+        scalar_op=meta["scalar_op"],
+        prim0_role=meta["prim0_role"],
+        host_op=meta["host_op"],
+        special_flags=meta["special_flags"],
+        struct_role=meta["struct_role"],
+        struct_tag_id=meta["struct_tag_id"],
+        struct_offset=meta["struct_offset"],
+        valid=1 if meta["literal_id"] else 0,
+    )
+
+
 def _load_literal_meta(slot: int, meta: dict[str, int]) -> None:
     aux = (
         meta["scalar_op"]
@@ -384,41 +499,40 @@ def _load_hardware(
     state: EncodedArchitecturalState, metadata: list[dict[str, int]]
 ) -> None:
     sim_reset()
+    # One RESET call creates and resets every RAM/register instance. Program-image
+    # loading is host setup rather than RED2 execution, so populate the native RAM
+    # backing stores directly instead of spending one full simulated hardware clock
+    # per graph/control/meta word.
     sim_call(SynthesizableRED2Machine, _command(CMD_RESET))
-    for index, packed in enumerate(state.memory):
-        sim_call(
-            SynthesizableRED2Machine,
-            _command(CMD_LOAD_MEMORY, address=index, word=_word_struct(packed)),
-        )
-    for index, packed in enumerate(state.control_stack):
-        if packed:
-            sim_call(
-                SynthesizableRED2Machine,
-                _command(
-                    CMD_LOAD_CONTROL,
-                    address=index,
-                    control=_control_struct(packed),
-                ),
-            )
+
+    graph = _native_ram_model("graph_ram")
+    control = _native_ram_model("control_ram")
+    literal_meta = _native_ram_model("literal_meta_ram")
+    graph.mem[:] = [_word_struct(packed) for packed in state.memory]
+    control.mem[:] = [_control_struct(packed) for packed in state.control_stack]
+    for slot, meta in enumerate(metadata):
+        literal_meta.mem[slot] = _literal_meta_struct(meta)
+
     sim_call(
         SynthesizableRED2Machine,
         _command(CMD_LOAD_STATE, state=_state_struct(state)),
     )
-    for slot, meta in enumerate(metadata):
-        _load_literal_meta(slot, meta)
 
 
 def _checkpoint(result) -> EncodedArchitecturalState:
-    memory: list[int] = []
-    control: list[int] = []
-    for address in range(GRAPH_WORDS):
-        read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=address))
-        memory.append(_packed_word(read.memory_read))
-        if address < CONTROL_WORDS:
-            control.append(_packed_control(read.control_read))
+    graph = _native_ram_model("graph_ram")
+    control_ram_model = _native_ram_model("control_ram")
+    # The terminating CMD_CLOCK may have staged an architectural RAM write. A
+    # normal following sim_call would commit it at the next edge; checkpointing
+    # must expose that same committed post-clock state before reading the backing
+    # stores directly.
+    _commit_native_ram_pending(graph)
+    _commit_native_ram_pending(control_ram_model)
+    memory = tuple(_packed_word(word) for word in graph.mem)
+    control = tuple(_packed_control(word) for word in control_ram_model.mem)
     return EncodedArchitecturalState(
-        memory=tuple(memory),
-        control_stack=tuple(control),
+        memory=memory,
+        control_stack=control,
         pc=int(result.pc),
         fsp=int(result.fsp),
         env=int(result.env),
