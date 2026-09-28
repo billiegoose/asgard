@@ -111,12 +111,6 @@ raise SystemExit(0 if final is not None and final.matches else 1)
 PY
 '''
 
-[tasks.hdl]
-description = "Placeholder for future HDL execution"
-quiet = true
-usage = 'arg "<file>" help="THOR source file"'
-run = 'echo "todo"'
-
 [tasks.generate-video]
 description = "Generate and upload one deterministic example recording"
 usage = '''
