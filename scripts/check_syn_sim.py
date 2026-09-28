@@ -10,12 +10,15 @@ semantics must remain explicit rather than approximated.
 from dataclasses import replace
 import sys
 
-from pypeline import sim_call, sim_reset
-
+# Importing run_syn first performs the deterministic PipelineC/Asgard path
+# bootstrap used by the native CLI.  Keep the parity gate runnable from a clean
+# environment instead of requiring a caller-supplied PYTHONPATH.
 from run_syn import (
     _literal_metadata as _program_literal_metadata,
     _prepare_program as _prepare_thor_program,
 )
+
+from pypeline import sim_call, sim_reset
 
 from abstract_red2_machine.loader import load_faithful_machine
 from abstract_red2_machine.machine import (
@@ -76,7 +79,9 @@ from synthesizable_red2_machine.machine import (
     CMD_LOAD_STATE,
     CMD_NOP,
     CMD_RESET,
+    CMD_RESUME,
     CONTROL_WORDS,
+    GRAPH_WORDS,
     FAULT_GRAPH_ENV_COLLISION,
     FAULT_INVALID_ADDRESS,
     HW_FAULT_ADDRESS_RANGE,
@@ -545,6 +550,37 @@ def _run_program_lockstep(
             f"final control mismatch at address {address}"
         )
     return final, commits
+
+
+def _resume_host_checkpoint_matches_concrete(
+    suspended: EncodedArchitecturalState,
+    result_word: int,
+) -> EncodedArchitecturalState:
+    """Resume the same suspended checkpoint in Concrete and native hardware."""
+    oracle = ConcreteRED2Machine(suspended)
+    oracle.resume_host_call(result_word)
+    expected = oracle.checkpoint()
+
+    _load_hardware(suspended)
+    result = sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_RESUME, word=_word_struct(result_word)),
+    )
+    _assert_scalar_checkpoint(result, expected)
+    assert int(result.status) == oracle.status()
+
+    for address, (before, after) in enumerate(
+        zip(suspended.memory, expected.memory, strict=True)
+    ):
+        if before == after:
+            continue
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == after, (
+            f"host resume graph mismatch at address {address}"
+        )
+    return expected
 
 
 def _direct_lookup_machine(
@@ -1162,6 +1198,137 @@ def check_generic_closure_materialization() -> None:
 
 
 def check() -> None:
+    # IO-RETURN fires both after a saved JOIN and directly on an inline value.  Pin
+    # q==0 suppression and compositions through IO-BIND/IO-THEN so the synthesizable
+    # machine cannot regress to treating IO-RETURN as an unsupported saved primitive.
+    for io_return_source in (
+        "(IO-RETURN 7)",
+        "(IO-RETURN (+ 3 4))",
+        "(IO-BIND (IO-RETURN 7) (LAMBDA (x) (IO-RETURN x)))",
+        "(IO-THEN (IO-RETURN 7) (IO-RETURN 8))",
+    ):
+        _, io_return_commits = _run_program_lockstep(io_return_source)
+        assert io_return_commits > 0
+    io_return_qzero, _ = _run_program_lockstep("(IO-RETURN 7)", quantum=0)
+    assert io_return_qzero.q == 0
+    assert io_return_qzero.fsp == 5
+
+    # Host-call program checkpoints are first-class architectural boundaries.  Keep
+    # both the single-word strict operand path and generic compound publication in
+    # lockstep with Concrete, then exercise native CMD_RESUME from those checkpoints.
+    scalar_host, scalar_host_commits = _run_program_lockstep("(UART-TX 65)")
+    assert scalar_host_commits > 0
+    assert scalar_host.pending_host_op == abi.HOST_UART_TX
+    assert scalar_host.pending_host_argument == 5
+    assert scalar_host.pc == 4
+    assert scalar_host.fsp == 5
+    assert scalar_host.argcnt == 2
+    assert RED2ABICodec().decode_word(scalar_host.memory[4]) == Word(
+        MuredOpcode.INT, 65, False
+    )
+
+    nested_host, nested_host_commits = _run_program_lockstep(
+        "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))"
+    )
+    assert nested_host_commits > scalar_host_commits
+    assert nested_host.pending_host_op == abi.HOST_UART_TX_BYTES
+    assert nested_host.pending_host_argument == 13
+    assert nested_host.pc == 12
+    assert nested_host.fsp == 25
+    assert nested_host.c == 0
+    assert nested_host.q == 1998
+    assert nested_host.s_a == 16
+    assert RED2ABICodec().decode_word(nested_host.memory[12]) == Word(
+        MuredOpcode.APP, 15, False
+    )
+
+    resume_codec = RED2ABICodec()
+    resume_nil = resume_codec.encode_word(Word(MuredOpcode.SYM, "NIL", True))
+    scalar_resumed = _resume_host_checkpoint_matches_concrete(scalar_host, resume_nil)
+    assert scalar_resumed.pending_host_op == abi.HOST_NONE
+    assert scalar_resumed.pending_host_argument == 0
+    assert scalar_resumed.pc == 3
+    assert scalar_resumed.fsp == 4
+    assert scalar_resumed.q == scalar_host.q - 1
+
+    nested_resumed = _resume_host_checkpoint_matches_concrete(nested_host, resume_nil)
+    assert nested_resumed.pending_host_op == abi.HOST_NONE
+    assert nested_resumed.pending_host_argument == 0
+    assert nested_resumed.pc == 11
+    assert nested_resumed.fsp == 12
+    assert nested_resumed.q == nested_host.q - 1
+
+    direct_host, _ = _run_program_lockstep("(CLOCK)")
+    assert direct_host.pending_host_op == abi.HOST_CLOCK
+    assert direct_host.pending_host_argument == 0
+    direct_result = resume_codec.encode_word(Word(MuredOpcode.INT, 123, True))
+    direct_resumed = _resume_host_checkpoint_matches_concrete(direct_host, direct_result)
+    assert direct_resumed.pending_host_op == abi.HOST_NONE
+    assert direct_resumed.pending_host_argument == 0
+    assert direct_resumed.argcnt == direct_host.argcnt + 1
+    assert direct_resumed.q == direct_host.q - 1
+
+    # Direct host resume allocates one graph word.  Capacity is preflighted before
+    # the resume write so a graph/environment collision leaves the suspended
+    # architectural state and destination memory untouched, matching Concrete.
+    direct_capacity = replace(
+        direct_host, free_space=direct_host.fsp + 1
+    )
+    direct_capacity_oracle = ConcreteRED2Machine(direct_capacity)
+    direct_capacity_before = direct_capacity_oracle.checkpoint()
+    assert direct_capacity_oracle.resume_host_call(direct_result) == abi.STATUS_FAULT
+    assert direct_capacity_oracle.fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert direct_capacity_oracle.checkpoint() == direct_capacity_before
+
+    direct_capacity_destination = direct_capacity.fsp + 1
+    direct_capacity_word_before = direct_capacity.memory[direct_capacity_destination]
+    _load_hardware(direct_capacity)
+    direct_capacity_fault = sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_RESUME, word=_word_struct(direct_result)),
+    )
+    assert int(direct_capacity_fault.status) == STATUS_FAULT
+    assert int(direct_capacity_fault.red2_fault) == abi.FAULT_GRAPH_ENV_COLLISION
+    assert int(direct_capacity_fault.pc) == direct_capacity.pc
+    assert int(direct_capacity_fault.fsp) == direct_capacity.fsp
+    assert int(direct_capacity_fault.env) == direct_capacity.env
+    assert int(direct_capacity_fault.control_top) == direct_capacity.c
+    assert int(direct_capacity_fault.direction) == direct_capacity.direction
+    assert int(direct_capacity_fault.q) == direct_capacity.q
+    assert int(direct_capacity_fault.phi) == direct_capacity.phi
+    assert int(direct_capacity_fault.free_space) == direct_capacity.free_space
+    assert int(direct_capacity_fault.argcnt) == direct_capacity.argcnt
+    assert int(direct_capacity_fault.prim_id) == direct_capacity.prim_id
+    assert int(direct_capacity_fault.fire) == direct_capacity.fire
+    assert int(direct_capacity_fault.pending_host_op) == direct_capacity.pending_host_op
+    assert int(direct_capacity_fault.pending_host_argument) == direct_capacity.pending_host_argument
+    direct_capacity_readback = sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_NOP, address=direct_capacity_destination),
+    )
+    assert _packed_memory_read(direct_capacity_readback) == direct_capacity_word_before
+
+    # Resume validation must fail without a pending call and when a strict call's
+    # encoded argument no longer names pc.  These are scheduler ABI violations, not
+    # ordinary reducer execution faults.
+    no_host = replace(scalar_host, pending_host_op=abi.HOST_NONE, pending_host_argument=0)
+    _load_hardware(no_host)
+    invalid_resume = sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_RESUME, word=_word_struct(resume_nil)),
+    )
+    assert int(invalid_resume.status) == STATUS_FAULT
+    assert int(invalid_resume.red2_fault) == abi.FAULT_INVALID_RESUME
+
+    mismatched_strict = replace(scalar_host, pc=scalar_host.pc - 1)
+    _load_hardware(mismatched_strict)
+    invalid_resume = sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_RESUME, word=_word_struct(resume_nil)),
+    )
+    assert int(invalid_resume.status) == STATUS_FAULT
+    assert int(invalid_resume.red2_fault) == abi.FAULT_INVALID_RESUME
+
     for word in (
         Word(MuredOpcode.INT, 3, True),
         Word(MuredOpcode.FLOAT, 2.5, True),
@@ -1953,6 +2120,102 @@ def check() -> None:
         fire_value=0,
     )
     assert exhausted_if.prim_id == 0 and exhausted_if.fire == 0
+
+    # Configurable graph widths apply to saved lazy-IF branch environment paths.
+    # The JOIN's saved-marker bits restore IF/fire=1 from its SUBGRAPH frame. Both
+    # branch paths are above 255 so stale fixed-width validation would reject them.
+    if GRAPH_WORDS > 301:
+        if_codec = RED2ABICodec()
+        if_true_id = if_codec.literal_id("TRUE")
+        if_false_id = if_codec.literal_id("FALSE")
+        if_id = if_codec.literal_id("IF")
+        if_memory = [0] * GRAPH_WORDS
+        if_memory[2] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 9, 0, 0, 0, 0
+        )
+        if_memory[3] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 10, 0, 0, 0, 0
+        )
+        if_memory[4] = abi.pack_word(
+            1, abi.MOP_APP, abi.DATA_SIGNED, 90, 0, 0, 0, 0
+        )
+        if_memory[5] = abi.pack_word(
+            1, abi.MOP_JOIN, abi.DATA_SIGNED, 4, 0, 0, 1, 1
+        )
+        if_memory[6] = abi.pack_word(
+            1, abi.MOP_SYM, abi.DATA_LITERAL_ID, if_true_id, 1, 0, 0, 0
+        )
+        if_memory[9] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 99, 1, 0, 0, 0
+        )
+        if_memory[10] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 42, 1, 0, 0, 0
+        )
+        if_control = [0] * CONTROL_WORDS
+        if_control[0] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, 300, 0, 0, 0
+        )
+        if_control[1] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, 301, 0, 0, 0
+        )
+        if_control[2] = abi.pack_control_entry(
+            abi.CONTROL_SUBGRAPH, 400, 400, if_id, 1
+        )
+        if_encoded = EncodedArchitecturalState(
+            memory=tuple(if_memory),
+            control_stack=tuple(if_control),
+            pc=5,
+            fsp=6,
+            env=350,
+            c=3,
+            direction=abi.DIRECTION_REVERSE,
+            q=8,
+            phi=0,
+            free_space=350,
+            argcnt=1,
+            prim_id=0,
+            fire=0,
+            s_a=0,
+            s_d=0,
+            halted=0,
+            pending_host_op=0,
+            pending_host_argument=0,
+        )
+        if_roles = [0] * (if_id + 1)
+        if_roles[if_id] = PRIM0_ROLE_IF
+        if_oracle = ConcreteRED2Machine(
+            if_encoded,
+            prim0_roles=tuple(if_roles),
+            true_literal_id=if_true_id,
+            false_literal_id=if_false_id,
+        )
+        assert if_oracle.run_to_commit(), if_oracle.fault
+        if_expected = if_oracle.checkpoint()
+        assert if_expected.pc == 10
+        assert if_expected.env == 301
+        assert if_expected.q == 7
+
+        _load_hardware(if_encoded)
+        _load_literal_meta(27, if_id, prim0_role=PRIM0_ROLE_IF)
+        _load_literal_meta(28, if_true_id, special_flags=LITERAL_SPECIAL_TRUE)
+        _load_literal_meta(29, if_false_id, special_flags=LITERAL_SPECIAL_FALSE)
+        if_result = None
+        if_seen_microstates: set[int] = set()
+        for _ in range(260):
+            if_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+            if_seen_microstates.add(int(if_result.microstate))
+            if int(if_result.status) == STATUS_FAULT or int(if_result.committed):
+                break
+        else:
+            raise AssertionError("large-graph saved lazy IF did not terminate")
+        assert if_result is not None
+        assert int(if_result.status) != STATUS_FAULT, (
+            f"large-graph saved lazy IF faulted: red2={int(if_result.red2_fault)} "
+            f"hw={int(if_result.hw_fault)} micro={int(if_result.microstate)}"
+        )
+        assert int(if_result.committed)
+        assert 121 in if_seen_microstates and 122 in if_seen_microstates
+        _assert_scalar_checkpoint(if_result, if_expected)
 
     deferred, deferred_initial = run_head_prim0(
         role=PRIM0_ROLE_DEFERRED,
@@ -3035,6 +3298,78 @@ def check() -> None:
     assert expected.free_space == 40
     result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=2))
     assert _packed_memory_read(result) == expected.memory[2]
+
+    # IO-BIND of an EP whose terminal is outside the child reclaim interval must
+    # preserve the original EP descriptor at both the consumed parent and the
+    # continuation argument, while replacing the popped continuation path with the
+    # restored child value environment.  This is a pop+push into the same control slot.
+    io_bind_ep = simple_join_encoded(
+        abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 99, 0, 0, 0, 0),
+        abi.pack_word(1, abi.MOP_EP, abi.DATA_SIGNED, 27, 1, 0, 0, 0),
+        parent_address=3,
+        join_address=4,
+        result_address=5,
+        env=28,
+        free_space=28,
+        frame_env=32,
+        frame_free_space=32,
+        frame_prim_id=501,
+        frame_fire=1,
+        memory_words=64,
+    )
+    io_bind_ep_memory = list(io_bind_ep.memory)
+    io_bind_ep_memory[2] = abi.pack_word(
+        1, abi.MOP_APP, abi.DATA_SIGNED, 17, 0, 0, 0, 0
+    )
+    io_bind_ep_memory[27] = abi.pack_word(
+        1, abi.MOP_INT, abi.DATA_SIGNED, 7, 0, 0, 0, 0
+    )
+    io_bind_ep_control = list(io_bind_ep.control_stack)
+    io_bind_ep_control[0] = abi.pack_control_entry(
+        abi.CONTROL_ADDRESS, 44, 0, 0, 0
+    )
+    io_bind_ep_control[1] = abi.pack_control_entry(
+        abi.CONTROL_SUBGRAPH, 32, 32, 501, 1
+    )
+    io_bind_ep = replace(
+        io_bind_ep,
+        memory=tuple(io_bind_ep_memory),
+        control_stack=tuple(io_bind_ep_control),
+        c=2,
+        q=8,
+        phi=4,
+        argcnt=2,
+    )
+    io_bind_ep_roles = [0] * 502
+    io_bind_ep_roles[501] = PRIM0_ROLE_IO_BIND
+    io_bind_ep_oracle = ConcreteRED2Machine(
+        io_bind_ep, prim0_roles=tuple(io_bind_ep_roles)
+    )
+    assert io_bind_ep_oracle.run_to_commit(), io_bind_ep_oracle.fault
+    io_bind_ep_expected = io_bind_ep_oracle.checkpoint()
+    _load_hardware(io_bind_ep)
+    _load_literal_meta(27, 501, prim0_role=PRIM0_ROLE_IO_BIND)
+    io_bind_ep_result = None
+    for _ in range(300):
+        io_bind_ep_result = sim_call(
+            SynthesizableRED2Machine, _command(CMD_CLOCK)
+        )
+        if int(io_bind_ep_result.committed) or int(io_bind_ep_result.status) == STATUS_FAULT:
+            break
+    else:
+        raise AssertionError("EP-valued IO-BIND did not reach a commit")
+    assert io_bind_ep_result is not None
+    _assert_scalar_checkpoint(io_bind_ep_result, io_bind_ep_expected)
+    for address in (2, 3, 4, 5, 27):
+        io_bind_ep_result = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(io_bind_ep_result) == io_bind_ep_expected.memory[address]
+    for address in (0, 1):
+        io_bind_ep_result = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_control_read(io_bind_ep_result) == io_bind_ep_expected.control_stack[address]
 
     join_atomic_parent_head = simple_join_encoded(
         abi.pack_word(1, abi.MOP_APP, abi.DATA_SIGNED, 9, 1, 0, 0, 0),

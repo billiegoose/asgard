@@ -79,7 +79,7 @@ def run_red2_io_action(
             call = stop.host_call
             if call is None:
                 raise Red2IoRuntimeError("host suspension is missing its host call")
-            machine.resume_host_call(_dispatch_host_call(machine, call, host))
+            machine.resume_host_call(dispatch_red2_host_call(machine, call, host))
             if scheduler_stats is not None:
                 scheduler_stats.host_dispatches += 1
             if Red2RechargeEvent.HOST_DISPATCH in recharge_events:
@@ -114,7 +114,7 @@ def run_red2_io_action(
         raise Red2IoRuntimeError(f"unknown faithful RED2 stop reason: {stop.reason}")
 
 
-def _dispatch_host_call(
+def dispatch_red2_host_call(
     machine: AbstractRED2Machine,
     call: MuredHostCall,
     host: Red2IoHost,
@@ -139,6 +139,10 @@ def _dispatch_host_call(
         return Word(MuredOpcode.SYM, "NIL")
     raise Red2IoRuntimeError(f"unknown RED2 host primitive: {call.name}")
 
+
+
+# Backward compatibility for callers that imported the former private helper.
+_dispatch_host_call = dispatch_red2_host_call
 
 def _memory_word(machine: AbstractRED2Machine, address: int) -> Word:
     memory = machine.state.memory

@@ -55,9 +55,10 @@ usage = '''
 arg "<file>" help="THOR source file"
 flag "--quantum <n>" help="maximum contraction quantum" default="2000"
 flag "--verbose" help="write diagnostics to stderr"
+flag "--clock <path>" help="latest-value millisecond clock source"
 '''
 run = '''
-uv run con "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose}
+uv run con "${usage_file?}" --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}
 '''
 
 [tasks.syn]
@@ -68,7 +69,7 @@ arg "[file]" help="THOR source file"
 flag "--expr <source>" help="THOR expression or program source"
 flag "--quantum <n>" help="maximum contraction quantum" default="2000"
 flag "--verbose" help="write simulator diagnostics to stderr"
-flag "--clock <path>" help="clock source (accepted now; host resume support is pending)"
+flag "--clock <path>" help="latest-value millisecond clock source"
 '''
 run = '''
 uv run python scripts/run_syn.py ${usage_file:+"$usage_file"} ${usage_expr:+--expr "$usage_expr"} --quantum "${usage_quantum?}" ${usage_verbose:+--verbose} ${usage_clock:+--clock "$usage_clock"}

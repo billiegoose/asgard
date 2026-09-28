@@ -2,6 +2,7 @@ import os
 import select
 import time
 from collections.abc import Collection, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TextIO, assert_never
@@ -12,8 +13,6 @@ from abstract_red2_machine.io_runtime import (
     Red2RechargeEvent,
     run_red2_io_action,
 )
-from thor_interpreter.golden import ModelName
-from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr
 from thor.ast import (
     App,
     Binding,
@@ -36,6 +35,8 @@ from thor.normalization import normalize_program
 from thor.parser import parse_program
 from thor.pretty import to_source
 from thor.primitives import install_struct_definition
+from thor_interpreter.golden import ModelName
+from thor_interpreter.semantics import ThorDefinitionCache, reduce_expr
 
 
 class IoRuntimeError(RuntimeError):
@@ -93,7 +94,7 @@ def run_io_source(
         raise IoRuntimeError(f"not an IO action: {to_source(action)}")
     clock_source = clock or SystemClockSource()
     if model in {"abs", "red2"}:
-        host = _Red2IoHost(stdin=stdin, stdout=stdout, clock=clock_source)
+        host = TextRed2IoHost(stdin=stdin, stdout=stdout, clock=clock_source)
         try:
             result = run_red2_io_action(
                 action,
@@ -144,7 +145,7 @@ def _prepare_io_program(
 
 
 @dataclass(slots=True)
-class _Red2IoHost:
+class TextRed2IoHost:
     stdin: TextIO
     stdout: TextIO
     clock: ClockSource
@@ -158,6 +159,35 @@ class _Red2IoHost:
 
     def clock_ms(self) -> int:
         return self.clock.now_ms()
+
+
+# Backward compatibility for callers that imported the former private host class.
+_Red2IoHost = TextRed2IoHost
+
+
+@contextmanager
+def terminal_input_mode(stream: TextIO):
+    """Use cbreak mode for a real terminal so UART-RX sees keystrokes immediately."""
+    try:
+        fd = stream.fileno()
+    except (AttributeError, OSError):
+        yield
+        return
+    if not os.isatty(fd):
+        yield
+        return
+    try:
+        import termios
+        import tty
+    except ImportError:
+        yield
+        return
+    previous = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+    try:
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, previous)
 
 
 @dataclass(frozen=True, slots=True)

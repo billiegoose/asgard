@@ -7,6 +7,7 @@ frontend.  Reducer semantics are being ported slice-by-slice; until
 withhold ``RED2_SYNTH_V1``.
 """
 
+import os
 from typing import NamedTuple
 
 from pypeline import (
@@ -52,9 +53,11 @@ from ram import make_ram
 RED2_SYNTH_TOP_V1 = 1
 RED2_SYNTH_SEMANTICS_COMPLETE = 0
 
-GRAPH_WORDS = 256
+GRAPH_WORDS = int(os.environ.get("RED2_SYN_GRAPH_WORDS", "256"))
+if GRAPH_WORDS < 2 or GRAPH_WORDS > (1 << 16) or GRAPH_WORDS & (GRAPH_WORDS - 1):
+    raise ValueError("RED2_SYN_GRAPH_WORDS must be a power of two from 2 through 65536")
 CONTROL_WORDS = 256
-GRAPH_ADDR_BITS = 8
+GRAPH_ADDR_BITS = (GRAPH_WORDS - 1).bit_length()
 CONTROL_ADDR_BITS = 8
 LITERAL_META_WORDS = 64
 LITERAL_META_ADDR_BITS = 6
@@ -83,6 +86,7 @@ FAULT_CONTROL_OVERFLOW = 3
 FAULT_CONTROL_UNDERFLOW = 4
 FAULT_ILLEGAL_TRANSITION = 5
 FAULT_UNSUPPORTED_VALUE = 6
+FAULT_INVALID_RESUME = 7
 
 HW_FAULT_NONE = 0
 HW_FAULT_BAD_COMMAND = 1
@@ -92,6 +96,8 @@ HW_FAULT_EXECUTION_NOT_IMPLEMENTED = 3
 HOST_NONE = 0
 HOST_CLOCK = 1
 HOST_UART_RX = 2
+HOST_UART_TX = 3
+HOST_UART_TX_BYTES = 4
 
 PRIM0_ROLE_PASSIVE = 0
 PRIM0_ROLE_IF = 1
@@ -308,6 +314,9 @@ MICRO_JOIN_IF_SELECT = 124
 MICRO_JOIN_IF_EP_CHASE = 125
 MICRO_PUB_EXEC = 126
 MICRO_PUB_STACK = 127
+MICRO_JOIN_IO_CONT_READ = 128
+MICRO_JOIN_IO_PATH_READ = 129
+MICRO_JOIN_IO_COMMIT = 130
 
 PUB_TASK_NONE = 0
 PUB_TASK_GRAPH = 1
@@ -1025,7 +1034,7 @@ class red2_status_t(NamedTuple):
     status: uint3_t
     red2_fault: uint3_t
     hw_fault: uint3_t
-    microstate: uint7_t
+    microstate: uint8_t
     committed: uint1_t
     pc: uint16_t
     fsp: uint16_t
@@ -1102,7 +1111,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     pending_host_argument: Reg[uint64_t]
     red2_fault: Reg[uint3_t]
     hw_fault: Reg[uint3_t]
-    microstate: Reg[uint7_t]
+    microstate: Reg[uint8_t]
     fetched_word: Reg[red2_word_t]
     lookup_word: Reg[red2_word_t]
     lookup_address: Reg[uint17_t]
@@ -1135,6 +1144,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     struct_selector_descriptor: Reg[uint16_t]
     struct_selector_source: Reg[uint16_t]
     struct_selector_contract: Reg[uint1_t]
+    struct_cons_active: Reg[uint1_t]
     struct_selector_copy_cursor: Reg[uint17_t]
     struct_selector_copy_count: Reg[uint17_t]
     struct_selector_copy_index: Reg[uint17_t]
@@ -1239,6 +1249,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     join_frame_prim_id: Reg[uint32_t]
     join_frame_fire: Reg[uint32_t]
     join_saved_primitive: Reg[uint1_t]
+    join_host_active: Reg[uint1_t]
+    join_host_op: Reg[uint3_t]
+    join_io_active: Reg[uint1_t]
+    join_io_return_active: Reg[uint1_t]
+    join_io_then: Reg[uint1_t]
+    join_io_bind_ep: Reg[uint1_t]
+    join_io_bind_word: Reg[red2_word_t]
+    join_io_continuation_target: Reg[uint16_t]
+    join_io_path: Reg[uint17_t]
     join_prim_meta_cursor: Reg[uint16_t]
     join_prim_scalar_op: Reg[uint5_t]
     join_scalar_preflight_done: Reg[uint1_t]
@@ -1463,6 +1482,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     # its own source line: the pinned frontend can otherwise assign duplicate
     # instance names to mixed-width comparisons synthesized inside and/or trees.
     command_is_clock: uint1_t = command.op == CMD_CLOCK
+    command_is_resume: uint1_t = command.op == CMD_RESUME
     command_is_load_memory: uint1_t = command.op == CMD_LOAD_MEMORY
     command_is_load_control: uint1_t = command.op == CMD_LOAD_CONTROL
     micro_is_fetch: uint1_t = microstate == MICRO_FETCH
@@ -1478,6 +1498,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_join_if_path_clear: uint1_t = microstate == MICRO_JOIN_IF_PATH_CLEAR
     micro_is_join_if_select: uint1_t = microstate == MICRO_JOIN_IF_SELECT
     micro_is_join_if_ep_chase: uint1_t = microstate == MICRO_JOIN_IF_EP_CHASE
+    micro_is_join_io_cont_read: uint1_t = microstate == MICRO_JOIN_IO_CONT_READ
+    micro_is_join_io_path_read: uint1_t = microstate == MICRO_JOIN_IO_PATH_READ
+    micro_is_join_io_commit: uint1_t = microstate == MICRO_JOIN_IO_COMMIT
     micro_is_pub_exec: uint1_t = microstate == MICRO_PUB_EXEC
     micro_is_pub_stack: uint1_t = microstate == MICRO_PUB_STACK
     pub_current_is_graph: uint1_t = pub_current_task.kind == PUB_TASK_GRAPH
@@ -1653,12 +1676,80 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     char_kind_ok: uint1_t = opcode_is_char and kind_is_literal
     passive_kind_ok: uint1_t = int_kind_ok or float_kind_ok or char_kind_ok
 
+    resume_word_valid: uint1_t = command.word.hi[26]
+    resume_opcode: uint5_t = command.word.hi[25:21]
+    resume_kind: uint2_t = command.word.hi[18:17]
+    resume_closure_slot: uint1_t = command.word.hi[19]
+    resume_definition_valid: uint1_t = command.word.hi[16]
+    resume_definition_zero: uint1_t = command.word.hi[15:0] == 0
+    resume_reserved_zero: uint1_t = command.word.hi[63:27] == 0
+    resume_literal_upper_zero: uint1_t = command.word.lo[63:32] == 0
+    resume_literal_nonzero: uint1_t = command.word.lo[31:0] != 0
+    resume_is_int: uint1_t = resume_opcode == MOP_INT
+    resume_is_float: uint1_t = resume_opcode == MOP_FLOAT
+    resume_is_char: uint1_t = resume_opcode == MOP_CHAR
+    resume_is_sym: uint1_t = resume_opcode == MOP_SYM
+    resume_int_atomic: uint1_t = resume_is_int and resume_kind == DATA_SIGNED
+    resume_float_atomic: uint1_t = resume_is_float and resume_kind == DATA_FLOAT64
+    resume_literal_opcode: uint1_t = resume_is_char or resume_is_sym
+    resume_literal_atomic: uint1_t = resume_literal_opcode and resume_kind == DATA_LITERAL_ID
+    resume_literal_atomic = resume_literal_atomic and resume_literal_upper_zero
+    resume_literal_atomic = resume_literal_atomic and resume_literal_nonzero
+    resume_atomic: uint1_t = resume_int_atomic or resume_float_atomic
+    resume_atomic = resume_atomic or resume_literal_atomic
+    resume_definition_ok: uint1_t = resume_definition_valid or resume_definition_zero
+    resume_word_ok: uint1_t = resume_word_valid and resume_atomic
+    resume_word_ok = resume_word_ok and resume_reserved_zero
+    resume_word_ok = resume_word_ok and not resume_closure_slot
+    resume_word_ok = resume_word_ok and resume_definition_ok
+    resume_direct_clock: uint1_t = pending_host_op == HOST_CLOCK
+    resume_direct_rx: uint1_t = pending_host_op == HOST_UART_RX
+    resume_direct: uint1_t = resume_direct_clock or resume_direct_rx
+    resume_strict_tx: uint1_t = pending_host_op == HOST_UART_TX
+    resume_strict_bytes: uint1_t = pending_host_op == HOST_UART_TX_BYTES
+    resume_strict: uint1_t = resume_strict_tx or resume_strict_bytes
+    resume_arg_nonzero: uint1_t = pending_host_argument != 0
+    resume_arg_low_range: uint1_t = pending_host_argument[63:GRAPH_ADDR_BITS] == 0
+    resume_arg_is_end: uint1_t = pending_host_argument == GRAPH_WORDS
+    resume_arg_in_range: uint1_t = resume_arg_low_range or resume_arg_is_end
+    resume_argument_wide: uint64_t = pending_host_argument - 1
+    resume_argument: uint16_t = resume_argument_wide[15:0]
+    resume_direct_shape: uint1_t = resume_direct and pending_host_argument == 0
+    resume_strict_shape: uint1_t = resume_strict and resume_arg_nonzero
+    resume_strict_shape = resume_strict_shape and resume_arg_in_range
+    resume_strict_shape = resume_strict_shape and pc == resume_argument
+    resume_host_shape: uint1_t = resume_direct_shape or resume_strict_shape
+    resume_machine_ok: uint1_t = red2_fault == FAULT_NONE
+    resume_machine_ok = resume_machine_ok and hw_fault == HW_FAULT_NONE
+    resume_machine_ok = resume_machine_ok and micro_is_fetch
+    resume_machine_ok = resume_machine_ok and not halted
+    resume_machine_ok = resume_machine_ok and pending_host_op != HOST_NONE
+    resume_machine_ok = resume_machine_ok and q != 0
+    resume_base_ok: uint1_t = resume_machine_ok and resume_word_ok
+    resume_base_ok = resume_base_ok and resume_host_shape
+    resume_destination: uint17_t = fsp + 1
+    resume_destination_in_range: uint1_t = resume_destination[16:GRAPH_ADDR_BITS] == 0
+    resume_destination_before_free: uint1_t = resume_destination < free_space
+    resume_direct_capacity_ok: uint1_t = resume_destination_in_range
+    resume_direct_capacity_ok = resume_direct_capacity_ok and resume_destination_before_free
+    resume_capacity_ok: uint1_t = not resume_direct or resume_direct_capacity_ok
+    resume_can_write: uint1_t = resume_base_ok and resume_capacity_ok
+    resume_reheaded_hi: uint64_t = command.word.hi | 1048576
+    resume_word: red2_word_t = red2_word_t(lo=command.word.lo, hi=resume_reheaded_hi)
+
     if command_is_load_memory:
         if memory_address_in_range:
             memory_req.wr_en = 1
     if command_is_load_control:
         if control_address_in_range:
             control_req.wr_en = 1
+    if command_is_resume and resume_can_write:
+        if resume_direct:
+            memory_req.addr = resume_destination[GRAPH_ADDR_BITS - 1 : 0]
+        else:
+            memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
+        memory_req.wr_data = resume_word
+        memory_req.wr_en = 1
 
     if command_is_clock:
         # Keep these entry-microstate request selectors as sibling ifs. They are
@@ -1979,14 +2070,55 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             selector_copy_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
             memory_req.addr = selector_copy_source_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_copy_write:
-            selector_copy_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
-            memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            selector_copy_is_last_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
-            if selector_copy_is_last_req:
-                memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+            if struct_cons_active:
+                cons_write_address: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
+                if struct_selector_copy_index == 4:
+                    cons_write_address = struct_selector_source
+                memory_req.addr = cons_write_address[GRAPH_ADDR_BITS - 1 : 0]
+                if struct_selector_copy_index == 0:
+                    memory_req.wr_data = red2_word_t(
+                        lo=struct_selector_tag_id, hi=98959360
+                    )
+                elif struct_selector_copy_index == 1:
+                    cons_right_root_req: uint64_t = join_result_address
+                    memory_req.wr_data = red2_word_t(
+                        lo=cons_right_root_req, hi=69337088
+                    )
+                elif struct_selector_copy_index == 2:
+                    cons_left_opcode_req: uint5_t = struct_selector_copy_word.hi[25:21]
+                    if cons_left_opcode_req == MOP_APP:
+                        memory_req.wr_data = red2_word_t(
+                            lo=struct_selector_copy_word.lo, hi=69337088
+                        )
+                    elif cons_left_opcode_req == MOP_APP_VAR:
+                        cons_left_index_req: uint64_t = struct_selector_copy_word.lo + 1
+                        memory_req.wr_data = red2_word_t(
+                            lo=cons_left_index_req, hi=71434240
+                        )
+                    else:
+                        cons_left_root_req: uint64_t = struct_selector_source
+                        memory_req.wr_data = red2_word_t(
+                            lo=cons_left_root_req, hi=69337088
+                        )
+                elif struct_selector_copy_index == 3:
+                    memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+                else:
+                    cons_left_head_hi_req: uint64_t = (
+                        struct_selector_copy_word.hi & 132644863
+                    ) | 1048576
+                    memory_req.wr_data = red2_word_t(
+                        lo=struct_selector_copy_word.lo, hi=cons_left_head_hi_req
+                    )
+                memory_req.wr_en = 1
             else:
-                memory_req.wr_data = struct_selector_copy_word
-            memory_req.wr_en = 1
+                selector_copy_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
+                memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+                selector_copy_is_last_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
+                if selector_copy_is_last_req:
+                    memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+                else:
+                    memory_req.wr_data = struct_selector_copy_word
+                memory_req.wr_en = 1
         if micro_is_struct_selector_promote_scan:
             memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_promote_read:
@@ -2516,6 +2648,36 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             control_req.addr = join_clear_address_req[CONTROL_ADDR_BITS - 1 : 0]
             control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+        if micro_is_join_io_cont_read:
+            join_io_cont_addr_req: uint17_t = join_parent_address - 1
+            memory_req.addr = join_io_cont_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+        if micro_is_join_io_path_read:
+            join_io_path_addr_req: uint17_t = join_frame_index - 1
+            control_req.addr = join_io_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
+        if micro_is_join_io_commit:
+            join_io_commit_cont_addr_req: uint17_t = join_parent_address - 1
+            join_io_commit_path_addr_req: uint17_t = join_frame_index - 1
+            join_io_headless_hi_req: uint64_t = join_publish_word.hi & 133169151
+            join_io_bind_headless_hi_req: uint64_t = join_io_bind_word.hi & 133169151
+            join_io_commit_bind_ep_req: uint1_t = join_io_bind_ep
+            memory_req.addr = join_io_commit_cont_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+            if join_io_commit_bind_ep_req:
+                memory_req.wr_data = red2_word_t(
+                    lo=join_io_bind_word.lo, hi=join_io_bind_headless_hi_req
+                )
+            else:
+                memory_req.wr_data = red2_word_t(
+                    lo=join_publish_word.lo, hi=join_io_headless_hi_req
+                )
+            memory_req.wr_en = not join_io_then
+            control_req.addr = join_io_commit_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
+            if join_io_commit_bind_ep_req:
+                control_req.wr_data = red2_control_t(
+                    lo=join_frame_env, hi=0, tag_hi=CONTROL_ADDRESS
+                )
+            else:
+                control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.wr_en = 1
         if micro_is_join_if_false_read:
             join_if_false_addr_req: uint17_t = join_parent_address - 2
             memory_req.addr = join_if_false_addr_req[GRAPH_ADDR_BITS - 1 : 0]
@@ -2918,6 +3080,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         struct_selector_descriptor = 0
         struct_selector_source = 0
         struct_selector_contract = 0
+        struct_cons_active = 0
         struct_selector_copy_cursor = 0
         struct_selector_copy_count = 0
         struct_selector_copy_index = 0
@@ -3013,6 +3176,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_frame_prim_id = 0
         join_frame_fire = 0
         join_saved_primitive = 0
+        join_host_active = 0
+        join_host_op = HOST_NONE
+        join_io_active = 0
+        join_io_return_active = 0
+        join_io_then = 0
+        join_io_bind_ep = 0
+        join_io_bind_word = red2_word_t(lo=0, hi=0)
+        join_io_continuation_target = 0
+        join_io_path = 0
         join_prim_meta_cursor = 0
         join_prim_scalar_op = SCALAR_OP_NONE
         join_scalar_preflight_done = 0
@@ -3198,6 +3370,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         struct_selector_descriptor = 0
         struct_selector_source = 0
         struct_selector_contract = 0
+        struct_cons_active = 0
         struct_selector_copy_cursor = 0
         struct_selector_copy_count = 0
         struct_selector_copy_index = 0
@@ -3293,6 +3466,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_frame_prim_id = 0
         join_frame_fire = 0
         join_saved_primitive = 0
+        join_host_active = 0
+        join_host_op = HOST_NONE
+        join_io_active = 0
+        join_io_return_active = 0
+        join_io_then = 0
+        join_io_bind_ep = 0
+        join_io_bind_word = red2_word_t(lo=0, hi=0)
+        join_io_continuation_target = 0
+        join_io_path = 0
         join_prim_meta_cursor = 0
         join_prim_scalar_op = SCALAR_OP_NONE
         join_scalar_preflight_done = 0
@@ -3456,6 +3638,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             struct_selector_descriptor = 0
             struct_selector_source = 0
             struct_selector_contract = 0
+            struct_cons_active = 0
             struct_selector_copy_cursor = 0
             struct_selector_copy_count = 0
             struct_selector_copy_index = 0
@@ -3551,6 +3734,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_frame_prim_id = 0
             join_frame_fire = 0
             join_saved_primitive = 0
+            join_host_active = 0
+            join_host_op = HOST_NONE
+            join_io_active = 0
+            join_io_return_active = 0
+            join_io_then = 0
+            join_io_bind_ep = 0
+            join_io_bind_word = red2_word_t(lo=0, hi=0)
+            join_io_continuation_target = 0
+            join_io_path = 0
             direct_scalar_active = 0
             ep_scalar_active = 0
             prim0_meta_active = 0
@@ -3622,8 +3814,26 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         q = command.value
         hw_fault = HW_FAULT_NONE
     elif command.op == CMD_RESUME:
-        # Full RED2 resume validation/publication belongs to the later host slice.
-        hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+        if not resume_base_ok:
+            red2_fault = FAULT_INVALID_RESUME
+            microstate = MICRO_FAULT
+        elif resume_direct and not resume_direct_capacity_ok:
+            red2_fault = FAULT_GRAPH_ENV_COLLISION
+            microstate = MICRO_FAULT
+        else:
+            hw_fault = HW_FAULT_NONE
+            if resume_direct:
+                fsp = resume_destination[15:0]
+                argcnt = argcnt + 1
+                q = q - 1
+                pc = resume_destination[15:0] - 1
+                direction = DIRECTION_REVERSE
+            else:
+                fsp = pc
+                q = q - 1
+                pc = pc - 1
+            pending_host_op = HOST_NONE
+            pending_host_argument = 0
     elif command.op == CMD_CLOCK:
         hw_fault = HW_FAULT_NONE
         has_red2_fault: uint1_t = red2_fault != FAULT_NONE
@@ -3708,7 +3918,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 else:
                     fsp_ok: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
                     fsp_bad: uint1_t = fsp_ok == 0
-                    has_successor: uint1_t = fsp[GRAPH_ADDR_BITS - 1 : 0] != 255
+                    has_successor: uint1_t = fsp[GRAPH_ADDR_BITS - 1 : 0] != GRAPH_WORDS - 1
                     no_successor: uint1_t = has_successor == 0
                     pushed: uint17_t = fsp + 1
                     collides: uint1_t = pushed == free_space
@@ -4063,6 +4273,13 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_if_path_cursor = 0
                     join_if_path_count = 0
                     join_if_clear_remaining = 0
+                    join_io_active = 0
+                    join_io_return_active = 0
+                    join_io_then = 0
+                    join_io_bind_ep = 0
+                    join_io_bind_word = red2_word_t(lo=0, hi=0)
+                    join_io_continuation_target = 0
+                    join_io_path = 0
                     microstate = MICRO_JOIN_PARENT_READ
             elif opcode_is_closure:
                 if direction_is_reverse:
@@ -4669,77 +4886,125 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             clock_dispatch_handled = 1
             selector_copy_cursor_in_range: uint1_t = struct_selector_copy_cursor[16:GRAPH_ADDR_BITS] == 0
             selector_copy_word_valid: uint1_t = memory_out.p0.rd_data.hi[26]
-            selector_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
-            selector_copy_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
-            selector_copy_is_var: uint1_t = selector_copy_opcode == MOP_VAR
-            selector_copy_is_app: uint1_t = selector_copy_opcode == MOP_APP
-            selector_copy_is_app_var: uint1_t = selector_copy_opcode == MOP_APP_VAR
-            selector_copy_is_ep: uint1_t = selector_copy_opcode == MOP_EP
-            selector_copy_is_int: uint1_t = selector_copy_opcode == MOP_INT
-            selector_copy_is_float: uint1_t = selector_copy_opcode == MOP_FLOAT
-            selector_copy_is_char: uint1_t = selector_copy_opcode == MOP_CHAR
-            selector_copy_is_sym: uint1_t = selector_copy_opcode == MOP_SYM
-            selector_copy_is_prim0: uint1_t = selector_copy_opcode == MOP_PRIM_0
-            selector_copy_is_prim1: uint1_t = selector_copy_opcode == MOP_PRIM_1
-            selector_copy_is_prim2: uint1_t = selector_copy_opcode == MOP_PRIM_2
-            selector_copy_allowed: uint1_t = selector_copy_is_app or selector_copy_is_app_var
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_ep
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_int
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_float
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_char
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_sym
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim0
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim1
-            selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim2
-            if not selector_copy_cursor_in_range:
-                red2_fault = FAULT_INVALID_ADDRESS
-                microstate = MICRO_FAULT
-            elif not selector_copy_word_valid:
-                red2_fault = FAULT_INVALID_ADDRESS
-                microstate = MICRO_FAULT
-            elif selector_copy_is_var:
-                selector_copy_var_signed: uint1_t = selector_copy_kind == DATA_SIGNED
-                selector_copy_var_zero: uint1_t = memory_out.p0.rd_data.lo == 0
-                selector_copy_var_ok: uint1_t = selector_copy_var_signed and selector_copy_var_zero
-                if not selector_copy_var_ok:
+            if struct_cons_active:
+                cons_left_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                cons_left_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                cons_left_is_app: uint1_t = cons_left_opcode == MOP_APP
+                cons_left_is_app_var: uint1_t = cons_left_opcode == MOP_APP_VAR
+                cons_left_is_none: uint1_t = cons_left_opcode == MOP_NONE
+                cons_left_signed: uint1_t = cons_left_kind == DATA_SIGNED
+                cons_left_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+                cons_left_materialize: uint1_t = not cons_left_is_app and not cons_left_is_app_var
+                cons_base17: uint17_t = struct_selector_copy_destination
+                cons_min_root17: uint17_t = cons_base17 + 4
+                cons_fsp_next17: uint17_t = fsp + 1
+                cons_left_root17: uint17_t = cons_min_root17
+                cons_fsp_after_min: uint17_t = cons_fsp_next17 - cons_min_root17
+                if cons_fsp_after_min[16] == 0:
+                    cons_left_root17 = cons_fsp_next17
+                cons_last17: uint17_t = cons_base17 + 3
+                if cons_left_materialize:
+                    cons_last17 = cons_left_root17
+                cons_last_in_range: uint1_t = cons_last17[16:GRAPH_ADDR_BITS] == 0
+                cons_frontier_gap: uint17_t = join_frame_free_space - cons_last17
+                cons_frontier_ok: uint1_t = cons_frontier_gap[16] == 0
+                cons_frontier_ok = cons_frontier_ok and cons_frontier_gap != 0
+                cons_app_bad: uint1_t = cons_left_is_app and not cons_left_signed
+                cons_app_bad = cons_app_bad or (cons_left_is_app and cons_left_negative)
+                cons_app_var_bad: uint1_t = cons_left_is_app_var and not cons_left_signed
+                cons_app_var_bad = cons_app_var_bad or (cons_left_is_app_var and cons_left_negative)
+                if not selector_copy_cursor_in_range or not selector_copy_word_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif cons_left_is_none:
+                    red2_fault = FAULT_ILLEGAL_TRANSITION
+                    microstate = MICRO_FAULT
+                elif cons_app_bad or cons_app_var_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not cons_last_in_range or not cons_frontier_ok:
+                    red2_fault = FAULT_GRAPH_ENV_COLLISION
+                    microstate = MICRO_FAULT
+                else:
+                    struct_selector_copy_word = memory_out.p0.rd_data
+                    struct_selector_source = cons_left_root17[15:0]
+                    struct_selector_copy_count = 4
+                    if cons_left_materialize:
+                        struct_selector_copy_count = 5
+                    struct_selector_copy_index = 0
+                    microstate = MICRO_STRUCT_SELECTOR_COPY_WRITE
+            else:
+                selector_copy_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+                selector_copy_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+                selector_copy_is_var: uint1_t = selector_copy_opcode == MOP_VAR
+                selector_copy_is_app: uint1_t = selector_copy_opcode == MOP_APP
+                selector_copy_is_app_var: uint1_t = selector_copy_opcode == MOP_APP_VAR
+                selector_copy_is_ep: uint1_t = selector_copy_opcode == MOP_EP
+                selector_copy_is_int: uint1_t = selector_copy_opcode == MOP_INT
+                selector_copy_is_float: uint1_t = selector_copy_opcode == MOP_FLOAT
+                selector_copy_is_char: uint1_t = selector_copy_opcode == MOP_CHAR
+                selector_copy_is_sym: uint1_t = selector_copy_opcode == MOP_SYM
+                selector_copy_is_prim0: uint1_t = selector_copy_opcode == MOP_PRIM_0
+                selector_copy_is_prim1: uint1_t = selector_copy_opcode == MOP_PRIM_1
+                selector_copy_is_prim2: uint1_t = selector_copy_opcode == MOP_PRIM_2
+                selector_copy_allowed: uint1_t = selector_copy_is_app or selector_copy_is_app_var
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_ep
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_int
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_float
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_char
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_sym
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim0
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim1
+                selector_copy_allowed = selector_copy_allowed or selector_copy_is_prim2
+                if not selector_copy_cursor_in_range:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif not selector_copy_word_valid:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif selector_copy_is_var:
+                    selector_copy_var_signed: uint1_t = selector_copy_kind == DATA_SIGNED
+                    selector_copy_var_zero: uint1_t = memory_out.p0.rd_data.lo == 0
+                    selector_copy_var_ok: uint1_t = selector_copy_var_signed and selector_copy_var_zero
+                    if not selector_copy_var_ok:
+                        red2_fault = FAULT_ILLEGAL_TRANSITION
+                        microstate = MICRO_FAULT
+                    else:
+                        selector_copy_source17: uint17_t = struct_selector_source
+                        selector_copy_count17: uint17_t = struct_selector_copy_cursor - selector_copy_source17 + 1
+                        selector_copy_destination17: uint17_t = struct_selector_copy_destination
+                        selector_copy_last17: uint17_t = selector_copy_destination17 + selector_copy_count17 - 1
+                        selector_copy_last_in_range: uint1_t = selector_copy_last17[16:GRAPH_ADDR_BITS] == 0
+                        selector_copy_frontier_gap: uint17_t = free_space - selector_copy_last17
+                        selector_copy_frontier_wrapped: uint1_t = selector_copy_frontier_gap[16]
+                        selector_copy_frontier_nonzero: uint1_t = selector_copy_frontier_gap != 0
+                        selector_copy_fits_frontier: uint1_t = selector_copy_frontier_wrapped == 0
+                        selector_copy_fits_frontier = selector_copy_fits_frontier and selector_copy_frontier_nonzero
+                        if not selector_copy_last_in_range or not selector_copy_fits_frontier:
+                            red2_fault = FAULT_GRAPH_ENV_COLLISION
+                            microstate = MICRO_FAULT
+                        else:
+                            selector_copy_destination_from_source: uint17_t = selector_copy_destination17 - selector_copy_source17
+                            selector_copy_destination_before_source: uint1_t = selector_copy_destination_from_source[16]
+                            selector_copy_destination_not_source: uint1_t = selector_copy_destination_from_source != 0
+                            selector_copy_destination_after_source: uint1_t = selector_copy_destination_before_source == 0
+                            selector_copy_destination_after_source = selector_copy_destination_after_source and selector_copy_destination_not_source
+                            selector_copy_cursor_from_destination: uint17_t = struct_selector_copy_cursor - selector_copy_destination17
+                            selector_copy_destination_after_cursor: uint1_t = selector_copy_cursor_from_destination[16]
+                            selector_copy_destination_through_cursor: uint1_t = selector_copy_destination_after_cursor == 0
+                            selector_copy_overlap_backward: uint1_t = selector_copy_destination_after_source and selector_copy_destination_through_cursor
+                            struct_selector_copy_backward = selector_copy_overlap_backward
+                            struct_selector_copy_count = selector_copy_count17
+                            if selector_copy_overlap_backward:
+                                struct_selector_copy_index = selector_copy_count17 - 1
+                            else:
+                                struct_selector_copy_index = 0
+                            microstate = MICRO_STRUCT_SELECTOR_COPY_READ
+                elif not selector_copy_allowed:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
                 else:
-                    selector_copy_source17: uint17_t = struct_selector_source
-                    selector_copy_count17: uint17_t = struct_selector_copy_cursor - selector_copy_source17 + 1
-                    selector_copy_destination17: uint17_t = struct_selector_copy_destination
-                    selector_copy_last17: uint17_t = selector_copy_destination17 + selector_copy_count17 - 1
-                    selector_copy_last_in_range: uint1_t = selector_copy_last17[16:GRAPH_ADDR_BITS] == 0
-                    selector_copy_frontier_gap: uint17_t = free_space - selector_copy_last17
-                    selector_copy_frontier_wrapped: uint1_t = selector_copy_frontier_gap[16]
-                    selector_copy_frontier_nonzero: uint1_t = selector_copy_frontier_gap != 0
-                    selector_copy_fits_frontier: uint1_t = selector_copy_frontier_wrapped == 0
-                    selector_copy_fits_frontier = selector_copy_fits_frontier and selector_copy_frontier_nonzero
-                    if not selector_copy_last_in_range or not selector_copy_fits_frontier:
-                        red2_fault = FAULT_GRAPH_ENV_COLLISION
-                        microstate = MICRO_FAULT
-                    else:
-                        selector_copy_destination_from_source: uint17_t = selector_copy_destination17 - selector_copy_source17
-                        selector_copy_destination_before_source: uint1_t = selector_copy_destination_from_source[16]
-                        selector_copy_destination_not_source: uint1_t = selector_copy_destination_from_source != 0
-                        selector_copy_destination_after_source: uint1_t = selector_copy_destination_before_source == 0
-                        selector_copy_destination_after_source = selector_copy_destination_after_source and selector_copy_destination_not_source
-                        selector_copy_cursor_from_destination: uint17_t = struct_selector_copy_cursor - selector_copy_destination17
-                        selector_copy_destination_after_cursor: uint1_t = selector_copy_cursor_from_destination[16]
-                        selector_copy_destination_through_cursor: uint1_t = selector_copy_destination_after_cursor == 0
-                        selector_copy_overlap_backward: uint1_t = selector_copy_destination_after_source and selector_copy_destination_through_cursor
-                        struct_selector_copy_backward = selector_copy_overlap_backward
-                        struct_selector_copy_count = selector_copy_count17
-                        if selector_copy_overlap_backward:
-                            struct_selector_copy_index = selector_copy_count17 - 1
-                        else:
-                            struct_selector_copy_index = 0
-                        microstate = MICRO_STRUCT_SELECTOR_COPY_READ
-            elif not selector_copy_allowed:
-                red2_fault = FAULT_ILLEGAL_TRANSITION
-                microstate = MICRO_FAULT
-            else:
-                struct_selector_copy_cursor = struct_selector_copy_cursor + 1
+                    struct_selector_copy_cursor = struct_selector_copy_cursor + 1
         if not clock_dispatch_handled and micro_is_struct_selector_copy_read:
             clock_dispatch_handled = 1
             selector_copy_source_index17: uint17_t = struct_selector_source + struct_selector_copy_index
@@ -4755,7 +5020,26 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             selector_copy_last_index: uint17_t = struct_selector_copy_count - 1
             selector_copy_at_last: uint1_t = struct_selector_copy_index == selector_copy_last_index
             selector_copy_at_first: uint1_t = struct_selector_copy_index == 0
-            if struct_selector_copy_backward:
+            if struct_cons_active:
+                if selector_copy_at_last:
+                    cons_done_last17: uint17_t = struct_selector_copy_destination + 3
+                    if struct_selector_copy_count == 5:
+                        cons_done_last17 = struct_selector_source
+                    cons_old_fsp17: uint17_t = struct_selector_copy_old_fsp
+                    cons_done_gap: uint17_t = cons_done_last17 - cons_old_fsp17
+                    if cons_done_gap[16] == 0:
+                        fsp = cons_done_last17[15:0]
+                    else:
+                        fsp = struct_selector_copy_old_fsp
+                    env = join_frame_env
+                    free_space = join_frame_free_space
+                    s_a = join_result_address + 1
+                    join_needs_ep_cache = 0
+                    join_control_clear_index = control_top
+                    microstate = MICRO_JOIN_CONTROL_CLEAR
+                else:
+                    struct_selector_copy_index = struct_selector_copy_index + 1
+            elif struct_selector_copy_backward:
                 if selector_copy_at_first:
                     selector_copy_destination17_done: uint17_t = struct_selector_copy_destination
                     selector_copy_last17_done: uint17_t = selector_copy_destination17_done + struct_selector_copy_count - 1
@@ -5798,7 +6082,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 control_out.p0.rd_data.tag_hi == CONTROL_SAVED_DEFINITION_PATH
             )
             app_parent_lane: uint32_t = control_out.p0.rd_data.lo[31:0]
-            app_parent_low: uint1_t = app_parent_lane[31:8] == 0
+            app_parent_low: uint1_t = app_parent_lane[31:GRAPH_ADDR_BITS] == 0
             app_parent_end: uint1_t = app_parent_lane == GRAPH_WORDS
             app_parent_valid: uint1_t = app_parent_low or app_parent_end
             app_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
@@ -6001,7 +6285,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             ep_reverse_atomic = ep_reverse_atomic or ep_reverse_is_prim0
             ep_reverse_atomic = ep_reverse_atomic or ep_reverse_is_prim1
             ep_reverse_atomic = ep_reverse_atomic or ep_reverse_is_prim2
-            ep_reverse_caller_low: uint1_t = ep_reverse_caller_lane[31:8] == 0
+            ep_reverse_caller_low: uint1_t = ep_reverse_caller_lane[31:GRAPH_ADDR_BITS] == 0
             ep_reverse_caller_end: uint1_t = ep_reverse_caller_lane == GRAPH_WORDS
             ep_reverse_caller_valid: uint1_t = ep_reverse_caller_low or ep_reverse_caller_end
             ep_reverse_fsp_valid: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
@@ -6209,7 +6493,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 control_top = control_top - 1
                 ep_publish_opcode: uint5_t = ep_publish_word.hi[25:21]
                 ep_publish_is_var: uint1_t = ep_publish_opcode == MOP_VAR
-                if ep_scalar_active:
+                if join_host_active:
+                    prim_id = 0
+                    fire = 0
+                    pending_host_op = join_host_op
+                    pending_host_argument = pc + 1
+                    join_host_active = 0
+                    join_host_op = HOST_NONE
+                elif ep_scalar_active:
                     # The fire==1 boundary was either suppressed by q==0 or fully
                     # preflighted through the shared scalar evaluator.  Only now make
                     # its architectural register effects visible with EP publication.
@@ -6224,7 +6515,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     ep_publish_fire_active: uint1_t = fire != 0
                     if ep_publish_fire_active:
                         fire = fire - 1
-                pc = pc - 1
+                if pending_host_op == HOST_NONE:
+                    pc = pc - 1
                 microstate = MICRO_COMMIT
         if not clock_dispatch_handled and micro_is_join_parent_read:
             clock_dispatch_handled = 1
@@ -6309,10 +6601,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_saved_frame_fire_zero: uint1_t = join_frame_fire_lane == 0
             join_saved_frame_fire_one: uint1_t = join_frame_fire_lane == 1
             join_saved_q_nonzero: uint1_t = q != 0
-            join_frame_env_low: uint1_t = join_frame_env_lane[31:8] == 0
+            join_frame_env_low: uint1_t = join_frame_env_lane[31:GRAPH_ADDR_BITS] == 0
             join_frame_env_end: uint1_t = join_frame_env_lane == GRAPH_WORDS
             join_frame_env_in_range: uint1_t = join_frame_env_low or join_frame_env_end
-            join_frame_free_low: uint1_t = join_frame_free_lane[31:8] == 0
+            join_frame_free_low: uint1_t = join_frame_free_lane[31:GRAPH_ADDR_BITS] == 0
             join_frame_free_end: uint1_t = join_frame_free_lane == GRAPH_WORDS
             join_frame_free_in_range: uint1_t = join_frame_free_low or join_frame_free_end
             join_frame_env17: uint17_t = join_frame_env_lane[16:0]
@@ -6902,13 +7194,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 if join_meta_matches:
                     join_meta_scalar: uint5_t = literal_meta_out.p0.rd_data.scalar_op
                     join_meta_prim0_role: uint3_t = literal_meta_out.p0.rd_data.prim0_role
+                    join_meta_host: uint3_t = literal_meta_out.p0.rd_data.host_op
                     join_meta_special: uint16_t = literal_meta_out.p0.rd_data.special_flags
                     join_meta_struct_role: uint2_t = literal_meta_out.p0.rd_data.struct_role
                     join_meta_struct_tag_id: uint32_t = literal_meta_out.p0.rd_data.struct_tag_id
                     join_meta_struct_offset: uint32_t = literal_meta_out.p0.rd_data.struct_offset
                     join_meta_is_struct_selector: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR
+                    join_meta_is_struct_cons: uint1_t = join_meta_struct_role == STRUCT_ROLE_CONS
                     join_meta_is_struct_selector_result: uint1_t = join_meta_struct_role == STRUCT_ROLE_SELECTOR_RESULT
                     join_meta_is_if: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IF
+                    join_meta_is_bind: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_BIND
+                    join_meta_is_then: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_THEN
+                    join_meta_is_return: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_RETURN
                     join_meta_equality: uint1_t = join_meta_special[5]
                     join_meta_equality_continue: uint1_t = join_meta_special[6]
                     join_meta_is_dec: uint1_t = join_meta_scalar == SCALAR_OP_DEC
@@ -6960,7 +7257,93 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_char_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_is_symbol_p
                     join_meta_supported_boolean = join_meta_supported_boolean or join_meta_supported_binary_bool
-                    if join_meta_is_if:
+                    join_meta_host_tx: uint1_t = join_meta_host == HOST_UART_TX
+                    join_meta_host_bytes: uint1_t = join_meta_host == HOST_UART_TX_BYTES
+                    join_meta_strict_host: uint1_t = join_meta_host_tx or join_meta_host_bytes
+                    if join_meta_strict_host:
+                        if direct_scalar_active:
+                            prim_id = 0
+                            fire = 0
+                            direct_scalar_active = 0
+                            if q == 0:
+                                pc = join_parent_address - 1
+                            else:
+                                pending_host_op = join_meta_host
+                                pending_host_argument = join_parent_address + 1
+                                pc = join_parent_address
+                            microstate = MICRO_COMMIT
+                        elif ep_scalar_active:
+                            if q == 0:
+                                if ep_caller_path != env:
+                                    microstate = MICRO_EP_REVERSE_MARKER
+                                else:
+                                    microstate = MICRO_EP_REVERSE_PUBLISH
+                            else:
+                                join_host_active = 1
+                                join_host_op = join_meta_host
+                                ep_scalar_active = 0
+                                if ep_caller_path != env:
+                                    microstate = MICRO_EP_REVERSE_MARKER
+                                else:
+                                    microstate = MICRO_EP_REVERSE_PUBLISH
+                        elif q == 0:
+                            microstate = MICRO_JOIN_TAIL_READ
+                        else:
+                            # Classify the returned value before choosing its publication
+                            # path. Single-word values use ordinary JOIN publication so an
+                            # atomic host operand is compacted inline at the parent, exactly
+                            # like Concrete. Compound host values fall back to PUB_GRAPH
+                            # from MICRO_JOIN_TAIL_READ below.
+                            join_host_active = 1
+                            join_host_op = join_meta_host
+                            microstate = MICRO_JOIN_TAIL_READ
+                    elif join_meta_is_return:
+                        if direct_scalar_active:
+                            # Direct IO-RETURN fires on the inline value already at pc.
+                            # At q==0 it is passive; otherwise publish the same value with
+                            # its head bit set and reuse direct-scalar contraction cleanup.
+                            prim_id = 0
+                            fire = 0
+                            if q == 0:
+                                pc = join_parent_address - 1
+                                direct_scalar_active = 0
+                                microstate = MICRO_COMMIT
+                            else:
+                                io_return_direct_opcode: uint5_t = join_publish_word.hi[25:21]
+                                io_return_direct_int: uint1_t = io_return_direct_opcode == MOP_INT
+                                io_return_direct_float: uint1_t = io_return_direct_opcode == MOP_FLOAT
+                                io_return_direct_char: uint1_t = io_return_direct_opcode == MOP_CHAR
+                                io_return_direct_sym: uint1_t = io_return_direct_opcode == MOP_SYM
+                                io_return_direct_ok: uint1_t = io_return_direct_int or io_return_direct_float
+                                io_return_direct_ok = io_return_direct_ok or io_return_direct_char
+                                io_return_direct_ok = io_return_direct_ok or io_return_direct_sym
+                                if not io_return_direct_ok:
+                                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                                    microstate = MICRO_FAULT
+                                else:
+                                    io_return_direct_hi: uint64_t = join_publish_word.hi | 1048576
+                                    join_publish_word = red2_word_t(
+                                        lo=join_publish_word.lo, hi=io_return_direct_hi
+                                    )
+                                    join_scalar_contract = 1
+                                    join_scalar_preflight_done = 1
+                                    microstate = MICRO_JOIN_PUBLISH
+                        elif ep_scalar_active:
+                            red2_fault = FAULT_ILLEGAL_TRANSITION
+                            microstate = MICRO_FAULT
+                        elif q == 0:
+                            microstate = MICRO_JOIN_TAIL_READ
+                        else:
+                            join_io_return_active = 1
+                            microstate = MICRO_JOIN_TAIL_READ
+                    elif join_meta_is_bind or join_meta_is_then:
+                        if q == 0:
+                            microstate = MICRO_JOIN_TAIL_READ
+                        else:
+                            join_io_active = 1
+                            join_io_then = join_meta_is_then
+                            microstate = MICRO_JOIN_IO_CONT_READ
+                    elif join_meta_is_if:
                         # JOIN restores fire==1 and fires lazy IF in the same
                         # architectural transition, after publishing the child.
                         join_if_active = 1
@@ -6974,6 +7357,26 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         # q==0 and never consumes additional quantum.
                         struct_selector_result_active = 1
                         microstate = MICRO_JOIN_TAIL_READ
+                    elif join_meta_is_struct_cons:
+                        if direct_scalar_active or ep_scalar_active:
+                            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                            microstate = MICRO_FAULT
+                        elif join_meta_struct_tag_id == 0:
+                            red2_fault = FAULT_UNSUPPORTED_VALUE
+                            microstate = MICRO_FAULT
+                        elif q == 0:
+                            microstate = MICRO_JOIN_TAIL_READ
+                        else:
+                            # Saved binary CONS: right/CDR is the returned JOIN root;
+                            # left/CAR is the already-reduced slot immediately after
+                            # the parent. Reuse STRUCT copy states transactionally.
+                            struct_cons_active = 1
+                            struct_selector_tag_id = join_meta_struct_tag_id
+                            struct_selector_copy_destination = join_parent_address
+                            struct_selector_copy_cursor = join_parent_address + 1
+                            struct_selector_copy_old_fsp = fsp
+                            struct_selector_copy_index = 0
+                            microstate = MICRO_STRUCT_SELECTOR_COPY_SCAN
                     elif q == 0 and not direct_scalar_active and not ep_scalar_active:
                         # At a saved JOIN boundary every other fire==1 primitive is
                         # suppressed at exhausted quantum.  Direct/EP scalar firing
@@ -7268,9 +7671,96 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_tail_inline = join_tail_inline or join_tail_is_prim0
             join_tail_inline = join_tail_inline or join_tail_is_prim1
             join_tail_inline = join_tail_inline or join_tail_is_prim2
+            join_io_bind_value_ok: uint1_t = join_tail_atomic
+            join_io_bind_ep_ok: uint1_t = join_tail_is_ep and join_tail_kind == DATA_SIGNED
+            join_io_bind_ep_ok = join_io_bind_ep_ok and not memory_out.p0.rd_data.lo[63]
+            join_io_bind_value_ok = join_io_bind_value_ok or join_io_bind_ep_ok
+            if join_io_active:
+                join_io_bind_ep = (not join_io_then) and join_io_bind_ep_ok
+                if (not join_io_then) and join_io_bind_ep_ok:
+                    # Outside-reclaim EP results can be published through an APP root,
+                    # but IO-BIND must pass the original EP descriptor plus its value path.
+                    join_io_bind_word = memory_out.p0.rd_data
             if not join_tail_valid:
                 red2_fault = FAULT_INVALID_ADDRESS
                 microstate = MICRO_FAULT
+            elif join_io_active and not join_io_then and not join_io_bind_value_ok:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif join_host_active and not join_single_word:
+                # Strict host arguments that return a graph need the complete generic
+                # publication transaction; a single-word result deliberately bypasses
+                # this path so ordinary JOIN publication can inline atomic values.
+                pub_next_generation_host: uint32_t = pub_generation + 1
+                if pub_next_generation_host == 0:
+                    hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                    microstate = MICRO_FAULT
+                else:
+                    pub_generation = pub_next_generation_host
+                    pub_sp = 1
+                    pub_value = 0
+                    pub_launch_root = join_result_address
+                    pub_interval_start = free_space
+                    pub_interval_stop = join_frame_free_space
+                    pub_phi = phi
+                    pub_resume_kind = PUB_RESUME_JOIN
+                    pub_current_task = red2_pub_task_t(
+                        kind=PUB_TASK_GRAPH,
+                        a=join_result_address,
+                        b=0,
+                        c=0,
+                        d=0,
+                        e=0,
+                        f=0,
+                        flags=0,
+                    )
+                    pub_current_valid = 1
+                    pub_pending_count = 0
+                    pub_stack_phase = PUB_STACK_IDLE
+                    pub_stack_index = 0
+                    pub_stack_base = 0
+                    pub_stack_new_sp = 1
+                    pub_memo_write_pending = 0
+                    pub_memo_write_address = 0
+                    pub_memo_write_data = red2_pub_root_t(
+                        generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                    )
+                    pub_patch_count = 0
+                    pub_patch_commit_index = 0
+                    pub_patch_stage_pending = 0
+                    pub_patch_stage_append = 0
+                    pub_patch_stage_address = 0
+                    pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_address = 0
+                    pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                    pub_patch_commit_pending = 0
+                    pub_mat_count = 0
+                    pub_destination = fsp + 1
+                    pub_mat_stage_pending = 0
+                    pub_mat_stage_index = 0
+                    pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                    pub_mat_validate_index = 0
+                    pub_mat_commit_index = 0
+                    microstate = MICRO_PUB_EXEC
+            elif join_io_return_active:
+                io_return_is_int: uint1_t = join_tail_opcode == MOP_INT
+                io_return_is_float: uint1_t = join_tail_opcode == MOP_FLOAT
+                io_return_is_char: uint1_t = join_tail_opcode == MOP_CHAR
+                io_return_is_sym: uint1_t = join_tail_opcode == MOP_SYM
+                io_return_atomic_ok: uint1_t = join_single_word and join_tail_head
+                io_return_atomic_ok = io_return_atomic_ok and (
+                    io_return_is_int or io_return_is_float or io_return_is_char or io_return_is_sym
+                )
+                if not io_return_atomic_ok:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    io_return_hi: uint64_t = memory_out.p0.rd_data.hi | 1048576
+                    join_publish_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=io_return_hi)
+                    join_needs_ep_cache = 0
+                    join_preserve_fsp = 0
+                    join_published_root = join_result_address
+                    microstate = MICRO_JOIN_PUBLISH
             elif struct_selector_result_active:
                 selector_result_atomic_ok: uint1_t = join_single_word and join_tail_head
                 selector_result_atomic_ok = selector_result_atomic_ok and join_tail_inline
@@ -7408,21 +7898,63 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                         microstate = MICRO_FAULT
                     else:
-                        # PUB_STRUCT_SCAN is transactional: validate the entire
-                        # structure and every reachable EP terminal before the
-                        # first descriptor rewrite.  A second pass then performs
-                        # only the rewrites proven safe by this preflight.
-                        join_struct_cursor = join_result_address + 1
-                        join_struct_descriptor_address = 0
-                        join_struct_descriptor_hi = 0
-                        join_struct_target = 0
-                        join_struct_ep_target = 0
-                        join_struct_ep_hops = 0
-                        join_struct_ep_embedded = 0
-                        join_needs_ep_cache = 0
-                        join_preserve_fsp = 1
-                        join_published_root = join_result_address
-                        microstate = MICRO_JOIN_STRUCT_PREFLIGHT_SCAN
+                        # STRUCT publication can recursively encounter APP/EP/closure
+                        # children.  Route it through the generic transactional walker
+                        # so every reachable rewrite is preflighted before architectural
+                        # graph mutation.  This supersedes the older narrow STRUCT walker
+                        # for JOIN publication while retaining those states for other
+                        # already-covered paths.
+                        pub_next_generation_struct: uint32_t = pub_generation + 1
+                        if pub_next_generation_struct == 0:
+                            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
+                            microstate = MICRO_FAULT
+                        else:
+                            pub_generation = pub_next_generation_struct
+                            pub_sp = 1
+                            pub_value = 0
+                            pub_launch_root = join_result_address
+                            pub_interval_start = free_space
+                            pub_interval_stop = join_frame_free_space
+                            pub_phi = phi
+                            pub_resume_kind = PUB_RESUME_JOIN
+                            pub_current_task = red2_pub_task_t(
+                                kind=PUB_TASK_GRAPH,
+                                a=join_result_address,
+                                b=0,
+                                c=0,
+                                d=0,
+                                e=0,
+                                f=0,
+                                flags=0,
+                            )
+                            pub_current_valid = 1
+                            pub_pending_count = 0
+                            pub_stack_phase = PUB_STACK_IDLE
+                            pub_stack_index = 0
+                            pub_stack_base = 0
+                            pub_stack_new_sp = 1
+                            pub_memo_write_pending = 0
+                            pub_memo_write_address = 0
+                            pub_memo_write_data = red2_pub_root_t(
+                                generation=0, state=PUB_ROOT_EMPTY, result=0, aux=0
+                            )
+                            pub_patch_count = 0
+                            pub_patch_commit_index = 0
+                            pub_patch_stage_pending = 0
+                            pub_patch_stage_append = 0
+                            pub_patch_stage_address = 0
+                            pub_patch_stage_word = red2_word_t(lo=0, hi=0)
+                            pub_patch_commit_address = 0
+                            pub_patch_commit_word = red2_word_t(lo=0, hi=0)
+                            pub_patch_commit_pending = 0
+                            pub_mat_count = 0
+                            pub_destination = fsp + 1
+                            pub_mat_stage_pending = 0
+                            pub_mat_stage_index = 0
+                            pub_mat_stage_word = red2_word_t(lo=0, hi=0)
+                            pub_mat_validate_index = 0
+                            pub_mat_commit_index = 0
+                            microstate = MICRO_PUB_EXEC
                 elif join_tail_is_app_var:
                     if not join_multi_parent_supports_app_graph:
                         hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
@@ -7841,7 +8373,20 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_rblock_phi_count32: uint32_t = join_rblock_phi_count
                     phi = phi - join_rblock_phi_count32
                     join_rblock_phi_adjust = 0
-                if struct_selector_launch_active:
+                if join_io_return_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
+                    fsp = join_parent_address
+                    q = q - 1
+                    join_io_return_active = 0
+                elif struct_cons_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
+                    q = q - 1
+                    struct_cons_active = 0
+                elif struct_selector_launch_active:
                     # This clock clears the old frame. Reuse that slot for the
                     # private selector-result subgraph frame on the next clocks.
                     control_top = join_frame_index + 1
@@ -7869,6 +8414,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     fire = 0
                     struct_selector_result_active = 0
                 elif join_if_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
+                elif join_host_active:
+                    control_top = join_frame_index
+                    prim_id = 0
+                    fire = 0
+                    pending_host_op = join_host_op
+                    pending_host_argument = join_parent_address + 1
+                elif join_io_active:
                     control_top = join_frame_index
                     prim_id = 0
                     fire = 0
@@ -7903,11 +8458,96 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         direction = DIRECTION_FORWARD
                         struct_selector_result_resume_forward = 0
                         microstate = MICRO_COMMIT
+                    elif join_host_active:
+                        pc = join_parent_address
+                        join_host_active = 0
+                        join_host_op = HOST_NONE
+                        microstate = MICRO_COMMIT
+                    elif join_io_active:
+                        microstate = MICRO_JOIN_IO_COMMIT
                     else:
                         pc = join_parent_address - 1
                         microstate = MICRO_COMMIT
             else:
                 microstate = MICRO_JOIN_CONTROL_CLEAR
+        if not clock_dispatch_handled and micro_is_join_io_cont_read:
+            clock_dispatch_handled = 1
+            join_io_parent_too_low: uint1_t = join_parent_address == 0
+            join_io_cont_valid: uint1_t = memory_out.p0.rd_data.hi[26]
+            join_io_cont_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
+            join_io_cont_kind: uint2_t = memory_out.p0.rd_data.hi[18:17]
+            join_io_cont_is_app: uint1_t = join_io_cont_opcode == MOP_APP
+            join_io_cont_signed: uint1_t = join_io_cont_kind == DATA_SIGNED
+            join_io_cont_negative: uint1_t = memory_out.p0.rd_data.lo[63]
+            join_io_cont_range: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] == 0
+            if join_io_parent_too_low:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_io_cont_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            elif not join_io_cont_is_app:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif not join_io_cont_signed or join_io_cont_negative or not join_io_cont_range:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_io_continuation_target = memory_out.p0.rd_data.lo[15:0]
+                microstate = MICRO_JOIN_IO_PATH_READ
+        if not clock_dispatch_handled and micro_is_join_io_path_read:
+            clock_dispatch_handled = 1
+            join_io_has_path: uint1_t = join_frame_index != 0
+            join_io_path_empty_lo: uint1_t = control_out.p0.rd_data.lo == 0
+            join_io_path_empty_hi: uint1_t = control_out.p0.rd_data.hi == 0
+            join_io_path_empty_tag: uint1_t = control_out.p0.rd_data.tag_hi == 0
+            join_io_path_empty: uint1_t = join_io_path_empty_lo and join_io_path_empty_hi
+            join_io_path_empty = join_io_path_empty and join_io_path_empty_tag
+            join_io_path_is_address: uint1_t = control_out.p0.rd_data.tag_hi == CONTROL_ADDRESS
+            join_io_path_lane: uint32_t = control_out.p0.rd_data.lo[31:0]
+            join_io_path_low: uint1_t = join_io_path_lane[31:GRAPH_ADDR_BITS] == 0
+            join_io_path_end: uint1_t = join_io_path_lane == GRAPH_WORDS
+            join_io_path_valid: uint1_t = join_io_path_low or join_io_path_end
+            if not join_io_has_path or join_io_path_empty:
+                red2_fault = FAULT_CONTROL_UNDERFLOW
+                microstate = MICRO_FAULT
+            elif not join_io_path_is_address:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            elif not join_io_path_valid:
+                red2_fault = FAULT_INVALID_ADDRESS
+                microstate = MICRO_FAULT
+            else:
+                join_io_path = join_io_path_lane[16:0]
+                microstate = MICRO_JOIN_TAIL_READ
+        if not clock_dispatch_handled and micro_is_join_io_commit:
+            clock_dispatch_handled = 1
+            join_io_commit_bind_ep_exec: uint1_t = join_io_bind_ep
+            if join_io_commit_bind_ep_exec:
+                # IO-BIND pops the continuation path but an EP argument carries the
+                # value environment that was restored from the child SUBGRAPH frame.
+                # Reuse the popped slot for that path, matching Concrete's pop+push.
+                control_top = join_frame_index
+            else:
+                control_top = join_frame_index - 1
+            env = join_io_path
+            q = q - 1
+            direction = DIRECTION_FORWARD
+            pc = join_io_continuation_target
+            prim_id = 0
+            fire = 0
+            if join_io_then:
+                fsp = join_parent_address - 2
+                argcnt = 1
+            else:
+                fsp = join_parent_address - 1
+                argcnt = 2
+            join_io_active = 0
+            join_io_return_active = 0
+            join_io_then = 0
+            join_io_bind_ep = 0
+            join_io_bind_word = red2_word_t(lo=0, hi=0)
+            microstate = MICRO_COMMIT
         if not clock_dispatch_handled and micro_is_join_if_false_read:
             clock_dispatch_handled = 1
             join_if_parent_too_low: uint1_t = join_parent_address == 0
@@ -7979,7 +8619,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_if_path_is_address: uint1_t = join_if_path_tag == CONTROL_ADDRESS
             join_if_path_is_empty: uint1_t = join_if_path_tag == 0
             join_if_path_lane: uint32_t = control_out.p0.rd_data.lo[31:0]
-            join_if_path_low: uint1_t = join_if_path_lane[31:9] == 0
+            join_if_path_low: uint1_t = join_if_path_lane[31:GRAPH_ADDR_BITS] == 0
             join_if_path_end: uint1_t = join_if_path_lane == GRAPH_WORDS
             join_if_path_valid: uint1_t = join_if_path_low or join_if_path_end
             join_if_false_opcode_now: uint5_t = join_if_false_word.hi[25:21]
@@ -8010,7 +8650,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_if_path_is_address_f: uint1_t = join_if_path_tag_f == CONTROL_ADDRESS
             join_if_path_is_empty_f: uint1_t = join_if_path_tag_f == 0
             join_if_path_lane_f: uint32_t = control_out.p0.rd_data.lo[31:0]
-            join_if_path_low_f: uint1_t = join_if_path_lane_f[31:9] == 0
+            join_if_path_low_f: uint1_t = join_if_path_lane_f[31:GRAPH_ADDR_BITS] == 0
             join_if_path_end_f: uint1_t = join_if_path_lane_f == GRAPH_WORDS
             join_if_path_valid_f: uint1_t = join_if_path_low_f or join_if_path_end_f
             if join_if_path_empty_f or join_if_path_is_empty_f:
@@ -8155,7 +8795,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 microstate = MICRO_FAULT
         if not clock_dispatch_handled and micro_is_join_ep_cache:
             clock_dispatch_handled = 1
-            pc = join_parent_address - 1
+            if join_host_active:
+                # Host metadata dispatch has already populated pending_host_op and
+                # pending_host_argument during frame restoration.  EP caching is
+                # merely the final architectural write before suspension, so preserve
+                # the firing boundary at the parent instead of reconstructing past it.
+                pc = join_parent_address
+                join_host_active = 0
+                join_host_op = HOST_NONE
+            else:
+                pc = join_parent_address - 1
             microstate = MICRO_COMMIT
         if not clock_dispatch_handled and micro_is_join_ep_chase:
             clock_dispatch_handled = 1
@@ -8213,12 +8862,20 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     if not join_ep_inside_reclaim:
                         # The EP terminal is already outside the child interval
                         # [free_space, frame_free_space), so reclaim cannot make
-                        # the descriptor dangle.  Preserve the EP in place and
-                        # publish the descriptor root through the parent APP.
-                        join_publish_word = red2_word_t(
-                            lo=join_result_address,
-                            hi=69337088,
-                        )
+                        # the descriptor dangle. Ordinary JOIN publishes the descriptor
+                        # root through APP; IO-BIND must instead preserve the EP value
+                        # itself because the continuation receives that descriptor plus
+                        # its restored value environment.
+                        if join_io_bind_ep:
+                            join_io_parent_ep_hi: uint64_t = join_io_bind_word.hi & 133169151
+                            join_publish_word = red2_word_t(
+                                lo=join_io_bind_word.lo, hi=join_io_parent_ep_hi
+                            )
+                        else:
+                            join_publish_word = red2_word_t(
+                                lo=join_result_address,
+                                hi=69337088,
+                            )
                         join_needs_ep_cache = 0
                         join_preserve_fsp = 1
                         microstate = MICRO_JOIN_PUBLISH
@@ -11479,7 +12136,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             closure_layout_nonzero: uint1_t = closure_layout_gap != 0
             closure_layout_not_wrapped: uint1_t = closure_layout_wrapped == 0
             closure_layout_ok: uint1_t = closure_layout_not_wrapped and closure_layout_nonzero
-            closure_parent_low: uint1_t = fetched_word.lo[63:8] == 0
+            closure_parent_low: uint1_t = fetched_word.lo[63:GRAPH_ADDR_BITS] == 0
             closure_parent_end: uint1_t = fetched_word.lo == GRAPH_WORDS
             closure_parent_valid: uint1_t = closure_parent_low or closure_parent_end
             closure_marker_address: uint17_t = free_space - 1
@@ -12155,9 +12812,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             elif binding_is_pnp:
                 pnp_kind_signed: uint1_t = binding_kind == DATA_SIGNED
                 pnp_negative: uint1_t = memory_out.p0.rd_data.lo[63]
-                pnp_target_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[63:8] != 0
+                pnp_target_upper_nonzero: uint1_t = memory_out.p0.rd_data.lo[63:GRAPH_ADDR_BITS] != 0
                 next_lookup_hops: uint16_t = lookup_hops + 1
-                pnp_hop_limit: uint1_t = next_lookup_hops[15:8] != 0
+                pnp_hop_limit: uint1_t = next_lookup_hops[15:GRAPH_ADDR_BITS] != 0
                 if not pnp_kind_signed:
                     red2_fault = FAULT_INVALID_ADDRESS
                     microstate = MICRO_FAULT

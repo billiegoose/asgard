@@ -546,6 +546,22 @@ class ConcreteRED2Machine:
         self.pending_host_argument = 0
         return self.status()
 
+    def refresh_quantum(self, quantum: int) -> int:
+        """Reset the budget of a live machine after scheduler-visible progress."""
+        if (
+            type(quantum) is not int
+            or quantum < 0
+            or quantum > abi.CONTROL_PAYLOAD_MASK
+            or self.fault != abi.FAULT_NONE
+            or self.microstate != MICRO_FETCH
+            or self.halted
+            or self.pending_host_op != abi.HOST_NONE
+        ):
+            self._fault(abi.FAULT_INVALID_RESUME)
+            return self.status()
+        self.q = quantum
+        return self.status()
+
     def recharge_quantum(self, quantum: int, max_clocks: int | None = None) -> int:
         """Refill an exhausted live state or restart a halted bounded residual."""
         if (

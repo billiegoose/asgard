@@ -28,12 +28,19 @@ def _bootstrap_import_paths() -> None:
         else DEFAULT_PIPELINEC_ROOT
     )
     if root.is_dir():
+        # The checkout contains both the simulator runtime (`src/pypeline.py`) and
+        # a header package (`include/pypeline`).  A caller-provided PYTHONPATH may
+        # already contain the include tree ahead of src, so merely inserting absent
+        # entries is not deterministic.  Reorder every checkout path explicitly and
+        # keep the simulator runtime first.
         checkout_paths = [
             str(root / "src"),
             str(root / "include"),
             str(root / "include" / "pypeline"),
         ]
-        sys.path[:0] = [value for value in checkout_paths if value not in sys.path]
+        checkout_path_set = set(checkout_paths)
+        sys.path[:] = [value for value in sys.path if value not in checkout_path_set]
+        sys.path[:0] = checkout_paths
         return
 
     try:
@@ -47,24 +54,33 @@ def _bootstrap_import_paths() -> None:
 
 _bootstrap_import_paths()
 
+# The synthesizable module defaults to the small hardware-oriented graph. The
+# standalone native simulator can afford a larger compile-time RAM image so full
+# programs such as Breakout have enough definition and working space. Explicit
+# caller configuration still wins.
+if __name__ == "__main__":
+    os.environ.setdefault("RED2_SYN_GRAPH_WORDS", "8192")
+
 import pypeline as _pypeline  # noqa: E402
 from pypeline import sim_call, sim_reset  # noqa: E402
 
+import synthesizable_red2_machine.machine as _syn_machine  # noqa: E402
+from abstract_red2_machine.loader import load_faithful_machine  # noqa: E402
 from abstract_red2_machine.machine import AbstractRED2Machine  # noqa: E402
 from concrete_red2_machine import abi  # noqa: E402
+from concrete_red2_machine.io_runtime import dispatch_encoded_host_call  # noqa: E402
 from concrete_red2_machine.pipelinec_vectors import (  # noqa: E402
     EncodedArchitecturalState,
     RED2ABICodec,
 )
-import synthesizable_red2_machine.machine as _syn_machine  # noqa: E402
 from synthesizable_red2_machine.machine import (  # noqa: E402
     CMD_CLOCK,
-    CMD_LOAD_CONTROL,
     CMD_LOAD_LITERAL_META,
-    CMD_LOAD_MEMORY,
     CMD_LOAD_STATE,
     CMD_NOP,
+    CMD_RECHARGE,
     CMD_RESET,
+    CMD_RESUME,
     CONTROL_WORDS,
     GRAPH_WORDS,
     LITERAL_META_WORDS,
@@ -113,6 +129,7 @@ from synthesizable_red2_machine.machine import (  # noqa: E402
     STATUS_HOST_CALL,
     STATUS_QUANTUM_EXHAUSTED,
     STATUS_RUNNING,
+    STRUCT_ROLE_CONS,
     STRUCT_ROLE_SELECTOR,
     STRUCT_ROLE_SELECTOR_RESULT,
     SynthesizableRED2Machine,
@@ -122,12 +139,17 @@ from synthesizable_red2_machine.machine import (  # noqa: E402
     red2_literal_meta_t,
     red2_word_t,
 )
-from abstract_red2_machine.loader import load_faithful_machine  # noqa: E402
 from thor.ast import Definition, Expr, StructDef  # noqa: E402
 from thor.normalization import normalize_program  # noqa: E402
 from thor.parser import ParseError, parse_program  # noqa: E402
 from thor.pretty import to_source  # noqa: E402
 from thor.primitives import install_struct_definition  # noqa: E402
+from thor_interpreter.io_runtime import (  # noqa: E402
+    LatestFileClockSource,
+    SystemClockSource,
+    TextRed2IoHost,
+    terminal_input_mode,
+)
 
 MASK64 = (1 << 64) - 1
 ZERO_WORD = red2_word_t(lo=0, hi=0)
@@ -264,7 +286,11 @@ def _install_fast_native_ram_simulation() -> None:
         if not getattr(model_class, "_red2_fast_native_sim", False):
             original_call = model_class.__call__
             closure = dict(
-                zip(original_call.__code__.co_freevars, original_call.__closure__ or ())
+                zip(
+                    original_call.__code__.co_freevars,
+                    original_call.__closure__ or (),
+                    strict=True,
+                )
             )
             for owner_name in ("own", "write_value"):
                 owner_cell = closure.get(owner_name)
@@ -428,6 +454,10 @@ def _literal_metadata(codec: RED2ABICodec, selectors) -> list[dict[str, int]]:
     for hidden in ("__IF_RECONSTRUCT__", "CONS", "PAIR"):
         codec.literal_id(hidden)
 
+    cons = entry("CONS")
+    cons["struct_role"] = STRUCT_ROLE_CONS
+    cons["struct_tag_id"] = codec.literal_id("PAIR")
+
     result = entry("__STRUCT_SELECTOR_RESULT__")
     result["struct_role"] = STRUCT_ROLE_SELECTOR_RESULT
     for selector in selectors:
@@ -561,7 +591,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expr", help="THOR expression or program source to run")
     parser.add_argument("--quantum", type=int, default=2000)
     parser.add_argument(
-        "--clock", type=Path, help="reserved for hardware host-call support"
+        "--clock", type=Path, help="path to a latest-value millisecond clock source"
     )
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument(
@@ -597,76 +627,92 @@ def main(argv: list[str] | None = None) -> int:
         _load_hardware(image.state, metadata)
 
         commits = 0
+        clocks = 0
+        had_host_call = False
+        clock_source = (
+            LatestFileClockSource(args.clock)
+            if args.clock is not None
+            else SystemClockSource()
+        )
+        host = TextRed2IoHost(stdin=sys.stdin, stdout=sys.stdout, clock=clock_source)
         result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP))
-        for clock in range(args.max_clocks + 1):
-            status = int(result.status)
-            if status != STATUS_RUNNING:
-                break
-            if clock == args.max_clocks:
-                raise RuntimeError(
-                    f"native simulator remained RUNNING after {args.max_clocks} clocks"
-                )
-            result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-            commits += int(result.committed)
-        else:  # pragma: no cover - loop has an explicit bound above
-            raise RuntimeError("native simulator clock bound exhausted")
 
-        status = int(result.status)
-        if status == STATUS_COMPLETE:
-            final_state = _checkpoint(result)
-            decoded = codec.decode_state(final_state)
-            result_view = AbstractRED2Machine(
-                decoded,
-                working_memory_limit=image.working_memory_limit,
-            )
-            print(to_source(result_view.result_expr()))
-            if args.verbose:
-                print(
-                    f"syn: complete commits={commits} clocks={clock} "
-                    f"graph_words={GRAPH_WORDS} control_words={CONTROL_WORDS}",
-                    file=sys.stderr,
-                )
-            return 0
+        with terminal_input_mode(sys.stdin):
+            while True:
+                status = int(result.status)
+                if status == STATUS_RUNNING:
+                    if clocks >= args.max_clocks:
+                        raise RuntimeError(
+                            f"native simulator remained RUNNING after "
+                            f"{args.max_clocks} clocks"
+                        )
+                    result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+                    clocks += 1
+                    commits += int(result.committed)
+                    continue
 
-        if status == STATUS_QUANTUM_EXHAUSTED:
-            print(
-                "syn: quantum exhausted; native halted-residual recharge/"
-                "relinearization is not implemented yet; rerun with a larger --quantum",
-                file=sys.stderr,
-            )
-            return 3
+                if status == STATUS_HOST_CALL:
+                    suspended = _checkpoint(result)
+                    host_result = dispatch_encoded_host_call(
+                        codec,
+                        suspended,
+                        host,
+                        working_memory_limit=image.working_memory_limit,
+                    )
+                    result = sim_call(
+                        SynthesizableRED2Machine,
+                        _command(CMD_RESUME, word=_word_struct(host_result)),
+                    )
+                    if int(result.status) == STATUS_FAULT:
+                        continue
+                    result = sim_call(
+                        SynthesizableRED2Machine,
+                        _command(CMD_RECHARGE, value=args.quantum),
+                    )
+                    had_host_call = True
+                    continue
 
-        if status == STATUS_HOST_CALL:
-            host_op = int(result.pending_host_op)
-            host_name = _HOST_NAMES.get(host_op, f"host-op-{host_op}")
-            clock_note = (
-                ""
-                if args.clock is None
-                else f" (clock source {args.clock} was not consumed)"
-            )
-            print(
-                f"syn: suspended on {host_name}; native CMD_RESUME is not "
-                f"implemented yet{clock_note}",
-                file=sys.stderr,
-            )
-            return 4
+                if status == STATUS_COMPLETE:
+                    if not had_host_call:
+                        final_state = _checkpoint(result)
+                        decoded = codec.decode_state(final_state)
+                        result_view = AbstractRED2Machine(
+                            decoded,
+                            working_memory_limit=image.working_memory_limit,
+                        )
+                        print(to_source(result_view.result_expr()))
+                    if args.verbose:
+                        print(
+                            f"syn: complete commits={commits} clocks={clocks} "
+                            f"graph_words={GRAPH_WORDS} control_words={CONTROL_WORDS}",
+                            file=sys.stderr,
+                        )
+                    return 0
 
-        if status == STATUS_FAULT:
-            red2_fault = int(result.red2_fault)
-            hw_fault = int(result.hw_fault)
-            microstate = int(result.microstate)
-            detail = ""
-            if hw_fault == 3:
-                detail = " (native reducer path not implemented yet)"
-            print(
-                "syn: hardware fault: "
-                f"red2={red2_fault} hw={hw_fault} micro={microstate} "
-                f"commits={commits}{detail}",
-                file=sys.stderr,
-            )
-            return 5
+                if status == STATUS_QUANTUM_EXHAUSTED:
+                    print(
+                        "syn: quantum exhausted before the next host dispatch; "
+                        "rerun with a larger --quantum",
+                        file=sys.stderr,
+                    )
+                    return 3
 
-        raise RuntimeError(f"unknown native simulator status: {status}")
+                if status == STATUS_FAULT:
+                    red2_fault = int(result.red2_fault)
+                    hw_fault = int(result.hw_fault)
+                    microstate = int(result.microstate)
+                    detail = ""
+                    if hw_fault == 3:
+                        detail = " (native reducer path not implemented yet)"
+                    print(
+                        "syn: hardware fault: "
+                        f"red2={red2_fault} hw={hw_fault} micro={microstate} "
+                        f"commits={commits}{detail}",
+                        file=sys.stderr,
+                    )
+                    return 5
+
+                raise RuntimeError(f"unknown native simulator status: {status}")
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"syn: {error}", file=sys.stderr)
         return 2
