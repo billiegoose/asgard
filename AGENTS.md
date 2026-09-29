@@ -15,5 +15,19 @@
   long-running/infinite programs, wait until the expected output appears, then
   terminate the process explicitly.
 - Front matter, Chapters 1 through 6, Appendix A, the bibliography, and
-  biographical data are transcribed and committed; Chapter 2 includes two
-  cropped graph figures under `thesis/transcription/src/assets/`.
+  biographical data are transcribed and committed. Chapter 2's graph figures
+  share vector geometry in `thesis/transcription/src/assets/wadsworth-graph.tex`;
+  the earlier scanned crops remain in the same directory for reference.
+- Chapters 4 and 5 have native diagrams in
+  `src/assets/chapter4/figure-4-*.tex` and `src/assets/chapter5/figure-5-*.tex`
+  relative to the transcription directory. Their matching PNGs are reference
+  crops; edit the included `.tex` files to change the rendered diagrams.
+- Preserve hollow and filled instruction head bits in the Chapter 5 diagrams;
+  these circles carry meaning and are distinct from pointer dots.
+
+- Semantic rules in the original put conclusions above premises. Use
+  `\semanticrule` to retain this order and keep premises at full text size.
+- Preserve apparent inconsistencies in the original mathematics and record
+  them in nearby LaTeX comments rather than silently correcting the author.
+- Keep individual code examples/procedures together when they fit on a page;
+  check the rendered PDF after changing equation alignment or figure crops.
