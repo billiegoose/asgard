@@ -7,32 +7,57 @@ The trigonometric function \(\sin(x)\) can be represented by the Taylor Series
 \sum_{i=0}^{\infty}(-1)^i \frac{1}{(2i+1)!}x^{2i+1}.
 \]
 The finite approximation of this infinite series serves as the basis of sine
-function. The sine program is based on a constructive mathematics approach
+function. The \THOR{sine} program is based on a constructive mathematics approach
 advocated in~[51].
-
+\par\medskip
+\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 sine-benchmark \(\equiv\) sine pi
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine \(\equiv\) (lambda (x)
          (period-maker sine-full (minus (/ pi 2)) (* 2 pi) x))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine-full \(\equiv\) (lambda (x)
               (reflection-maker sine-half (/ pi 2) x))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine-half \(\equiv\) (lambda (x)
               (let ((x2 (* x x)))
                 (sine-series x x2)))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine-series \(\equiv\) (lambda (x x2)
                 (* x (horners-rule
-                      sine-coefficient
-                      (sine-number-of-terms epsilon pi)
-                      x2)))
+                         sine-coefficient
+                         (sine-number-of-terms epsilon pi)
+                         x2)))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine-coefficient \(\equiv\) (lambda (i)
                     (/ (expt -1.0 i)
                        (factorial (1+ (* 2 i)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 sine-number-of-terms \(\equiv\)
   (lambda (eps value)
     (letrec ((loop
@@ -42,11 +67,18 @@ sine-number-of-terms \(\equiv\)
                     (1- i)
                     (loop (1+ i))))))
       (loop (ceiling (/ (- value 1) 2))))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 epsilon \(\equiv\) 0.000001
+pi      \(\equiv\) 3.1415927
+\end{alltt}
+\end{minipage}\par\bigskip
 
-pi \(\equiv\) 3.1415927
-
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 horners-rule \(\equiv\)
   (lambda (coefficient length variable)
     (letrec ((term
@@ -56,46 +88,84 @@ horners-rule \(\equiv\)
                     (+ (coefficient n)
                        (* variable (term (1+ n))))))))
       (term 0)))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 period-maker \(\equiv\) (lambda (fcn a period x)
                  (let ((cycles (floor (/ (- x a) period))))
                    (fcn (- x (* cycles period)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 reflection-maker \(\equiv\) (lambda (fcn axis x)
                      (fcn (if (< x axis) x (- (* 2 axis) x))))
 \end{alltt}
+\end{minipage}\par\bigskip
 
 \section{The GAME Program}
 
-The game program uses the alpha-beta procedure to evaluate the ``goodness'' of a
+The \THOR{game} program uses the alpha-beta procedure to evaluate the ``goodness'' of a
 particular move in a two player board game. This program is based on an article
 by Hughes~[28].
-
+\par\medskip
+\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 game-benchmark \(\equiv\) evaluate 1
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 tree \(\vDash\) label subtrees
+\end{alltt}
+\end{minipage}\par\bigskip
 
-empty-board \(\equiv\) [e e e e e e e e e]
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
+empty-board \(\equiv\) [e e e e e]
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 evaluate \(\equiv\) (lambda (depth)
              (maximise (maptree static
                                 (prune depth (gametree)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 gametree \(\equiv\) reptree moves empty-board
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 maptree \(\equiv\) (lambda (f)
             (redtree (lambda (label subtrees)
                        (make-tree (f label) subtrees))
                      cons
                      []))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 maximise \(\equiv\) (lambda (tree)
              (if (null? (tree-subtrees tree))
                  (tree-label tree)
                  (maximum (map minimise
                                (tree-subtrees tree)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 maximum \(\equiv\)
   (lambda (list)
     (letrec ((maximum1
@@ -105,13 +175,21 @@ maximum \(\equiv\)
                     (maximum1 (cdr list)
                               (max x (car list)))))))
       (maximum1 (cdr list) (car list))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 minimise \(\equiv\) (lambda (tree)
              (if (null? (tree-subtrees tree))
                  (tree-label tree)
                  (minimum (map maximise
                                (tree-subtrees tree)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 minimum \(\equiv\)
   (lambda (list)
     (letrec ((minimum1
@@ -121,7 +199,11 @@ minimum \(\equiv\)
                     (minimum1 (cdr list)
                               (min x (car list)))))))
       (minimum1 (cdr list) (car list))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 moves \(\equiv\)
   (lambda (board)
     (letrec ((moves1
@@ -138,21 +220,33 @@ moves \(\equiv\)
                                 (cons (car back) front)
                                 (cdr back)))))))
       (moves1 (whose-turn? board) nil board)))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 prune \(\equiv\) (lambda (depth tree)
           (if (= depth 0)
               (make-tree (tree-label tree) [])
               (make-tree (tree-label tree)
                          (map (prune (1- depth))
                               (tree-subtrees tree)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 redtree \(\equiv\) (lambda (node-op list-op basis tree)
             (node-op (tree-label tree)
                      (redtree1 node-op
                                list-op
                                basis
                                (tree-subtrees tree))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 redtree1 \(\equiv\) (lambda (node-op list-op basis subtrees)
              (if (null? subtrees)
                  basis
@@ -164,15 +258,27 @@ redtree1 \(\equiv\) (lambda (node-op list-op basis subtrees)
                                     list-op
                                     basis
                                     (cdr subtrees)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 reduce \(\equiv\) (lambda (f id list)
            (if (null? list)
                id
                (f (car list) (reduce f id (cdr list)))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 reptree \(\equiv\) (lambda (f a)
             (make-tree a (map (reptree f) (f a))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 static \(\equiv\)
   (lambda (board)
     (let ((player (whose-turn? board)))
@@ -186,7 +292,11 @@ static \(\equiv\)
                     (eval (cdr board) (1+ rating) best)
                     (eval (cdr board) 0 (max rating best)))))))
         (eval board 0 0))))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 whose-turn? \(\equiv\) (lambda (board)
                 (letrec ((ecount
                           (lambda (l)
@@ -196,6 +306,11 @@ whose-turn? \(\equiv\) (lambda (board)
                                     (+ 1 (ecount (cdr l)))
                                     (ecount (cdr l)))))))
                   (if (even? (ecount board)) X O)))
+\end{alltt}
+\end{minipage}\par\bigskip
 
+\noindent\begin{minipage}{\linewidth}
+\begin{alltt}
 \texttt{++} \(\equiv\) (lambda (a b) (reduce cons b a))
 \end{alltt}
+\end{minipage}\par\bigskip
