@@ -19,13 +19,13 @@ theory~[11] is offered as a viable solution to these problems.
 The abstract syntax of the pure, untyped \lambdacalculus{} (hereafter simply
 referred to as the pure \lambdacalculus) defines the set of allowable
 \(\lambda\)-expressions as
-\[
-\begin{aligned}
+\begin{flalign*}
+&\hspace{2.5em}\begin{aligned}
 x &\in \textit{Identifiers}\\
-e &\in \lambda\textit{-Expressions}\\
+e &\in \lambda\textit{-Expressions}\\[0.5em]
 e &::= x \mid \lambda x.e \mid e_1 e_2 .
-\end{aligned}
-\]
+\end{aligned}&&
+\end{flalign*}
 
 Expressions of the form \(\lambda x.e\) are called \emph{abstractions}.
 Abstractions represent the notion of functions in the \lambdacalculus. The
@@ -48,40 +48,34 @@ expression \((\lambda x.\lambda y.e)\) can also be written as
 Before presenting the rewrite rules of the pure \lambdacalculus, two
 definitions are necessary:
 
-\begin{definition}[Free Variable]
-The free variables of an expression \(e\) are defined by the following rules:
-\[
-\begin{array}{rcl}
-1. & \fv(x) &= \{x\}\\
-2. & \fv(e_1e_2) &= \fv(e_1) \cup \fv(e_2)\\
-3. & \fv(\lambda x.e) &= \fv(e) - \{x\}.
-\end{array}
-\]
+\begin{insetdefinition}{Free Variable}
+The \emph{free variables} of an expression \(e\) are defined by the following rules:
+\begin{enumerate}[itemsep=0.25em]
+\item \(\fv(x) = \{x\}\)
+\item \(\fv(e_1e_2) = \fv(e_1) \cup \fv(e_2)\)
+\item \(\fv(\lambda x.e) = \fv(e) - \{x\}\).
+\end{enumerate}
 An occurrence of the variable \(x\) in the expression \(e\) is free with respect
 to \(e\) if and only if \(x \in \fv(e)\). If an expression \(e\) has no free
 variables, i.e. \(\fv(e)=\{\}\), \(e\) is said to be \emph{closed}.
-\end{definition}
+\end{insetdefinition}
 
-\begin{definition}[Substitution]
+\begin{insetdefinition}{Substitution}
 The substitution of an expression \(e_1\) for all free occurrences of an
 identifier \(x\) in an expression \(e_2\) is written as \([e_1/x]e_2\) and is
 defined by the following rules:
-\[
-\begin{array}{rcll}
-1. & [e_1/x]x &= e_1\\
-2. & [e_1/x]y &= y, & \text{where } x \ne y\\
-3. & [e_1/x](e_2e_3) &= ([e_1/x]e_2\ [e_1/x]e_3)\\
-4. & [e_1/x](\lambda x.e_2) &= \lambda x.e_2\\
-5. & [e_1/x](\lambda y.e_2) &= \lambda y.[e_1/x]e_2,\\
-\end{array}
-\]
-if \(x \ne y\) and either \(y \notin \fv(e_1)\) or \(x \notin \fv(e_2)\);
-\[
-6.\quad [e_1/x](\lambda y.e_2)=\lambda z.[e_1/x]([z/y]e_2),
-\]
-if \(x \ne y\), \(y \in \fv(e_1)\), \(x \in \fv(e_2)\), and
-\(z \notin \fv(e_1) \cup \fv(e_2)\).
-\end{definition}
+\begin{enumerate}[itemsep=0.25em]
+\item \([e_1/x]x = e_1\)
+\item \([e_1/x]y = y\), where \(x \ne y\)
+\item \([e_1/x](e_2e_3) = ([e_1/x]e_2\ [e_1/x]e_3)\)
+\item \([e_1/x](\lambda x.e_2) = \lambda x.e_2\)
+\item \([e_1/x](\lambda y.e_2) = \lambda y.[e_1/x]e_2\),\\*
+  \hspace*{1em}if \(x \ne y\) and either \(y \notin \fv(e_1)\) or \(x \notin \fv(e_2)\);
+\item \([e_1/x](\lambda y.e_2) = \lambda z.[e_1/x]([z/y]e_2)\),\\*
+  \hspace*{1em}if \(x \ne y\) and \(y \in \fv(e_1)\) and \(x \in \fv(e_2)\), and
+  \(z \notin \fv(e_1) \cup \fv(e_2)\).
+\end{enumerate}
+\end{insetdefinition}
 
 The last rule in the definition of substitution handles the case where a name
 conflict occurs and is resolved by a name change. This situation is quite
@@ -107,10 +101,10 @@ Seldin~[25] refer to as the \(\lambda\beta\eta\)-calculus. This dissertation is
 only concerned with implementing the \lambdabetacalculus, which is composed of
 only the first two rules. Furthermore, \(\beta\)-conversion will be restricted
 so that conversion can only happen in one direction:
-\[
-\underline{\beta\text{-Reduction:}}\quad
-(\lambda x.e_1)e_2 \longrightarrow [e_2/x]e_1 .
-\]
+\begin{flalign*}
+&\hspace{2.5em}\underline{\beta\text{-Reduction:}}\quad
+(\lambda x.e_1)e_2 \longrightarrow [e_2/x]e_1 .&&
+\end{flalign*}
 The notation \(\overset{*}{\longrightarrow}\) will be used to denote the reflexive,
 transitive closure of \(\longrightarrow\) including \(\alpha\)-conversions, and
 \(\overset{n}{\longrightarrow}\) will denote \(n\) applications of the
@@ -125,10 +119,10 @@ the rule, called the \emph{contractum}. The replacement of a redex by its
 contractum is referred to as a \emph{reduction} or \emph{contraction}. These
 concepts lead to the following notion:
 
-\begin{definition}[Normal Form]
+\begin{insetdefinition}{Normal Form}
 A \(\lambda\)-expression is in \emph{normal form} if it cannot be further
 transformed using the \(\beta\)-reduction rule.
-\end{definition}
+\end{insetdefinition}
 
 It should be noted that not all \(\lambda\)-expressions have a normal form. For
 example, the expression
@@ -147,13 +141,13 @@ important; that is, the order in which redexes are contracted is irrelevant.
 This raises an important question: if a normal form exists, is it always
 possible to find it? The answer is provided by Church-Rosser Theorem II, which
 states that if a normal form \(e'\) exists for an expression \(e\), then there
-exists a normal order reduction sequence from \(e\) to \(e'\).
+exists a \emph{normal order} reduction sequence from \(e\) to \(e'\).
 
-\begin{definition}[Normal Order Reduction]
+\begin{insetdefinition}{Normal Order Reduction}
 A normal order reduction is a sequence of reductions such that whenever there is
 more than one redex in an expression, the leftmost redex is always selected for
 contraction.
-\end{definition}
+\end{insetdefinition}
 
 While the choice of which redex to contract may make no difference in theory, in
 practice it has a strong impact on the behavior and efficiency of
@@ -183,7 +177,7 @@ should produce the output expression
 \]
 
 (The execution of procedures without applying all the necessary arguments is
-generally referred to as partial evaluation.) This may seem obvious to even the
+generally referred to as \emph{partial evaluation}.) This may seem obvious to even the
 casual observer, but the implications are far reaching and constrain one's
 choice of ``program'' representation.
 
@@ -239,7 +233,7 @@ This desire is solely human in origin; there is no ``force'' within the
 fundamental reason that an implementation of \lambdacalculus{} should insist on
 reducing to normal form. Indeed, in certain contexts non-normal form expressions
 might be of interest. Therefore, the RED2 architecture allows the user to
-incrementally reduce expressions by specifying the maximum number of reductions
+\emph{incrementally} reduce expressions by specifying the maximum number of reductions
 that may be performed on an expression (as did RED1).
 
 Incremental reduction has a strong effect on the semantics and implementation
@@ -266,13 +260,13 @@ implementation. Take, for example, the following normal order reduction
 sequence, where the redex to be contracted is underlined:
 \[
 \begin{aligned}
-\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.((\lambda w.w)\ z))}
-&\longrightarrow\\
-(\lambda y.y\ \underline{(\lambda z.((\lambda w.w)\ z))}\ (\lambda z.((\lambda w.w)\ z)))
-&\longrightarrow\\
-(\lambda y.y\ (\lambda z.z)\ \underline{(\lambda z.((\lambda w.w)\ z))})
-&\longrightarrow\\
-(\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
+&\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.((\lambda w.w)\ z))}
+\longrightarrow\\
+&(\lambda y.y\ \underline{(\lambda z.((\lambda w.w)\ z))}\ (\lambda z.((\lambda w.w)\ z)))
+\longrightarrow\\
+&(\lambda y.y\ (\lambda z.z)\ \underline{(\lambda z.((\lambda w.w)\ z))})
+\longrightarrow\\
+&(\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
 \end{aligned}
 \]
 This sequence takes three reductions. Notice that each copy of the substituted
@@ -280,15 +274,15 @@ argument is reduced separately. However, if the order of redex contraction is
 changed, the argument need only be reduced once:
 \[
 \begin{aligned}
-(\lambda x.\lambda y.y\ x\ x)(\lambda z.\underline{((\lambda w.w)\ z)})
-&\longrightarrow\\
-\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.z)}
-&\longrightarrow\\
-(\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
+&(\lambda x.\lambda y.y\ x\ x)\underline{(\lambda z.((\lambda w.w)\ z))}
+\longrightarrow\\
+&\underline{(\lambda x.\lambda y.y\ x\ x)(\lambda z.z)}
+\longrightarrow\\
+&(\lambda y.y\ (\lambda z.z)\ (\lambda z.z)).
 \end{aligned}
 \]
 The strategy of reducing arguments before they are applied is called
-applicative order reduction.
+\emph{applicative order} reduction.
 
 Although applicative order reduction often saves work, it does not always
 produce a normal form when one exists. For example, the expression
@@ -317,7 +311,7 @@ strategies have been developed to try and minimize the cost of substitution.
 
 A naive reading of the \(\beta\)-reduction rule says that upon contraction,
 every occurrence of the bound variable in the body is replaced by the argument
-all at once. This is a correct but very expensive interpretation of the
+\emph{all at once}. This is a correct but very expensive interpretation of the
 \(\beta\) rule, because each time a \(\beta\)-reduction occurs, a new copy copy
 of the body is created. For example, consider the abstraction
 \[
@@ -329,28 +323,26 @@ copied three times - once for each bound variable in its scope.
 A more efficient method is to delay argument substitution as long as possible,
 and then substitute all of the arguments at once. Then only one copy of the body
 need be made. This is the basic idea underlying Landin's SECD machine~[33]. Two
-new concepts are necessary to delay substitution: the environment and the
-closure. An environment is a mapping from variables to values, and is
+new concepts are necessary to delay substitution: the \emph{environment} and the
+\emph{closure}. An environment is a mapping from variables to values, and is
 traditionally written as \(\rho\). A closure is an expression \(e\), and an
 environment \(\rho\) of delayed substitutions that are to be applied to \(e\),
 and will be written as \(e\{\rho\}\). Using these new ideas, the
 reduction/substitution process can be redefined:
-\[
-\begin{array}{rcl}
-1. & x\{\rho\} &= \rho(x)\\
-2. & (e_1e_2)\{\rho\} &= (e_1\{\rho\}\ e_2\{\rho\})\\
-3. & (\lambda x.e)\{\rho\} &= \lambda x.(e\{\rho + [x/x]\})\\
-4. & (\lambda x.e_1\{\rho_1\})e_2\{\rho_2\}
-   &= e_1\{\rho_1 + [e_2\{\rho_2\}/x]\}.
-\end{array}
-\]
+\begin{enumerate}[itemsep=0.4em]
+\item \(x\{\rho\} = \rho(x)\)
+\item \((e_1e_2)\{\rho\} = (e_1\{\rho\}\ e_2\{\rho\})\)
+\item \((\lambda x.e)\{\rho\} = \lambda x.(e\{\rho + [x/x]\})\)
+\item \((\lambda x.e_1\{\rho_1\})e_2\{\rho_2\}
+   = e_1\{\rho_1 + [e_2\{\rho_2\}/x]\}\).
+\end{enumerate}
 Note that each \(\beta\)-reduction is now composed of many incremental steps
 instead of being one monolithic action.
 
 The equations above can be implemented in many different ways. Landin did not
 try to manipulate a direct representation of \(\lambda\)-expressions; instead he
 designed a fixed-program machine with four registers: the Stack, Environment,
-Control, and Dump (hence the name SECD).\footnote{This machine was refined and
+Control, and Dump (hence the name \emph{SECD}).\footnote{This machine was refined and
 popularized by Henderson~[24].}
 
 One should also note that delaying substitution by itself does nothing about
@@ -372,13 +364,18 @@ the pure \lambdacalculus, is the one adopted by most functional language
 implementors.
 \end{enumerate}
 
+\input{assets/wadsworth-graph}
 \begin{figure}
 \centering
-\includegraphics[width=0.75\textwidth]{assets/figure-2-1.png}
+\wadsworthgraph{%
+  \draw[edge] (root) -- (left);
+  \draw[edge] (root) -- (right);
+  \draw[edge] (left) -- (body);
+}
 \caption[Representation of expressions in Wadsworth's graph notation]{The expression \(((\lambda x.xx)(\lambda y.y))\) represented in
 Wadsworth's graph notation. The filled circles with two outgoing arcs are
 application nodes; those with one outgoing arc are abstractions. The hollow
-circles are variables. The dotted lines are backpointers from variables to their
+circles are variables. The dotted lines are \emph{backpointers} from variables to their
 bindings.}
 \end{figure}
 
@@ -417,7 +414,7 @@ results may occur.
 
 Detecting such a situation is expensive, for it entails checking every
 application node in the graph to see if more than one points to the abstraction
-in question every time a \(\beta\)-redex is contracted! Alternatively, some sort
+in question \emph{every time a \(\beta\)-redex is contracted!} Alternatively, some sort
 of reference counting scheme could be devised to alleviate the checking of
 application nodes. Aiello and Prini~[2] conclude that, rather than perform such
 a check every reduction, it is cheaper to always copy the abstraction before
@@ -426,7 +423,10 @@ style of graph reduction has never become popular.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.75\textwidth]{assets/figure-2-2.png}
+\wadsworthgraph{%
+  \draw[indirection] (root) -- (body);
+  \draw[indirection] (left) -- (right);
+}
 \caption[Contraction of a \(\beta\)-redex in Wadsworth's reduction system]{The graph after contraction of the \(\beta\)-redex. The dashed arcs
 represent indirection pointers.}
 \end{figure}
@@ -438,17 +438,17 @@ substitution altogether! This can be accomplished in two basic ways, by either
 eliminating variables from expressions or by reformulating the rewrite rules of
 the \lambdacalculus{} so as to avoid substitution.
 
-Combinators are the best known solution of the first type. Schonfinkel~[53]
+\emph{Combinators} are the best known solution of the first type. Sch\"onfinkel~[53]
 showed that it is possible to do away with variables altogether with the use of
 three special constants, \(S\), \(K\), and \(I\), called combinators, which have
 the following rewrite rules:
-\[
-\begin{aligned}
-S\ f\ g\ x &\longrightarrow ((f\ x)(g\ x))\\
-K\ x\ y &\longrightarrow x\\
-I\ x &\longrightarrow x
-\end{aligned}
-\]
+\begin{flalign*}
+\hspace{2.5em}&\begin{aligned}
+&S\ f\ g\ x \longrightarrow ((f\ x)(g\ x))\\
+&K\ x\ y \longrightarrow x\\
+&I\ x \longrightarrow x
+\end{aligned}&&
+\end{flalign*}
 Using these three combinators, any expression containing bound variables can be
 transformed into an equivalent bound-variable free expression.
 
@@ -481,9 +481,10 @@ developed expressly to provide a basis for efficient, complete implementations
 of the \lambdacalculus. A proof that head order reduction is a sound and
 complete formulation of the \lambdacalculus{} is provided by Zhang~[62].
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 Before presenting head order reduction, the following definition is needed:
 
-\begin{definition}[Head Normal Form]
+\begin{insetdefinition}{Head Normal Form}
 A \(\lambda\)-expression is said to be in \emph{head normal form} if it is of
 the form
 \[
@@ -491,36 +492,35 @@ the form
 \]
 where \(1 \le i \le m\). In other words, the \emph{head} of the expression is a
 variable and is not a redex of any kind.
-\end{definition}
+\end{insetdefinition}
+\end{minipage}\par\smallskip
 
 Head order reduction consists of three rewrite rules:
 
 \begin{enumerate}
-\item \(\underline{\eta_{ext}}\) (Eta-extension in-the-large):
-\[
-(\lambda y_1\cdots y_m.e_0)e_1\cdots e_n
+\item \(\underline{\eta_{ext}\text{ (Eta-extension in-the-large)}}\):\\*
+\(\begin{aligned}[t]
+&(\lambda y_1\cdots y_m.e_0)e_1\cdots e_n
 \longrightarrow
 \lambda z_1\cdots z_{m-n}.((\lambda y_1\cdots y_m.e_0)e_1\cdots e_n
-z_{m-n}\cdots z_1)
-\]
-where \(m > n\) and each \(z_i \notin \fv(e_0)\cup\cdots\cup\fv(e_n)\).
+z_{m-n}\cdots z_1)\\
+&\text{where }m>n\text{ and}\\
+&\qquad\text{each }z_i\notin\fv(e_0)\cup\cdots\cup\fv(e_n).
+\end{aligned}\)
 
-\item \(\underline{\beta_{ext}}\) (Beta-extension in-the-large):
-\[
-(\lambda y_1\cdots y_m.e_0\cdots e_k)E_1\cdots E_n
-\longrightarrow
-e'_0\cdots e'_k E_{m+1}\cdots E_n
-\]
-where \(m \le n\) and
-\[
-e'_i=((\lambda y_1\cdots y_m.e_i)E_1\cdots E_m).
-\]
+\item \(\underline{\beta_{ext}\text{ (Beta-extension in-the-large)}}\):\\*
+\(\begin{aligned}[t]
+&(\lambda y_1\cdots y_m.e_0\cdots e_k)E_1\cdots E_n
+\longrightarrow e'_0\cdots e'_k E_{m+1}\cdots E_n\\
+&\text{where }m\le n\text{ and}\\
+&\qquad e'_i=((\lambda y_1\cdots y_m.e_i)E_1\cdots E_m).
+\end{aligned}\)
 
-\item \(\underline{\beta_h}\) (Identity-reduction in-the-large):
-\[
-(\lambda y_1\cdots y_m.y_i)e_1\cdots e_m \longrightarrow e_i
-\]
-where \(1 \le i \le m\).
+\item \(\underline{\beta_h\text{ (Identity-reduction in-the-large)}}\):\\*
+\(\begin{aligned}[t]
+&(\lambda y_1\cdots y_m.y_i)e_1\cdots e_m\longrightarrow e_i\\
+&\text{where }1\le i\le m.
+\end{aligned}\)
 \end{enumerate}
 
 Head order reduction attempts to delay \(\beta\)-reduction as long as possible
@@ -552,7 +552,7 @@ is generated by an application of \(\eta_{ext}\).
 The shrewd observer may have noticed that although substitution has been
 eliminated, head order reduction does not necessarily make it any easier to
 reduce \(\lambda\)-expressions. In fact, head order reduction seems to be
-\emph{more difficult}! Copying and pushing all those redexes around takes a lot
+\emph{more} difficult! Copying and pushing all those redexes around takes a lot
 of time and space.
 
 Much work can be avoided if only a single copy of the pushed redexes is kept in
@@ -565,31 +565,24 @@ same notation will be used for both. The head order reduction rules can now be
 rewritten to use the redex store \(\rho\):
 
 \begin{enumerate}
-\item \(\underline{\eta'_{ext}}\):
-\[
-((\lambda y_1\cdots y_m.e_0)e_1\cdots e_n)\{\rho\}
-\longrightarrow
-(\lambda z_1\cdots z_{m-n}.(e_0\{\rho'\}))
-\]
-where \(m > n\),
-\[
-\rho'=\rho+[e_1\{\rho\}/y_1,\ldots,e_n\{\rho\}/y_n,
-z_{m-n}/y_{n+1},\ldots,z_1/y_m],
-\]
-and each \(z_i \notin \fv(e_0)\cup\cdots\cup\fv(e_n)\).
+\item \(\begin{aligned}[t]
+&\underline{\eta'_{ext}}\colon\ ((\lambda y_1\cdots y_m.e_0)e_1\cdots e_n)\{\rho\}
+\longrightarrow (\lambda z_1\cdots z_{m-n}.(e_0\{\rho'\}))\\
+&\text{where }m>n,\\
+&\qquad\rho'=\rho+[e_1\{\rho\}/y_1,\ldots,e_n\{\rho\}/y_n,
+z_{m-n}/y_{n+1},\ldots,z_1/y_m],\text{ and}\\
+&\qquad\text{each }z_i\notin\fv(e_0)\cup\cdots\cup\fv(e_n).
+\end{aligned}\)
 
-\item \(\underline{\beta'_{ext}}\):
-\[
-((\lambda y_1\cdots y_m.e_0\cdots e_k)E_1\cdots E_n)\{\rho\}
+\item \(\begin{aligned}[t]
+&\underline{\beta'_{ext}}\colon\ ((\lambda y_1\cdots y_m.e_0\cdots e_k)E_1\cdots E_n)\{\rho\}
 \longrightarrow
-e_0\{\rho'\}\cdots e_k\{\rho'\}E_{m+1}\{\rho\}\cdots E_n\{\rho\}
-\]
-where \(m \le n\) and
-\[
-\rho'=\rho+[E_1\{\rho\}/y_1,\ldots,E_m\{\rho\}/y_m].
-\]
+ e_0\{\rho'\}\cdots e_k\{\rho'\}E_{m+1}\{\rho\}\cdots E_n\{\rho\}\\
+&\text{where }m\le n\text{ and}\\
+&\qquad\rho'=\rho+[E_1\{\rho\}/y_1,\ldots,E_m\{\rho\}/y_m].
+\end{aligned}\)
 
-\item \(\underline{\beta'_h}\): \(y\{\rho\}\longrightarrow \rho(y)\).
+\item \(\underline{\beta'_h}\colon\  y\{\rho\}\longrightarrow\rho(y)\).
 \end{enumerate}
 
 Note that the \(\eta_{ext}\) rule has now incorporated the knowledge that a
@@ -604,26 +597,18 @@ manipulating arbitrarily large portions of an expression, hence the descriptor
 concurrent or parallel reduction system. The development of such a system is an
 eventual goal of the RED project. For the initial head order reduction-based
 machine, however, a single processor sequential system was chosen as a testbed
-for different implementation ideas and as a proof-of-concept demonstration. The
-in-the-large rules are not very suitable for implementation by a simple
+for different implementation ideas and as a proof-of-concept demonstration.
+
+The in-the-large rules are not very suitable for implementation by a simple
 sequential automaton; a more appropriate set of rules are these equivalent
 ``in-the-small'' rules:
 
 \begin{enumerate}
-\item \(\underline{\beta''_{ext}}\):
-\[
-((\lambda y.e_0)e_1)\{\rho\}\longrightarrow e_0\{\rho+[e_1\{\rho\}/y]\}
-\]
-\item \(\underline{\Omega}\):
-\[
-(e_0e_1)\{\rho\}\longrightarrow ((e_0\{\rho\})(e_1\{\rho\}))
-\]
-\item \(\underline{\eta''_{ext}}\):
-\[
-(\lambda y.e)\{\rho\}\longrightarrow \lambda z.(e\{\rho+[z/y]\}),
-\quad \text{where } z\notin \fv(e).
-\]
-\item \(\underline{\beta''_h}\): \(y\{\rho\}\longrightarrow \rho(y)\).
+\item \(\underline{\beta''_{ext}}\colon\ ((\lambda y.e_0)e_1)\{\rho\}\longrightarrow e_0\{\rho+[e_1\{\rho\}/y]\}\)
+\item \(\underline{\Omega}\colon\ (e_0e_1)\{\rho\}\longrightarrow ((e_0\{\rho\})(e_1\{\rho\}))\)
+\item \(\underline{\eta''_{ext}}\colon\ (\lambda y.e)\{\rho\}\longrightarrow\lambda z.(e\{\rho+[z/y]\}),
+\quad\text{where }z\notin\fv(e).\)
+\item \(\underline{\beta''_h}\colon\  y\{\rho\}\longrightarrow\rho(y)\).
 \end{enumerate}
 
 Notice that a new rule has been introduced and the rule ordering has been
@@ -680,7 +665,7 @@ Transliteration into DeBruijn notation yields
 (\lambda.e)\{\rho\}\longrightarrow \lambda.(e\{\rho+[0]\}).
 \]
 Although this seems reasonable, the transliterated rule is not correct. When
-\(\eta\)-extension occurs, a new \(\lambda\) binding is inserted around \(e\);
+\(\eta\)-extension occurs, a \emph{new} \(\lambda\) binding is inserted around \(e\);
 this causes the DeBruijn indices in the arguments associated with the free
 variables of \(e\) to be off by one. This can be remedied by adding one to all
 the indices in the affected arguments (which are kept in the redex store).
@@ -692,7 +677,7 @@ store. Two observations give direction as to how this can be accomplished.
 First, the only variable indices that need be corrected are those that might
 remain in the normal form. These are precisely those variables which are
 introduced via \(\eta\)-extension. Second, the amount of correction necessary
-for variable \(x\) is equal to the number of new \(\lambda\)'s introduced since
+for variable \(x\) is equal to the number of new \(\lambda\)'s introduced \emph{since}
 \(x\) was introduced.
 
 The proper DeBruijn index correction can be calculated as follows. A count of
@@ -710,30 +695,14 @@ This final version of the head order reduction rules incorporates DeBruijn
 indices and the \(\phi\) counter:
 
 \begin{enumerate}
-\item \(\underline{\beta'''_{ext}}\):
-\[
-((\lambda.e_0)e_1)\{\rho\}\phi
-\longrightarrow e_0\{\rho+[e_1\{\rho\}]\}\phi
-\]
-\item \(\underline{\eta'''_{ext}}\):
-\[
-(\lambda.e)\{\rho\}\phi
-\longrightarrow
-\lambda.(e\{\rho+[\ubv_{\phi+1}\{\rho\}]\}(\phi+1))
-\]
-\item \(\underline{\Omega'}\):
-\[
-(e_0e_1)\{\rho\}\phi
-\longrightarrow ((e_0\{\rho\}\phi)(e_1\{\rho\}\phi))
-\]
-\item \(\underline{\beta'''_h}\):
-\[
-y\{\rho\}\phi\longrightarrow \rho(y)\phi
-\]
-\item \(\underline{\Phi}\):
-\[
-\ubv_i\{\rho\}\phi\longrightarrow \phi-i
-\]
+\item \(\underline{\beta'''_{ext}}\colon\ ((\lambda.e_0)e_1)\{\rho\}\phi
+\longrightarrow e_0\{\rho+[e_1\{\rho\}]\}\phi\)
+\item \(\underline{\eta'''_{ext}}\colon\ (\lambda.e)\{\rho\}\phi\longrightarrow
+\lambda.(e\{\rho+[\ubv_{\phi+1}\{\rho\}]\}(\phi+1))\)
+\item \(\underline{\Omega'}\colon\ (e_0e_1)\{\rho\}\phi
+\longrightarrow ((e_0\{\rho\}\phi)(e_1\{\rho\}\phi))\)
+\item \(\underline{\beta'''_h}\colon\  y\{\rho\}\phi\longrightarrow\rho(y)\phi\)
+\item \(\underline{\Phi}\colon\ \ubv_i\{\rho\}\phi\longrightarrow\phi-i\)
 \end{enumerate}
 
 These rules will be used as the basis for the computing architecture described

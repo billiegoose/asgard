@@ -1,0 +1,33 @@
+% Shared geometry for Figures 2.1 and 2.2, traced from source PDF pages 23--24.
+% The argument supplies the structural arcs that change during contraction.
+\newcommand{\wadsworthgraph}[1]{%
+  \resizebox{0.75\textwidth}{!}{%
+    \begin{tikzpicture}[
+      x=1pt,y=1pt,line width=0.65pt,
+      graphnode/.style={circle,draw,fill=black,inner sep=0pt,
+        outer sep=0pt,minimum size=8pt},
+      variablenode/.style={graphnode,fill=white},
+      edge/.style={-{Stealth[length=3.4pt,width=2.8pt]}},
+      backpointer/.style={edge,dotted,line cap=round},
+      indirection/.style={edge,dash pattern=on 1.2pt off 1.2pt}]
+      \draw (0,0) rectangle (300,140);
+      \node[graphnode] (root) at (161,120) {};
+      \node[graphnode] (left) at (58,95) {};
+      \node[graphnode] (right) at (262,95) {};
+      \node[graphnode] (body) at (58,61) {};
+      \node[variablenode] (xleft) at (17,17) {};
+      \node[variablenode] (xright) at (99,17) {};
+      \node[variablenode] (y) at (262,61) {};
+      \draw[edge] (body) -- (xleft);
+      \draw[edge] (body) -- (xright);
+      \draw[edge] (right) -- (y);
+      \draw[backpointer] (xleft.north)
+        .. controls (11,47) and (34,76) .. (left.south west);
+      \draw[backpointer] (xright.north)
+        .. controls (106,48) and (83,76) .. (left.south east);
+      \draw[backpointer] (y.north east)
+        .. controls (275,65) and (275,87) .. (right.south east);
+      #1
+    \end{tikzpicture}%
+  }%
+}
