@@ -1,0 +1,92 @@
+% Reverse APP execution, traced from source PDF page 65.
+% The scan partly loses the C in "Control"; restore the complete label.
+% Preserve the original crop's 1600:1242 aspect ratio and printed size.
+\resizebox{0.82\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    apppointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}},
+    continuation/.style={dotted,line cap=round},
+    omitted/.style={dash pattern=on 0.6pt off 7pt,line cap=round}]
+    \path[use as bounding box] (-3,-3) rectangle (403,312.1575);
+    \draw (0,0) rectangle (400,307);
+    % Common graph rows: the argument at a_1, APP, and the result at a_2.
+    \foreach \x in {96,274} {
+      \draw (\x,280) -- (\x+52,280);
+      \draw[continuation] (\x,251) -- (\x,280);
+      \draw[continuation] (\x+52,251) -- (\x+52,280);
+      \draw (\x,241) rectangle (\x+52,251);
+      \node at (\x+26,246) {\(\cdots\)};
+      \draw[continuation] (\x,217) -- (\x,241);
+      \draw[continuation] (\x+52,217) -- (\x+52,241);
+      \draw (\x,207) rectangle (\x+52,217);
+      \node[anchor=west] at (\x+4,212) {APP};
+      \fill (\x+42,212) circle (2.8pt);
+      \draw[apppointer] (\x+42,212) -- (\x+57,212)
+        .. controls (\x+73,224) and (\x+73,235) .. (\x+57,246)
+        -- (\x+52,246);
+      \draw[continuation] (\x,192) -- (\x,207);
+      \draw[continuation] (\x+52,192) -- (\x+52,207);
+      \draw (\x,182) rectangle (\x+52,192);
+      \node at (\x+26,187) {\(\cdots\)};
+      \node[anchor=east] at (\x-5,246) {\(a_1\):};
+      \node[anchor=east] at (\x-5,187) {\(a_2\):};
+      % The boundary between environment and control stack is fixed.
+      \draw (\x,75) -- (\x+52,75);
+      \draw[continuation] (\x,60) -- (\x,75);
+      \draw[continuation] (\x+52,60) -- (\x+52,75);
+      \draw (\x,50) rectangle (\x+52,60);
+      \draw[continuation] (\x,24) -- (\x,50);
+      \draw[continuation] (\x+52,24) -- (\x+52,50);
+      \draw (\x,24) -- (\x+52,24);
+    }
+    % Before: the control-stack entry saves the argument's environment.
+    \draw[omitted] (96,130) -- (96,182);
+    \draw[omitted] (148,130) -- (148,182);
+    \draw (96,120) rectangle (148,130);
+    \node at (122,125) {\(\cdots\)};
+    \draw[continuation] (96,75) -- (96,120);
+    \draw[continuation] (148,75) -- (148,120);
+    \fill (122,55) circle (2.8pt);
+    \draw[apppointer] (122,55) -- (153,55)
+      .. controls (169,72) and (169,92) .. (153,105) -- (148,105);
+    \node[anchor=east] at (91,55) {\(a_3\):};
+    \node[anchor=west] at (158,212) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (158,187) {\(\leftarrow\ \mathit{fsp}\)};
+    \node[anchor=west] at (158,125) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (158,55) {\(\leftarrow\ c\)};
+    % After: JOIN returns to APP; pc enters the argument at a_1.
+    \draw (274,172) rectangle (326,182);
+    \node[anchor=west] at (278,177) {JOIN};
+    \fill (316,177) circle (2.8pt);
+    \draw[apppointer] (316,177) -- (331,177)
+      .. controls (347,186) and (347,198) .. (331,207) -- (326,207);
+    \node[anchor=east] at (269,177) {\(a_2+1\):};
+    \draw[omitted] (274,110) -- (274,172);
+    \draw[omitted] (326,110) -- (326,172);
+    \draw (274,100) rectangle (326,110);
+    \node at (300,105) {\(\cdots\)};
+    \draw[continuation] (274,75) -- (274,100);
+    \draw[continuation] (326,75) -- (326,100);
+    \node at (300,55) {\(\cdots\)};
+    \node[anchor=east] at (269,55) {\(a_3-1\):};
+    \node[anchor=west] at (336,246) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (336,177) {\(\leftarrow\ \mathit{fsp}\)};
+    \node[anchor=west] at (336,105) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (336,55) {\(\leftarrow\ c\)};
+    % Braces identify the three memory regions in the before state.
+    \foreach \top/\middle/\bottom in {280/231/187,133/108/79,76/54/32} {
+      \draw (74,\top)
+        .. controls (71,\top) and (71,\top-3) .. (71,\top-5)
+        -- (71,\middle+5)
+        .. controls (71,\middle+2) and (70,\middle+1) .. (68,\middle)
+        .. controls (70,\middle-1) and (71,\middle-2) .. (71,\middle-5)
+        -- (71,\bottom+5)
+        .. controls (71,\bottom+3) and (71,\bottom) .. (74,\bottom);
+    }
+    \node[anchor=east,align=center] at (64,231) {Graph\\Memory};
+    \node[anchor=east,align=center] at (64,108) {Environ\\ment};
+    \node[anchor=east,align=center] at (64,54) {Control\\Stack};
+    \node at (122,12) {Before};
+    \node at (300,12) {After};
+  \end{tikzpicture}%
+}

@@ -1,0 +1,76 @@
+% LAMBDA contraction, traced from source PDF page 68.
+% Both closure fields retain the corresponding argument and environment links.
+\resizebox{0.78\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    closurepointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}},
+    continuation/.style={dotted,line cap=round},
+    omitted/.style={dash pattern=on 0.6pt off 7pt,line cap=round}]
+    \path[use as bounding box] (-3,-3) rectangle (403,325.2777);
+    \draw (0,0) rectangle (400,320);
+    % Graph and control-stack geometry common to the two states.
+    \foreach \x in {82,268} {
+      \draw (\x,290) -- (\x+70,290);
+      \draw[continuation] (\x,270) -- (\x,290);
+      \draw[continuation] (\x+70,270) -- (\x+70,290);
+      \draw (\x,248) rectangle (\x+70,270);
+      \draw (\x,259) -- (\x+70,259);
+      \node at (\x+35,264.5) {LAMBDA \(x\)};
+      \node at (\x+35,253.5) {\(\cdots\)};
+      \draw[continuation] (\x,198) -- (\x,248);
+      \draw[continuation] (\x+70,198) -- (\x+70,248);
+      \draw (\x,187) rectangle (\x+70,198);
+      \node at (\x+35,192.5) {\(\cdots\)};
+      \draw (\x,114) rectangle (\x+70,125);
+      \node at (\x+35,119.5) {\(\cdots\)};
+      \draw[continuation] (\x,84) -- (\x,114);
+      \draw[continuation] (\x+70,84) -- (\x+70,114);
+      \draw (\x,57) rectangle (\x+70,84);
+      \draw (\x,68) -- (\x+70,68);
+      \draw[continuation] (\x,32) -- (\x,57);
+      \draw[continuation] (\x+70,32) -- (\x+70,57);
+      \draw (\x,32) -- (\x+70,32);
+    }
+    % Before: the argument and saved environment are separate pointers.
+    \draw (82,176) rectangle (152,187);
+    \node[anchor=west] at (86,181.5) {APP};
+    \fill (141,181.5) circle (2.8pt);
+    \draw[closurepointer] (141,181.5) -- (158,181.5)
+      .. controls (176,195) and (176,206) .. (158,219) -- (152,219);
+    \draw[omitted] (82,125) -- (82,176);
+    \draw[omitted] (152,125) -- (152,176);
+    \fill (116,62.5) circle (2.8pt);
+    \draw[closurepointer] (116,62.5) -- (158,62.5)
+      .. controls (176,78) and (176,94) .. (158,104) -- (152,104);
+    \node[anchor=east] at (77,192.5) {\(a_1\):};
+    \node[anchor=east] at (77,181.5) {\(a_1+1\):};
+    \node[anchor=east] at (77,119.5) {\(a_2\):};
+    \node[anchor=east] at (77,62.5) {\(a_3\):};
+    \node[anchor=west] at (164,264.5) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (164,181.5) {\(\leftarrow\ \mathit{fsp}\)};
+    \node[anchor=west] at (164,119.5) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (164,62.5) {\(\leftarrow\ c\)};
+    % After: the two new closure words precede a_2 in the environment.
+    \draw[omitted] (268,147) -- (268,187);
+    \draw[omitted] (338,147) -- (338,187);
+    \draw (268,125) rectangle (338,147);
+    \draw (268,136) -- (338,136);
+    \node[anchor=west] at (272,141.5) {CLOSURE};
+    \fill (331,141.5) circle (2.8pt);
+    \fill (302,130.5) circle (2.8pt);
+    \draw[closurepointer] (331,141.5) -- (344,141.5)
+      .. controls (365,134) and (365,115) .. (344,104) -- (338,104);
+    \draw[closurepointer] (302,130.5) -- (262,130.5)
+      .. controls (233,162) and (233,190) .. (262,219) -- (268,219);
+    \node at (303,62.5) {\(\cdots\)};
+    \node[anchor=east] at (263,192.5) {\(a_1\):};
+    \node[anchor=east] at (263,119.5) {\(a_2\):};
+    \node[anchor=east] at (263,62.5) {\(a_3-1\):};
+    \node[anchor=west] at (350,253.5) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (350,192.5) {\(\leftarrow\ \mathit{fsp}\)};
+    \node[anchor=west] at (350,141.5) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (350,62.5) {\(\leftarrow\ c\)};
+    \node at (117,14) {Before};
+    \node at (303,14) {After};
+  \end{tikzpicture}%
+}

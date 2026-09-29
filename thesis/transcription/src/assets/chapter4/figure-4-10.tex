@@ -1,0 +1,41 @@
+% JOIN execution, traced from source PDF page 67.
+% Preserve the crop's aspect ratio so the surrounding text does not reflow.
+\resizebox{0.68\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    joinpointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}}]
+    \path[use as bounding box] (-3,-3) rectangle (303,155.7375);
+    \draw (0,0) rectangle (300,146);
+    \foreach \x in {50,98,192,240} {
+      \draw[dotted,line cap=round] (\x,130) -- (\x,97);
+      \draw[dotted,line cap=round] (\x,78) -- (\x,56);
+      \draw[dotted,line cap=round] (\x,37) -- (\x,26);
+    }
+    \foreach \x in {50,192} {
+      \draw (\x,78) rectangle (\x+48,97);
+      \draw (\x,87.5) -- (\x+48,87.5);
+      \draw (\x,37) rectangle (\x+48,56);
+      \draw (\x,46.5) -- (\x+48,46.5);
+      \node at (\x+24,92.25) {\(\cdots\)};
+      \node[anchor=west] at (\x+4,82.75) {APP};
+      \fill (\x+38.5,82.75) circle (2.6pt);
+      \node[anchor=west] at (\x+4,51.25) {JOIN};
+      \fill (\x+38.5,51.25) circle (2.6pt);
+      \node at (\x+24,41.75) {\(\cdots\)};
+    }
+    % Before: APP points upward; JOIN points to the parent spine.
+    \draw[joinpointer] (88.5,82.75) -- (103,82.75)
+      .. controls (117,93) and (117,105) .. (103,115) -- (98,115);
+    \draw[joinpointer] (88.5,51.25) -- (103,51.25)
+      .. controls (117,61) and (117,69) .. (103,78) -- (98,78);
+    \node[anchor=west] at (114,51.25) {\(\leftarrow\ \mathit{pc}\)};
+    % After: APP points down to the reduced argument; JOIN is unchanged.
+    \draw[joinpointer] (230.5,82.75) -- (243,82.75)
+      .. controls (269,69) and (269,54) .. (245,41.75) -- (240,41.75);
+    \draw[joinpointer] (230.5,51.25) -- (243,51.25)
+      .. controls (257,61) and (257,69) .. (243,78) -- (240,78);
+    \node[anchor=west] at (252,92.25) {\(\leftarrow\ \mathit{pc}\)};
+    \node at (74,15) {Before};
+    \node at (216,15) {After};
+  \end{tikzpicture}%
+}

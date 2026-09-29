@@ -1,0 +1,37 @@
+% Vector transcription of the redex-store tree on source PDF page 62.
+% Every tree edge points from child to parent; PNP points to the value of b.
+\resizebox{0.72\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    storenode/.style={circle,draw,minimum size=20pt,outer sep=0pt},
+    parentlink/.style={-{Stealth[length=3.5pt,width=2.8pt]}}]
+    \path[use as bounding box] (-3,-3) rectangle (303,152.6093);
+    \draw (0,0) rectangle (300,145);
+    \node[storenode] (a) at (57,128) {\(a\)};
+    \node[storenode] (b) at (57,91) {\(b\)};
+    \node[storenode] (c) at (28,59) {\(c\)};
+    \node[storenode] (d) at (28,22) {\(d\)};
+    \node[storenode] (e) at (86,59) {\(e\)};
+    \draw[parentlink] (b) -- (a);
+    \draw[parentlink] (c) -- (b);
+    \draw[parentlink] (d) -- (c);
+    \draw[parentlink] (e) -- (b);
+    \draw (196,28) rectangle (258,112);
+    \foreach \row in {42,56,70,84,98}
+      \draw (196,\row) -- (258,\row);
+    \node at (227,105) {value of \(a\)};
+    \node at (227,91) {value of \(b\)};
+    \node at (227,77) {value of \(c\)};
+    \node at (227,63) {value of \(d\)};
+    \node[anchor=west] at (200,49) {PNP};
+    \fill (230,49) circle (2.6pt);
+    \node at (227,35) {value of \(e\)};
+    \node[anchor=east] at (191,105) {\(n\):};
+    \node[anchor=east] at (191,91) {\(n-1\):};
+    \node at (184,70) {\(\vdots\)};
+    \node[anchor=east] at (191,35) {\(n-5\):};
+    \draw[parentlink] (230,49) -- (268,49)
+      .. controls (288,64) and (288,77) .. (268,91)
+      -- (258,91);
+  \end{tikzpicture}%
+}

@@ -1,0 +1,21 @@
+% Vector transcription of the memory model on source PDF page 60.
+% The bounding box retains the earlier crop's aspect ratio and printed size.
+\resizebox{0.78\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\large,inner sep=0pt,
+    memoryarrow/.style={-{Stealth[length=4pt,width=3pt]}}]
+    \path[use as bounding box] (-4,-4) rectangle (364,85.4387);
+    \draw (105,0) -- (0,0) -- (0,63) -- (105,63);
+    \draw (180,0) -- (360,0) -- (360,63) -- (180,63);
+    \draw[dotted,line cap=round] (105,0) -- (180,0);
+    \draw[dotted,line cap=round] (105,63) -- (180,63);
+    \draw (276,0) -- (276,63);
+    \node[anchor=base west] at (8,69) {Low};
+    \node[anchor=base east] at (356,69) {High};
+    \node[anchor=west] at (8,31.5) {graph memory};
+    \draw[memoryarrow] (96,31.5) -- (123,31.5);
+    \draw[memoryarrow] (198,31.5) -- (171,31.5);
+    \node[anchor=east] at (269,31.5) {environment};
+    \node at (318,31.5) {control stack};
+  \end{tikzpicture}%
+}

@@ -1,0 +1,28 @@
+% Vector transcription of the binary tree on source PDF page 49.
+% Preserve the crop's 1010:808 aspect ratio and the original AP labels.
+\resizebox{0.58\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.7pt,
+    font=\fontsize{14}{16}\selectfont,inner sep=0pt,
+    treearrow/.style={-{Stealth[length=4pt,width=3pt]}}]
+    \path[use as bounding box] (0,0) rectangle (300,240);
+    \draw (4,5) rectangle (296,235);
+    \foreach \x/\y/\label in {96/202/{\lambda},136/158/{\lambda},176/114/{\mathrm{AP}},216/70/{\mathrm{AP}}} {
+      \draw (\x-12,\y-12) rectangle (\x+12,\y+12);
+      \draw (\x-12,\y) -- (\x+12,\y);
+      \draw (\x,\y) -- (\x,\y-12);
+      \node at (\x,\y+6) {\(\label\)};
+    }
+    \foreach \x/\y/\label in {60/164/a,100/120/b,106/44/a,180/32/b,250/32/a} {
+      \draw (\x-6,\y-6) rectangle (\x+6,\y+6);
+      \node at (\x,\y) {\(\mathrm{\label}\)};
+    }
+    \draw[treearrow] (90,196) -- (66,172);
+    \draw[treearrow] (102,196) -- (124,170);
+    \draw[treearrow] (130,152) -- (106,128);
+    \draw[treearrow] (142,152) -- (164,126);
+    \draw[treearrow] (170,108) -- (112,52);
+    \draw[treearrow] (182,108) -- (204,82);
+    \draw[treearrow] (210,64) -- (186,40);
+    \draw[treearrow] (222,64) -- (244,40);
+  \end{tikzpicture}%
+}

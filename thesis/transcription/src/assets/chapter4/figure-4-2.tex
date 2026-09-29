@@ -1,0 +1,36 @@
+% Vector transcription of the linear graph on source PDF page 50.
+% The three AP/VAR rows addressed by pointers share a baseline.
+\resizebox{0.72\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.7pt,
+    font=\fontsize{14}{16}\selectfont,inner sep=0pt,
+    grapharrow/.style={-{Stealth[length=4pt,width=3pt]}}]
+    % Retain the 1273:423 crop's aspect ratio and printed dimensions.
+    \path[use as bounding box] (0,0) rectangle (400,132.9144);
+    \draw (4,5) rectangle (396,127);
+    \draw (55,24) rectangle (117,100);
+    \draw (99,24) -- (99,100);
+    \foreach \y in {43,62,81} {\draw (55,\y) -- (117,\y);}
+    \draw (174,24) rectangle (236,62);
+    \draw (218,24) -- (218,62);
+    \draw (174,43) -- (236,43);
+    \draw (293,43) rectangle (355,62);
+    \draw (337,43) -- (337,62);
+    \foreach \y/\address/\opcode in {90.5/0/{\lambda},71.5/1/{\lambda},52.5/2/{\mathrm{AP}},33.5/3/{\mathrm{VAR}}} {
+      \node[anchor=east] at (50,\y) {\address:};
+      \node[anchor=west] at (61,\y) {\(\opcode\)};
+    }
+    \node at (108,90.5) {\(a\)};
+    \node at (108,71.5) {\(b\)};
+    \node at (108,33.5) {\(a\)};
+    \node[anchor=east] at (169,52.5) {4:};
+    \node[anchor=east] at (169,33.5) {5:};
+    \node[anchor=west] at (180,52.5) {\(\mathrm{AP}\)};
+    \node[anchor=west] at (180,33.5) {\(\mathrm{VAR}\)};
+    \node at (227,33.5) {\(b\)};
+    \node[anchor=east] at (288,52.5) {6:};
+    \node[anchor=west] at (299,52.5) {\(\mathrm{VAR}\)};
+    \node at (346,52.5) {\(a\)};
+    \draw[grapharrow] (108,52.5) -- (148,52.5);
+    \draw[grapharrow] (227,52.5) -- (267,52.5);
+  \end{tikzpicture}%
+}

@@ -2,7 +2,7 @@
 
 % Source PDF page 48
 
-A computer's architecture is generally defined to be the collection of hardware attributes seen by a machine language programmer. These attributes include the computer's instruction set, addressing modes, registers, and memory locations that can be directly manipulated or tested by a machine language program [4]. Given this definition, THOR is the architecture of RED2 --- the machine language programmer submits a THOR expression to RED2, which returns a reduced THOR expression as the result of computation. THOR has no notion of registers, memory locations, address modes, or the like. In this regard, RED2 has greatly reduced the `semantic gap' [22] between its architecture and the high-level languages it executes.
+A computer's \emph{architecture} is generally defined to be the collection of hardware attributes seen by a machine language programmer. These attributes include the computer's instruction set, addressing modes, registers, and memory locations that can be directly manipulated or tested by a machine language program [4]. Given this definition, THOR is the architecture of RED2 --- the machine language programmer submits a THOR expression to RED2, which returns a reduced THOR expression as the result of computation. THOR has no notion of registers, memory locations, address modes, or the like. In this regard, RED2 has greatly reduced the `semantic gap' [22] between its architecture and the high-level languages it executes.
 
 I shall go beyond the above definition of computer architecture and describe the implementation of THOR itself. This description includes a graph-oriented instruction set, control and data registers, and a model of how memory is used. I will begin with a simple stack-based machine for the pure \lambdacalculus{} and show how it can be refined and mapped onto hardware. The basic principles of this machine will then be extended to implement THOR.
 
@@ -12,15 +12,15 @@ I shall go beyond the above definition of computer architecture and describe the
 
 The design and performance of reduction machines are strongly influenced by the concrete representation chosen for \(\lambda\)-expressions. To provide high performance, a representation should require a minimum of memory bandwidth and support the identification and contraction of redexes. Implementing the \lambdabetacalculus{} completely adds a further constraint that the chosen representation should allow reconstruction of the expression it represents. Although these constraints are conflicting, there is one representation which satisfies all three to a reasonable degree: graphs.
 
-\paragraph{Binary Tree Representation}
+\subsubsection*{Binary Tree Representation}
 
-A simple and straightforward graph representation for expressions is demonstrated in Figure 4.1. Expressions are represented as binary trees composed of three types of nodes: abstraction nodes, where one branch points to the bound variable and the other points to the body; application nodes, where one branch points to the operator and the other points to the operand; and variable nodes, which form the leaves of the tree. The spine of an expression graph is defined to be the path from the graph's root to its leftmost variable node.
+A simple and straightforward graph representation for expressions is demonstrated in Figure 4.1. Expressions are represented as binary trees composed of three types of nodes: abstraction nodes, where one branch points to the bound variable and the other points to the body; application nodes, where one branch points to the operator and the other points to the operand; and variable nodes, which form the leaves of the tree. The \emph{spine} of an expression graph is defined to be the path from the graph's root to its leftmost variable node.
 
 % Source PDF page 49
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-1.png}
+\input{assets/chapter4/figure-4-1.tex}
 \caption[Binary tree graph representation]{A straightforward graph representation of \((\lambda ab.(a\ (b\ a)))\).}
 \end{figure}
 
@@ -28,7 +28,7 @@ The binary tree representation satisfies two of the three constraints: it suppor
 
 The binary tree representation, however, requires a lot of memory bandwidth. In addition to the cost of maintaining a stack or reverse-pointer chain, moving from an abstraction node to its body requires two memory reads --- one read to get the address of the body and another read to get its contents. Moving to either the operator or operand of an application node also costs two reads. This high bandwidth requirement limits the performance of any machine using a binary tree representation.
 
-\paragraph{The Linear Graph Representation}
+\subsubsection*{The Linear Graph Representation}
 
 A modification to the binary tree representation reduces bandwidth requirements, supports de-compilation, and provides better support for graph traversal. If memory is viewed as a linear sequence of graph nodes, expressions can be represented in a linear fashion by adopting certain memory conventions:
 
@@ -44,13 +44,26 @@ Figure 4.2 shows how the graph in Figure 4.1 is represented using the above conv
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-2.png}
+\input{assets/chapter4/figure-4-2.tex}
 \caption[Linear graph representation]{The linear graph representation of \((\lambda ab.(a\ (b\ a)))\). Each node is labeled with an address.}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.76\textwidth]{assets/chapter4/figure-4-3.png}
+% Source PDF p. 50 uses x_m in the input/scope but x_n in the output.
+% Retain the printed indices rather than silently regularizing them.
+\setlength{\fboxsep}{8pt}
+\fbox{\(\begin{aligned}
+&C[\THOR{(LAMBDA (}x_1\ \cdots\ x_m\THOR{) }e\THOR{)},s] =\\
+&\quad\THOR{(LAMBDA }x_1\THOR{)}:\cdots:
+  \THOR{(LAMBDA }x_n\THOR{)}:C[e,x_1:\cdots:x_m:s]\\[0.6em]
+&C[(e_1\ e_2),s] = \THOR{(APP }C[e_2,s]\THOR{)}:C[e_1,s]\\[0.6em]
+&C[x,s] = \THOR{(VAR }\mathit{index}(x,s)\THOR{)}\\
+&\quad\begin{aligned}
+\text{where }\mathit{index}(x,x:s') &= 0;\\
+\mathit{index}(x,y:s') &= \mathit{index}(x,s')+1,\quad x\ne y;
+\end{aligned}
+\end{aligned}\)}
 \caption[THOR to linear graph compiler]{Compiler from the pure \lambdacalculus{} subset of THOR to the linear graph representation. The first argument to \(C\) is a THOR expression; the second argument is a scope list, which is initially empty \((\emptyset)\). The colon (:) is an infix sequence constructor.}
 \end{figure}
 
@@ -64,7 +77,13 @@ identifier names for use in de-compilation.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.58\textwidth]{assets/chapter4/figure-4-4.png}
+\setlength{\fboxsep}{8pt}
+\fbox{\(\begin{aligned}
+&C[\THOR{((LAMBDA (A) A) (LAMBDA (B) B))},\emptyset] =\\[0.5em]
+&\quad\THOR{(APP (LAMBDA B):(VAR 0)):}\\
+&\quad\THOR{(LAMBDA A):}\\
+&\quad\THOR{(VAR 0)}
+\end{aligned}\)}
 \caption[Example compilation]{An example of compilation to the linear graph representation.}
 \end{figure}
 
@@ -78,17 +97,17 @@ A normal order search for redexes is accomplished by performing an inorder trave
 of expression graphs. To support this traversal, four new items are added to the
 machine configuration:
 
-\begin{itemize}
-\item \(d\), a flag indicating the current direction of traversal, which is either
+\begin{description}[leftmargin=2.5em,labelwidth=1.25em,labelsep=0.5em,font=\normalfont]
+\item[\(d\)] A flag indicating the current direction of traversal, which is either
 F for forward or B for backward.
-\item \(c\), the control stack, which temporarily stores copies of \(\rho\) during
+\item[\(c\)] The control stack, which temporarily stores copies of \(\rho\) during
 reduction. The control stack is introduced to facilitate the evolution of the SSM
 into RED2, where the control stack is used to store other things as well.
-\item \(g\), the graph stack, which initially contains the graph to be reduced and
+\item[\(g\)] The graph stack, which initially contains the graph to be reduced and
 eventually contains the reduced graph.
-\item \(r\), the reversal stack, which temporarily stores nodes during graph
+\item[\(r\)] The reversal stack, which temporarily stores nodes during graph
 traversal.
-\end{itemize}
+\end{description}
 
 The SSM configuration has the form
 
@@ -99,7 +118,7 @@ The SSM configuration has the form
 Since this machine deals only with the pure \lambdacalculus{}, the definition
 context \(\delta\) is omitted.
 
-The control unit of the Simple Stack Machine is specified by the ordered transition rules presented in Figure 4.5. Once each machine cycle, the left hand side of each rule is checked in the order presented to see if it matches the current machine configuration; if so, the current configuration is modified to match the right hand side of the rule and the machine advances to the next cycle. The only parts of the graph visible to the control unit are the nodes at the top of the p and r stacks.
+The control unit of the Simple Stack Machine is specified by the ordered transition rules presented in Figure 4.5. Once each machine cycle, the left hand side of each rule is checked \emph{in the order presented} to see if it matches the current machine configuration; if so, the current configuration is modified to match the right hand side of the rule and the machine advances to the next cycle. The only parts of the graph visible to the control unit are the nodes at the top of the \(p\) and \(r\) stacks.
 
 The basic mechanism underlying the SSM is the inorder traversal of the expression
 graph. The SSM works as follows:
@@ -129,7 +148,33 @@ spine and traversal of the parent spine continues (Rule C10).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-5.png}
+% Transcribed from the rule list on source PDF p. 52.
+\newcommand{\ssmstate}[1]{\langle\!\langle #1\rangle\!\rangle}
+\setlength{\fboxsep}{8pt}
+\fbox{\(\begin{array}{@{}r@{\quad}l@{}}
+\text{C1.}&\ssmstate{\mathrm{F},\phi,0,\rho,c,(\THOR{LAMBDA }x):g,r}\redsto\\
+&\ssmstate{\mathrm{F},\phi+1,0,(\THOR{UBV }\phi+1):\rho,c,g,(\THOR{LAMBDA }x):r}\\[0.6em]
+\text{C2.}&\ssmstate{\mathrm{F},\phi,q,\rho_0,\rho_1:c,(\THOR{LAMBDA }x):g,(\THOR{APP }e):r}\redsto\\
+&\ssmstate{\mathrm{F},\phi,q-1,(\THOR{CLOSURE }e\ \rho_1):\rho_0,c,g,r}\\[0.6em]
+\text{C3.}&\ssmstate{\mathrm{F},\phi,q,\rho,c,(\THOR{LAMBDA }x):g,r}\redsto\\
+&\ssmstate{\mathrm{F},\phi+1,q,(\THOR{UBV }\phi+1):\rho,c,g,(\THOR{LAMBDA }x):r}\\[0.6em]
+\text{C4.}&\ssmstate{\mathrm{F},\phi,q,\rho,c,(\THOR{APP }e):g,r}\redsto\\
+&\ssmstate{\mathrm{F},\phi,q,\rho,\rho:c,g,(\THOR{APP }e):r}\\[0.6em]
+\text{C5.}&\ssmstate{\mathrm{F},\phi,q,\rho,c,(\THOR{VAR }i),r}\redsto\\
+&\ssmstate{\mathrm{F},\phi,q,\rho,c,\rho(i),r}\\[0.6em]
+\text{C6.}&\ssmstate{\mathrm{F},\phi,q,\rho_0,c,(\THOR{CLOSURE }e\ \rho_1),r}\redsto\\
+&\ssmstate{\mathrm{F},\phi,q,\rho_1,c,e,r}\\[0.6em]
+\text{C7.}&\ssmstate{\mathrm{F},\phi,q,\rho,c,(\THOR{UBV }i),r}\redsto\\
+&\ssmstate{\mathrm{B},\phi,q,\rho,c,(\THOR{VAR }\phi-i),r}\\[0.6em]
+\text{C8.}&\ssmstate{\mathrm{B},\phi,q,\rho_0,\rho_1:c,g,(\THOR{APP }e):r}\redsto\\
+&\ssmstate{\mathrm{F},\phi,q,\rho_1,c,e,(\THOR{JOIN }g):r}\\[0.6em]
+\text{C9.}&\ssmstate{\mathrm{B},\phi,q,\rho,c,g,(\THOR{LAMBDA }x):r}\redsto\\
+&\ssmstate{\mathrm{B},\phi-1,q,\rho,c,(\THOR{LAMBDA }x):g,r}\\[0.6em]
+\text{C10.}&\ssmstate{\mathrm{B},\phi,q,\rho,c,e,(\THOR{JOIN }g):r}\redsto\\
+&\ssmstate{\mathrm{B},\phi,q,\rho,c,(\THOR{APP }e):g,r}\\[0.6em]
+\text{C11.}&\ssmstate{\mathrm{B},\phi,q,\rho,c,g,(\THOR{STOP})}\redsto\\
+&\ssmstate{\mathrm{B},\phi,q,\rho,c,g,(\THOR{STOP})}
+\end{array}\)}
 \caption[Transition rules for the Simple Stack Machine]{Transition rules for implementing the control unit of the Simple Stack Machine.}
 \end{figure}
 
@@ -137,13 +182,15 @@ spine and traversal of the parent spine continues (Rule C10).
 
 When the STOP node is reached, the graph has been completely traversed and the
 reduced graph is stored in stack \(g\). A sample execution sequence is presented
-in Figure 4.6. During \(\beta\)-reduction, arguments may get moved around and
+in Figure 4.6.
+
+During \(\beta\)-reduction, arguments may get moved around and
 substituted into multiple places, some of which may have different binding
 contexts. This poses problems similar to those faced by Wadsworth's graph
 reducer (see Section 2.2.4). A similar solution is adopted. To avoid context
 problems, arguments are copied during substitution and all modifications are made
 on the copies. The original graph must not be modified in any way; this is why a
-copy of the spine is made on the \(r\) stack during traversal.
+\underline{copy} of the spine is made on the \(r\) stack during traversal.
 
 \subsection{Correctness of the Simple Stack Machine}
 
@@ -156,8 +203,8 @@ interpreter for that expression.
 
 The following definitions are necessary:
 
-\begin{definition}[Equivalent Configurations]
-An SSM configuration is equivalent to a THOR abstract machine configuration,
+\begin{insetdefinition}{Equivalent Configurations}
+An SSM configuration is \emph{equivalent} to a THOR abstract machine configuration,
 written
 \[
 \langle\!\langle d,\phi,q,\rho,c,g,r\rangle\!\rangle_{\mathrm{SSM}}
@@ -165,20 +212,22 @@ written
 \]
 if and only if
 \[
+\begin{gathered}
 \phi_{\mathrm{SSM}}=\phi_{\mathrm{THOR}}
 \quad\text{and}\quad
 q_{\mathrm{SSM}}=q_{\mathrm{THOR}}
 \quad\text{and}\quad
 \rho_{\mathrm{SSM}}=\rho_{\mathrm{THOR}}
-\quad\text{and}\quad
+\quad\text{and}\\[0.5em]
 C^{-1}[g,s]=T^{-1}[e,s]
+\end{gathered}
 \]
 where \(s\) is some scope list. Equivalence will be used to describe initial
 machine configurations, before reduction occurs.
-\end{definition}
+\end{insetdefinition}
 
-\begin{definition}[Congruent Configurations]
-An SSM configuration is congruent to a THOR abstract machine configuration,
+\begin{insetdefinition}{Congruent Configurations}
+An SSM configuration is \emph{congruent} to a THOR abstract machine configuration,
 written
 \[
 \langle\!\langle d,\phi,q,\rho,c,g,r\rangle\!\rangle_{\mathrm{SSM}}
@@ -189,18 +238,79 @@ if and only if
 \phi_{\mathrm{SSM}}=\phi_{\mathrm{THOR}}
 \quad\text{and}\quad
 q_{\mathrm{SSM}}=q_{\mathrm{THOR}}
-\quad\text{and}\quad
-C^{-1}[g,s]=T^{-1}[e,s]
+\quad\text{and}\quad C^{-1}[g,s]=T^{-1}[e,s]
 \]
 where \(s\) is some scope list. Congruence will be used to describe final
 machine configurations, after reduction has taken place.
-\end{definition}
+\end{insetdefinition}
 
 % Source PDF page 54
 
 \begin{figure}[p]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-6.png}
+% Transcribed from the complete execution trace on source PDF p. 54.
+\small
+\newcommand{\ssmleft}{\langle\!\langle}
+\newcommand{\ssmright}{\rangle\!\rangle}
+\setlength{\fboxsep}{8pt}
+\fbox{\begin{tabular}{@{}l@{}}
+\textbf{Initial Configuration}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},0,5,\emptyset,\emptyset,\\
+&\quad\THOR{(APP (LAMBDA B):(VAR 0)):(LAMBDA A):(VAR 0)},\\
+&\quad\THOR{(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 1: Apply Rule C4}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},0,5,\emptyset,\emptyset:\emptyset,\\
+&\quad\THOR{(LAMBDA A):(VAR 0)},\\
+&\quad\THOR{(APP (LAMBDA B):(VAR 0)):(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 2: Apply Rule C2}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},0,4,(\THOR{CLOSURE (LAMBDA B):(VAR 0) }\emptyset):\emptyset,\emptyset,\\
+&\quad\THOR{(VAR 0)},\\
+&\quad\THOR{(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 3: Apply Rule C5}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},0,4,(\THOR{CLOSURE (LAMBDA B):(VAR 0) }\emptyset):\emptyset,\emptyset,\\
+&\quad(\THOR{CLOSURE (LAMBDA B):(VAR 0) }\emptyset),\\
+&\quad\THOR{(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 4: Apply Rule C6}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},0,4,\emptyset,\emptyset,\\
+&\quad\THOR{(LAMBDA B):(VAR 0)},\\
+&\quad\THOR{(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 5: Apply Rule C3}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},1,4,\THOR{(UBV 1)}:\emptyset,\emptyset,\\
+&\quad\THOR{(VAR 0)},\\
+&\quad\THOR{(LAMBDA B):(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 6: Apply Rule C5}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{F},1,4,\THOR{(UBV 1)}:\emptyset,\emptyset,\\
+&\quad\THOR{(UBV 1)},\\
+&\quad\THOR{(LAMBDA B):(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 7: Apply Rule C7}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{B},1,4,\THOR{(UBV 1)}:\emptyset,\emptyset,\\
+&\quad\THOR{(VAR 0)},\\
+&\quad\THOR{(LAMBDA B):(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 8: Apply Rule C9}\\
+\(\begin{aligned}
+&\ssmleft\mathrm{B},0,4,\THOR{(UBV 1)}:\emptyset,\emptyset,\\
+&\quad\THOR{(LAMBDA B):(VAR 0)},\\
+&\quad\THOR{(STOP)}\ssmright
+\end{aligned}\)\\\noalign{\vskip 3.5pt}
+\textbf{Cycle 9: Apply Rule C11, Thereby Stopping Machine}
+\end{tabular}}
+\normalsize
 \caption[Sample execution of the Simple Stack Machine]{Sample execution of the expression \(((\lambda a.a)(\lambda b.b))\) by the Simple Stack Machine, with an initial quantum value of 5.}
 \end{figure}
 
@@ -208,16 +318,20 @@ machine configurations, after reduction has taken place.
 
 The function \(C^{-1}\) de-compiles a linear graph sequence, producing a THOR
 expression. Likewise, \(T^{-1}\) translates an operational semantics construct
-into a THOR expression. The redex stores are not included in the definition of
+into a THOR expression.
+
+The redex stores are not included in the definition of
 congruence because the final values of \(g\) and \(e\) no longer depend on
 their contents; this frees the SSM and the THOR abstract interpreter to use
 different store management policies, if desired. This issue will be discussed
 again in Section 4.2.5.
 
+\noindent\begin{minipage}{\textwidth}
 The correctness of the SSM control rules with respect to the operational
 semantics of THOR is stated by the following theorem:
 
-\paragraph{Correctness Theorem:} For every well-formed THOR expression \(e\),
+\begin{quote}
+\textbf{Correctness Theorem:} For every well-formed THOR expression \(e\),
 if
 \[
 \langle \delta,\phi,q,\rho,T[e,s]\rangle
@@ -227,20 +341,22 @@ if
 where \(s\) is some scope list, then there exists a unique SSM transition
 sequence
 \[
-\langle\!\langle F,\phi,q,\rho,c,C[e,s],r\rangle\!\rangle
+\langle\!\langle \mathrm{F},\phi,q,\rho,c,C[e,s],r\rangle\!\rangle
 \overset{*}{\longmapsto}
-\langle\!\langle B,\phi,q',\rho',c,e',r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q',\rho',c,e',r\rangle\!\rangle
 \]
 such that
 \[
-\langle\!\langle F,\phi,q,\rho,c,C[e,s],r\rangle\!\rangle
+\langle\!\langle \mathrm{F},\phi,q,\rho,c,C[e,s],r\rangle\!\rangle
 = \langle \delta,\phi,q,\rho,T[e,s]\rangle
 \]
 and
 \[
-\langle\!\langle B,\phi,q',\rho',c,e',r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q',\rho',c,e',r\rangle\!\rangle
 \simeq \langle \delta,\phi,q',\rho,e'\rangle.
 \]
+\end{quote}
+\end{minipage}\par\medskip
 
 The proof of the Correctness Theorem is by structural induction on the
 expression \(e\). Each case in the proof corresponds to a particular THOR
@@ -257,24 +373,22 @@ state changes as the corresponding semantic rule.
 If the first two items are satisfied, the induction hypothesis can be invoked
 to satisfy the third.
 
-\paragraph{Case 1: \(e\) is a \(\beta\)-redex.}
+\subsubsection*{Case 1: \(e\) is a \(\beta\)-redex.}
 The operational semantics of \(\beta\)-redexes is described by Rule 1:
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho,((\lambda e_0)\ e_1)\rangle
   \longmapsto
   \langle \delta,\phi,q_1,\rho,e_2\rangle
 }{
   \langle \delta,\phi,q_0-1,\rho',e_0\rangle
   \longmapsto
-  \langle \delta,\phi,q_1,\rho',e_2\rangle
-}
-\]
-\[
-\rho'=\rho+[(\THOR{CLOSURE}\ e_1\ \rho)]
-\qquad
+  \langle \delta,\phi,q_1,\rho',e_2\rangle\\
+\rho'=\rho+[(\THOR{CLOSURE}\ e_1\ \rho)]\\
 q_0>0
-\]
+}
+&&
+\end{flalign*}
 This behavior is implemented by Rules C2 and C4. The SSM instruction sequence
 for an arbitrary THOR \(\beta\)-redex, \(((\lambda x.e_0)e_1)\), is of the form
 \[
@@ -286,45 +400,47 @@ where \(s\) is some scope list. For brevity, this sequence will be written as
 \]
 with the understanding that \(e_0\) and \(e_1\) are instruction sequences. The
 SSM execution sequence for this \(\beta\)-redex is:
-\begin{align*}
-&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{APP}\ e_1):(\THOR{LAMBDA}\ x):e_0,r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q_0,\rho,c,(\THOR{APP}\ e_1):(\THOR{LAMBDA}\ x):e_0,r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C4: }&
-\langle\!\langle F,\phi,q_0,\rho,\rho:c,(\THOR{LAMBDA}\ x):e_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
+\langle\!\langle \mathrm{F},\phi,q_0,\rho,\rho:c,(\THOR{LAMBDA}\ x):e_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C2: }&
-\langle\!\langle F,\phi,q_0-1,(\THOR{CLOSURE}\ e_1\ \rho):\rho,c,e_0,r\rangle\!\rangle
-\longmapsto \mathrm{con1}\\
+\langle\!\langle \mathrm{F},\phi,q_0-1,(\THOR{CLOSURE}\ e_1\ \rho):\rho,c,e_0,r\rangle\!\rangle
+\longmapsto & \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle B,\phi,q_1,\rho_1,c,e_2,r\rangle\!\rangle
-\qquad \mathrm{con2}
-\end{align*}
+&\langle\!\langle \mathrm{B},\phi,q_1,\rho_1,c,e_2,r\rangle\!\rangle
+& \mathrm{con2}
+\end{array}&&
+\end{flalign*}
 
-\paragraph{Obligation 1.} The choice of Rule C2 ensures the application
+\indent\textbf{Obligation 1.}\quad The choice of Rule C2 ensures the application
 condition \(q_0>0\) is satisfied. Because the SSM rules are ordered, Rule C2
 will not fire unless \(q_0\ne 0\); if \(q_0=0\), Rule C1 would fire instead.
 This information, together with the fact that the quantum is always greater
 than or equal to zero, implies \(q_0>0\).
 
-\paragraph{Obligation 2.} The actions of Rules C4 and C2 perform the same state
+\indent\textbf{Obligation 2.}\quad The actions of Rules C4 and C2 perform the same state
 changes as Rule 1. Rules C4 and C2 cooperate to create a closure object for the
 argument and place it in the redex store. Rule C2 decrements \(q_0\) by one.
 
-\paragraph{Obligation 3.} From obligations 1 and 2, it is seen that
+\indent\textbf{Obligation 3.}\quad From obligations 1 and 2, it is seen that
 configuration con1 is equivalent to the left hand side of the premise of Rule
 1. The induction hypothesis tells us that configuration con2 is congruent to
 the right hand side of the premise, and therefore is congruent to the right hand
 side of the conclusion of Rule 1:
 \[
-\langle\!\langle B,\phi,q_1,\rho_1,c,e_2,r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q_1,\rho_1,c,e_2,r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q_1,\rho,e_2\rangle.
 \]
 
-\paragraph{Case 2: \(e\) is an application.}
+\subsubsection*{Case 2: \(e\) is an application.}
 The operational semantics of applications is described by Rule 2:
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho,(e_0\ e_1)\rangle
   \longmapsto
   \langle \delta,\phi,q_2,\rho,e_2\rangle
@@ -332,15 +448,16 @@ The operational semantics of applications is described by Rule 2:
   \langle \delta,\phi,q_0,\rho,e_0\rangle
   \longmapsto
   \langle \delta,\phi,q_1,\rho,e'_0\rangle
-  \qquad
+  \\
   \langle \delta,\phi,q_1,\rho,(e'_0\ e_1)\rangle
   \longmapsto
   \langle \delta,\phi,q_2,\rho,e_2\rangle
 }
-\]
+&&
+\end{flalign*}
 
 This rule states \(e_0\) is reduced to \(e'_0\), before it is applied to
-argument \(e_1\). This is called innermost spine reduction in~[9], where it is
+argument \(e_1\). This is called \emph{innermost spine reduction} in~[9], where it is
 shown to produce the same result as normal order reduction. While this rule
 correctly describes the normal order semantics of THOR, innermost spine
 reduction is not desirable from an implementation standpoint because the
@@ -368,8 +485,8 @@ The proof for this case is analogous to that of Case 1.
 \paragraph{Case 2-2: \((e'_0\ e_1)\) is not a \(\beta\)-redex.}
 Because the operator and operand of the application do not interact, Rule 2 can
 be changed to
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho,(e_0\ e_1)\rangle
   \longmapsto
   \langle \delta,\phi,q_2,\rho,(e'_0\ e'_1)\rangle
@@ -385,38 +502,41 @@ be changed to
   & \mathrm{p2}
   \end{array}
 }
-\]
+&&
+\end{flalign*}
 
 The reduction of the operator is initiated by Rule C4; reduction of the operand
 is coordinated by Rules C8 and C10.
-\begin{align*}
-&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{APP}\ e_1):e_0,r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q_0,\rho,c,(\THOR{APP}\ e_1):e_0,r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C4: }&
-\langle\!\langle F,\phi,q_0,\rho,\rho:c,e_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
-\longmapsto \mathrm{con1}\\
+\langle\!\langle \mathrm{F},\phi,q_0,\rho,\rho:c,e_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
+\longmapsto & \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle B,\phi,q_1,\rho',\rho:c,e'_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
-\longmapsto \mathrm{con2}\\
+&\langle\!\langle \mathrm{B},\phi,q_1,\rho',\rho:c,e'_0,(\THOR{APP}\ e_1):r\rangle\!\rangle
+\longmapsto & \mathrm{con2}\\
 \text{Rule C8: }&
-\langle\!\langle F,\phi,q_1,\rho,c,e_1,(\THOR{JOIN}\ e'_0):r\rangle\!\rangle
-\longmapsto \mathrm{con3}\\
+\langle\!\langle \mathrm{F},\phi,q_1,\rho,c,e_1,(\THOR{JOIN}\ e'_0):r\rangle\!\rangle
+\longmapsto & \mathrm{con3}\\
 &\vdots\\
-&\langle\!\langle B,\phi,q_2,\rho'',c,e'_1,(\THOR{JOIN}\ e'_0):r\rangle\!\rangle
-\longmapsto \mathrm{con4}\\
+&\langle\!\langle \mathrm{B},\phi,q_2,\rho'',c,e'_1,(\THOR{JOIN}\ e'_0):r\rangle\!\rangle
+\longmapsto & \mathrm{con4}\\
 \text{Rule C10: }&
-\langle\!\langle B,\phi,q_2,\rho'',c,(\THOR{APP}\ e'_1):e'_0,r\rangle\!\rangle
-\qquad \mathrm{con5}
-\end{align*}
+\langle\!\langle \mathrm{B},\phi,q_2,\rho'',c,(\THOR{APP}\ e'_1):e'_0,r\rangle\!\rangle
+& \mathrm{con5}
+\end{array}&&
+\end{flalign*}
 
-\paragraph{Obligation 1.} There are no application conditions that need to be
+\indent\textbf{Obligation 1.}\quad There are no application conditions that need to be
 satisfied.
 
-\paragraph{Obligation 2.} There are no state modifications to \(\phi\), \(q\),
+\indent\textbf{Obligation 2.}\quad There are no state modifications to \(\phi\), \(q\),
 or \(\rho\) that need to be made for the application node, and none are made by
 the SSM rules.
 
-\paragraph{Obligation 3.} Rule C4 prepares the SSM to reduce the operator of
+\indent\textbf{Obligation 3.}\quad Rule C4 prepares the SSM to reduce the operator of
 the application node. Because C4 does not alter the values of \(\phi\), \(q\),
 and \(\rho\), configuration con1 is equivalent to the left hand side of premise
 p1. By the induction hypothesis, configuration con2 is congruent to the right
@@ -428,27 +548,26 @@ Rule C10 forms an application node out of the reduced operator and operand. By
 inspection, con5 is congruent to the right hand side of the conclusion of Rule
 2:
 \[
-\langle\!\langle B,\phi,q_2,\rho'',c,(\THOR{APP}\ e'_1):e'_0,r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q_2,\rho'',c,(\THOR{APP}\ e'_1):e'_0,r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q_2,\rho,(e'_0\ e'_1)\rangle.
 \]
 
-\paragraph{Case 3: \(e\) is an abstraction.}
+\subsubsection*{Case 3: \(e\) is an abstraction.}
 The operational semantics of abstractions is described by Rule 3:
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho,\lambda.e\rangle
   \longmapsto
   \langle \delta,\phi,q_1,\rho,\lambda.e'\rangle
 }{
   \langle \delta,\phi+1,q_0,\rho',e\rangle
   \longmapsto
-  \langle \delta,\phi+1,q_1,\rho',e'\rangle
-}
-\]
-\[
+  \langle \delta,\phi+1,q_1,\rho',e'\rangle\\
 \rho'=\rho+[(\THOR{UBV}\ \phi+1)]
-\]
+}
+&&
+\end{flalign*}
 
 This rule applies in two cases:
 \begin{itemize}
@@ -463,42 +582,44 @@ The SSM execution sequence for an abstraction is:
 
 % Source PDF page 58
 
-\begin{align*}
-&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{LAMBDA}\ x):e,r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q_0,\rho,c,(\THOR{LAMBDA}\ x):e,r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C3: }&
-\langle\!\langle F,\phi+1,q_0,(\THOR{UBV}\ \phi+1):\rho,c,e,(\THOR{LAMBDA}\ x):r\rangle\!\rangle
-\longmapsto \mathrm{con1}\\
+\langle\!\langle \mathrm{F},\phi+1,q_0,(\THOR{UBV}\ \phi+1):\rho,c,e,(\THOR{LAMBDA}\ x):r\rangle\!\rangle
+\longmapsto & \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle B,\phi+1,q_1,\rho_1,c,e',(\THOR{LAMBDA}\ x):r\rangle\!\rangle
-\longmapsto \mathrm{con2}\\
+&\langle\!\langle \mathrm{B},\phi+1,q_1,\rho_1,c,e',(\THOR{LAMBDA}\ x):r\rangle\!\rangle
+\longmapsto & \mathrm{con2}\\
 \text{Rule C9: }&
-\langle\!\langle B,\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
-\qquad \mathrm{con3}
-\end{align*}
+\langle\!\langle \mathrm{B},\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
+& \mathrm{con3}
+\end{array}&&
+\end{flalign*}
 
-\paragraph{Obligation 1.} There are no application conditions that need to be
+\indent\textbf{Obligation 1.}\quad There are no application conditions that need to be
 satisfied.
 
-\paragraph{Obligation 2.} Rule C3 extends the redex store with a UBV object and
+\indent\textbf{Obligation 2.}\quad Rule C3 extends the redex store with a UBV object and
 also increments \(\phi\) by one. Later, Rule C9 decrements \(\phi\) by one,
 thereby restoring its original value.
 
-\paragraph{Obligation 3.} From obligations 1 and 2, it is seen that
+\indent\textbf{Obligation 3.}\quad From obligations 1 and 2, it is seen that
 configuration con1 is equivalent to the left hand side of the premise of Rule
 3. By the induction hypothesis, configuration con2 is congruent to the right
 hand side of the premise. By inspection, configuration con3 is congruent to the
 right hand side of the conclusion of Rule 3:
 \[
-\langle\!\langle B,\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q_1,\rho_1,c,(\THOR{LAMBDA}\ x):e',r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q_1,\rho,\lambda e'\rangle.
 \]
 
-\paragraph{Case 4: \(e\) is a variable.}
+\subsubsection*{Case 4: \(e\) is a variable.}
 The operational semantics of variables is described by Rule 4:
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho,(\THOR{VAR}\ i)\rangle
   \longmapsto
   \langle \delta,\phi,q_1,\rho,e\rangle
@@ -507,69 +628,78 @@ The operational semantics of variables is described by Rule 4:
   \longmapsto
   \langle \delta,\phi,q_1,\rho,e\rangle
 }
-\]
+&&
+\end{flalign*}
 
 This behavior is implemented by Rule C5. The SSM execution sequence for this
 case is:
-\begin{align*}
-&\langle\!\langle F,\phi,q_0,\rho,c,(\THOR{VAR}\ i),r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q_0,\rho,c,(\THOR{VAR}\ i),r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C5: }&
-\langle\!\langle F,\phi,q_0,\rho,c,\rho(i),r\rangle\!\rangle
-\longmapsto \mathrm{con1}\\
+\langle\!\langle \mathrm{F},\phi,q_0,\rho,c,\rho(i),r\rangle\!\rangle
+\longmapsto & \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle B,\phi,q_1,\rho',c,e,r\rangle\!\rangle
-\qquad \mathrm{con2}
-\end{align*}
+% Source p. 44 prints F here, but B in the equivalence below.
+&\langle\!\langle \mathrm{F},\phi,q_1,\rho',c,e,r\rangle\!\rangle
+& \mathrm{con2}
+\end{array}&&
+\end{flalign*}
 
-\paragraph{Obligation 1.} There are no application conditions that need to be
+\indent\textbf{Obligation 1.}\quad There are no application conditions that need to be
 satisfied.
 
-\paragraph{Obligation 2.} There are no modifications to \(\phi\), \(q\), or
+\indent\textbf{Obligation 2.}\quad There are no modifications to \(\phi\), \(q\), or
 \(\rho\) in Rule 4, and none are performed by Rule C5.
 
-\paragraph{Obligation 3.} Rule C5 replaces a variable by its value, which is
+\indent\textbf{Obligation 3.}\quad Rule C5 replaces a variable by its value, which is
 extracted from the redex store. By inspection, configuration con1 is equivalent
 to the left hand side of the premise of Rule 4; by the induction hypothesis,
 con2 is congruent to the right hand side of the premise. By inspection, con2 is
 also congruent to the right hand side of the conclusion of Rule 4:
 \[
-\langle\!\langle B,\phi,q_1,\rho',c,e,r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q_1,\rho',c,e,r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q_1,\rho,e\rangle.
 \]
 
-\paragraph{Case 5: \(e\) is an unbound variable.}
+\subsubsection*{Case 5: \(e\) is an unbound variable.}
 The operational semantics of unbound variables is described by Rule 5:
-\[
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
 \langle \delta,\phi,q,\rho,(\THOR{UBV}\ i)\rangle
 \longmapsto
 \langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle
-\]
+}{}
+&&
+\end{flalign*}
 
 This behavior is directly implemented by Rule C7. The SSM execution sequence
 for this case is:
-\begin{align*}
-&\langle\!\langle F,\phi,q,\rho,c,(\THOR{UBV}\ i),r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q,\rho,c,(\THOR{UBV}\ i),r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C7: }&
-\langle\!\langle B,\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
-\end{align*}
+\langle\!\langle \mathrm{B},\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
+\end{array}&&
+\end{flalign*}
 
 % Source PDF page 59
 
 There are no application conditions to satisfy, state modifications to perform,
 or premises to validate. It is directly seen that
 \[
-\langle\!\langle B,\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q,\rho,c,(\THOR{VAR}\ \phi-i),r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q,\rho,(\THOR{VAR}\ \phi-i)\rangle.
 \]
 
-\paragraph{Case 6: \(e\) is a closure.}
+\subsubsection*{Case 6: \(e\) is a closure.}
 The operational semantics of closures is described by Rule 6:
-\[
-\frac{
+\begin{flalign*}
+\hspace{2.5em}&\semanticrule{
   \langle \delta,\phi,q_0,\rho_0,(\THOR{CLOSURE}\ e\ \rho_1)\rangle
   \longmapsto
   \langle \delta,\phi,q_1,\rho_0,e'\rangle
@@ -578,38 +708,43 @@ The operational semantics of closures is described by Rule 6:
   \longmapsto
   \langle \delta,\phi,q_1,\rho_1,e'\rangle
 }
-\]
+&&
+\end{flalign*}
 
 This behavior is implemented by Rule C6. The SSM execution sequence for this
 case is:
-\begin{align*}
-&\langle\!\langle F,\phi,q_0,\rho_0,c,(\THOR{CLOSURE}\ e\ \rho_1),r\rangle\!\rangle
+\begin{flalign*}
+\hspace{1em}&\begin{array}{@{}l@{\quad}l@{\qquad}l@{}}
+&\langle\!\langle \mathrm{F},\phi,q_0,\rho_0,c,(\THOR{CLOSURE}\ e\ \rho_1),r\rangle\!\rangle
 \longmapsto\\
 \text{Rule C6: }&
-\langle\!\langle F,\phi,q_0,\rho_1,c,e,r\rangle\!\rangle
-\longmapsto \mathrm{con1}\\
+\langle\!\langle \mathrm{F},\phi,q_0,\rho_1,c,e,r\rangle\!\rangle
+\longmapsto & \mathrm{con1}\\
 &\vdots\\
-&\langle\!\langle B,\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
-\qquad \mathrm{con2}
-\end{align*}
+&\langle\!\langle \mathrm{B},\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
+& \mathrm{con2}
+\end{array}&&
+\end{flalign*}
 
-\paragraph{Obligation 1.} There are no application conditions that need to be
+\indent\textbf{Obligation 1.}\quad There are no application conditions that need to be
 satisfied.
 
-\paragraph{Obligation 2.} There are no state modifications that need to be
+\indent\textbf{Obligation 2.}\quad There are no state modifications that need to be
 performed.
 
-\paragraph{Obligation 3.} Rule C6 extracts the expression and redex store from
+\indent\textbf{Obligation 3.}\quad Rule C6 extracts the expression and redex store from
 the closure object and installs them in the configuration. By inspection it is
 seen that configuration con1 is equivalent to the left hand side of the premise
 of Rule 6; by the induction hypothesis, configuration con2 is congruent to the
 right hand side of the premise. Again, by inspection, con2 is congruent to the
 right hand side of the conclusion of Rule 6:
 \[
-\langle\!\langle B,\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
+\langle\!\langle \mathrm{B},\phi,q_1,\rho_2,c,e',r\rangle\!\rangle
 \simeq
 \langle \delta,\phi,q_1,\rho_0,e'\rangle.
 \]
+
+\noindent\(\square\)
 
 \section{Mapping the SSM onto Hardware: \(\mu\)RED}
 
@@ -628,12 +763,6 @@ The linear graph representation presented in Section 4.1.1 is used as the basis 
 compiles into the linear graph
 
 % Source PDF page 60
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-7.png}
-\caption[The \(\mu\)RED memory model]{Memory model of \(\mu\)RED. The size of the graph memory and environment areas change dynamically during reduction, with each area growing towards the other.}
-\end{figure}
 
 \begin{verbatim}
 (LAMBDA A):
@@ -667,17 +796,23 @@ The SSM uses stacks to store and manipulate graphs. Stacks are expedient for the
 
 The \(g\) and \(r\) stacks and \(\rho\) are replaced by a block of memory which is divided into two areas. The lower end of this block is where graphs are stored and manipulated; this area is called the \emph{graph memory}. The upper end of memory is where the redex store is built; this area is called the \emph{environment}. The size of each area changes dynamically during reduction, with graph memory growing upwards and the environment growing downwards (see Figure 4.7). This dual arrangement allows for maximum use of the available memory.
 
+\begin{figure}[htbp]
+\centering
+\input{assets/chapter4/figure-4-7}
+\caption[The \(\mu\)RED memory model]{Memory model of \(\mu\)RED. The size of the graph memory and environment areas change dynamically during reduction, with each area growing towards the other.}
+\end{figure}
+
 Neither of these areas can be considered a true stack, but their gross memory usage follows a last allocated/first released management policy that is stack-like in behavior.
 
-The control stack, c, is replaced by a second, smaller block of memory which is managed as a true stack.
+The control stack, \(c\), is replaced by a second, smaller block of memory which is managed as a true stack.
 
 % Source PDF page 61
 
 \subsection{Registers}
 
-Using pointers to scan and traverse a graph is more efficient than shuttling nodes between the g and r stacks. In \(\mu\)RED, these stacks are replaced by two address registers: the program counter, or pc, which points to the instruction currently being executed and the free space pointer, or fsp, which points to the next free location in graph memory. These registers are not direct, one-for-one replacements of the g and r stacks because each register assumes the roles of both g and r at different times during traversal.
+Using pointers to scan and traverse a graph is more efficient than shuttling nodes between the \(g\) and \(r\) stacks. In \(\mu\)RED, these stacks are replaced by two address registers: the \emph{program counter}, or \rt{pc}, which points to the instruction currently being executed and the \emph{free space pointer}, or \rt{fsp}, which points to the next free location in graph memory. These registers are not direct, one-for-one replacements of the \(g\) and \(r\) stacks because each register assumes the roles of both \(g\) and \(r\) at different times during traversal.
 
-The address register env points to the top entry of the redex store.
+The address register \rt{env} points to the top entry of the redex store.
 
 Scratch registers are needed in the implementation of several of the instructions. The
 register \(s_d\) is a scratch data register, and \(s_a\) is a scratch address register.
@@ -688,7 +823,7 @@ In addition to these new registers, \(\mu\)RED inherits four registers from the 
 
 To describe how each \(\mu\)RED instruction is implemented, the configuration-oriented approach used for both the THOR abstract interpreter and the SSM will be abandoned in favor of a simple register transfer language.
 
-In the register transfer language, memory words are represented as structures with opcode and data fields. The value of a field can be extracted by referencing it through a pointer; for example, \(\rtfield{pc}{opcode}\) references the opcode field of the location pointed to by \(pc\). Assignment is denoted by the \(\leftarrow\) arrow. \texttt{Register transfer code is written in this font}, while comments appear in the same font as text and are prefixed by three semicolons (\texttt{;;;}).
+In the register transfer language, memory words are represented as structures with opcode and data fields. The value of a field can be extracted by referencing it through a pointer; for example, \(\rtfield{pc}{opcode}\) references the opcode field of the location pointed to by \(\rt{pc}\). Assignment is denoted by the \(\leftarrow\) arrow. \texttt{Register transfer code is written in this font}, while comments appear in the same font as text and are prefixed by three semicolons (\texttt{;;;}).
 
 In most machine descriptions at this level of detail, each of the pointers introduced earlier would consist of an address and data register pair, where the data register would contain the value of the word pointed to by the address register. This is indeed the case with \(\mu\)RED, but to prevent the proliferation of register names (and their associated cognitive burden), I have omitted them from my descriptions. Instead, I will use address pointer references as implicit manipulations of the data registers.
 
@@ -696,21 +831,19 @@ In most machine descriptions at this level of detail, each of the pointers intro
 
 The \lambdacalculus{} is lexically scoped; therefore, the complete redex store for an arbitrary expression is a tree which mirrors the expression's syntactic structure. Different paths through this tree are in use at various points during reduction.
 
-The SSM manages the redex store in a very simple way by restricting \(\rho\) to the path currently in use. This allows \(\rho\) to be represented as a linear sequence instead of a tree. Because \(\rho\) is a linear sequence, accessing the value of a variable is a quick, constant time indexing operation. Paths not currently in use are stored on the control stack or in closures. Rule C4 pushes a copy of the current path onto the control stack so that it may be restored at an appropriate time in the future. When Rule C2 creates a closure, it includes the path on top of the control stack. Rule C6 restores this path when the closure is activated.
+The SSM manages the redex store in a very simple way by restricting \(\rho\) to the path currently in use. This allows \(\rho\) to be represented as a linear sequence instead of a tree. Because \(\rho\) is a linear sequence, accessing the value of a variable is a quick, constant time indexing operation. Paths not currently in use are stored on the control stack or in closures. Rule C4 pushes a \underline{copy} of the current path onto the control stack so that it may be restored at an appropriate time in the future. When Rule C2 creates a closure, it includes the path on top of the control stack. Rule C6 restores this path when the closure is activated.
 
 The benefit of constant time variable access is outweighed by the expense (in both time and space) of placing a copy of \(\rho\) in every closure. \(\mu\)RED takes a different approach to managing the redex store --- a single copy of the tree is built in the environment area and
-
 % Source PDF page 62
+shared. Instead of placing a copy of the current path in a closure, \(\mu\)RED puts in a pointer to the current path.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.72\textwidth]{assets/chapter4/figure-4-8.png}
+\input{assets/chapter4/figure-4-8}
 \caption[The redex store]{The redex store is a tree which mirrors the syntactic structure of the expression being reduced. On the left is the tree for the expression \((\lambda ab.((\lambda c.(a\ c\ (\lambda d.d)))\ (\lambda e.b\ e)))\). The physical representation of this tree is shown on the right.}
 \end{figure}
 
-shared. Instead of placing a copy of the current path in a closure, \(\mu\)RED puts in a pointer to the current path.
-
-The redex store is actually an inverted tree, where each child node points to its parent. The physical representation of this tree is composed of values and parent node pointers. The tree is constructed in such a way that the memory location after any node is either that node's parent or is a pointer to that node's parent. The root of the tree is the last memory location in the environment area. The env register always points to the tip of the current path in the tree. Figure 4.8 shows an example of a redex store tree and its physical representation in \(\mu\)RED.
+The redex store is actually an inverted tree, where each child node points to its parent. The physical representation of this tree is composed of \emph{values} and \emph{parent node pointers}. The tree is constructed in such a way that the memory location after any node is either that node's parent or is a pointer to that node's parent. The root of the tree is the last memory location in the environment area. The \rt{env} register always points to the tip of the current path in the tree. Figure 4.8 shows an example of a redex store tree and its physical representation in \(\mu\)RED.
 
 There are two types of values in the environment: unbound variables and closures. Unbound variables are one word in length and are marked with a UBV opcode field. The closure data objects are two words long: the first word has the opcode CLOSURE and its data field points to a path in the redex store; the data field of the second word points to a code sequence in graph memory.
 
@@ -718,19 +851,22 @@ Parent node pointers are one word in length and have a PNP opcode field. Their d
 
 Access to values in the redex store is no longer a constant time indexing operation, but a linear time traversal along the current path. The variable access function \(\rho(i)\) is implemented by the procedure \THOR{LOOKUP}. When called, the value of \(i\) is expected to be in data register \(s_d\).
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure LOOKUP
-  \(\rtsa \leftarrow env\)
+  \(\rtsa \leftarrow \rt{env}\)
   loop
-    if \(\rtsa\rightarrow\mathit{opcode} = PNP\) then
-      \(\rtsa \leftarrow \rtsa\rightarrow\mathit{data}\)    ;;; Parent Node Pointer
-    else if \(\rtsd = 0\) then return  ;;; Found the Value
+    if \(\rtsa\rightarrow\mathtt{opcode} = \mathtt{PNP}\) then
+      \(\rtsa \leftarrow \rtsa\rightarrow\mathtt{data}\)    \textrm{;;; Parent Node Pointer}
+    else if \(\rtsd = 0\) then return  \textrm{;;; Found the Value}
     else \(\rtsd \leftarrow \rtsd-1\)
-         if \(\rtsa\rightarrow\mathit{opcode} = UBV\) then
-           \(\rtsa \leftarrow \rtsa+1\)         ;;; Unbound Variable
-         else \(\rtsa \leftarrow \rtsa+2\)      ;;; Closure
+         if \(\rtsa\rightarrow\mathtt{opcode} = \mathtt{UBV}\) then
+           \(\rtsa \leftarrow \rtsa+1\)         \textrm{;;; Unbound Variable}
+         else \(\rtsa \leftarrow \rtsa+2\)      \textrm{;;; Closure}
 end LOOKUP
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 % Source PDF page 63
 
@@ -746,214 +882,231 @@ Reduction of expressions by \(\mu\)RED is no longer directed by a monolithic con
 
 The key to coordinating the efforts of each individual instruction is the linear graph representation. This representation has a very important property:
 
-Each spine in an expression graph is represented by a contiguous sequence of instructions. Traversal is accomplished by executing these instruction sequences. Walking down a spine is accomplished by execution in the `forward' direction, and walking up a spine is accomplished by execution in the `reverse' direction.
+\begin{quote}
+Each spine in an expression graph is represented by a contiguous sequence of instructions.
+\end{quote}
 
-\(\mu\)RED is prepared for reduction by placing the code for the graph to be reduced (hereafter referred to as the \emph{problem graph}) at the beginning of graph memory. The \(pc\) is set to the address of the problem graph's first instruction. A \THOR{STOP} instruction is placed in the memory word following the problem graph's last instruction, and the \(fsp\) is set to this word's address. The control stack and environment are initialized to be empty. The quantum is set to its user specified value, and \(\phi\) is set to zero.
+Traversal is accomplished by executing these instruction sequences. Walking down a spine is accomplished by execution in the `forward' direction, and walking up a spine is accomplished by execution in the `reverse' direction.\footnote{Aside from the notion of reverse execution, here is another similarity to von-Neumann computers. The execution of contiguous instruction sequences is one of the things von-Neumann computers do best, particularly the modern pipelined variety.}
 
-Reduction begins with forward execution of the problem graph. The \(pc\) advances down the graph's spine, executing instructions. The effect of instruction execution is to place the arguments of \(\beta\)-redexes into the environment area and to build up a modified copy of the spine in the memory area adjacent to the problem graph. Each copied node is put in the location after that pointed to by the \(fsp\), which is then advanced. When the head of the spine is reached, the \(pc\) is set to the \(fsp\) and reverse execution of the copied spine begins. Arguments are reduced in a similar way.
+\(\mu\)RED is prepared for reduction by placing the code for the graph to be reduced (hereafter referred to as the \emph{problem graph}) at the beginning of graph memory. The \(\rt{pc}\) is set to the address of the problem graph's first instruction. A \THOR{STOP} instruction is placed in the memory word following the problem graph's last instruction, and the \(\rt{fsp}\) is set to this word's address. The control stack and environment are initialized to be empty. The quantum is set to its user specified value, and \(\phi\) is set to zero.
 
-\footnote{Aside from the notion of reverse execution, here is another similarity to von-Neumann computers. The execution of contiguous instruction sequences is one of the things von-Neumann computers do best, particularly the modern pipelined variety.}
+Reduction begins with forward execution of the problem graph. The \(\rt{pc}\) advances down the graph's spine, executing instructions. The effect of instruction execution is to place the arguments of \(\beta\)-redexes into the environment area and to build up a modified copy of the spine in the memory area adjacent to the problem graph. Each copied node is put in the location after that pointed to by the \(\rt{fsp}\), which is then advanced. When the head of the spine is reached, the \(\rt{pc}\) is set to the \(\rt{fsp}\) and reverse execution of the copied spine begins. Arguments are reduced in a similar way.
 
 % Source PDF page 64
 
-Reduction concludes when the \THOR{STOP} instruction is executed. The root of the reduced graph (hereafter called the \emph{result graph}) is pointed to by the \(pc\).
+Reduction concludes when the \THOR{STOP} instruction is executed. The root of the reduced graph (hereafter called the \emph{result graph}) is pointed to by the \(\rt{pc}\).
 
 \subsection{Implementing the Control Unit}
 
-The job of the \(\mu\)RED control unit is to read the instruction pointed to by the \(pc\) and execute the proper actions for that instruction. The specific actions of each instruction are described in the following paragraphs. The instructions are presented in alphabetical order by opcode name. The correctness of each instruction with respect to the SSM control rules can be established by inspection.
+The job of the \(\mu\)RED control unit is to read the instruction pointed to by the \(\rt{pc}\) and execute the proper actions for that instruction. The specific actions of each instruction are described in the following paragraphs. The instructions are presented in alphabetical order by opcode name. The correctness of each instruction with respect to the SSM control rules can be established by inspection.
 
-\paragraph{APP Instruction}
+\subsubsection*{APP Instruction}
 
-Execution of an \THOR{APP} instruction in the forward direction (Rule C4) pushes a pointer to the current environment path (which is the current value of \(env\)) onto the control stack and copies the application instruction to the result graph. These actions prepare \(\mu\)RED for either the contraction of a \(\beta\)-redex or the reduction of an argument during reverse execution.
+Execution of an \THOR{APP} instruction in the forward direction (Rule C4) pushes a pointer to the current environment path (which is the current value of \(\rt{env}\)) onto the control stack and copies the application instruction to the result graph. These actions prepare \(\mu\)RED for either the contraction of a \(\beta\)-redex or the reduction of an argument during reverse execution.
 
 If the \THOR{APP} instruction is part of a \(\beta\)-redex, the execution of the corresponding \THOR{LAMBDA} instruction will create a closure which contains the data field of the copied \THOR{APP} instruction and the path pointer on the top of the control stack.
 
-If the application instruction is not part of a \(\beta\)-redex, it is an argument that must be reduced when encountered during reverse execution (Rule C8). The environment is cut back using the path pointer on the top of the control stack, and a \THOR{JOIN} instruction is added to the result graph. The \(pc\) is set to the address in the data field of the copied \THOR{APP} instruction, and reduction of the argument commences. Figure 4.9 illustrates the effect of executing an \THOR{APP} in reverse.
+If the application instruction is not part of a \(\beta\)-redex, it is an argument that must be reduced when encountered during reverse execution (Rule C8). The environment is cut back using the path pointer on the top of the control stack, and a \THOR{JOIN} instruction is added to the result graph. The \(\rt{pc}\) is set to the address in the data field of the copied \THOR{APP} instruction, and reduction of the argument commences. Figure 4.9 illustrates the effect of executing an \THOR{APP} in reverse.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure APP
   if \(\rt{d} = F\) then
-    ;;; Forward Execution, Rule C4
-    ;;; Copy APP Instruction to Result Graph
+    \textrm{;;; Forward Execution, Rule C4}
+    \textrm{;;; Copy APP Instruction to Result Graph}
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
     \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
     \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-    ;;; Push Current Path Pointer onto Control Stack
+    \textrm{;;; Push Current Path Pointer onto Control Stack}
     \(\rt{c} \leftarrow \rt{c}+1\)
-    \(\rtfield{c}{data} \leftarrow env\)
-    ;;; Advance to Next Instruction
+    \(\rtfield{c}{data} \leftarrow \rt{env}\)
+    \textrm{;;; Advance to Next Instruction}
     \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution, Rule C8
-    ;;; Cut Back Environment and Restore Path for Argument
-    \(env \leftarrow \rtfield{c}{data}\)
+    \textrm{;;; Reverse Execution, Rule C8}
+    \textrm{;;; Cut Back Environment and Restore Path for Argument}
+    \(\rt{env} \leftarrow \rtfield{c}{data}\)
     \(\rt{c} \leftarrow \rt{c}-1\)
-    ;;; Add JOIN Instruction to Result Graph
+    \textrm{;;; Add JOIN Instruction to Result Graph}
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-    \(\rtfield{fsp}{opcode} \leftarrow JOIN\)
+    \(\rtfield{fsp}{opcode} \leftarrow \mathtt{JOIN}\)
+    \textrm{;;; Reduce Argument}
+    \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
+    \(\rt{d} \leftarrow F\)
+end APP
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 % Source PDF page 65
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter4/figure-4-9.png}
+\input{assets/chapter4/figure-4-9.tex}
 \caption[Reverse APP instruction]{Execution of an APP instruction in the reverse direction. The environment is cut back using the path pointer on top of the control stack. A JOIN instruction is added to the result graph. The argument pointed to by the APP is executed in the forward direction.}
 \end{figure}
 
 % Source PDF page 66
 
-\begin{alltt}
-    ;;; Reduce Argument
-    \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
-    \(\rt{d} \leftarrow F\)
-end APP
-\end{alltt}
-
-\paragraph{CLOSURE Instruction}
+\subsubsection*{CLOSURE Instruction}
 
 The \THOR{CLOSURE} instruction implements Rule C6. \THOR{CLOSURE} instructions only exist in the environment area and are encountered when a closure has been dereferenced as the value of a variable. The data field of the \THOR{CLOSURE} instruction points to the proper environment path to use during reduction of the closure's expression; a pointer to the closure's expression is contained in the data field of the next memory location after the \THOR{CLOSURE} instruction.
 
-It is not correct to simply set \(env\) to the closure's path pointer; this action might delete parts of the redex store that are needed by arguments that have not yet been reduced. Instead, a parent node pointer is placed at the tip of the environment to re-establish the proper path for the closure.
+It is not correct to simply set \(\rt{env}\) to the closure's path pointer; this action might delete parts of the redex store that are needed by arguments that have not yet been reduced. Instead, a parent node pointer is placed at the tip of the environment to re-establish the proper path for the closure.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure CLOSURE
-  ;;; Forward Execution Only, Rule C6
-  ;;; Place Parent Node Pointer into Environment
-  \(env \leftarrow env-1\)
-  \(\rtfield{env}{opcode} \leftarrow PNP\)
+  \textrm{;;; Forward Execution Only, Rule C6}
+  \textrm{;;; Place Parent Node Pointer into Environment}
+  \(\rt{env} \leftarrow \rt{env}-1\)
+  \(\rtfield{env}{opcode} \leftarrow \mathtt{PNP}\)
   \(\rtfield{env}{data} \leftarrow \rtfield{pc}{data}\)
-  ;;; Retrieve Address of Expression
+  \textrm{;;; Retrieve Address of Expression}
   \(\rt{pc} \leftarrow \rt{pc}+1\)
   \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
 end CLOSURE
 \end{alltt}
+\end{minipage}\par\smallskip
 
-\paragraph{JOIN Instruction}
+
+\subsubsection*{JOIN Instruction}
 
 The \THOR{JOIN} instruction inserts a pointer to a reduced argument into the argument's parent spine (Rule C10). Traversal then continues up the parent spine. The \THOR{JOIN} is only executed in the reverse direction. Figure 4.10 illustrates the effect of executing a \THOR{JOIN}.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure JOIN
-  ;;; Reverse Execution Only, Rule C10
-  ;;; \(\rtsa \leftarrow\) Address of Reduced Argument
+  \textrm{;;; Reverse Execution Only, Rule C10}
+  \textrm{;;; \(\rtsa \leftarrow\) Address of Reduced Argument}
   \(\rtsa \leftarrow \rt{pc}+1\)
   \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
-  ;;; Insert Reduced Argument into APP in Parent Spine
+  \textrm{;;; Insert Reduced Argument into APP in Parent Spine}
   \(\rtfield{pc}{data} \leftarrow \rtsa\)
-  ;;; Continue Walking Up Parent Spine
+  \textrm{;;; Continue Walking Up Parent Spine}
   \(\rt{pc} \leftarrow \rt{pc}-1\)
 end JOIN
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 % Source PDF page 67
-
-\begin{figure}[htbp]
+% A top float here can overfill the page carrying the unbreakable LAMBDA listing.
+\begin{figure}[hp]
 \centering
-\includegraphics[width=0.68\textwidth]{assets/chapter4/figure-4-10.png}
+\input{assets/chapter4/figure-4-10}
 \caption[Execution of JOIN instruction]{Execution of the JOIN instruction inserts a reduced argument into its parent spine.}
 \end{figure}
 
-\paragraph{LAMBDA Instruction}
+\subsubsection*{LAMBDA Instruction}
 
 The \THOR{LAMBDA} instruction is responsible for implementing Rules C1-C3 and Rule C9. If the \THOR{LAMBDA} is applied to an argument (i.e., is part of a \(\beta\)-redex) and there is quantum available, a closure containing the argument is placed in the environment area. Figure 4.11 illustrates this situation.
 
 If the \THOR{LAMBDA} is not part of a \(\beta\)-redex or the quantum is exhausted, an unbound variable is placed in the environment and the \THOR{LAMBDA} copies itself into the result graph.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure LAMBDA
   if \(\rt{d} = F\) then
-    ;;; Forward Execution
-    if \((\rt{q} = 0)\) or \((\rtfield{fsp}{opcode} \neq APP)\) then
-      ;;; Rules C1 and C3
-      ;;; Copy LAMBDA into Result Graph
+    \textrm{;;; Forward Execution}
+    if \((\rt{q} = 0)\) or \((\rtfield{fsp}{opcode} \neq \mathtt{APP})\) then
+      \textrm{;;; Rules C1 and C3}
+      \textrm{;;; Copy LAMBDA into Result Graph}
       \(\rt{fsp} \leftarrow \rt{fsp}+1\)
       \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
       \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-      ;;; Place Unbound Variable in Environment
+      \textrm{;;; Place Unbound Variable in Environment}
       \(\phi \leftarrow \phi+1\)
-      \(env \leftarrow env-1\)
-      \(\rtfield{env}{opcode} \leftarrow UBV\)
+      \(\rt{env} \leftarrow \rt{env}-1\)
+      \(\rtfield{env}{opcode} \leftarrow \mathtt{UBV}\)
       \(\rtfield{env}{data} \leftarrow \phi\)
     else
-      ;;; Rule C2, Contract \(\beta\)-Redex
-      ;;; Decrement Quantum
+      \textrm{;;; Rule C2, Contract \(\beta\)-Redex}
+      \textrm{;;; Decrement Quantum}
       \(\rt{q} \leftarrow \rt{q}-1\)
-      ;;; Place Closure in Environment
-      \(env \leftarrow env-1\)
+      \textrm{;;; Place Closure in Environment}
+      \(\rt{env} \leftarrow \rt{env}-1\)
       \(\rtfield{env}{data} \leftarrow \rtfield{fsp}{data}\)
-      \(env \leftarrow env-1\)
+      \(\rt{env} \leftarrow \rt{env}-1\)
+      \(\rtfield{env}{opcode} \leftarrow \mathtt{CLOSURE}\)
+      \(\rtfield{env}{data} \leftarrow \rtfield{c}{data}\)
+      \textrm{;;; Pop Control Stack and Result Graph}
+      \(\rt{c} \leftarrow \rt{c}-1\)
+      \(\rt{fsp} \leftarrow \rt{fsp}-1\)
+    \textrm{;;; Continue Walking Down Problem Graph}
+    \(\rt{pc} \leftarrow \rt{pc}+1\)
+  else
+    \textrm{;;; Reverse Execution, Rule C9}
+    \(\phi \leftarrow \phi-1\)
+    \(\rt{pc} \leftarrow \rt{pc}-1\)
+end LAMBDA
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 % Source PDF page 68
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.78\textwidth]{assets/chapter4/figure-4-11.png}
+\input{assets/chapter4/figure-4-11}
 \caption[Execution of LAMBDA instruction]{Execution of a LAMBDA instruction that is part of a \(\beta\)-redex. A closure for the argument is placed in the environment.}
 \end{figure}
 
 % Source PDF page 69
 
-\begin{alltt}
-      \(\rtfield{env}{opcode} \leftarrow CLOSURE\)
-      \(\rtfield{env}{data} \leftarrow \rtfield{c}{data}\)
-      ;;; Pop Control Stack and Result Graph
-      \(\rt{c} \leftarrow \rt{c}-1\)
-      \(\rt{fsp} \leftarrow \rt{fsp}-1\)
-      ;;; Continue Walking Down Problem Graph
-      \(\rt{pc} \leftarrow \rt{pc}+1\)
-  else
-    ;;; Reverse Execution, Rule C9
-    \(\phi \leftarrow \phi-1\)
-    \(\rt{pc} \leftarrow \rt{pc}-1\)
-end LAMBDA
-\end{alltt}
-
-\paragraph{STOP Instruction}
+\subsubsection*{STOP Instruction}
 
 The \THOR{STOP} instruction signals the completion of reduction and halts \(\mu\)RED (Rule C11).
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure STOP
-  ;;; Reverse Execution Only, Rule C11
+  \textrm{;;; Reverse Execution Only, Rule C11}
   halt
 end STOP
 \end{alltt}
+\end{minipage}\par\smallskip
 
-\paragraph{UBV Instruction}
+
+\subsubsection*{UBV Instruction}
 
 The \THOR{UBV} instruction implements Rule C7. \THOR{UBV} instructions only exist in the environment area and are encountered when an unbound variable has been dereferenced as the value of a variable. The \THOR{UBV} places a \THOR{VAR} with the proper DeBruijn index into the result graph and signals the change from forward to reverse execution.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure UBV
-  ;;; Forward Execution Only, Rule C7
-  ;;; Place a VAR Instruction in the Result Graph
+  \textrm{;;; Forward Execution Only, Rule C7}
+  \textrm{;;; Place a VAR Instruction in the Result Graph}
   \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-  \(\rtfield{fsp}{opcode} \leftarrow VAR\)
+  \(\rtfield{fsp}{opcode} \leftarrow \mathtt{VAR}\)
   \(\rtfield{fsp}{data} \leftarrow \phi-(\rtfield{pc}{data})\)
-  ;;; Begin Walking Up the Result Graph
+  \textrm{;;; Begin Walking Up the Result Graph}
   \(\rt{pc} \leftarrow \rt{fsp}-1\)
   \(\rt{d} \leftarrow B\)
 end UBV
 \end{alltt}
+\end{minipage}\par\smallskip
 
-\paragraph{VAR Instruction}
 
-The \THOR{VAR} instruction dereferences a variable, finding the address of its value in the redex store (Rule C5). The \(pc\) is set to this address and the value is reduced by \(\mu\)RED.
+\subsubsection*{VAR Instruction}
+
+The \THOR{VAR} instruction dereferences a variable, finding the address of its value in the redex store (Rule C5). The \(\rt{pc}\) is set to this address and the value is reduced by \(\mu\)RED.
 
 % Source PDF page 70
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure VAR
-  ;;; Forward Execution Only, Rule C5
-  ;;; Call Procedure LOOKUP to Dereference Variable
+  \textrm{;;; Forward Execution Only, Rule C5}
+  \textrm{;;; Call Procedure LOOKUP to Dereference Variable}
   \(\rtsd \leftarrow \rtfield{pc}{data}\)
   call LOOKUP
-  ;;; Execute Value
+  \textrm{;;; Execute Value}
   \(\rt{pc} \leftarrow \rtsa\)
 end VAR
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 \subsection{Optimizing Single Instruction Arguments}
 
@@ -986,7 +1139,7 @@ marking to indicate the variable is an argument? This can indeed be done by addi
 a new instruction, \THOR{APP-VAR}, to replace the \THOR{APP} and \THOR{VAR}
 combination.
 
-\paragraph{Optimizing the Problem Graph}
+\subsubsection*{Optimizing the Problem Graph}
 
 Introducing the \THOR{APP-VAR} instruction also streamlines execution of the
 problem graph in the forward direction. When the \THOR{APP-VAR} is executed in the
@@ -1011,41 +1164,44 @@ optimization outweigh this one-time cost.
 
 % Source PDF page 71
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure APP-VAR
   if \(\rt{d} = F\) then
-    ;;; Forward Execution
-    ;;; Call Procedure LOOKUP to Dereference Variable
+    \textrm{;;; Forward Execution}
+    \textrm{;;; Call Procedure LOOKUP to Dereference Variable}
     \(\rtsd \leftarrow \rtfield{pc}{data}\)
     call LOOKUP
     \(\rt{pc} \leftarrow \rt{pc}+1\)
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-    if \(\rtsa\rightarrow\mathit{opcode} = UBV\) then
-      ;;; Correct Index and Place into Result Graph
-      \(\rtfield{fsp}{opcode} \leftarrow APP\textrm{-}VAR\)
-      \(\rtfield{fsp}{data} \leftarrow \phi-(\rtsa\rightarrow\mathit{data})\)
+    if \(\rtsa\rightarrow\mathtt{opcode} = \mathtt{UBV}\) then
+      \textrm{;;; Correct Index and Place into Result Graph}
+      \(\rtfield{fsp}{opcode} \leftarrow \mathtt{APP}\textrm{-}\mathtt{VAR}\)
+      \(\rtfield{fsp}{data} \leftarrow \phi-(\rtsa\rightarrow\mathtt{data})\)
     else
-      ;;; Value is a Closure
-      ;;; Push Closure Path Pointer onto Control Stack
+      \textrm{;;; Value is a Closure}
+      \textrm{;;; Push Closure Path Pointer onto Control Stack}
       \(\rt{c} \leftarrow \rt{c}+1\)
-      \(\rtfield{c}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
-      ;;; Place APP Pointing to Closure Expression into Result Graph
+      \(\rtfield{c}{data} \leftarrow \rtsa\rightarrow\mathtt{data}\)
+      \textrm{;;; Place APP Pointing to Closure Expression into Result Graph}
       \(\rtsa \leftarrow \rtsa+1\)
-      \(\rtfield{fsp}{opcode} \leftarrow APP\)
-      \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+      \(\rtfield{fsp}{opcode} \leftarrow \mathtt{APP}\)
+      \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathtt{data}\)
   else
-    ;;; Reverse Execution
-    ;;; Continue Walking Up Result Graph
+    \textrm{;;; Reverse Execution}
+    \textrm{;;; Continue Walking Up Result Graph}
     \(\rt{pc} \leftarrow \rt{pc}-1\)
 end APP-VAR
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 The \THOR{LAMBDA} instruction must also be changed so that it knows an
 \THOR{APP-VAR} instruction as a \(\beta\)-redex argument should cause an unbound
 variable to be placed in the environment, and not a closure. Here again is a
 savings of a substantial number of memory operations.
 
-\paragraph{Optimizing the Result Graph}
+\subsubsection*{Optimizing the Result Graph}
 
 Single \THOR{VAR} instruction arguments can also be generated as the result of
 reducing a multiple instruction argument. From the standpoint of memory management
@@ -1057,24 +1213,27 @@ instruction into the parent spine if appropriate. The space occupied by the
 
 % Source PDF page 72
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure JOIN
-  ;;; Reverse Execution Only, Rule C10
-  ;;; \(\rtsa \leftarrow\) Address of Reduced Argument
+  \textrm{;;; Reverse Execution Only, Rule C10}
+  \textrm{;;; \(\rtsa \leftarrow\) Address of Reduced Argument}
   \(\rtsa \leftarrow \rt{pc}+1\)
   \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
-  if \(\rtsa\rightarrow\mathit{opcode} = VAR\) then *
-    ;;; Insert APP-VAR into Parent Spine *
-    \(\rtfield{pc}{opcode} \leftarrow APP\textrm{-}VAR\) *
-    \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathit{data}\) *
+  if \(\rtsa\rightarrow\mathtt{opcode} = \mathtt{VAR}\) then *
+    \textrm{;;; Insert APP-VAR into Parent Spine *}
+    \(\rtfield{pc}{opcode} \leftarrow \mathtt{APP}\textrm{-}\mathtt{VAR}\) *
+    \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathtt{data}\) *
     \(\rt{fsp} \leftarrow \rt{fsp}-2\) *
   else *
-    ;;; Insert Reduced Argument into APP in Parent Spine
+    \textrm{;;; Insert Reduced Argument into APP in Parent Spine}
     \(\rtfield{pc}{data} \leftarrow \rtsa\)
-  ;;; Continue Walking Up Parent Spine
+  \textrm{;;; Continue Walking Up Parent Spine}
   \(\rt{pc} \leftarrow \rt{pc}-1\)
 end JOIN
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 The modifications to the original \THOR{JOIN} instruction are marked with an
 asterisk (*).
@@ -1119,42 +1278,43 @@ characters, and opcode SYM for symbolic constants. The integer, floating point, 
 character instructions are all similar in nature, so only the integer instruction will be
 presented. Symbolic constants are different and will be dealt with in the next section.
 
-\paragraph{Example: The INT Instruction}
+\subsubsection*{Example: The INT Instruction}
 
 The data field of an INT instruction contains a physical representation of an integer
 value. The INT instruction is passive; it only copies itself into the result graph.
 Notice how the single argument variant is included by testing the head flag:
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure INT
   if \(\rt{d} = F\)
-    ;;; Forward Execution
-    ;;; Copy Integer to Result Graph
+    \textrm{;;; Forward Execution}
+    \textrm{;;; Copy Integer to Result Graph}
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
     \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
     \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-    if \(\rtfield{pc}{head} = TRUE\) then
-      ;;; Begin Walking Up the Result Graph
+    if \(\rtfield{pc}{head} = \mathtt{TRUE}\) then
+      \textrm{;;; Begin Walking Up the Result Graph}
       \(\rt{pc} \leftarrow \rt{fsp}-1\)
       \(\rt{d} \leftarrow B\)
     else
-      ;;; Continue Walking Down the Problem Graph
+      \textrm{;;; Continue Walking Down the Problem Graph}
       \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution
-    ;;; Continue Walking Up the Result Graph
+    \textrm{;;; Reverse Execution}
+    \textrm{;;; Continue Walking Up the Result Graph}
     \(\rt{pc} \leftarrow \rt{pc}-1\)
 end INT
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 \subsection{Symbolic Constants}
 
 Symbolic constants are different from the other basic data types in two ways. First, they
 are not passive. If a symbol has an associated definition and conditions are appropriate,
 the symbol reduces to its definition. Second, symbolic constants are `indirect' values that
-
 % Source PDF page 74
-
 do not `contain' the symbols they represent (at least not in the same sense that integer
 instructions actually contain the binary representation of an integer value). Each symbolic
 constant contains a pointer to an entry in a hash table. The hash table entry contains the
@@ -1167,7 +1327,8 @@ low graph memory, in front of the problem graph area. Entries in the hash table 
 considered abstract objects with only one property of interest --- a symbol's associated
 definition. The address of the code for the defined expression shall be retrieved by
 referencing the definition field of the symbol in the same way as opcode and data fields
-are referenced. A missing associated definition is represented by \(\perp\).
+are referenced. If there is no definition associated with a symbol, the definition field shall have
+the value~\(\bot\).
 
 The behavior of the SYM instruction executed in the forward direction is fairly
 straightforward. There are three cases to consider:
@@ -1186,46 +1347,49 @@ instruction which points to the symbol's definition code. The APP instruction ex
 environment path to have been pushed onto the control stack earlier, so the SYM instruction
 must now do this. Because all definitions are closed expressions,\footnote{Closed in the
 THOR sense, as discussed in Chapter 3.} any environment path will suffice; the easiest
-thing to do is push whatever happens to be in the \(env\) register.
+thing to do is push whatever happens to be in the \(\rt{env}\) register.
 
 % Source PDF page 75
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure SYM
   if \(\rt{d} = F\)
-    ;;; Forward Execution
-    if \((\rtfield{pc}{head} = FALSE)\) or \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \perp)\) then
-      ;;; Copy Symbol into Result Graph
+    \textrm{;;; Forward Execution}
+    if \((\rtfield{pc}{head} = \mathtt{FALSE})\) or \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \bot)\) then
+      \textrm{;;; Copy Symbol into Result Graph}
       \(\rt{fsp} \leftarrow \rt{fsp}+1\)
       \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
       \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-      if \(\rtfield{pc}{head} = TRUE\) then
-        ;;; Begin Walking Up the Result Graph
+      if \(\rtfield{pc}{head} = \mathtt{TRUE}\) then
+        \textrm{;;; Begin Walking Up the Result Graph}
         \(\rt{pc} \leftarrow \rt{fsp}-1\)
         \(\rt{d} \leftarrow B\)
       else
         \(\rt{pc} \leftarrow \rt{pc}+1\)
-    else if \((\rt{q} > 0)\) and \((\rtfield{pc}{head} = TRUE)\) then
-      ;;; Replace Symbol by its Definition
+    else if \((\rt{q} > 0)\) and \((\rtfield{pc}{head} = \mathtt{TRUE})\) then
+      \textrm{;;; Replace Symbol by its Definition}
       \(\rt{pc} \leftarrow \rtfield{pc}{definition}\)
       \(\rt{q} \leftarrow \rt{q}-1\)
   else
-    ;;; Reverse Execution
-    if \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \perp)\) then
-      ;;; Do Not Replace Symbol by Definition
+    \textrm{;;; Reverse Execution}
+    if \((\rt{q} = 0)\) or \((\rtfield{pc}{definition} = \bot)\) then
+      \textrm{;;; Do Not Replace Symbol by Definition}
       \(\rt{pc} \leftarrow \rt{pc}-1\)
     else if \(\rt{q} > 0\) then
-      ;;; Replace Symbol by its Definition
-      ;;; Convert SYM to APP Instruction
-      \(\rtfield{pc}{opcode} \leftarrow APP\)
+      \textrm{;;; Replace Symbol by its Definition}
+      \textrm{;;; Convert SYM to APP Instruction}
+      \(\rtfield{pc}{opcode} \leftarrow \mathtt{APP}\)
       \(\rtfield{pc}{data} \leftarrow \rtfield{pc}{definition}\)
-      ;;; Push Path Pointer onto Control Stack
+      \textrm{;;; Push Path Pointer onto Control Stack}
       \(\rt{c} \leftarrow \rt{c}+1\)
-      \(\rtfield{c}{data} \leftarrow env\)
-      ;;; Decrement Quantum
+      \(\rtfield{c}{data} \leftarrow \rt{env}\)
+      \textrm{;;; Decrement Quantum}
       \(\rt{q} \leftarrow \rt{q}-1\)
 end SYM
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 \subsection{Built-In Primitives}
 
@@ -1233,7 +1397,7 @@ The built-in primitive operations of THOR fall into two categories: strict primi
 
 % Source PDF page 76
 
-\paragraph{Strict Primitives}
+\subsubsection*{Strict Primitives}
 There are two classes of strict primitives in THOR, unary and binary. The instruction
 words for all unary primitives have an opcode of \texttt{PRIM\_1}; the instruction's data
 field indicates the particular unary primitive. Likewise, binary primitive instructions
@@ -1257,37 +1421,37 @@ Each of these conditions is checked in a different way.
 The first condition, that the primitive must be at the head of a spine, can be checked using the instruction's head flag.
 
 The second condition, that there be enough arguments, is more difficult to check. A new
-data register, \(argcnt\), is introduced to facilitate this check. The \(argcnt\)
+data register, \(\rt{argcnt}\), is introduced to facilitate this check. The \(\rt{argcnt}\)
 register contains the number of arguments in the current spine. This count is initialized
 to zero when a new spine is traversed (which happens at the start of reduction and again
 each time an APP executed in reverse initiates the reduction of an argument). Each time an
-instruction copies itself over to the result graph, the \(argcnt\) is incremented; each
-time a LAMBDA instruction removes an argument from the result graph, the \(argcnt\) is
+instruction copies itself over to the result graph, the \(\rt{argcnt}\) is incremented; each
+time a LAMBDA instruction removes an argument from the result graph, the \(\rt{argcnt}\) is
 decremented.
 
 The third condition, that the arguments be reduced before firing the primitive, is the
 most difficult of the conditions to ensure. Reduction of arguments normally takes place
 during the walk up the result graph spine. Somehow the control unit must know to stop
 walking back up the spine after the proper number of arguments have been reduced and fire
-the primitive. This is done by introducing two new data registers --- \(prim\) and
-\(fire\). When a \texttt{PRIM\_X} instruction at the head of a spine is executed, the \(prim\)
-register is loaded with the primitive to be fired and the \(fire\) register is loaded
+the primitive. This is done by introducing two new data registers --- \(\rt{prim}\) and
+\(\rt{fire}\). When a \texttt{PRIM\_X} instruction at the head of a spine is executed, the \(\rt{prim}\)
+register is loaded with the primitive to be fired and the \(\rt{fire}\) register is loaded
 with \(X\), which is the number of arguments that need to be reduced. Each time an argument
-is reduced, \(fire\) is decremented; when the count in \(fire\) becomes zero, all the
-arguments have been reduced and the primitive in \(prim\) is fired.
+is reduced, \(\rt{fire}\) is decremented; when the count in \(\rt{fire}\) becomes zero, all the
+arguments have been reduced and the primitive in \(\rt{prim}\) is fired.
 
 The arguments to a primitive may be arbitrary expressions, which might contain primitives
 and arguments that need to be reduced. To avoid confusing the firing mechanism, the APP
-instruction is modified to push the \(prim\) and \(fire\) registers onto the control stack
+instruction is modified to push the \(\rt{prim}\) and \(\rt{fire}\) registers onto the control stack
 before initiating the reduction of an argument. Likewise, the JOIN instruction is modified
 to restore these register values after the argument has been reduced. This situation is
 analogous to the saving and restoring of register values associated with subroutine calls
 and returns in a conventional computer.
 
 There are several ways to realize this firing mechanism. One way is to modify each
-instruction so that when it is executed in reverse, \(fire\) is decremented and the
-primitive in \(prim\) is invoked if the value in \(fire\) is zero. Another way is to build
-the decrement and test into hardware which interrupts the RED2 control unit when \(fire\)
+instruction so that when it is executed in reverse, \(\rt{fire}\) is decremented and the
+primitive in \(\rt{prim}\) is invoked if the value in \(\rt{fire}\) is zero. Another way is to build
+the decrement and test into hardware which interrupts the RED2 control unit when \(\rt{fire}\)
 is zero. I will assume the later solution and not present the (trivial) register transfer
 code for the former.
 
@@ -1297,31 +1461,34 @@ The coordination of the first three conditions is performed by the \texttt{PRIM\
 instructions. Here is the implementation of the \texttt{PRIM\_1} instruction; the \texttt{PRIM\_2}
 instruction is similar.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure PRIM\_1
   if \(\rt{d} = F\)
-    ;;; Forward Execution
-    ;;; Copy Instruction into Result Graph
+    \textrm{;;; Forward Execution}
+    \textrm{;;; Copy Instruction into Result Graph}
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
     \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
     \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-    if \(\rtfield{pc}{head} = TRUE\) then
+    if \(\rtfield{pc}{head} = \mathtt{TRUE}\) then
       if \((\rt{argcnt} >= 1)\) and \((\rt{q} > 0)\) then
-        ;;; Prime the Firing Mechanism
+        \textrm{;;; Prime the Firing Mechanism}
         \(\rt{fire} \leftarrow 1\)
         \(\rt{prim} \leftarrow \rtfield{pc}{data}\)
-      ;;; Begin Walking Up the Result Graph
+      \textrm{;;; Begin Walking Up the Result Graph}
       \(\rt{pc} \leftarrow \rt{fsp}-1\)
       \(\rt{d} \leftarrow B\)
     else
-      ;;; Continue Walking Down the Problem Graph
+      \textrm{;;; Continue Walking Down the Problem Graph}
       \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution
-    ;;; Continue Walking up Result Graph
+    \textrm{;;; Reverse Execution}
+    \textrm{;;; Continue Walking up Result Graph}
     \(\rt{pc} \leftarrow \rt{pc}-1\)
 end PRIM\_1
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 Notice that the quantum is checked before the firing mechanism is primed. This test is
 not sufficient to satisfy the fifth firing condition because the quantum may become
@@ -1337,21 +1504,24 @@ quantum available, are checked by the primitive operator itself. If these condit
 not satisfied, the operation is not performed. Here is an example of the addition
 primitive:
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure ADD
-  ;;; Check Quantum and Argument Types
-  if \((\rt{q}>0)\) and \((\rtfield{pc}{opcode} = INT)\) and \(((\rt{pc}+1)\rightarrow\mathit{opcode} = INT)\) then
-    ;;; Perform Addition
-    \(\rtfield{pc}{data} \leftarrow \rtfield{pc}{data} + ((\rt{pc}+1)\rightarrow\mathit{data})\)
-    \(\rtfield{pc}{head} \leftarrow TRUE\)
-    ;;; Reclaim Memory Space
+  \textrm{;;; Check Quantum and Argument Types}
+  if \((\rt{q}>0)\) and \((\rtfield{pc}{opcode} = \mathtt{INT})\) and \(((\rt{pc}+1)\rightarrow\mathtt{opcode} = \mathtt{INT})\) then
+    \textrm{;;; Perform Addition}
+    \(\rtfield{pc}{data} \leftarrow \rtfield{pc}{data} + ((\rt{pc}+1)\rightarrow\mathtt{data})\)
+    \(\rtfield{pc}{head} \leftarrow \mathtt{TRUE}\)
+    \textrm{;;; Reclaim Memory Space}
     \(\rt{fsp} \leftarrow \rt{pc}\)
-    ;;; Decrement Quantum
+    \textrm{;;; Decrement Quantum}
     \(\rt{q} \leftarrow \rt{q}-1\)
-  ;;; Continue Walking Up Result Graph
+  \textrm{;;; Continue Walking Up Result Graph}
 \(\rt{pc} \leftarrow \rt{pc}-1\)
 end ADD
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 % Source PDF page 78
 
@@ -1362,9 +1532,9 @@ integer-floating point operands.
 Several points in the ADD example invite discussion:
 
 \begin{itemize}
-\item When a primitive is fired, the current value of the \(pc\) is used to locate the
-arguments. When ADD is fired, the \(pc\) is pointing to the second operand of the addition
-and the first operand is in the next higher location in memory (address \(pc+1\)).
+\item When a primitive is fired, the current value of the \(\rt{pc}\) is used to locate the
+arguments. When ADD is fired, the \(\rt{pc}\) is pointing to the second operand of the addition
+and the first operand is in the next higher location in memory (address \(\rt{pc}+1\)).
 
 \item The result of a primitive operation overwrites the primitive-arguments subgraph. In
 ADD, the sum overwrites the data field of the second operand, which gets marked as a head
@@ -1372,7 +1542,7 @@ node.
 
 \item After an operation is performed, the operator and any leftover arguments are no
 longer part of the result graph, so the memory space they occupy is reclaimed by adjusting
-the \(fsp\). This reclamation of space is very important and will be discussed further in
+the \(\rt{fsp}\). This reclamation of space is very important and will be discussed further in
 Chapter 5.
 
 \item If a primitive decides not to perform its operation, the primitive-arguments subgraph
@@ -1382,7 +1552,7 @@ either the quantum is exhausted or the arguments do not have the proper type.
 
 These points apply to most of the strict primitives.
 
-\paragraph{Non-Strict Primitives}
+\subsubsection*{Non-Strict Primitives}
 
 The non-strict primitives have little in common with one another, so they are implemented
 individually. They generally have a complicated behavior and long, tedious register
@@ -1399,66 +1569,67 @@ When the Y primitive is executed, it attempts to transform a \((Y\ f)\) graph in
 passive. Otherwise, it transforms the graph. The transformation is not entirely
 straightforward and warrants explanation.
 
-When the Y primitive fires, the \(f\) argument in the result graph at location \(fsp\) is
+When the Y primitive fires, the \(f\) argument in the result graph at location \(\rt{fsp}\) is
 changed into an application node that points to the \((Y\ f)\) in the problem graph. The
 \(f\) argument can be overwritten without fear of losing information, because \(f\) is also
-in the problem graph at location \(pc-1\). There are now two courses of action, depending
+in the problem graph at location \(\rt{pc}-1\). There are now two courses of action, depending
 on the nature of \(f\):
 
 \begin{enumerate}
 \item If \(f\) is an application instruction, the code pointed to \(f\) is executed by
-setting the \(pc\) to the address of the code and letting traversal continue.
+setting the \(\rt{pc}\) to the address of the code and letting traversal continue.
 
 \item If \(f\) is not an application, several things must be done. First, the current path
 pointer must be pushed onto the control stack because the application instruction just
 created
-
 % Source PDF page 79
-
 for \((Y\ f)\) will expect this when it is executed in reverse at sometime later. (If \(f\)
 is an application instruction, then a path pointer was automatically pushed when \(f\) was
 executed.) Second, the \(f\) instruction must now be executed as if it were at the head of
 a spine (because in \((f\ (Y\ f))\), it is). This is done by copying \(f\) to a free
-location in graph memory, marking it as a spine head, and setting the \(pc\) to this
+location in graph memory, marking it as a spine head, and setting the \(\rt{pc}\) to this
 location. The location of choice is taken to be the next free location in memory, which is
-\(fsp+1\).
+\(\rt{fsp}+1\).
 \end{enumerate}
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure Y
-  ;;; Check Quantum and Argument Count
+  \textrm{;;; Check Quantum and Argument Count}
   if \((\rt{q} = 0)\) or \((\rt{argcnt} < 1)\) then
-    ;;; Do Nothing, Copy Y to Result Graph
+    \textrm{;;; Do Nothing, Copy Y to Result Graph}
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
     \(\rtfield{fsp}{opcode} \leftarrow \rtfield{pc}{opcode}\)
     \(\rtfield{fsp}{data} \leftarrow \rtfield{pc}{data}\)
-    ;;; Begin Walking Up the Result Graph
+    \textrm{;;; Begin Walking Up the Result Graph}
     \(\rt{pc} \leftarrow \rt{fsp}-1\)
     \(\rt{d} \leftarrow B\)
   else
     \(\rt{q} \leftarrow \rt{q}-1\)
-    ;;; Transform (Y f) Into (f (Y f))
-    ;;; Overwrite fsp to Point to (Y f)
+    \textrm{;;; Transform (Y f) Into (f (Y f))}
+    \textrm{;;; Overwrite fsp to Point to (Y f)}
     \(\rt{pc} \leftarrow \rt{pc}-1\)
-    \(\rtfield{fsp}{opcode} \leftarrow APP\)
+    \(\rtfield{fsp}{opcode} \leftarrow \mathtt{APP}\)
     \(\rtfield{fsp}{data} \leftarrow \rt{pc}\)
-    if \(\rtfield{pc}{opcode} = APP\) then
-      ;;; Follow APP Pointer
+    if \(\rtfield{pc}{opcode} = \mathtt{APP}\) then
+      \textrm{;;; Follow APP Pointer}
       \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
     else
-      ;;; Push a Path Pointer onto Control Stack
+      \textrm{;;; Push a Path Pointer onto Control Stack}
       \(\rt{c} \leftarrow \rt{c}+1\)
-      \(\rtfield{c}{data} \leftarrow env\)
-      ;;; Duplicate f on the Result Graph, Mark it as a Head
-      \((\rt{fsp}+1)\rightarrow\mathit{opcode} \leftarrow \rtfield{pc}{opcode}\)
-      \((\rt{fsp}+1)\rightarrow\mathit{data} \leftarrow \rtfield{pc}{data}\)
-      \((\rt{fsp}+1)\rightarrow\mathit{head} \leftarrow TRUE\)
-      \(\rt{pc} \leftarrow \rt{fsp}+1\)
+      \(\rtfield{c}{data} \leftarrow \rt{env}\)
+      \textrm{;;; Duplicate f on the Result Graph, Mark it as a Head}
+      \((\rt{fsp}+1)\rightarrow\mathtt{opcode} \leftarrow \rtfield{pc}{opcode}\)
+      \((\rt{fsp}+1)\rightarrow\mathtt{data} \leftarrow \rtfield{pc}{data}\)
+      \((\rt{fsp}+1)\rightarrow\mathtt{head} \leftarrow \mathtt{TRUE}\)
+    \(\rt{pc} \leftarrow \rt{fsp}+1\)
 end Y
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 The use of detailed knowledge about how RED2 works to justify actions (such as using
-location \(fsp+1\) to temporarily store a portion of the problem graph) is commonplace in
+location \(\rt{fsp}+1\) to temporarily store a portion of the problem graph) is commonplace in
 the implementation of non-strict primitives.\footnote{Such tricks are also found in the
 design of conventional computers.} The addition of extra registers could be used to
 eliminate the need for many such clever tricks and speed up many of the primitive
@@ -1474,9 +1645,10 @@ Their compilation rule is:
 
 \[
 \begin{aligned}
-C[\{t\ e_1\ \cdots\ e_n\}, s] ={}&
+&C[\{t\ e_1\ \cdots\ e_n\}, s] =\\
+&\quad
   \THOR{(STRUCT }t\THOR{):(APP }C[e_n,s]\THOR{):}\cdots\\
-&\THOR{:(APP }C[e_1,s]\THOR{):(VAR 0)}
+&\quad\THOR{:(APP }C[e_1,s]\THOR{):(VAR 0)}
 \end{aligned}
 \]
 
@@ -1488,39 +1660,42 @@ components. Setting the quantum to zero prevents the components from being reduc
 does allow \(\beta\)-substitution of variables that may be present in the components. The
 quantum is restored after the structure has been traversed.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure STRUCT
   if \(\rt{d} = F\) then
-    ;;; Forward Execution
+    \textrm{;;; Forward Execution}
     if \(\rt{argcnt} = 0\) then
-      ;;; Push Quantum on Control Stack and Set to Zero
+      \textrm{;;; Push Quantum on Control Stack and Set to Zero}
       \(\rt{c} \leftarrow \rt{c}+1\)
       \(\rtfield{c}{data} \leftarrow \rt{q}\)
       \(\rt{q} \leftarrow 0\)
-      ;;; Copy STRUCT Instruction into Result Graph
+      \textrm{;;; Copy STRUCT Instruction into Result Graph}
       \(\vdots\)
-      ;;; Place Unbound Variable in Environment
+      \textrm{;;; Place Unbound Variable in Environment}
       \(\vdots\)
     else
-      ;;; Place Closure in Environment
+      \textrm{;;; Place Closure in Environment}
       \(\vdots\)
-    ;;; Continue Walking Down Problem Graph
+    \textrm{;;; Continue Walking Down Problem Graph}
     \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution
-    ;;; Restore the Quantum from the Control Stack
+    \textrm{;;; Reverse Execution}
+    \textrm{;;; Restore the Quantum from the Control Stack}
     \(\rt{q} \leftarrow \rtfield{c}{data}\)
     \(\rt{c} \leftarrow \rt{c}-1\)
-    ;;; Continue Walking Up Result Graph
+    \textrm{;;; Continue Walking Up Result Graph}
     \(\rt{pc} \leftarrow \rt{pc}+1\)
 end STRUCT
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 A similar manipulation of the quantum is used to prevent the reduction of the true and
 false branches of an IF expression when the conditional does not reduce to a boolean value.
 The STRUCT and VAR instruction combination that surrounds the components of a structure
 work together to allow the components to be accessed by a certain class of
-\(\lambda\)-expression called selectors. Selector expressions are of the form
+\(\lambda\)-expression called \emph{selectors}. Selector expressions are of the form
 
 \[
 (\lambda x_1\ \cdots\ x_n.x_i),\quad 1 \leq i \leq n.
@@ -1553,12 +1728,12 @@ and
 An example reduction sequence illustrates how these selectors work:
 
 \begin{align*}
-\THOR{(CAR \{PAIR 1 2\})} &\longrightarrow\\
-\THOR{((LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR))) \{PAIR 1 2\})} &\longrightarrow\\
-\THOR{(\{PAIR 1 2\} (LAMBDA (CAR CDR) CAR))} &\longrightarrow \qquad (*)\\
-\THOR{((LAMBDA (CAR CDR) CAR) 1 2)} &\longrightarrow \qquad (**)\\
-\THOR{((LAMBDA (CDR) 1) 2)} &\longrightarrow\\
-1
+&\THOR{(CAR \{PAIR 1 2\})} \longrightarrow\\
+&\THOR{((LAMBDA (PAIR) (PAIR (LAMBDA (CAR CDR) CAR))) \{PAIR 1 2\})} \longrightarrow\\
+&\THOR{(\{PAIR 1 2\} (LAMBDA (CAR CDR) CAR))} \longrightarrow \qquad (*)\\
+&\THOR{((LAMBDA (CAR CDR) CAR) 1 2)} \longrightarrow \qquad (**)\\
+&\THOR{((LAMBDA (CDR) 1) 2)} \longrightarrow\\
+&1
 \end{align*}
 
 In the reduction marked (*), the PAIR structure is applied to the selector expression
@@ -1577,16 +1752,18 @@ expressions in this recursive context. The LETREC compilation rule is
 
 \[
 \begin{aligned}
-C[\THOR{(LETREC ((}x_1\ e_1\THOR{)}\cdots\THOR{(}x_n\ e_n\THOR{)) }e\THOR{)}, s] ={}&
+&C[\THOR{(LETREC ((}x_1\ e_1\THOR{)}\cdots\THOR{(}x_n\ e_n\THOR{)) }e\THOR{)}, s] =\\
+&\quad
   \THOR{(RBLOCK (SYM }x_1\THOR{):}C[e_1,s']\THOR{):}\\
-& \vdots\\
-& \THOR{(RBLOCK (SYM }x_n\THOR{):}C[e_n,s']\THOR{):}\\
-& \THOR{(RUP }n\THOR{):}\\
-& C[e,s']
+&\quad \vdots\\
+&\quad \THOR{(RBLOCK (SYM }x_n\THOR{):}C[e_n,s']\THOR{):}\\
+&\quad \THOR{(RUP }n\THOR{):}\\
+&\quad C[e,s']\\
+&\qquad\text{where }s' = x_1:\cdots:x_n:s
 \end{aligned}
 \]
 
-where \(s' = x_1:\cdots:x_n:s\). The \THOR{(SYM }\(x_i\)\THOR{)} instruction at the start
+The \THOR{(SYM }\(x_i\)\THOR{)} instruction at the start
 of each RBLOCK argument stores the symbolic name of the \(i\)th LETREC binding variable,
 and is only used during de-compilation.\footnote{The LAMBDA instruction uses its data
 field to store the symbolic name of its binding variable. The data field of the RBLOCK
@@ -1595,7 +1772,7 @@ elsewhere.}
 
 % Source PDF page 82
 
-\paragraph{Constructing the Recursive Context}
+\subsubsection*{Constructing the Recursive Context}
 The group of \(n\) RBLOCK instructions in the problem graph form the BLOCK construct of
 Section 3.7.2. When executed in the forward mode with quantum available, the RBLOCK
 instructions create the LETREC's recursive context by placing partially filled REC
@@ -1610,37 +1787,40 @@ by pushing \(n\) path pointers onto the control stack, which will be used later 
 RBLOCKs are executed in reverse. When executed in reverse, the RBLOCK acts much like an
 APP instruction, initiating the traversal of its binding expression.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure RBLOCK
   if \(\rt{d} = F\) then
-    ;;; Forward Execution
+    \textrm{;;; Forward Execution}
     if \(\rt{q} > 0\) then
-      ;;; Place Partially Filled REC Construct in Environment
+      \textrm{;;; Place Partially Filled REC Construct in Environment}
       \(\rt{env} \leftarrow \rt{env}-3\)
-      \(\rtfield{env}{opcode} \leftarrow REC\)
+      \(\rtfield{env}{opcode} \leftarrow \mathtt{REC}\)
       \(\rtfield{env}{data} \leftarrow (\rtfield{pc}{data})+1\)
     else
-      ;;; Place Unbound Variable in Environment
+      \textrm{;;; Place Unbound Variable in Environment}
       \(\phi \leftarrow \phi+1\)
       \(\rt{env} \leftarrow \rt{env}+1\)
       \(\rtfield{env}{opcode} \leftarrow \phi\)
-    ;;; Continue Walking Down Problem Graph
+    \textrm{;;; Continue Walking Down Problem Graph}
     \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution, Traverse Binding Expression
-    ;;; Restore Correct Path Pointer from Control Stack
+    \textrm{;;; Reverse Execution, Traverse Binding Expression}
+    \textrm{;;; Restore Correct Path Pointer from Control Stack}
     \(\vdots\)
-    ;;; Save Fire and Prim Registers on Control Stack
+    \textrm{;;; Save Fire and Prim Registers on Control Stack}
     \(\vdots\)
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-    \(\rtfield{fsp}{opcode} \leftarrow JOIN\)
+    \(\rtfield{fsp}{opcode} \leftarrow \mathtt{JOIN}\)
     \(\rtfield{fsp}{data} \leftarrow \rt{pc}\)
     \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
     \(\rt{argcnt} \leftarrow -1\)
 end RBLOCK
 \end{alltt}
+\end{minipage}\par\smallskip
 
-The assignment of -1 to \(argcnt\) during reverse execution is to counteract the effects
+
+The assignment of -1 to \(\rt{argcnt}\) during reverse execution is to counteract the effects
 of executing the \THOR{(SYM }\(x_i\)\THOR{)} instruction that begins the binding expression
 code sequence. This SYM instruction is only to be used in de-compilation of the LETREC
 expression; it should not participate in reduction. To ensure that it is not considered as
@@ -1648,8 +1828,8 @@ part of a \(\beta\)-redex, the
 
 % Source PDF page 83
 
-\(argcnt\) is offset by one. When the \THOR{(SYM }\(x_i\)\THOR{)} instruction is executed, it
-is copied to the result graph (which is the desired action) and the \(argcnt\) is
+\(\rt{argcnt}\) is offset by one. When the \THOR{(SYM }\(x_i\)\THOR{)} instruction is executed, it
+is copied to the result graph (which is the desired action) and the \(\rt{argcnt}\) is
 incremented to zero. Note that when a REC is formed in the environment, the pointer to the
 binding expression code is incremented so that it does not include the \THOR{(SYM }\(x_i\)\THOR{)}
 instruction.
@@ -1660,40 +1840,43 @@ context and the start of the LETREC's BLOCK construct. If the quantum is exhaust
 current path pointer is pushed onto the control stack \(n\) times, once for each RBLOCK
 instruction in the LETREC.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure RUP
   if \(\rt{d} = F\) then
-    ;;; Forward Execution
-    \(\rtsd \leftarrow \rtfield{pc}{data}\)        ;;; \(\rtsd \leftarrow n\)
+    \textrm{;;; Forward Execution}
+    \(\rtsd \leftarrow \rtfield{pc}{data}\)        \textrm{;;; \(\rtsd \leftarrow n\)}
     if \(\rt{q} > 0\) then
-      ;;; Complete RECs in Environment
+      \textrm{;;; Complete RECs in Environment}
       \(\rtsa \leftarrow \rt{env}\)
       loop while \(\rtsd > 0\)
-        \((\rtsa+1)\rightarrow\mathit{data} \leftarrow \rt{env}\)       ;;; Pointer to Recursive Context
-        \((\rtsa+2)\rightarrow\mathit{data} \leftarrow \rt{pc}-(\rtfield{pc}{data})\)  ;;; Pointer to BLOCK Construct
+        \((\rtsa+1)\rightarrow\mathtt{data} \leftarrow \rt{env}\)       \textrm{;;; Pointer to Recursive Context}
+        \((\rtsa+2)\rightarrow\mathtt{data} \leftarrow \rt{pc}-(\rtfield{pc}{data})\)  \textrm{;;; Pointer to BLOCK Construct}
         \(\rtsa \leftarrow \rtsa+3\)
         \(\rtsd \leftarrow \rtsd-1\)
     else
-      ;;; Push Path Pointers on Control Stack
+      \textrm{;;; Push Path Pointers on Control Stack}
       loop while \(\rtsd > 0\)
         \(\rt{c} \leftarrow \rt{c}+1\)
-        \(\rtfield{c}{data} \leftarrow env\)
+        \(\rtfield{c}{data} \leftarrow \rt{env}\)
         \(\rtsd \leftarrow \rtsd-1\)
-      ;;; Copy RUP Instruction to Result Graph
+      \textrm{;;; Copy RUP Instruction to Result Graph}
       \(\vdots\)
-    ;;; Continue Walking Down Problem Graph
+    \textrm{;;; Continue Walking Down Problem Graph}
     \(\rt{pc} \leftarrow \rt{pc}+1\)
   else
-    ;;; Reverse Execution
-    ;;; Continue Walking Up Result Graph
+    \textrm{;;; Reverse Execution}
+    \textrm{;;; Continue Walking Up Result Graph}
     \(\rt{pc} \leftarrow \rt{pc}-1\)
 end RUP
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 The RUP instruction is very similar to Henderson's recursive apply (RAP) instruction
 [24, p. 310], which is used to create recursive binding contexts in the SECD machine.
 
-\paragraph{Accessing the Recursive Context}
+\subsubsection*{Accessing the Recursive Context}
 Access to the binding expressions in the recursive context is controlled by the RECP
 instruction. Access takes place in two stages. First, when a LETREC recursion variable
 accesses the redex store and dereferences to a REC construct, a RECP instruction pointing
@@ -1707,46 +1890,49 @@ pointer to the binding expression and a RECP that is not at the head of a spine 
 a way similar to the APP instruction. When the quantum is exhausted, however, the RECP is
 responsible for reconstructing the LETREC expression around the recursion variable.
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure RECP
   if \(\rt{d} = F\)
-    ;;; Forward Execution
-    if \(\rtfield{pc}{head} = FALSE\)
-      ;;; Copy RECP Instruction into Result Graph
+    \textrm{;;; Forward Execution}
+    if \(\rtfield{pc}{head} = \mathtt{FALSE}\)
+      \textrm{;;; Copy RECP Instruction into Result Graph}
       \(\vdots\)
     else if \(\rt{q} > 0\) then
       \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
-      ;;; Restore Path for Binding Expression
+      \textrm{;;; Restore Path for Binding Expression}
       \(\rt{env} \leftarrow \rt{env}+1\)
-      \(\rtfield{env}{opcode} \leftarrow PNP\)
-      \(\rtfield{env}{data} \leftarrow (\rt{pc}+1)\rightarrow\mathit{data}\)
-      ;;; Execute Binding Expression
+      \(\rtfield{env}{opcode} \leftarrow \mathtt{PNP}\)
+      \(\rtfield{env}{data} \leftarrow (\rt{pc}+1)\rightarrow\mathtt{data}\)
+      \textrm{;;; Execute Binding Expression}
       \(\rt{pc} \leftarrow \rtfield{pc}{data}\)
       \(\rt{q} \leftarrow \rt{q}-1\)
     else
-      ;;; Reconstruct LETREC Around Variable
+      \textrm{;;; Reconstruct LETREC Around Variable}
       call RECONSTRUCT
   else
-    ;;; Reverse Execution
+    \textrm{;;; Reverse Execution}
     if \(\rt{q} > 0\) then
-      ;;; Execute Binding Expression
+      \textrm{;;; Execute Binding Expression}
       \(\rt{q} \leftarrow \rt{q}-1\)
       \(\rtsa \leftarrow \rtfield{pc}{data}\)
-      ;;; Convert RECP to APP Instruction
-      \(\rtfield{pc}{opcode} \leftarrow APP\)
-      \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
-      ;;; Push Path Pointer for LETREC onto Control Stack
+      \textrm{;;; Convert RECP to APP Instruction}
+      \(\rtfield{pc}{opcode} \leftarrow \mathtt{APP}\)
+      \(\rtfield{pc}{data} \leftarrow \rtsa\rightarrow\mathtt{data}\)
+      \textrm{;;; Push Path Pointer for LETREC onto Control Stack}
       \(\rt{c} \leftarrow \rt{c}+1\)
-      \(\rtfield{c}{data} \leftarrow (\rtsa+1)\rightarrow\mathit{data}\)
+      \(\rtfield{c}{data} \leftarrow (\rtsa+1)\rightarrow\mathtt{data}\)
     else
-      ;;; Reconstruct LETREC Around Variable
-      ;;; Place JOIN Instruction into Result Graph
+      \textrm{;;; Reconstruct LETREC Around Variable}
+      \textrm{;;; Place JOIN Instruction into Result Graph}
       \(\vdots\)
-      ;;; Save Firing Registers on Control Stack
+      \textrm{;;; Save Firing Registers on Control Stack}
       \(\vdots\)
       call RECONSTRUCT
 end RECP
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 A LETREC is reconstructed around a recursion variable by copying the LETREC's RBLOCK
 instructions in front of the variable. This new expression should be traversed in an
@@ -1754,43 +1940,46 @@ environment in which all of the LETREC's REC constructs are replaced by unbound 
 
 % Source PDF page 85
 
+\par\smallskip\noindent\begin{minipage}{\linewidth}
 \begin{alltt}
 procedure RECONSTRUCT
-  ;;; \(\rtsa \leftarrow\) Address of RBLOCK Instructions
-  \(\rtsa \leftarrow (\rtfield{pc}{data}+2)\rightarrow\mathit{data}\)
-  ;;; \(\rtsd\) Counts Number of RBLOCK Instructions
+  \textrm{;;; \(\rtsa \leftarrow\) Address of RBLOCK Instructions}
+  \(\rtsa \leftarrow (\rtfield{pc}{data}+2)\rightarrow\mathtt{data}\)
+  \textrm{;;; \(\rtsd\) Counts Number of RBLOCK Instructions}
   \(\rtsd \leftarrow 0\)
-  ;;; Copy RBLOCK Instructions to Result Graph
-  loop while \(\rtsa\rightarrow\mathit{opcode} = RBLOCK\)
+  \textrm{;;; Copy RBLOCK Instructions to Result Graph}
+  loop while \(\rtsa\rightarrow\mathtt{opcode} = \mathtt{RBLOCK}\)
     \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-    \(\rtfield{fsp}{opcode} \leftarrow \rtsa\rightarrow\mathit{opcode}\)
-    \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathit{data}\)
+    \(\rtfield{fsp}{opcode} \leftarrow \rtsa\rightarrow\mathtt{opcode}\)
+    \(\rtfield{fsp}{data} \leftarrow \rtsa\rightarrow\mathtt{data}\)
     \(\rtsa \leftarrow \rtsa+1\)
     \(\rtsd \leftarrow \rtsd+1\)
-  ;;; Replace RECs with UBVs
-  ;;; Find Environment Directly Before RECs
+  \textrm{;;; Replace RECs with UBVs}
+  \textrm{;;; Find Environment Directly Before RECs}
   \(\rt{env} \leftarrow \rt{env}-1\)
-  \(\rtfield{env}{opcode} \leftarrow PNP\)
-  \(\rtfield{env}{data} \leftarrow ((\rtfield{pc}{data}+1)\rightarrow\mathit{data})+(3*\rtsd)\)
+  \(\rtfield{env}{opcode} \leftarrow \mathtt{PNP}\)
+  \(\rtfield{env}{data} \leftarrow ((\rtfield{pc}{data}+1)\rightarrow\mathtt{data})+(3*\rtsd)\)
   loop while \(\rtsd > 0\)
-    ;;; Place UBV into Environment
+    \textrm{;;; Place UBV into Environment}
     \(\vdots\)
-    ;;; Push Path Pointer for RBLOCK
+    \textrm{;;; Push Path Pointer for RBLOCK}
     \(\rt{c} \leftarrow \rt{c}+1\)
     \(\rtfield{c}{data} \leftarrow \rt{env}-\rtsd\)
     \(\rtsd \leftarrow \rtsd-1\)
-  ;;; Copy RUP Instruction into Result Graph
+  \textrm{;;; Copy RUP Instruction into Result Graph}
   \(\vdots\)
-  ;;; Place Recursion Variable at Head of Spine
+  \textrm{;;; Place Recursion Variable at Head of Spine}
   \(\rt{fsp} \leftarrow \rt{fsp}+1\)
-  \(\rtfield{fsp}{opcode} \leftarrow VAR\)
-  \(\rtfield{fsp}{head} \leftarrow TRUE\)
+  \(\rtfield{fsp}{opcode} \leftarrow \mathtt{VAR}\)
+  \(\rtfield{fsp}{head} \leftarrow \mathtt{TRUE}\)
   \(\rtfield{fsp}{data} \leftarrow \rtsa-(\rtfield{pc}{data})\)
-  ;;; Begin Walking Up Result Graph
+  \textrm{;;; Begin Walking Up Result Graph}
   \(\rt{pc} \leftarrow \rt{fsp}-1\)
   \(\rt{d} \leftarrow B\)
 end RECONSTRUCT
 \end{alltt}
+\end{minipage}\par\smallskip
+
 
 The complex nature of the LETREC implementation mirrors the complexity of its semantics.
 To my knowledge, THOR is the only programming language which includes a facility for local
