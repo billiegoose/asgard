@@ -7,6 +7,8 @@
 \usepackage{alltt}
 \usepackage{enumitem}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 \usepackage{microtype}
 
 \newcommand{\lambdacalculus}{\ensuremath{\lambda}\nobreak-calculus}
@@ -24,9 +26,16 @@
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\cfg}[5]{\langle #1,#2,#3,#4,#5\rangle}
 \newcommand{\redsto}{\longmapsto}
+% Hilton's semantic rules put the conclusion ABOVE the premises.
+% Keep all rows at one size and align premises/conditions at the left edge.
+\newcommand{\semanticrule}[2]{%
+  \begingroup\renewcommand{\arraystretch}{1.15}%
+  \begin{array}{@{}l@{}}#1\\[0.15em]\hline
+  \noalign{\vskip 2pt}#2\end{array}\endgroup}
+
 \newcommand{\THOR}[1]{\texttt{#1}}
 \newcommand{\rt}[1]{\ensuremath{\mathit{#1}}}
-\newcommand{\rtfield}[2]{\ensuremath{\mathit{#1}\rightarrow\mathit{#2}}}
+\newcommand{\rtfield}[2]{\ensuremath{\mathit{#1}\rightarrow\mathtt{#2}}}
 \newcommand{\rtsa}{\ensuremath{\mathit{s}_a}}
 \newcommand{\rtsd}{\ensuremath{\mathit{s}_d}}
 \newcommand{\openhead}{\ensuremath{\circ}}
@@ -34,6 +43,24 @@
 
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[chapter]
+
+% Inset definitions in the source, without stacking quote and theorem spacing.
+\newenvironment{insetdefinition}[1]{%
+  \begin{list}{}{%
+    \setlength{\leftmargin}{2.5em}%
+    \setlength{\rightmargin}{2.5em}%
+    \setlength{\topsep}{6pt plus 2pt minus 2pt}%
+    \setlength{\partopsep}{0pt}%
+    \setlength{\parsep}{0pt}%
+    \setlength{\listparindent}{0pt}}%
+  \item[]\refstepcounter{definition}%
+  \textbf{Definition~\thedefinition}\space(\textit{#1})\space\ignorespaces
+}{\end{list}}
+
+% Avoid stretched gaps on pages containing unbreakable formulas or listings.
+\raggedbottom
+% Keep footnotes on the page containing their reference.
+\interfootnotelinepenalty=10000
 
 \setlist[enumerate]{leftmargin=2.5em}
 \let\cleardoublepage\clearpage
