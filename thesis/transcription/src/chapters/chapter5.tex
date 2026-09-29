@@ -28,15 +28,15 @@ necessary. The reader interested in such information is referred to the
 citations given above.
 
 Table 5.1 presents measurements of the memory usage and execution times for two
-benchmark programs. The sine program is a constructive mathematics approach to
+benchmark programs. The \THOR{sine} program is a constructive mathematics approach to
 programming the trigonometric sine function. It consists mainly of
-\(\beta\)-substitutions and higher-order function manipulations. The game program
+\(\beta\)-substitutions and higher-order function manipulations. The \THOR{game} program
 estimates how good a position a game player is in by looking ahead several
 moves in a simple two player game. This program consists mainly of data
 structure manipulations. The THOR code for both programs is listed in Appendix
 A.
 
-The benchmarks were executed on abstract machine interpreters for RED2 and
+The benchmarks were executed on \emph{abstract machine} interpreters for RED2 and
 WINTER. The source code of the benchmark programs was compiled to the
 instruction set of the target architecture (either RED2 or WINTER) and the
 resulting machine language program was then executed by an interpreter which
@@ -53,10 +53,11 @@ Program & Machine & \begin{tabular}{@{}c@{}}Memory Usage\\(Words)\end{tabular}
 & \begin{tabular}{@{}c@{}}Instructions\\Executed\end{tabular}
 & \begin{tabular}{@{}c@{}}Execution Time\\(Seconds)\end{tabular}\\
 \hline
-sine & RED2 & 322 & 3,226 & 0.33\\
-sine & WINTER & 24,708 & 9,234 & 1.10\\
-game & RED2 & 1,952 & 1,227,197 & 100.0\\
-game & WINTER & 18,816 & 6,697 & 0.8\\
+\THOR{sine} & RED2 & 322 & 3,226 & 0.33\\
+ & WINTER & 24,708 & 9,234 & 1.10\\
+\hline
+\THOR{game} & RED2 & 1,952 & 1,227,197 & 100.0\\
+ & WINTER & 18,816 & 6,697 & 0.8\\
 \hline
 \end{tabular}
 \caption[Comparison of RED2 and WINTER]{Benchmark comparison of RED2 with WINTER, an implementation of the
@@ -75,7 +76,7 @@ of instructions executed by each architecture without having actual hardware
 implementations to examine. Each instruction set can be implemented in many
 different ways, with a wide variation in performance. Also, the grain size of
 the two instruction sets might be different. Looking only at the instruction
-counts of the sine program, one might conclude that perhaps each RED2
+counts of the \THOR{sine} program, one might conclude that perhaps each RED2
 instruction did three times the work and took three times as long to execute as
 each of the WINTER instructions. The abstract interpreter execution times
 provide a way to calibrate the instruction set grain sizes; the ratios of the
@@ -92,7 +93,7 @@ analysis; I am only looking for some relative indication of merit. These two
 particular programs were chosen because they vividly illustrate what is good and
 what is bad about the RED2 architecture.
 
-The sine program illustrates where RED2 excels---performing the basic
+The \THOR{sine} program illustrates where RED2 excels---performing the basic
 operations of the \lambdacalculus{}. This comes as no surprise, because this is
 exactly what RED2 was designed to do. What is surprising is the dramatic
 difference in memory space required by each architecture: RED2 uses less than
@@ -105,15 +106,15 @@ More sophisticated implementations of the Three Instruction Machine, such as
 the one described in~[6], reduce the memory space consumption by more than
 50\%.
 
-The game program illustrates where RED2 performs worst---data structure
+The \THOR{game} program illustrates where RED2 performs worst---data structure
 manipulation. This is unfortunate, because data structure manipulation is a
 dominant feature of most functional programs. An investigation into the behavior
-of the game program indicates that most of the inefficiency is caused by RED2's
+of the \THOR{game} program indicates that most of the inefficiency is caused by RED2's
 current inability to share computed data structures. (The reasons for this are
 presented in the next section, along with possible remedies.) This conclusion is
 supported by analytical and empirical arguments.
 
-First, the analytical argument. The game program evaluates how good a particular
+First, the analytical argument. The \THOR{game} program evaluates how good a particular
 move in a board game is by exploring possible future outcomes of the game if the
 move is taken. This is done by generating a tree of game-boards containing all
 possible future moves and then evaluating each game-board in the tree for
@@ -135,17 +136,17 @@ Task & \begin{tabular}{@{}c@{}}Memory Usage\\(Words)\end{tabular}
 & \begin{tabular}{@{}c@{}}Instructions\\Executed\end{tabular}
 & \begin{tabular}{@{}c@{}}Execution Time\\(Seconds)\end{tabular}\\
 \hline
-build tree & 2,670 & 40,120 & 2.63\\
-evaluate tree & 1,176 & 93,796 & 5.60\\
-total cost & 3,846 & 133,916 & 8.23\\
+\THOR{build tree} & 2,670 & 40,120 & 2.63\\
+\THOR{evaluate tree} & 1,176 & 93,796 & 5.60\\
+\THOR{total cost} & 3,846 & 133,916 & 8.23\\
 \hline
 \end{tabular}
 \caption[Sharing analysis]{Experimental evidence suggesting that RED2 performed poorly on the
-game program because of its current inability to share computed data
+\THOR{game} program because of its current inability to share computed data
 structures.}
 \end{table}
 
-Table 5.2 presents empirical data to support my conclusion. The game program
+Table 5.2 presents empirical data to support my conclusion. The \THOR{game} program
 was modified so that an actual tree of game-boards was provided to
 \THOR{evaluate} instead of the \THOR{gametree} function. Because the tree is no
 longer a computed data structure, it can be shared. The run-time measurements
@@ -201,7 +202,7 @@ adjusting the env.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-1.png}
+\input{assets/chapter5/figure-5-1.tex}
 \caption[Incremental memory management]{All of RED2's built-in primitive operations assist in memory
 management. In this example an arithmetic primitive discards graph nodes which
 are no longer accessible by adjusting the \(fsp\). The pictures show the tip of
@@ -213,18 +214,18 @@ is vital to preserving the contiguous nature of subgraph spines and ensuring the
 correct operation of RED2. The IF conditional primitive illustrates the need for
 discarding nodes. Consider the expression
 \[
-\THOR{(IF }cond\ e_t\ e_f\THOR{) }arg_1\ldots arg_n.
+\THOR{((IF }\mathit{cond}\ e_t\ e_f\THOR{) }\mathit{arg}_1\ldots \mathit{arg}_n\THOR{)}.
 \]
 The IF selects either \(e_t\) or \(e_f\) to be applied to \(n\) arguments. For
 the selected expression to be properly applied to the arguments, the IF subgraph
 must be cleared from the result graph and the fsp adjusted to point at
-\(arg_1\); otherwise, the arguments will not be visible to the control unit.
+\(\mathit{arg}_1\); otherwise, the arguments will not be visible to the control unit.
 Figure 5.2 shows the state of the result graph just before and after the IF
 primitive fires.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.78\textwidth]{assets/chapter5/figure-5-2.png}
+\input{assets/chapter5/figure-5-2.tex}
 \caption[Discarding subgraphs]{The IF primitive demonstrates why subgraphs must be promptly
 discarded when no longer part of the result graph. For the arguments to be
 visible to the RED2 control unit, the IF subgraph must be discarded after the
@@ -263,7 +264,9 @@ satisfied by overwriting the argument's closure in the environment with the
 reduced data value. This can be done because closures occupy two words of memory
 and atomic values occupy only one word. The memory management policy of RED2
 guarantees that every environment entry is accessible until it is no longer
-needed.
+needed.\footnote{Arguments that reduce to unbound variables can also be
+shared, but their DeBruijn indices must be decremented by \(\phi\) before they
+are written over the argument's closure.}
 
 To implement the sharing of arguments that reduce to atomic data values, minor
 modifications must be made to the VAR and JOIN instructions and a new
@@ -306,7 +309,7 @@ particular, memory consumption increases significantly, approaching that of
 WINTER.
 
 A less radical approach than completely overhauling RED2 is to add a separate
-memory area, the structure area, for storing data structures. Currently, RED2
+memory area, the \emph{structure area}, for storing data structures. Currently, RED2
 treats structures the same as other expressions; however, the architecture could
 be changed to treat structures differently, especially in terms of memory
 management. Structures would only be created and reduced in the structure area,
@@ -314,13 +317,11 @@ and would not be discarded immediately when not part of the final result graph.
 A garbage collection mechanism would be introduced to manage the structure area;
 the other memory areas would still be managed by the RED2 primitives. Such
 changes would allow closed data structures (including computed data structures)
-to be shared.\footnote{Arguments that reduce to unbound variables can also be
-shared, but their DeBruijn indices must be decremented by \(\phi\) before they
-are written over the argument's closure.}
+to be shared.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-3.png}
+\input{assets/chapter5/figure-5-3.tex}
 \caption[Implementing sharing, Part 1]{Forward execution of a VAR instruction that is not the head of a
 spine. The variable is dereferenced, and if its value is a closure, an EP
 instruction pointing to the closure is added to the result graph.}
@@ -328,7 +329,7 @@ instruction pointing to the closure is added to the result graph.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-4.png}
+\input{assets/chapter5/figure-5-4.tex}
 \caption[Implementing Sharing: Part 2]{Execution of a JOIN instruction. If the destination of the JOIN is an
 EP and the reduced argument is an atomic value, the atomic value overwrites the
 closure pointed to by the EP. In this way, the reduced argument is shared
@@ -387,7 +388,7 @@ in two ways: as part of an original \(\lambda\)-expression or as a result of
 which is easily seen to be an \(\eta\)-redex. The second type of redex is more
 difficult to detect; the \(\eta\)-redex in the expression
 \[
-\lambda x.(((\lambda y.\lambda z.z)\ x)\ x)
+\lambda x.(((\lambda y\lambda z.z)\ x)\ x)
 \]
 only becomes obvious after the inner \(\beta\)-redex is contracted, yielding
 \[
@@ -424,7 +425,7 @@ handled separately in the normal course of reduction.} so only occurrences of
 variables that dereference to unbound variable objects need to be counted during
 traversal. Two bits of each unbound variable (UBV) entry in the environment are
 designated to record the number of times the UBV is referenced. These two bits
-are called the reference bits. When a UBV entry is initially placed into the
+are called the \emph{reference bits}. When a UBV entry is initially placed into the
 environment area by a LAMBDA instruction, the reference bits are set to zero.
 The first time a UBV is accessed, the lower reference bit is set to one; each
 subsequent access sets the upper reference bit to one. In this way, the
@@ -451,7 +452,7 @@ of an \(\eta\)-redex.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.82\textwidth]{assets/chapter5/figure-5-5.png}
+\input{assets/chapter5/figure-5-5.tex}
 \caption[Contraction of an \(\eta\)-redex]{Contraction of an \(\eta\)-redex. When a LAMBDA instruction is
 executed in reverse, it checks to see if the next instruction in memory is a
 non-head VAR with a DeBruijn index of 0. If this is the case, and the reference
@@ -471,14 +472,14 @@ subclass of those \(\eta\)-redexes which only become visible after
 during forward traversal are considered as candidate \(\eta\)-redexes. For
 instance, the \(\eta\)-redex in the expression
 \[
-\lambda x.(((\lambda y.\lambda z.z)\ \underline{(x\ x)})\ \underline{\underline{x}})
+\lambda x.(((\lambda y\lambda z.z)\ \underline{(x\ x)})\ \underline{\underline{x}})
 \]
 would be detected because the variable \(x\) is only encountered once (the
 doubly underlined occurrence) during forward traversal; the occurrences in the
 singly underlined subexpression are never encountered.
 The expression
 \[
-\lambda x.(((\lambda y.\lambda z.z)\ x)\ x)
+\lambda x.(((\lambda y\lambda z.z)\ x)\ x)
 \]
 is an example of an \(\eta\)-redex that is not detected, because the \(x\)
 variable is encountered twice during forward traversal.
@@ -510,6 +511,30 @@ the operation can be performed immediately. These new ``immediate''
 instructions treat the result graph like a value stack and are similar to the
 instructions found in stack-based computers.
 
+\begin{figure}[htbp]
+\centering
+% Source PDF p. 97: open/closed circles are instruction head bits.
+\setlength{\fboxsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\fbox{\begin{tabular}{@{}r@{\quad}l@{\quad}l@{\qquad\qquad}r@{\quad}l@{\quad}l@{}}
+\multicolumn{3}{c}{\textbf{(General)}} & \multicolumn{3}{c}{\textbf{(Immediate)}}\\[0.25em]
+0: & \openhead\THOR{APP} & 3 & 0: & \openhead\THOR{INT} & 3\\
+1: & \openhead\THOR{APP} & 6 & 1: & \openhead\THOR{INT} & 2\\
+2: & \closedhead\THOR{PRIM\_2} & \THOR{+} & 2: & \openhead\THOR{IMM} & \THOR{*}\\
+3: & \openhead\THOR{INT} & 3 & 3: & \openhead\THOR{INT} & 4\\
+4: & \openhead\THOR{INT} & 2 & 4: & \openhead\THOR{INT} & 5\\
+5: & \closedhead\THOR{PRIM\_2} & \THOR{*} & 5: & \openhead\THOR{IMM} & \THOR{*}\\
+6: & \openhead\THOR{INT} & 5 & 6: & \closedhead\THOR{IMM} & \THOR{+}\\
+7: & \openhead\THOR{INT} & 4 & & &\\
+8: & \closedhead\THOR{PRIM\_2} & \THOR{*} & & &
+\end{tabular}}
+\caption[Comparing general and immediate instructions]{A comparison of code sequences for the expression \(2 \times 3 +
+4 \times 5\). The sequence on the left was generated using the general
+instructions and compiler introduced in the previous chapter; the sequence on
+the right was generated using more specialized, immediate instructions and a
+smarter compiler.}
+\end{figure}
+
 For instance, Figure 5.6 compares the compilation of the expression
 \[
 \THOR{(+ (* 2 3) (* 4 5))}
@@ -522,16 +547,6 @@ hardware implementation of RED2 would probably include such registers, thereby
 cutting the number of memory cycles required to reduce most expressions.} The
 more arithmetic operations an expression contains, the greater the savings
 provided by immediate instructions.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.62\textwidth]{assets/chapter5/figure-5-6.png}
-\caption[Comparing general and immediate instructions]{A comparison of code sequences for the expression \(2 \times 3 +
-4 \times 5\). The sequence on the left was generated using the general
-instructions and compiler introduced in the previous chapter; the sequence on
-the right was generated using more specialized, immediate instructions and a
-smarter compiler.}
-\end{figure}
 
 The utility of immediate instructions extends far beyond arithmetic expressions.
 These instructions provide an efficient way for RED2 to implement statically

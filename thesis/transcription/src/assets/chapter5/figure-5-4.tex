@@ -1,0 +1,79 @@
+% Sharing, part 2: JOIN copies the atomic result into the spine and environment.
+% The IP in the updated environment points to the following environment word.
+\resizebox{0.82\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    sharepointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}},
+    continuation/.style={dotted,line cap=round},
+    omitted/.style={dash pattern=on 0.6pt off 7pt,line cap=round}]
+    \path[use as bounding box] (-3,-3) rectangle (403,275.4302);
+    \draw (0,0) rectangle (400,272);
+    \foreach \x in {54,268} {
+      \draw[continuation] (\x,204) -- (\x,246);
+      \draw[continuation] (\x+70,204) -- (\x+70,246);
+      \draw (\x,184) rectangle (\x+70,204);
+      \draw (\x,194) -- (\x+70,194);
+      \node at (\x+35,199) {\(\cdots\)};
+      \draw (\x+7,189) circle (1.7pt);
+      \node[anchor=east] at (\x-5,199) {\(a_1\):};
+      \draw[continuation] (\x,158) -- (\x,184);
+      \draw[continuation] (\x+70,158) -- (\x+70,184);
+      \draw (\x,148) rectangle (\x+70,158);
+      \node at (\x+35,153) {\(\cdots\)};
+      \node[anchor=east] at (\x-5,153) {\(a_3\):};
+      \draw (\x,106) -- (\x+70,106);
+      \draw[continuation] (\x,90) -- (\x,106);
+      \draw[continuation] (\x+70,90) -- (\x+70,106);
+      \draw (\x,70) rectangle (\x+70,90);
+      \draw (\x,80) -- (\x+70,80);
+      \node[anchor=east] at (\x-5,85) {\(a_2\):};
+    }
+    \node[anchor=west] at (65,189) {EP};
+    \fill (118,189) circle (2.8pt);
+    \draw[sharepointer] (118,189) -- (130,189)
+      .. controls (187,164) and (187,129) .. (130,90) -- (124,90);
+    \draw (54,128) rectangle (124,148);
+    \draw (54,138) -- (124,138);
+    \draw (61,143) circle (1.7pt);
+    \node[anchor=west] at (65,143) {JOIN};
+    \fill (118,143) circle (2.8pt);
+    \fill (61,133) circle (2pt);
+    \node[anchor=west] at (65,133) {INT};
+    \node[anchor=east] at (120,133) {6};
+    \draw[sharepointer] (118,143) -- (130,143)
+      .. controls (141,156) and (141,171) .. (130,184) -- (124,184);
+    \node[anchor=west] at (134,143) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (134,133) {\(\leftarrow\ \mathit{fsp}\)};
+    \draw[omitted] (54,106) -- (54,128);
+    \draw[omitted] (124,106) -- (124,128);
+    \node[anchor=west] at (58,85) {CLOSURE};
+    \fill (118,85) circle (2.8pt);
+    \fill (89,75) circle (2.8pt);
+    \draw[sharepointer] (118,85) -- (130,85)
+      .. controls (145,76) and (145,64) .. (130,54) -- (124,54);
+    \draw[sharepointer] (89,75) -- (30,75)
+      .. controls (9,130) and (10,186) .. (48,225) -- (54,225);
+    \draw[continuation] (54,44) -- (54,70);
+    \draw[continuation] (124,44) -- (124,70);
+    % The result replaces EP; JOIN and its temporary result are discarded.
+    \node[anchor=west] at (279,189) {INT};
+    \node[anchor=east] at (334,189) {6};
+    \node[anchor=west] at (348,199) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (348,153) {\(\leftarrow\ \mathit{fsp}\)};
+    \draw[omitted] (268,106) -- (268,148);
+    \draw[omitted] (338,106) -- (338,148);
+    \node[anchor=west] at (348,106) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (272,85) {INT};
+    \node[anchor=east] at (334,85) {6};
+    \node[anchor=west] at (272,75) {IP};
+    \fill (332,75) circle (2.8pt);
+    \draw (268,60) rectangle (338,70);
+    \node at (303,65) {\(\cdots\)};
+    \draw[sharepointer] (332,75) -- (342,75)
+      .. controls (352,72) and (352,68) .. (342,65) -- (338,65);
+    \draw[continuation] (268,44) -- (268,60);
+    \draw[continuation] (338,44) -- (338,60);
+    \node at (89,14) {Before};
+    \node at (303,14) {After};
+  \end{tikzpicture}%
+}

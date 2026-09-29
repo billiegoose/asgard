@@ -1,0 +1,61 @@
+% Sharing, part 1: VAR adds an EP that points to the closure at a_2.
+\resizebox{0.82\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    sharepointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}},
+    continuation/.style={dotted,line cap=round},
+    omitted/.style={dash pattern=on 0.6pt off 7pt,line cap=round}]
+    \path[use as bounding box] (-3,-3) rectangle (403,274.3716);
+    \draw (0,0) rectangle (400,271);
+    \foreach \x in {54,268} {
+      \draw[continuation] (\x,234) -- (\x,250);
+      \draw[continuation] (\x+70,234) -- (\x+70,250);
+      \draw (\x,214) rectangle (\x+70,234);
+      \draw (\x,224) -- (\x+70,224);
+      \draw (\x+7,229) circle (1.7pt);
+      \node[anchor=west] at (\x+11,229) {VAR};
+      \node[anchor=east] at (\x+66,229) {\(i\)};
+      \node at (\x+35,219) {\(\cdots\)};
+      \draw[continuation] (\x,178) -- (\x,214);
+      \draw[continuation] (\x+70,178) -- (\x+70,214);
+      \draw (\x,168) rectangle (\x+70,178);
+      \node at (\x+35,173) {\(\cdots\)};
+      \node[anchor=east] at (\x-5,173) {\(a_1\):};
+      \draw (\x,120) -- (\x+70,120);
+      \draw[continuation] (\x,104) -- (\x,120);
+      \draw[continuation] (\x+70,104) -- (\x+70,120);
+      \draw (\x,84) rectangle (\x+70,104);
+      \draw (\x,94) -- (\x+70,94);
+      \node[anchor=west] at (\x+4,99) {CLOSURE};
+      \fill (\x+64,99) circle (2.8pt);
+      \fill (\x+35,89) circle (2.8pt);
+      \node[anchor=east] at (\x-5,99) {\(a_2\):};
+      \draw[continuation] (\x,52) -- (\x,84);
+      \draw[continuation] (\x+70,52) -- (\x+70,84);
+      \draw[sharepointer] (\x+64,99) -- (\x+76,99)
+        .. controls (\x+91,90) and (\x+91,78) .. (\x+76,68)
+        -- (\x+70,68);
+      \draw[sharepointer] (\x+35,89) -- (\x-24,89)
+        .. controls (\x-45,122) and (\x-39,166) .. (\x-6,201)
+        -- (\x,201);
+    }
+    \draw[omitted] (54,120) -- (54,168);
+    \draw[omitted] (124,120) -- (124,168);
+    \node[anchor=west] at (134,229) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (134,173) {\(\leftarrow\ \mathit{fsp}\)};
+    \node[anchor=west] at (134,120) {\(\leftarrow\ \mathit{env}\)};
+    \node[anchor=west] at (134,99) {\(\leftarrow\ \text{variable }i\)};
+    \draw (268,158) rectangle (338,168);
+    \draw (275,163) circle (1.7pt);
+    \node[anchor=west] at (279,163) {EP};
+    \fill (332,163) circle (2.8pt);
+    \draw[sharepointer] (332,163) -- (344,163)
+      .. controls (359,145) and (359,123) .. (344,104) -- (338,104);
+    \draw[omitted] (268,120) -- (268,158);
+    \draw[omitted] (338,120) -- (338,158);
+    \node[anchor=west] at (348,219) {\(\leftarrow\ \mathit{pc}\)};
+    \node[anchor=west] at (348,163) {\(\leftarrow\ \mathit{fsp}\)};
+    \node at (89,14) {Before};
+    \node at (303,14) {After};
+  \end{tikzpicture}%
+}

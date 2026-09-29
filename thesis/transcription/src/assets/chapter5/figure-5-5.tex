@@ -1,0 +1,72 @@
+% Eta contraction: the two open-head instructions become open-head NO-OPs.
+% The UBV's reference bits remain 01; the saved control-stack pointer is popped.
+\resizebox{0.82\textwidth}{!}{%
+  \begin{tikzpicture}[x=1pt,y=1pt,line width=0.65pt,
+    font=\normalsize,inner sep=0pt,
+    etapointer/.style={-{Stealth[length=3.5pt,width=2.8pt]}},
+    continuation/.style={dotted,line cap=round},
+    omitted/.style={dash pattern=on 0.6pt off 7pt,line cap=round}]
+    \path[use as bounding box] (-3,-3) rectangle (403,315.2714);
+    \draw (0,0) rectangle (400,312);
+    \foreach \x in {96,274} {
+      \draw (\x,282) -- (\x+74,282);
+      \draw[continuation] (\x,246) -- (\x,282);
+      \draw[continuation] (\x+74,246) -- (\x+74,282);
+      \draw (\x,206) rectangle (\x+74,246);
+      \foreach \y in {216,226,236} {\draw (\x,\y) -- (\x+74,\y);}
+      \node at (\x+37,241) {\(\cdots\)};
+      \node at (\x+37,211) {\(\cdots\)};
+      \draw (\x+7,231) circle (1.7pt);
+      \draw (\x+7,221) circle (1.7pt);
+      \draw[continuation] (\x,180) -- (\x,206);
+      \draw[continuation] (\x+74,180) -- (\x+74,206);
+      \draw (\x,180) -- (\x+74,180);
+      \draw[omitted] (\x,130) -- (\x,180);
+      \draw[omitted] (\x+74,130) -- (\x+74,180);
+      \draw (\x,130) -- (\x+74,130);
+      \draw[continuation] (\x,114) -- (\x,130);
+      \draw[continuation] (\x+74,114) -- (\x+74,130);
+      \draw (\x,104) rectangle (\x+74,114);
+      \draw (\x+16,104) -- (\x+16,114);
+      \node at (\x+8,109) {01};
+      \node[anchor=west] at (\x+20,109) {UBV};
+      \node[anchor=east] at (\x+70,109) {\(i\)};
+      \draw[continuation] (\x,78) -- (\x,104);
+      \draw[continuation] (\x+74,78) -- (\x+74,104);
+      \draw (\x,78) -- (\x+74,78);
+      \draw[continuation] (\x,64) -- (\x,78);
+      \draw[continuation] (\x+74,64) -- (\x+74,78);
+      \draw (\x,54) rectangle (\x+74,64);
+      \draw[continuation] (\x,30) -- (\x,54);
+      \draw[continuation] (\x+74,30) -- (\x+74,54);
+      \draw (\x,30) -- (\x+74,30);
+      \node[anchor=west] at (\x+84,180) {\(\leftarrow\ \mathit{fsp}\)};
+      \node[anchor=west] at (\x+84,130) {\(\leftarrow\ \mathit{env}\)};
+      \node[anchor=west] at (\x+84,59) {\(\leftarrow\ c\)};
+    }
+    \node[anchor=west] at (107,231) {LAMBDA};
+    \node[anchor=east] at (166,231) {\(x\)};
+    \node[anchor=west] at (107,221) {VAR};
+    \node[anchor=east] at (166,221) {0};
+    \node[anchor=west] at (180,231) {\(\leftarrow\ \mathit{pc}\)};
+    \draw (88,236) .. controls (85,236) and (85,234) .. (85,231)
+      .. controls (85,228) and (84,227) .. (82,226)
+      .. controls (84,225) and (85,224) .. (85,221)
+      .. controls (85,218) and (85,216) .. (88,216);
+    \node[anchor=east] at (78,226) {\(\eta\)-Redex};
+    \draw (104,109) circle (11pt);
+    \node[anchor=east,align=right] at (79,109) {Reference\\Bits};
+    \draw[etapointer] (83,109) -- (93,109);
+    \fill (131,59) circle (2.8pt);
+    \draw[etapointer] (131,59) -- (176,59)
+      .. controls (190,77) and (190,96) .. (176,109) -- (170,109);
+    \node[anchor=east] at (91,59) {\(a_1\):};
+    \node[anchor=west] at (285,231) {NO-OP};
+    \node[anchor=west] at (285,221) {NO-OP};
+    \node[anchor=west] at (358,241) {\(\leftarrow\ \mathit{pc}\)};
+    \node at (311,59) {\(\cdots\)};
+    \node[anchor=east] at (269,59) {\(a_1-1\):};
+    \node at (133,14) {Before};
+    \node at (311,14) {After};
+  \end{tikzpicture}%
+}
