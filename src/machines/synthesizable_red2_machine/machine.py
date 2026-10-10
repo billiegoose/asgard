@@ -317,6 +317,33 @@ MICRO_PUB_STACK = 127
 MICRO_JOIN_IO_CONT_READ = 128
 MICRO_JOIN_IO_PATH_READ = 129
 MICRO_JOIN_IO_COMMIT = 130
+MICRO_JOIN_SCALAR_INT_POW = 131
+MICRO_JOIN_SCALAR_FLOAT_POW = 132
+MICRO_JOIN_SCALAR_FLOAT_POW_FINISH = 133
+MICRO_U64_DIV = 134
+MICRO_U64_DIV_FINISH = 135
+MICRO_STRUCT_SELECTOR_PROMOTE_MAT_WRITE2 = 136
+MICRO_FLOAT_DIV = 137
+MICRO_FLOAT_DIV_FINISH = 138
+MICRO_FLOAT_NUMBER_WORD = 139
+MICRO_FLOAT_FLOOR_CEIL = 140
+MICRO_INT64_TO_FLOAT = 141
+MICRO_FLOAT_INC = 142
+MICRO_FLOAT_MUL_CHECKED = 143
+
+U64_DIV_RESUME_NONE = 0
+U64_DIV_RESUME_SCALAR_MUL = 1
+U64_DIV_RESUME_SCALAR_DIV = 2
+U64_DIV_RESUME_SCALAR_MOD = 3
+U64_DIV_RESUME_INT_POW = 4
+U64_DIV_RESUME_RECP = 5
+U64_DIV_RESUME_INT64_NEG_EXPT = 6
+U64_DIV_RESUME_INT64_DIV_RIGHT = 7
+
+FLOAT_DIV_RESUME_NONE = 0
+FLOAT_DIV_RESUME_SCALAR_DIV = 1
+FLOAT_DIV_RESUME_INTEGER_DIV_FRACTION = 2
+FLOAT_DIV_RESUME_FLOAT_POW_RECIPROCAL = 3
 
 PUB_TASK_NONE = 0
 PUB_TASK_GRAPH = 1
@@ -588,11 +615,11 @@ def red2_float64_i64_info(value: float64_t) -> red2_float_i64_t:
         true_exp: uint64_t = exp_wide - 1023
         true_exp_ge_52: uint1_t = red2_u64_ge(true_exp, 52)
         if true_exp_ge_52:
-            left_shift: uint64_t = true_exp - 52
+            left_shift: uint6_t = true_exp - 52
             magnitude = hidden << left_shift
             exact = 1
         else:
-            right_shift: uint64_t = 52 - true_exp
+            right_shift: uint6_t = 52 - true_exp
             magnitude = hidden >> right_shift
             one: uint64_t = 1
             discarded_mask: uint64_t = (one << right_shift) - 1
@@ -630,7 +657,7 @@ def red2_float64_integral(value: float64_t) -> uint1_t:
             else:
                 man_wide: uint64_t = value.man
                 hidden: uint64_t = 4503599627370496 | man_wide
-                right_shift: uint64_t = 52 - true_exp
+                right_shift: uint6_t = 52 - true_exp
                 one: uint64_t = 1
                 discarded_mask: uint64_t = (one << right_shift) - 1
                 integral = (hidden & discarded_mask) == 0
@@ -1058,34 +1085,34 @@ class red2_status_t(NamedTuple):
 
 
 graph_ram, graph_ram_out_t = make_ram(
-    red2_word_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+    red2_word_t, GRAPH_WORDS, ports=("rw",), read_latency=1
 )
 control_ram, control_ram_out_t = make_ram(
-    red2_control_t, CONTROL_WORDS, ports=("rw",), read_latency=0
+    red2_control_t, CONTROL_WORDS, ports=("rw",), read_latency=1
 )
 literal_meta_ram, literal_meta_ram_out_t = make_ram(
-    red2_literal_meta_t, LITERAL_META_WORDS, ports=("rw",), read_latency=0
+    red2_literal_meta_t, LITERAL_META_WORDS, ports=("rw",), read_latency=1
 )
 promote_mat_ram, promote_mat_ram_out_t = make_ram(
-    red2_promote_mat_t, GRAPH_WORDS, ports=("r", "w", "w"), read_latency=0
+    red2_promote_mat_t, GRAPH_WORDS, ports=("r", "w"), read_latency=1
 )
 promote_forward_ram, promote_forward_ram_out_t = make_ram(
     red2_promote_forward_t, GRAPH_WORDS, ports=("rw",), read_latency=0
 )
 pub_task_ram, pub_task_ram_out_t = make_ram(
-    red2_pub_task_t, PUB_TASK_WORDS, ports=("rw",), read_latency=0
+    red2_pub_task_t, PUB_TASK_WORDS, ports=("rw",), read_latency=1
 )
 pub_root_ram, pub_root_ram_out_t = make_ram(
-    red2_pub_root_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+    red2_pub_root_t, GRAPH_WORDS, ports=("rw",), read_latency=1
 )
 pub_patch_ram, pub_patch_ram_out_t = make_ram(
-    red2_pub_patch_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+    red2_pub_patch_t, GRAPH_WORDS, ports=("rw",), read_latency=1
 )
 pub_patch_addr_ram, pub_patch_addr_ram_out_t = make_ram(
-    uint17_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+    uint17_t, GRAPH_WORDS, ports=("rw",), read_latency=1
 )
 pub_mat_ram, pub_mat_ram_out_t = make_ram(
-    red2_pub_mat_t, GRAPH_WORDS, ports=("rw",), read_latency=0
+    red2_pub_mat_t, GRAPH_WORDS, ports=("rw",), read_latency=1
 )
 
 
@@ -1112,6 +1139,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     red2_fault: Reg[uint3_t]
     hw_fault: Reg[uint3_t]
     microstate: Reg[uint8_t]
+    sync_read_pending: Reg[uint1_t]
     fetched_word: Reg[red2_word_t]
     lookup_word: Reg[red2_word_t]
     lookup_address: Reg[uint17_t]
@@ -1171,6 +1199,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     promote_write_index: Reg[uint17_t]
     promote_write_word: Reg[red2_word_t]
     promote_validate_active: Reg[uint1_t]
+    promote_mat_pending_addr: Reg[uint8_t]
+    promote_mat_pending_word: Reg[red2_word_t]
     # A2 generic publication scratch. Generation survives architectural resets;
     # all active transaction state is cleared by RESET/LOAD_STATE/START.
     pub_generation: Reg[uint32_t]
@@ -1263,6 +1293,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     join_scalar_preflight_done: Reg[uint1_t]
     join_scalar_contract: Reg[uint1_t]
     join_scalar_right_word: Reg[red2_word_t]
+    join_scalar_int_pow_base: Reg[uint64_t]
+    join_scalar_int_pow_magnitude: Reg[uint64_t]
+    join_scalar_int_pow_bound: Reg[uint64_t]
+    join_scalar_int_pow_remaining: Reg[uint6_t]
+    join_scalar_int_pow_negative: Reg[uint1_t]
+    join_scalar_float_pow_result_bits: Reg[uint64_t]
+    join_scalar_float_pow_factor_bits: Reg[uint64_t]
+    join_scalar_float_pow_remaining: Reg[uint6_t]
+    join_scalar_float_pow_valid: Reg[uint1_t]
+    join_scalar_float_pow_invert: Reg[uint1_t]
+    join_scalar_float_pow_phase: Reg[uint1_t]
+    # Shared 64-cycle restoring divider. Internal divider clocks are
+    # implementation detail and never consume RED2 quantum.
+    u64_div_dividend: Reg[uint64_t]
+    u64_div_divisor: Reg[uint64_t]
+    u64_div_quotient: Reg[uint64_t]
+    u64_div_remainder: Reg[uint64_t]
+    u64_div_remaining: Reg[uint8_t]
+    u64_div_resume_kind: Reg[uint3_t]
+    u64_div_aux: Reg[uint64_t]
+    # bit 0 = original left sign, bit 1 = original right sign.
+    u64_div_flags: Reg[uint2_t]
+    float_div_dividend: Reg[uint53_t]
+    float_div_divisor: Reg[uint54_t]
+    float_div_remainder: Reg[uint54_t]
+    float_div_quotient: Reg[uint54_t]
+    float_div_remaining: Reg[uint8_t]
+    float_div_left_exp: Reg[uint11_t]
+    float_div_right_exp: Reg[uint11_t]
+    float_div_sign: Reg[uint1_t]
+    float_div_left_zero: Reg[uint1_t]
+    float_div_right_zero: Reg[uint1_t]
+    float_div_resume_kind: Reg[uint2_t]
+    float_number_word_bits: Reg[uint64_t]
+    float_number_word_resume_ep: Reg[uint1_t]
+    float_floor_ceil_bits: Reg[uint64_t]
+    float_floor_ceil_ceiling: Reg[uint1_t]
+    float_floor_ceil_resume_ep: Reg[uint1_t]
     join_scalar_return_ep: Reg[uint1_t]
     direct_scalar_active: Reg[uint1_t]
     ep_scalar_active: Reg[uint1_t]
@@ -1412,16 +1480,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     promote_mat_read_req: promote_mat_ram.p0_in_t
     promote_mat_read_req.addr = promote_write_index[GRAPH_ADDR_BITS - 1 : 0]
     promote_mat_read_req.valid = 1
-    promote_mat_write1_req: promote_mat_ram.p1_in_t
-    promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-    promote_mat_write1_req.wr_data = red2_promote_mat_t(word=red2_word_t(lo=0, hi=0), valid=0)
-    promote_mat_write1_req.wr_en = 0
-    promote_mat_write1_req.valid = 1
-    promote_mat_write2_req: promote_mat_ram.p2_in_t
-    promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-    promote_mat_write2_req.wr_data = red2_promote_mat_t(word=red2_word_t(lo=0, hi=0), valid=0)
-    promote_mat_write2_req.wr_en = 0
-    promote_mat_write2_req.valid = 1
+    promote_mat_write_req: promote_mat_ram.p1_in_t
+    promote_mat_write_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+    promote_mat_write_req.wr_data = red2_promote_mat_t(word=red2_word_t(lo=0, hi=0), valid=0)
+    promote_mat_write_req.wr_en = 0
+    promote_mat_write_req.valid = 1
 
     promote_forward_req: promote_forward_ram.p0_in_t
     promote_forward_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
@@ -1575,6 +1638,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_join_special_meta_scan: uint1_t = microstate == MICRO_JOIN_SPECIAL_META_SCAN
     micro_is_join_special_meta_done: uint1_t = microstate == MICRO_JOIN_SPECIAL_META_DONE
     micro_is_join_scalar_left_read: uint1_t = microstate == MICRO_JOIN_SCALAR_LEFT_READ
+    micro_is_join_scalar_int_pow: uint1_t = microstate == MICRO_JOIN_SCALAR_INT_POW
+    micro_is_join_scalar_float_pow: uint1_t = microstate == MICRO_JOIN_SCALAR_FLOAT_POW
+    micro_is_join_scalar_float_pow_finish: uint1_t = microstate == MICRO_JOIN_SCALAR_FLOAT_POW_FINISH
+    micro_is_u64_div: uint1_t = microstate == MICRO_U64_DIV
+    micro_is_u64_div_finish: uint1_t = microstate == MICRO_U64_DIV_FINISH
+    micro_is_float_div: uint1_t = microstate == MICRO_FLOAT_DIV
+    micro_is_float_div_finish: uint1_t = microstate == MICRO_FLOAT_DIV_FINISH
+    micro_is_float_number_word: uint1_t = microstate == MICRO_FLOAT_NUMBER_WORD
+    micro_is_float_floor_ceil: uint1_t = microstate == MICRO_FLOAT_FLOOR_CEIL
+    micro_is_int64_to_float: uint1_t = microstate == MICRO_INT64_TO_FLOAT
+    micro_is_float_inc: uint1_t = microstate == MICRO_FLOAT_INC
+    micro_is_float_mul_checked: uint1_t = microstate == MICRO_FLOAT_MUL_CHECKED
     micro_is_rup_validate_rec: uint1_t = microstate == MICRO_RUP_VALIDATE_REC
     micro_is_rup_validate_context: uint1_t = microstate == MICRO_RUP_VALIDATE_CONTEXT
     micro_is_rup_validate_block: uint1_t = microstate == MICRO_RUP_VALIDATE_BLOCK
@@ -1620,6 +1695,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_struct_selector_promote_generic: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC
     micro_is_struct_selector_promote_generic_read: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_READ
     micro_is_struct_selector_promote_generic_write: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC_WRITE
+    micro_is_struct_selector_promote_mat_write2: uint1_t = microstate == MICRO_STRUCT_SELECTOR_PROMOTE_MAT_WRITE2
     promote_task_is_none: uint1_t = promote_task_kind == PROMOTE_TASK_NONE
     promote_task_is_pointer_done: uint1_t = promote_task_kind == PROMOTE_TASK_POINTER_DONE
     promote_task_is_app_scan: uint1_t = promote_task_kind == PROMOTE_TASK_APP_SCAN
@@ -2888,7 +2964,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     # The flat generic APP promoter reads architectural graph RAM first, then
     # drives forwarding/materialization scratch. No architectural write is
     # enabled until the later validated publication phase.
-    if command_is_clock and micro_is_struct_selector_promote_generic:
+    if command_is_clock and micro_is_struct_selector_promote_generic and sync_read_pending:
         if promote_task_is_app_process:
             promote_req_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
             promote_req_is_app: uint1_t = promote_req_opcode == MOP_APP
@@ -2922,7 +2998,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
 
     promote_forward_out = promote_forward_ram(promote_forward_req)
 
-    if command_is_clock and micro_is_struct_selector_promote_generic:
+    if command_is_clock and micro_is_struct_selector_promote_generic and sync_read_pending:
         promote_req_valid2: uint1_t = memory_out.p0.rd_data.hi[26]
         promote_req_opcode2: uint5_t = memory_out.p0.rd_data.hi[25:21]
         promote_req_head2: uint1_t = memory_out.p0.rd_data.hi[20]
@@ -2951,76 +3027,79 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
 
         if promote_task_is_app_scan and promote_req_valid2:
             if promote_req_prefix2 and promote_mat_capacity2:
-                promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                promote_mat_write_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write_req.wr_data = red2_promote_mat_t(
                     word=red2_word_t(lo=0, hi=0), valid=0
                 )
-                promote_mat_write1_req.wr_en = 1
+                promote_mat_write_req.wr_en = 1
             elif promote_req_atomic2 and promote_mat_capacity2:
                 promote_operator_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
-                promote_mat_write1_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                promote_mat_write_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write_req.wr_data = red2_promote_mat_t(
                     word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_operator_hi_req),
                     valid=1,
                 )
-                promote_mat_write1_req.wr_en = 1
+                promote_mat_write_req.wr_en = 1
         elif promote_task_is_app_process and promote_req_valid2:
             promote_process_slot_req: uint17_t = promote_task_b + promote_task_d
             if promote_req_is_app_var2:
                 promote_app_var_hi_req: uint64_t = 71434240 | (memory_out.p0.rd_data.hi & 131071)
-                promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                promote_mat_write_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write_req.wr_data = red2_promote_mat_t(
                     word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_app_var_hi_req),
                     valid=1,
                 )
-                promote_mat_write1_req.wr_en = 1
+                promote_mat_write_req.wr_en = 1
             elif promote_req_is_app2:
                 promote_forward_state_hit_req: uint1_t = promote_forward_out.p0.rd_data.state == 2
                 promote_forward_generation_hit_req: uint1_t = promote_forward_out.p0.rd_data.generation == promote_generation
                 promote_forward_hit_req: uint1_t = promote_forward_state_hit_req and promote_forward_generation_hit_req
                 if promote_forward_hit_req:
                     promote_app_hit_hi_req: uint64_t = 69337088 | (memory_out.p0.rd_data.hi & 131071)
-                    promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
-                    promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                    promote_mat_write_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                    promote_mat_write_req.wr_data = red2_promote_mat_t(
                         word=red2_word_t(lo=promote_forward_out.p0.rd_data.target, hi=promote_app_hit_hi_req),
                         valid=1,
                     )
-                    promote_mat_write1_req.wr_en = 1
+                    promote_mat_write_req.wr_en = 1
             elif promote_req_nonhead_inline2 and promote_mat_capacity2:
                 promote_inline_desc_hi_req: uint64_t = 69337088 | (memory_out.p0.rd_data.hi & 131071)
                 promote_inline_value_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
-                promote_mat_write1_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                promote_mat_write_req.addr = promote_process_slot_req[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write_req.wr_data = red2_promote_mat_t(
                     word=red2_word_t(lo=promote_mat_count, hi=promote_inline_desc_hi_req),
                     valid=1,
                 )
-                promote_mat_write1_req.wr_en = 1
-                promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write2_req.wr_data = red2_promote_mat_t(
-                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_inline_value_hi_req),
-                    valid=1,
+                promote_mat_write_req.wr_en = 1
+                promote_mat_pending_addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_pending_word = red2_word_t(
+                    lo=memory_out.p0.rd_data.lo, hi=promote_inline_value_hi_req
                 )
-                promote_mat_write2_req.wr_en = 1
         elif promote_task_is_pointer_done and promote_req_valid2:
             promote_pointer_atomic2: uint1_t = promote_req_atomic2
             if promote_pointer_atomic2 and promote_mat_capacity2:
                 promote_pointer_desc_hi_req: uint64_t = 69337088 | (promote_write_word.hi & 131071)
                 promote_pointer_value_hi_req: uint64_t = memory_out.p0.rd_data.hi | 1048576
-                promote_mat_write1_req.addr = promote_write_index[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write1_req.wr_data = red2_promote_mat_t(
+                promote_mat_write_req.addr = promote_write_index[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_write_req.wr_data = red2_promote_mat_t(
                     word=red2_word_t(lo=promote_mat_count, hi=promote_pointer_desc_hi_req),
                     valid=1,
                 )
-                promote_mat_write1_req.wr_en = 1
-                promote_mat_write2_req.addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
-                promote_mat_write2_req.wr_data = red2_promote_mat_t(
-                    word=red2_word_t(lo=memory_out.p0.rd_data.lo, hi=promote_pointer_value_hi_req),
-                    valid=1,
+                promote_mat_write_req.wr_en = 1
+                promote_mat_pending_addr = promote_mat_count[GRAPH_ADDR_BITS - 1 : 0]
+                promote_mat_pending_word = red2_word_t(
+                    lo=memory_out.p0.rd_data.lo, hi=promote_pointer_value_hi_req
                 )
-                promote_mat_write2_req.wr_en = 1
+
+    if command_is_clock and micro_is_struct_selector_promote_mat_write2:
+        promote_mat_write_req.addr = promote_mat_pending_addr
+        promote_mat_write_req.wr_data = red2_promote_mat_t(
+            word=promote_mat_pending_word, valid=1
+        )
+        promote_mat_write_req.wr_en = 1
 
     promote_mat_out = promote_mat_ram(
-        promote_mat_read_req, promote_mat_write1_req, promote_mat_write2_req
+        promote_mat_read_req, promote_mat_write_req
     )
     pub_task_out = pub_task_ram(pub_task_req)
     pub_root_out = pub_root_ram(pub_root_req)
@@ -3029,6 +3108,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     pub_mat_out = pub_mat_ram(pub_mat_req)
 
     if command.op == CMD_RESET:
+        sync_read_pending = 0
         pc = 0
         fsp = 0
         env = GRAPH_WORDS
@@ -3103,6 +3183,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         promote_write_index = 0
         promote_write_word = red2_word_t(lo=0, hi=0)
         promote_validate_active = 0
+        promote_mat_pending_addr = 0
+        promote_mat_pending_word = red2_word_t(lo=0, hi=0)
         pub_sp = 0
         pub_value = 0
         pub_launch_root = 0
@@ -3190,6 +3272,41 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_scalar_preflight_done = 0
         join_scalar_contract = 0
         join_scalar_right_word = red2_word_t(lo=0, hi=0)
+        join_scalar_int_pow_base = 0
+        join_scalar_int_pow_magnitude = 0
+        join_scalar_int_pow_bound = 0
+        join_scalar_int_pow_remaining = 0
+        join_scalar_int_pow_negative = 0
+        join_scalar_float_pow_result_bits = 0
+        join_scalar_float_pow_factor_bits = 0
+        join_scalar_float_pow_remaining = 0
+        join_scalar_float_pow_valid = 0
+        join_scalar_float_pow_invert = 0
+        join_scalar_float_pow_phase = 0
+        u64_div_dividend = 0
+        u64_div_divisor = 0
+        u64_div_quotient = 0
+        u64_div_remainder = 0
+        u64_div_remaining = 0
+        u64_div_resume_kind = U64_DIV_RESUME_NONE
+        float_div_dividend = 0
+        float_div_divisor = 0
+        float_div_remainder = 0
+        float_div_quotient = 0
+        float_div_remaining = 0
+        float_div_left_exp = 0
+        float_div_right_exp = 0
+        float_div_sign = 0
+        float_div_left_zero = 0
+        float_div_right_zero = 0
+        float_div_resume_kind = FLOAT_DIV_RESUME_NONE
+        float_number_word_bits = 0
+        float_number_word_resume_ep = 0
+        float_floor_ceil_bits = 0
+        float_floor_ceil_ceiling = 0
+        float_floor_ceil_resume_ep = 0
+        u64_div_aux = 0
+        u64_div_flags = 0
         join_scalar_return_ep = 0
         direct_scalar_active = 0
         ep_scalar_active = 0
@@ -3320,6 +3437,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         else:
             hw_fault = HW_FAULT_ADDRESS_RANGE
     elif command.op == CMD_LOAD_STATE:
+        sync_read_pending = 0
         pc = command.state.pc
         fsp = command.state.fsp
         env = command.state.env
@@ -3393,6 +3511,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         promote_write_index = 0
         promote_write_word = red2_word_t(lo=0, hi=0)
         promote_validate_active = 0
+        promote_mat_pending_addr = 0
+        promote_mat_pending_word = red2_word_t(lo=0, hi=0)
         pub_sp = 0
         pub_value = 0
         pub_launch_root = 0
@@ -3480,6 +3600,41 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_scalar_preflight_done = 0
         join_scalar_contract = 0
         join_scalar_right_word = red2_word_t(lo=0, hi=0)
+        join_scalar_int_pow_base = 0
+        join_scalar_int_pow_magnitude = 0
+        join_scalar_int_pow_bound = 0
+        join_scalar_int_pow_remaining = 0
+        join_scalar_int_pow_negative = 0
+        join_scalar_float_pow_result_bits = 0
+        join_scalar_float_pow_factor_bits = 0
+        join_scalar_float_pow_remaining = 0
+        join_scalar_float_pow_valid = 0
+        join_scalar_float_pow_invert = 0
+        join_scalar_float_pow_phase = 0
+        u64_div_dividend = 0
+        u64_div_divisor = 0
+        u64_div_quotient = 0
+        u64_div_remainder = 0
+        u64_div_remaining = 0
+        u64_div_resume_kind = U64_DIV_RESUME_NONE
+        float_div_dividend = 0
+        float_div_divisor = 0
+        float_div_remainder = 0
+        float_div_quotient = 0
+        float_div_remaining = 0
+        float_div_left_exp = 0
+        float_div_right_exp = 0
+        float_div_sign = 0
+        float_div_left_zero = 0
+        float_div_right_zero = 0
+        float_div_resume_kind = FLOAT_DIV_RESUME_NONE
+        float_number_word_bits = 0
+        float_number_word_resume_ep = 0
+        float_floor_ceil_bits = 0
+        float_floor_ceil_ceiling = 0
+        float_floor_ceil_resume_ep = 0
+        u64_div_aux = 0
+        u64_div_flags = 0
         join_scalar_return_ep = 0
         direct_scalar_active = 0
         ep_scalar_active = 0
@@ -3595,6 +3750,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_closure_destination = 0
         join_closure_write_index = 0
     elif command.op == CMD_START:
+        sync_read_pending = 0
         if memory_address_in_range:
             pc = command.address
             q = command.value
@@ -3661,6 +3817,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             promote_write_index = 0
             promote_write_word = red2_word_t(lo=0, hi=0)
             promote_validate_active = 0
+            promote_mat_pending_addr = 0
+            promote_mat_pending_word = red2_word_t(lo=0, hi=0)
             pub_sp = 0
             pub_value = 0
             pub_launch_root = 0
@@ -3814,6 +3972,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         q = command.value
         hw_fault = HW_FAULT_NONE
     elif command.op == CMD_RESUME:
+        sync_read_pending = 0
         if not resume_base_ok:
             red2_fault = FAULT_INVALID_RESUME
             microstate = MICRO_FAULT
@@ -3847,6 +4006,155 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if clock_faulted:
             clock_dispatch_handled = 1
             microstate = MICRO_FAULT
+        sync_read_state: uint1_t = micro_is_fetch
+        sync_read_state = sync_read_state | micro_is_lookup_read
+        sync_read_state = sync_read_state | micro_is_lambda_read
+        sync_read_state = sync_read_state | micro_is_app_control_read
+        sync_read_state = sync_read_state | micro_is_join_parent_read
+        sync_read_state = sync_read_state | micro_is_join_frame_read
+        sync_read_state = sync_read_state | micro_is_join_tail_read
+        sync_read_state = sync_read_state | micro_is_join_prim_meta_scan
+        sync_read_state = sync_read_state | micro_is_join_io_cont_read
+        sync_read_state = sync_read_state | micro_is_join_io_path_read
+        sync_read_state = sync_read_state | micro_is_struct_selector_root_read
+        sync_read_state = sync_read_state | micro_is_struct_selector_descriptor_read
+        sync_read_state = sync_read_state | micro_is_struct_selector_value_read
+        sync_read_state = sync_read_state | micro_is_struct_selector_result_meta_scan
+        sync_read_state = sync_read_state | micro_is_struct_selector_copy_scan
+        sync_read_state = sync_read_state | micro_is_struct_selector_copy_read
+        sync_read_state = sync_read_state | micro_is_struct_selector_promote_scan
+        sync_read_state = sync_read_state | micro_is_struct_selector_promote_read
+        sync_read_state = sync_read_state | micro_is_struct_result_read
+        sync_read_state = sync_read_state | micro_is_struct_reverse_control_read
+        sync_read_state = sync_read_state | micro_is_lambda_ep_control_read
+        sync_read_state = sync_read_state | micro_is_lambda_app_control_read
+        sync_read_state = sync_read_state | micro_is_ep_chase
+        sync_read_state = sync_read_state | micro_is_ep_reverse_control_read
+        sync_read_state = sync_read_state | micro_is_join_ep_target_read
+        sync_read_state = sync_read_state | micro_is_join_rblock_phi_scan
+        sync_read_state = sync_read_state | micro_is_join_struct_preflight_scan
+        sync_read_state = sync_read_state | micro_is_join_struct_preflight_target
+        sync_read_state = sync_read_state | micro_is_join_struct_preflight_ep_chase
+        sync_read_state = sync_read_state | micro_is_join_struct_rewrite_scan
+        sync_read_state = sync_read_state | micro_is_join_struct_rewrite_target
+        sync_read_state = sync_read_state | micro_is_join_struct_rewrite_ep_chase
+        sync_read_state = sync_read_state | micro_is_join_if_false_read
+        sync_read_state = sync_read_state | micro_is_join_if_true_read
+        sync_read_state = sync_read_state | micro_is_join_if_true_path_read
+        sync_read_state = sync_read_state | micro_is_join_if_false_path_read
+        sync_read_state = sync_read_state | micro_is_join_if_ep_chase
+        sync_read_state = sync_read_state | micro_is_join_ep_chase
+        sync_read_state = sync_read_state | micro_is_join_closure_code_read
+        sync_read_state = sync_read_state | micro_is_join_closure_lambda_scan
+        sync_read_state = sync_read_state | micro_is_join_closure_body_read
+        sync_read_state = sync_read_state | micro_is_join_closure_env_read
+        sync_read_state = sync_read_state | micro_is_join_closure_write_lambda
+        sync_read_state = sync_read_state | micro_is_join_app_rewrite_read
+        sync_read_state = sync_read_state | micro_is_join_app_scan
+        sync_read_state = sync_read_state | micro_is_join_app_target_read
+        sync_read_state = sync_read_state | micro_is_join_multi_target_read
+        sync_read_state = sync_read_state | micro_is_join_multi_target_chase
+        sync_read_state = sync_read_state | micro_is_join_recp_rblock_scan
+        sync_read_state = sync_read_state | micro_is_join_recp_rblock_binding_read
+        sync_read_state = sync_read_state | micro_is_join_recp_rblock_body_read
+        sync_read_state = sync_read_state | micro_is_join_flat_scan
+        sync_read_state = sync_read_state | micro_is_closure_read
+        sync_read_state = sync_read_state | micro_is_rup_validate_rec
+        sync_read_state = sync_read_state | micro_is_rup_validate_context
+        sync_read_state = sync_read_state | micro_is_rup_validate_block
+        sync_read_state = sync_read_state | micro_is_rup_validate_source
+        sync_read_state = sync_read_state | micro_is_recp_validate_rec
+        sync_read_state = sync_read_state | micro_is_recp_validate_context
+        sync_read_state = sync_read_state | micro_is_recp_validate_block
+        sync_read_state = sync_read_state | micro_is_recp_recon_scan
+        sync_read_state = sync_read_state | micro_is_recp_recon_copy_read
+        sync_read_state = sync_read_state | micro_is_recp_recon_rup_read
+        sync_read_state = sync_read_state | micro_is_lookup_var_ep_chase
+        sync_read_state = sync_read_state | micro_is_lookup_closure_code_read
+        sync_pub_graph_read: uint1_t = 0
+        if micro_is_pub_exec:
+            sync_pub_graph_read = pub_current_is_graph
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_app_scan
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_app_rewrite
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_ep_chase
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_ep_result
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_struct_scan
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_closure
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_closure_code
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_closure_scan
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_closure_body
+            sync_pub_graph_read = sync_pub_graph_read | pub_current_is_closure_env
+        sync_read_state = sync_read_state | sync_pub_graph_read
+
+        # Publication scratch memories are now registered too. Gate only EXEC
+        # tasks that actually consume a publication scratch read; graph-reading
+        # task kinds are already covered by sync_pub_graph_read above.
+        sync_pub_scratch_read: uint1_t = 0
+        if micro_is_pub_exec:
+            sync_pub_scratch_read = pub_current_is_graph
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_root_done
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_app_rewrite
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_ep_chase
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_ep_result
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_closure
+            sync_pub_scratch_read = sync_pub_scratch_read | pub_current_is_closure_done
+        sync_read_state = sync_read_state | sync_pub_scratch_read
+
+        # MICRO_PUB_STACK mixes writes and reads. Only the read phases get an
+        # issue/consume bubble; write-only phases must still execute once.
+        sync_pub_stack_read: uint1_t = 0
+        if micro_is_pub_stack:
+            if pub_stack_phase == PUB_STACK_LOAD_TOP:
+                sync_pub_stack_read = pub_stack_new_sp != 0
+            elif pub_stack_phase == PUB_STACK_VALIDATE_MAT:
+                sync_pub_stack_read = 1
+            elif pub_stack_phase == PUB_STACK_COMMIT_MAT:
+                sync_pub_stack_read = 1
+            elif pub_stack_phase == PUB_STACK_COMMIT_ADDR:
+                sync_pub_stack_read = 1
+            elif pub_stack_phase == PUB_STACK_COMMIT_ROW:
+                sync_pub_stack_read = 1
+        sync_read_state = sync_read_state | sync_pub_stack_read
+
+        sync_read_state = sync_read_state | micro_is_struct_selector_promote_generic
+        sync_read_state = sync_read_state | micro_is_struct_selector_promote_generic_read
+        scalar_sync_read: uint1_t = 0
+        if micro_is_join_scalar_left_read:
+            if equality_continue_active:
+                scalar_sync_read = equality_continue_phase == 0
+                scalar_sync_read = scalar_sync_read | (equality_continue_phase == 1)
+                scalar_sync_read = scalar_sync_read | (equality_continue_phase == 2)
+            elif equality_child_active:
+                scalar_sync_read = equality_child_phase == 0
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 1)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 2)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 3)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 4)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 5)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 6)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 7)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 8)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 11)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 12)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 13)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 14)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 27)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 28)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 30)
+                scalar_sync_read = scalar_sync_read | (equality_child_phase == 31)
+            elif equality_launch_active:
+                scalar_sync_read = 0
+            else:
+                scalar_sync_read = 1
+        sync_read_state = sync_read_state | scalar_sync_read
+        sync_special_meta_read: uint1_t = micro_is_join_special_meta_scan and not prim0_y_active
+        sync_read_state = sync_read_state | sync_special_meta_read
+        if not clock_dispatch_handled and sync_read_state:
+            if sync_read_pending:
+                sync_read_pending = 0
+            else:
+                sync_read_pending = 1
+                clock_dispatch_handled = 1
         if not clock_dispatch_handled and micro_is_fetch:
             clock_dispatch_handled = 1
             pending_host: uint1_t = pending_host_op != HOST_NONE
@@ -3897,6 +4205,41 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             join_scalar_preflight_done = 0
                             join_scalar_contract = 0
                             join_scalar_right_word = red2_word_t(lo=0, hi=0)
+                            join_scalar_int_pow_base = 0
+                            join_scalar_int_pow_magnitude = 0
+                            join_scalar_int_pow_bound = 0
+                            join_scalar_int_pow_remaining = 0
+                            join_scalar_int_pow_negative = 0
+                            join_scalar_float_pow_result_bits = 0
+                            join_scalar_float_pow_factor_bits = 0
+                            join_scalar_float_pow_remaining = 0
+                            join_scalar_float_pow_valid = 0
+                            join_scalar_float_pow_invert = 0
+                            join_scalar_float_pow_phase = 0
+                            u64_div_dividend = 0
+                            u64_div_divisor = 0
+                            u64_div_quotient = 0
+                            u64_div_remainder = 0
+                            u64_div_remaining = 0
+                            u64_div_resume_kind = U64_DIV_RESUME_NONE
+                            float_div_dividend = 0
+                            float_div_divisor = 0
+                            float_div_remainder = 0
+                            float_div_quotient = 0
+                            float_div_remaining = 0
+                            float_div_left_exp = 0
+                            float_div_right_exp = 0
+                            float_div_sign = 0
+                            float_div_left_zero = 0
+                            float_div_right_zero = 0
+                            float_div_resume_kind = FLOAT_DIV_RESUME_NONE
+                            float_number_word_bits = 0
+                            float_number_word_resume_ep = 0
+                            float_floor_ceil_bits = 0
+                            float_floor_ceil_ceiling = 0
+                            float_floor_ceil_resume_ep = 0
+                            u64_div_aux = 0
+                            u64_div_flags = 0
                             join_scalar_return_ep = 0
                             join_true_literal_id = 0
                             join_false_literal_id = 0
@@ -3983,6 +4326,41 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             join_scalar_preflight_done = 0
                             join_scalar_contract = 0
                             join_scalar_right_word = red2_word_t(lo=0, hi=0)
+                            join_scalar_int_pow_base = 0
+                            join_scalar_int_pow_magnitude = 0
+                            join_scalar_int_pow_bound = 0
+                            join_scalar_int_pow_remaining = 0
+                            join_scalar_int_pow_negative = 0
+                            join_scalar_float_pow_result_bits = 0
+                            join_scalar_float_pow_factor_bits = 0
+                            join_scalar_float_pow_remaining = 0
+                            join_scalar_float_pow_valid = 0
+                            join_scalar_float_pow_invert = 0
+                            join_scalar_float_pow_phase = 0
+                            u64_div_dividend = 0
+                            u64_div_divisor = 0
+                            u64_div_quotient = 0
+                            u64_div_remainder = 0
+                            u64_div_remaining = 0
+                            u64_div_resume_kind = U64_DIV_RESUME_NONE
+                            float_div_dividend = 0
+                            float_div_divisor = 0
+                            float_div_remainder = 0
+                            float_div_quotient = 0
+                            float_div_remaining = 0
+                            float_div_left_exp = 0
+                            float_div_right_exp = 0
+                            float_div_sign = 0
+                            float_div_left_zero = 0
+                            float_div_right_zero = 0
+                            float_div_resume_kind = FLOAT_DIV_RESUME_NONE
+                            float_number_word_bits = 0
+                            float_number_word_resume_ep = 0
+                            float_floor_ceil_bits = 0
+                            float_floor_ceil_ceiling = 0
+                            float_floor_ceil_resume_ep = 0
+                            u64_div_aux = 0
+                            u64_div_flags = 0
                             join_scalar_return_ep = 0
                             join_true_literal_id = 0
                             join_false_literal_id = 0
@@ -5338,6 +5716,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             else:
                                 promote_mat_count = promote_mat_count + 1
                                 promote_task_d = promote_task_d + 1
+                                microstate = MICRO_STRUCT_SELECTOR_PROMOTE_MAT_WRITE2
                         else:
                             red2_fault = FAULT_ILLEGAL_TRANSITION
                             microstate = MICRO_FAULT
@@ -5374,9 +5753,13 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     promote_mat_count = promote_mat_count + 1
                     promote_task_kind = PROMOTE_TASK_APP_PROCESS
                     promote_task_d = promote_task_d + 1
+                    microstate = MICRO_STRUCT_SELECTOR_PROMOTE_MAT_WRITE2
             else:
                 red2_fault = FAULT_ILLEGAL_TRANSITION
                 microstate = MICRO_FAULT
+        if not clock_dispatch_handled and micro_is_struct_selector_promote_mat_write2:
+            clock_dispatch_handled = 1
+            microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC
         if not clock_dispatch_handled and micro_is_struct_selector_promote_generic_read:
             clock_dispatch_handled = 1
             promote_read_valid_exec: uint1_t = promote_mat_out.p0.rd_data.valid
@@ -5412,6 +5795,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     if promote_write_index == promote_validate_last_exec:
                         promote_write_index = 0
                         promote_validate_active = 0
+                        promote_mat_pending_addr = 0
+                        promote_mat_pending_word = red2_word_t(lo=0, hi=0)
                     else:
                         promote_write_index = promote_write_index + 1
                 else:
@@ -7802,6 +8187,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     promote_write_index = 0
                     promote_write_word = red2_word_t(lo=0, hi=0)
                     promote_validate_active = 0
+                    promote_mat_pending_addr = 0
+                    promote_mat_pending_word = red2_word_t(lo=0, hi=0)
                     microstate = MICRO_STRUCT_SELECTOR_PROMOTE_GENERIC
                 elif join_tail_is_lambda:
                     # The selected child returned a lambda problem. Promotion is
@@ -8155,16 +8542,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 join_scalar_contract = 0
                                 join_scalar_preflight_done = 1
                             elif join_scalar_is_inc:
-                                join_scalar_float_one: float64_t = float64_t(sign=0, exp=1023, man=0)
-                                join_scalar_float_inc: float64_t = red2_float64_add_raw(join_scalar_float_value, join_scalar_float_one)
-                                join_scalar_float_number: red2_float_word_checked_t = red2_float64_number_word(join_scalar_float_inc)
-                                if not join_scalar_float_number.valid:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = join_scalar_float_number.word
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_number_word_bits = join_publish_word.lo
+                                float_number_word_resume_ep = 0
+                                microstate = MICRO_FLOAT_INC
                             elif join_scalar_is_negate or join_scalar_is_abs:
                                 join_scalar_float_sign: uint1_t = join_scalar_float_value.sign ^ 1
                                 if join_scalar_is_abs:
@@ -8174,28 +8554,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                     exp=join_scalar_float_value.exp,
                                     man=join_scalar_float_value.man,
                                 )
-                                join_scalar_float_number2: red2_float_word_checked_t = red2_float64_number_word(join_scalar_float_signed)
-                                if not join_scalar_float_number2.valid:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = join_scalar_float_number2.word
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_number_word_bits = red2_float64_to_bits(join_scalar_float_signed)
+                                float_number_word_resume_ep = 0
+                                microstate = MICRO_FLOAT_NUMBER_WORD
                             else:
-                                join_scalar_float_rounded: red2_float_i64_t = red2_float64_floor_ceil_i64(
-                                    join_scalar_float_value, join_scalar_is_ceiling
+                                float_floor_ceil_bits = red2_float64_to_bits(
+                                    join_scalar_float_value
                                 )
-                                if not join_scalar_float_rounded.fits:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = red2_word_t(
-                                        lo=join_scalar_float_rounded.payload,
-                                        hi=85065728,
-                                    )
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_floor_ceil_ceiling = join_scalar_is_ceiling
+                                float_floor_ceil_resume_ep = 0
+                                microstate = MICRO_FLOAT_FLOOR_CEIL
                     elif join_scalar_int_contract:
                         if join_scalar_overflow:
                             red2_fault = FAULT_UNSUPPORTED_VALUE
@@ -9125,16 +9493,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 join_scalar_contract = 0
                                 join_scalar_preflight_done = 1
                             elif join_ep_scalar_is_inc:
-                                join_ep_scalar_float_one: float64_t = float64_t(sign=0, exp=1023, man=0)
-                                join_ep_scalar_float_inc: float64_t = red2_float64_add_raw(join_ep_scalar_float_value, join_ep_scalar_float_one)
-                                join_ep_scalar_float_number: red2_float_word_checked_t = red2_float64_number_word(join_ep_scalar_float_inc)
-                                if not join_ep_scalar_float_number.valid:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = join_ep_scalar_float_number.word
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_number_word_bits = join_publish_word.lo
+                                float_number_word_resume_ep = 1
+                                microstate = MICRO_FLOAT_INC
                             elif join_ep_scalar_is_negate or join_ep_scalar_is_abs:
                                 join_ep_scalar_float_sign: uint1_t = join_ep_scalar_float_value.sign ^ 1
                                 if join_ep_scalar_is_abs:
@@ -9144,28 +9505,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                     exp=join_ep_scalar_float_value.exp,
                                     man=join_ep_scalar_float_value.man,
                                 )
-                                join_ep_scalar_float_number2: red2_float_word_checked_t = red2_float64_number_word(join_ep_scalar_float_signed)
-                                if not join_ep_scalar_float_number2.valid:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = join_ep_scalar_float_number2.word
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_number_word_bits = red2_float64_to_bits(join_ep_scalar_float_signed)
+                                float_number_word_resume_ep = 1
+                                microstate = MICRO_FLOAT_NUMBER_WORD
                             else:
-                                join_ep_scalar_float_rounded: red2_float_i64_t = red2_float64_floor_ceil_i64(
-                                    join_ep_scalar_float_value, join_ep_scalar_is_ceiling
+                                float_floor_ceil_bits = red2_float64_to_bits(
+                                    join_ep_scalar_float_value
                                 )
-                                if not join_ep_scalar_float_rounded.fits:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                else:
-                                    join_publish_word = red2_word_t(
-                                        lo=join_ep_scalar_float_rounded.payload,
-                                        hi=85065728,
-                                    )
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
+                                float_floor_ceil_ceiling = join_ep_scalar_is_ceiling
+                                float_floor_ceil_resume_ep = 1
+                                microstate = MICRO_FLOAT_FLOOR_CEIL
                     elif join_ep_scalar_int_contract:
                         if join_ep_scalar_overflow:
                             red2_fault = FAULT_UNSUPPORTED_VALUE
@@ -10784,35 +11133,56 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                         join_scalar_preflight_done = 1
                                         microstate = join_scalar_resume
                                 elif join_scalar_op_mul:
-                                    join_scalar_float_mul: red2_float_checked_t = red2_float64_mul_checked(
-                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    # Reuse the FLOAT_POW operand registers while the shared
+                                    # checked multiplier is active.  Integer-pow launch always
+                                    # overwrites join_scalar_int_pow_negative before using it,
+                                    # so it is a safe temporary context bit here.
+                                    join_scalar_float_pow_result_bits = red2_float64_to_bits(
+                                        join_scalar_left_float_value
                                     )
-                                    if not join_scalar_float_mul.valid:
-                                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                                        microstate = MICRO_FAULT
-                                    else:
-                                        join_publish_word = red2_word_t(
-                                            lo=red2_float64_to_bits(join_scalar_float_mul.value),
-                                            hi=87293952,
-                                        )
-                                        join_scalar_contract = 1
-                                        join_scalar_preflight_done = 1
-                                        microstate = join_scalar_resume
+                                    join_scalar_float_pow_factor_bits = red2_float64_to_bits(
+                                        join_scalar_right_float_value
+                                    )
+                                    join_scalar_int_pow_negative = 1
+                                    microstate = MICRO_FLOAT_MUL_CHECKED
                                 elif join_scalar_op_div:
-                                    join_scalar_float_div: red2_float_checked_t = red2_float64_div_checked(
-                                        join_scalar_left_float_value, join_scalar_right_float_value
+                                    # One physical binary64 restoring divider is shared by
+                                    # all machine divide sites.  Internal clocks do not
+                                    # consume semantic quantum.
+                                    float_div_left_hidden_bit: uint1_t = 1
+                                    float_div_right_hidden_bit: uint1_t = 1
+                                    float_div_dividend = concat(
+                                        float_div_left_hidden_bit,
+                                        join_scalar_left_float_value.man,
                                     )
-                                    if not join_scalar_float_div.valid:
-                                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                                        microstate = MICRO_FAULT
+                                    float_div_divisor = concat(
+                                        float_div_right_hidden_bit,
+                                        join_scalar_right_float_value.man,
+                                    )
+                                    float_div_remainder = 0
+                                    float_div_quotient = 0
+                                    float_div_remaining = 106
+                                    float_div_left_exp = join_scalar_left_float_value.exp
+                                    float_div_right_exp = join_scalar_right_float_value.exp
+                                    float_div_sign = (
+                                        join_scalar_left_float_value.sign
+                                        ^ join_scalar_right_float_value.sign
+                                    )
+                                    float_div_left_zero = red2_float64_zero(
+                                        join_scalar_left_float_value
+                                    )
+                                    float_div_right_zero = red2_float64_zero(
+                                        join_scalar_right_float_value
+                                    )
+                                    float_div_resume_kind = FLOAT_DIV_RESUME_SCALAR_DIV
+                                    if (
+                                        join_scalar_left_float_value.exp == 0
+                                        or join_scalar_right_float_value.exp == 0
+                                    ):
+                                        float_div_remaining = 0
+                                        microstate = MICRO_FLOAT_DIV_FINISH
                                     else:
-                                        join_publish_word = red2_word_t(
-                                            lo=red2_float64_to_bits(join_scalar_float_div.value),
-                                            hi=87293952,
-                                        )
-                                        join_scalar_contract = 1
-                                        join_scalar_preflight_done = 1
-                                        microstate = join_scalar_resume
+                                        microstate = MICRO_FLOAT_DIV
                                 elif join_scalar_op_lt or join_scalar_op_gt or join_scalar_op_le or join_scalar_op_ge:
                                     join_scalar_float_ordering: uint2_t = red2_float64_compare(
                                         join_scalar_left_float_value, join_scalar_right_float_value
@@ -10863,17 +11233,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                         join_scalar_preflight_done = 1
                                         microstate = join_scalar_resume
                                     else:
-                                        join_scalar_float_selected_number: red2_float_word_checked_t = red2_float64_number_word(
+                                        float_number_word_bits = red2_float64_to_bits(
                                             join_scalar_float_chosen_value
                                         )
-                                        if not join_scalar_float_selected_number.valid:
-                                            red2_fault = FAULT_UNSUPPORTED_VALUE
-                                            microstate = MICRO_FAULT
-                                        else:
-                                            join_publish_word = join_scalar_float_selected_number.word
-                                            join_scalar_contract = 1
-                                            join_scalar_preflight_done = 1
-                                            microstate = join_scalar_resume
+                                        float_number_word_resume_ep = join_scalar_return_ep
+                                        microstate = MICRO_FLOAT_NUMBER_WORD
                                 elif join_scalar_op_expt:
                                     join_scalar_float_exp_integral: uint1_t = red2_float64_integral(
                                         join_scalar_right_float_value
@@ -10895,26 +11259,18 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                             microstate = MICRO_FAULT
                                         else:
                                             join_scalar_float_exp6: uint6_t = join_scalar_float_exp_magnitude
-                                            join_scalar_float_pow: red2_float_checked_t = red2_float64_pow63(
-                                                join_scalar_left_float_value,
-                                                join_scalar_float_exp6,
-                                                join_scalar_float_exp_negative,
+                                            join_scalar_float_pow_one: float64_t = float64_t(sign=0, exp=1023, man=0)
+                                            join_scalar_float_pow_result_bits = red2_float64_to_bits(
+                                                join_scalar_float_pow_one
                                             )
-                                            if not join_scalar_float_pow.valid:
-                                                red2_fault = FAULT_UNSUPPORTED_VALUE
-                                                microstate = MICRO_FAULT
-                                            else:
-                                                join_scalar_float_pow_number: red2_float_word_checked_t = red2_float64_number_word(
-                                                    join_scalar_float_pow.value
-                                                )
-                                                if not join_scalar_float_pow_number.valid:
-                                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                                    microstate = MICRO_FAULT
-                                                else:
-                                                    join_publish_word = join_scalar_float_pow_number.word
-                                                    join_scalar_contract = 1
-                                                    join_scalar_preflight_done = 1
-                                                    microstate = join_scalar_resume
+                                            join_scalar_float_pow_factor_bits = red2_float64_to_bits(
+                                                join_scalar_left_float_value
+                                            )
+                                            join_scalar_float_pow_remaining = join_scalar_float_exp6
+                                            join_scalar_float_pow_valid = 1
+                                            join_scalar_float_pow_invert = join_scalar_float_exp_negative
+                                            join_scalar_float_pow_phase = 0
+                                            microstate = MICRO_JOIN_SCALAR_FLOAT_POW
                                 else:
                                     red2_fault = FAULT_ILLEGAL_TRANSITION
                                     microstate = MICRO_FAULT
@@ -10967,34 +11323,23 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             join_scalar_mul_limit: uint64_t = 9223372036854775807
                             if join_scalar_mul_negative:
                                 join_scalar_mul_limit = 9223372036854775808
-                            join_scalar_mul_overflow: uint1_t = 0
-                            join_scalar_mul_magnitude: uint64_t = 0
                             join_scalar_mul_zero: uint1_t = join_scalar_left_magnitude == 0
                             join_scalar_mul_zero = join_scalar_mul_zero or join_scalar_right_magnitude == 0
-                            if not join_scalar_mul_zero:
-                                join_scalar_mul_bound: red2_u64_divmod_t = red2_u64_divmod(
-                                    join_scalar_mul_limit, join_scalar_right_magnitude
-                                )
-                                join_scalar_mul_fits: uint1_t = red2_u64_ge(
-                                    join_scalar_mul_bound.q, join_scalar_left_magnitude
-                                )
-                                if not join_scalar_mul_fits:
-                                    join_scalar_mul_overflow = 1
-                                else:
-                                    join_scalar_mul_magnitude = (
-                                        join_scalar_left_magnitude * join_scalar_right_magnitude
-                                    )
-                            if join_scalar_mul_overflow:
-                                red2_fault = FAULT_UNSUPPORTED_VALUE
-                                microstate = MICRO_FAULT
-                            else:
-                                join_scalar_mul_payload: uint64_t = join_scalar_mul_magnitude
-                                if join_scalar_mul_negative:
-                                    join_scalar_mul_payload = 0 - join_scalar_mul_magnitude
-                                join_publish_word = red2_word_t(lo=join_scalar_mul_payload, hi=85065728)
+                            if join_scalar_mul_zero:
+                                join_publish_word = red2_word_t(lo=0, hi=85065728)
                                 join_scalar_contract = 1
                                 join_scalar_preflight_done = 1
                                 microstate = join_scalar_resume
+                            else:
+                                u64_div_dividend = join_scalar_mul_limit
+                                u64_div_divisor = join_scalar_right_magnitude
+                                u64_div_quotient = 0
+                                u64_div_remainder = 0
+                                u64_div_remaining = 64
+                                u64_div_resume_kind = U64_DIV_RESUME_SCALAR_MUL
+                                u64_div_aux = join_scalar_left_magnitude
+                                u64_div_flags = concat(join_scalar_right_negative, join_scalar_left_negative)
+                                microstate = MICRO_U64_DIV
                         elif join_scalar_op_div:
                             join_scalar_div_left_magnitude: uint64_t = memory_out.p0.rd_data.lo
                             if join_scalar_left_negative:
@@ -11006,43 +11351,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 red2_fault = FAULT_UNSUPPORTED_VALUE
                                 microstate = MICRO_FAULT
                             else:
-                                join_scalar_div_result: red2_u64_divmod_t = red2_u64_divmod(
-                                    join_scalar_div_left_magnitude, join_scalar_div_right_magnitude
-                                )
-                                join_scalar_div_inexact: uint1_t = join_scalar_div_result.r != 0
-                                join_scalar_div_negative: uint1_t = join_scalar_signs_differ
-                                join_scalar_div_positive_overflow: uint1_t = join_scalar_div_result.q[63]
-                                join_scalar_div_positive_overflow = join_scalar_div_positive_overflow and not join_scalar_div_negative
-                                if join_scalar_div_positive_overflow:
-                                    red2_fault = FAULT_UNSUPPORTED_VALUE
-                                    microstate = MICRO_FAULT
-                                elif join_scalar_div_inexact:
-                                    join_scalar_div_left_i64: int64_t = int64_t(memory_out.p0.rd_data.lo)
-                                    join_scalar_div_right_i64: int64_t = int64_t(join_scalar_right_word.lo)
-                                    join_scalar_div_left_float: float64_t = red2_int64_to_float64(join_scalar_div_left_i64)
-                                    join_scalar_div_right_float: float64_t = red2_int64_to_float64(join_scalar_div_right_i64)
-                                    join_scalar_div_float_result: red2_float_checked_t = red2_float64_div_checked(
-                                        join_scalar_div_left_float, join_scalar_div_right_float
-                                    )
-                                    if not join_scalar_div_float_result.valid:
-                                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                                        microstate = MICRO_FAULT
-                                    else:
-                                        join_publish_word = red2_word_t(
-                                            lo=red2_float64_to_bits(join_scalar_div_float_result.value),
-                                            hi=87293952,
-                                        )
-                                        join_scalar_contract = 1
-                                        join_scalar_preflight_done = 1
-                                        microstate = join_scalar_resume
-                                else:
-                                    join_scalar_div_payload: uint64_t = join_scalar_div_result.q
-                                    if join_scalar_div_negative:
-                                        join_scalar_div_payload = 0 - join_scalar_div_result.q
-                                    join_publish_word = red2_word_t(lo=join_scalar_div_payload, hi=85065728)
-                                    join_scalar_contract = 1
-                                    join_scalar_preflight_done = 1
-                                    microstate = join_scalar_resume
+                                u64_div_dividend = join_scalar_div_left_magnitude
+                                u64_div_divisor = join_scalar_div_right_magnitude
+                                u64_div_quotient = 0
+                                u64_div_remainder = 0
+                                u64_div_remaining = 64
+                                u64_div_resume_kind = U64_DIV_RESUME_SCALAR_DIV
+                                u64_div_aux = join_scalar_div_left_magnitude
+                                u64_div_flags = concat(join_scalar_right_negative, join_scalar_left_negative)
+                                microstate = MICRO_U64_DIV
                         elif join_scalar_op_mod:
                             join_scalar_mod_left_magnitude: uint64_t = memory_out.p0.rd_data.lo
                             if join_scalar_left_negative:
@@ -11054,22 +11371,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 red2_fault = FAULT_UNSUPPORTED_VALUE
                                 microstate = MICRO_FAULT
                             else:
-                                join_scalar_mod_result: red2_u64_divmod_t = red2_u64_divmod(
-                                    join_scalar_mod_left_magnitude, join_scalar_mod_right_magnitude
-                                )
-                                join_scalar_mod_magnitude: uint64_t = join_scalar_mod_result.r
-                                join_scalar_mod_nonzero: uint1_t = join_scalar_mod_result.r != 0
-                                if join_scalar_signs_differ and join_scalar_mod_nonzero:
-                                    join_scalar_mod_magnitude = (
-                                        join_scalar_mod_right_magnitude - join_scalar_mod_result.r
-                                    )
-                                join_scalar_mod_payload: uint64_t = join_scalar_mod_magnitude
-                                if join_scalar_right_negative and join_scalar_mod_nonzero:
-                                    join_scalar_mod_payload = 0 - join_scalar_mod_magnitude
-                                join_publish_word = red2_word_t(lo=join_scalar_mod_payload, hi=85065728)
-                                join_scalar_contract = 1
-                                join_scalar_preflight_done = 1
-                                microstate = join_scalar_resume
+                                u64_div_dividend = join_scalar_mod_left_magnitude
+                                u64_div_divisor = join_scalar_mod_right_magnitude
+                                u64_div_quotient = 0
+                                u64_div_remainder = 0
+                                u64_div_remaining = 64
+                                u64_div_resume_kind = U64_DIV_RESUME_SCALAR_MOD
+                                u64_div_aux = join_scalar_mod_left_magnitude
+                                u64_div_flags = concat(join_scalar_right_negative, join_scalar_left_negative)
+                                microstate = MICRO_U64_DIV
                         elif join_scalar_op_expt:
                             if join_scalar_right_negative:
                                 join_scalar_neg_pow_magnitude: uint64_t = 0 - join_scalar_right_word.lo
@@ -11078,29 +11388,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                     red2_fault = FAULT_UNSUPPORTED_VALUE
                                     microstate = MICRO_FAULT
                                 else:
-                                    join_scalar_neg_pow_base_i64: int64_t = int64_t(memory_out.p0.rd_data.lo)
-                                    join_scalar_neg_pow_base: float64_t = red2_int64_to_float64(join_scalar_neg_pow_base_i64)
-                                    join_scalar_neg_pow_exp6: uint6_t = join_scalar_neg_pow_magnitude
-                                    join_scalar_neg_pow_result: red2_float_checked_t = red2_float64_pow63(
-                                        join_scalar_neg_pow_base,
-                                        join_scalar_neg_pow_exp6,
-                                        1,
-                                    )
-                                    if not join_scalar_neg_pow_result.valid:
-                                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                                        microstate = MICRO_FAULT
-                                    else:
-                                        join_scalar_neg_pow_number: red2_float_word_checked_t = red2_float64_number_word(
-                                            join_scalar_neg_pow_result.value
-                                        )
-                                        if not join_scalar_neg_pow_number.valid:
-                                            red2_fault = FAULT_UNSUPPORTED_VALUE
-                                            microstate = MICRO_FAULT
-                                        else:
-                                            join_publish_word = join_scalar_neg_pow_number.word
-                                            join_scalar_contract = 1
-                                            join_scalar_preflight_done = 1
-                                            microstate = join_scalar_resume
+                                    join_scalar_int_pow_base = memory_out.p0.rd_data.lo
+                                    u64_div_resume_kind = U64_DIV_RESUME_INT64_NEG_EXPT
+                                    microstate = MICRO_INT64_TO_FLOAT
                             else:
                                 join_scalar_pow_base_magnitude: uint64_t = memory_out.p0.rd_data.lo
                                 if join_scalar_left_negative:
@@ -11116,34 +11406,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                     microstate = MICRO_FAULT
                                 else:
                                     join_scalar_pow_negative: uint1_t = join_scalar_left_negative and join_scalar_pow_exponent[0]
-                                    join_scalar_pow_magnitude: uint64_t = 1
-                                    join_scalar_pow_overflow: uint1_t = 0
-                                    if join_scalar_pow_base_zero and not join_scalar_pow_exponent_zero:
-                                        join_scalar_pow_magnitude = 0
-                                    elif join_scalar_pow_nontrivial:
-                                        join_scalar_pow_limit: uint64_t = 9223372036854775807
-                                        if join_scalar_pow_negative:
-                                            join_scalar_pow_limit = 9223372036854775808
-                                        join_scalar_pow_bound: red2_u64_divmod_t = red2_u64_divmod(
-                                            join_scalar_pow_limit, join_scalar_pow_base_magnitude
-                                        )
-                                        join_scalar_pow_remaining: uint64_t = join_scalar_pow_exponent
-                                        for _pow_step in range(63):
-                                            if join_scalar_pow_remaining != 0:
-                                                join_scalar_pow_fits: uint1_t = red2_u64_ge(
-                                                    join_scalar_pow_bound.q, join_scalar_pow_magnitude
-                                                )
-                                                if not join_scalar_pow_fits:
-                                                    join_scalar_pow_overflow = 1
-                                                else:
-                                                    join_scalar_pow_magnitude = (
-                                                        join_scalar_pow_magnitude * join_scalar_pow_base_magnitude
-                                                    )
-                                                join_scalar_pow_remaining = join_scalar_pow_remaining - 1
-                                    if join_scalar_pow_overflow:
-                                        red2_fault = FAULT_UNSUPPORTED_VALUE
-                                        microstate = MICRO_FAULT
-                                    else:
+                                    if join_scalar_pow_exponent_zero or not join_scalar_pow_nontrivial:
+                                        join_scalar_pow_magnitude: uint64_t = 1
+                                        if join_scalar_pow_base_zero and not join_scalar_pow_exponent_zero:
+                                            join_scalar_pow_magnitude = 0
                                         join_scalar_pow_payload: uint64_t = join_scalar_pow_magnitude
                                         if join_scalar_pow_negative:
                                             join_scalar_pow_payload = 0 - join_scalar_pow_magnitude
@@ -11151,6 +11417,24 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                         join_scalar_contract = 1
                                         join_scalar_preflight_done = 1
                                         microstate = join_scalar_resume
+                                    else:
+                                        join_scalar_pow_limit: uint64_t = 9223372036854775807
+                                        if join_scalar_pow_negative:
+                                            join_scalar_pow_limit = 9223372036854775808
+                                        join_scalar_int_pow_base = join_scalar_pow_base_magnitude
+                                        join_scalar_int_pow_magnitude = 1
+                                        join_scalar_int_pow_bound = 0
+                                        join_scalar_int_pow_remaining = join_scalar_pow_exponent[5:0]
+                                        join_scalar_int_pow_negative = join_scalar_pow_negative
+                                        u64_div_dividend = join_scalar_pow_limit
+                                        u64_div_divisor = join_scalar_pow_base_magnitude
+                                        u64_div_quotient = 0
+                                        u64_div_remainder = 0
+                                        u64_div_remaining = 64
+                                        u64_div_resume_kind = U64_DIV_RESUME_INT_POW
+                                        u64_div_aux = 0
+                                        u64_div_flags = 0
+                                        microstate = MICRO_U64_DIV
                         elif join_scalar_op_max or join_scalar_op_min:
                             join_scalar_select_left: uint1_t = join_scalar_signed_lt == 0
                             if join_scalar_op_min:
@@ -11183,6 +11467,523 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                                 join_scalar_contract = 1
                                 join_scalar_preflight_done = 1
                                 microstate = join_scalar_resume
+        if not clock_dispatch_handled and micro_is_u64_div:
+            clock_dispatch_handled = 1
+            if u64_div_remaining == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                # One restoring-division bit per hardware clock.  Shift the
+                # dividend register so no dynamic 64-way bit selector is needed.
+                u64_div_next_bit: uint1_t = u64_div_dividend[63]
+                u64_div_shifted_remainder: uint64_t = (
+                    (u64_div_remainder << 1) | u64_div_next_bit
+                )
+                u64_div_next_quotient: uint64_t = u64_div_quotient << 1
+                u64_div_remainder_ge: uint1_t = red2_u64_ge(
+                    u64_div_shifted_remainder, u64_div_divisor
+                )
+                if u64_div_remainder_ge:
+                    u64_div_shifted_remainder = (
+                        u64_div_shifted_remainder - u64_div_divisor
+                    )
+                    u64_div_next_quotient = u64_div_next_quotient | 1
+                u64_div_dividend = u64_div_dividend << 1
+                u64_div_remainder = u64_div_shifted_remainder
+                u64_div_quotient = u64_div_next_quotient
+                # Test the pre-clock count.  On the 64th iteration publish the
+                # final q/r registers and advance; do not depend on whether a
+                # Reg assignment is visible to later expressions this clock.
+                if u64_div_remaining == 1:
+                    u64_div_remaining = 0
+                    microstate = MICRO_U64_DIV_FINISH
+                else:
+                    u64_div_remaining = u64_div_remaining - 1
+        if not clock_dispatch_handled and micro_is_u64_div_finish:
+            clock_dispatch_handled = 1
+            if u64_div_resume_kind == U64_DIV_RESUME_SCALAR_MUL:
+                u64_div_mul_fits: uint1_t = red2_u64_ge(
+                    u64_div_quotient, u64_div_aux
+                )
+                if not u64_div_mul_fits:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    u64_div_mul_magnitude: uint64_t = u64_div_aux * u64_div_divisor
+                    u64_div_mul_negative: uint1_t = u64_div_flags[0] != u64_div_flags[1]
+                    u64_div_mul_payload: uint64_t = u64_div_mul_magnitude
+                    if u64_div_mul_negative:
+                        u64_div_mul_payload = 0 - u64_div_mul_magnitude
+                    join_publish_word = red2_word_t(lo=u64_div_mul_payload, hi=85065728)
+                    join_scalar_contract = 1
+                    join_scalar_preflight_done = 1
+                    if join_scalar_return_ep:
+                        microstate = MICRO_JOIN_EP_RESULT_WRITE
+                    else:
+                        microstate = MICRO_JOIN_PUBLISH
+            elif u64_div_resume_kind == U64_DIV_RESUME_SCALAR_DIV:
+                u64_div_left_negative: uint1_t = u64_div_flags[0]
+                u64_div_right_negative: uint1_t = u64_div_flags[1]
+                u64_div_result_negative: uint1_t = u64_div_left_negative != u64_div_right_negative
+                u64_div_positive_overflow: uint1_t = u64_div_quotient[63]
+                u64_div_positive_overflow = u64_div_positive_overflow and not u64_div_result_negative
+                if u64_div_positive_overflow:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                elif u64_div_remainder != 0:
+                    microstate = MICRO_INT64_TO_FLOAT
+                else:
+                    u64_div_payload: uint64_t = u64_div_quotient
+                    if u64_div_result_negative:
+                        u64_div_payload = 0 - u64_div_quotient
+                    join_publish_word = red2_word_t(lo=u64_div_payload, hi=85065728)
+                    join_scalar_contract = 1
+                    join_scalar_preflight_done = 1
+                    if join_scalar_return_ep:
+                        microstate = MICRO_JOIN_EP_RESULT_WRITE
+                    else:
+                        microstate = MICRO_JOIN_PUBLISH
+            elif u64_div_resume_kind == U64_DIV_RESUME_SCALAR_MOD:
+                u64_mod_left_negative: uint1_t = u64_div_flags[0]
+                u64_mod_right_negative: uint1_t = u64_div_flags[1]
+                u64_mod_signs_differ: uint1_t = u64_mod_left_negative != u64_mod_right_negative
+                u64_mod_magnitude: uint64_t = u64_div_remainder
+                u64_mod_nonzero: uint1_t = u64_div_remainder != 0
+                if u64_mod_signs_differ and u64_mod_nonzero:
+                    u64_mod_magnitude = u64_div_divisor - u64_div_remainder
+                u64_mod_payload: uint64_t = u64_mod_magnitude
+                if u64_mod_right_negative and u64_mod_nonzero:
+                    u64_mod_payload = 0 - u64_mod_magnitude
+                join_publish_word = red2_word_t(lo=u64_mod_payload, hi=85065728)
+                join_scalar_contract = 1
+                join_scalar_preflight_done = 1
+                if join_scalar_return_ep:
+                    microstate = MICRO_JOIN_EP_RESULT_WRITE
+                else:
+                    microstate = MICRO_JOIN_PUBLISH
+            elif u64_div_resume_kind == U64_DIV_RESUME_INT_POW:
+                join_scalar_int_pow_bound = u64_div_quotient
+                microstate = MICRO_JOIN_SCALAR_INT_POW
+            elif u64_div_resume_kind == U64_DIV_RESUME_RECP:
+                u64_recp_remainder_bad: uint1_t = u64_div_remainder != 0
+                u64_recp_upper_bad: uint1_t = u64_div_quotient[63:16] != 0
+                u64_recp_selected16: uint16_t = u64_div_quotient[15:0]
+                u64_recp_outside: uint1_t = red2_u64_ge(u64_div_quotient, recp_count)
+                if u64_recp_remainder_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif u64_recp_upper_bad:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                elif u64_recp_outside:
+                    red2_fault = FAULT_INVALID_ADDRESS
+                    microstate = MICRO_FAULT
+                else:
+                    recp_selected = u64_recp_selected16
+                    microstate = MICRO_RECP_RECON_PREFLIGHT
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+        if not clock_dispatch_handled and micro_is_join_scalar_int_pow:
+            clock_dispatch_handled = 1
+            if join_scalar_int_pow_remaining == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                join_scalar_int_pow_fits: uint1_t = red2_u64_ge(
+                    join_scalar_int_pow_bound, join_scalar_int_pow_magnitude
+                )
+                if not join_scalar_int_pow_fits:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    join_scalar_int_pow_next: uint64_t = (
+                        join_scalar_int_pow_magnitude * join_scalar_int_pow_base
+                    )
+                    if join_scalar_int_pow_remaining == 1:
+                        join_scalar_int_pow_payload: uint64_t = join_scalar_int_pow_next
+                        if join_scalar_int_pow_negative:
+                            join_scalar_int_pow_payload = 0 - join_scalar_int_pow_next
+                        join_publish_word = red2_word_t(
+                            lo=join_scalar_int_pow_payload, hi=85065728
+                        )
+                        join_scalar_contract = 1
+                        join_scalar_preflight_done = 1
+                        if join_scalar_return_ep:
+                            microstate = MICRO_JOIN_EP_RESULT_WRITE
+                        else:
+                            microstate = MICRO_JOIN_PUBLISH
+                    else:
+                        join_scalar_int_pow_magnitude = join_scalar_int_pow_next
+                        join_scalar_int_pow_remaining = join_scalar_int_pow_remaining - 1
+        if not clock_dispatch_handled and micro_is_join_scalar_float_pow:
+            clock_dispatch_handled = 1
+            if join_scalar_float_pow_remaining == 0:
+                microstate = MICRO_JOIN_SCALAR_FLOAT_POW_FINISH
+            else:
+                # The shared checked multiplier handles both result steps and
+                # factor squaring.  Phase and operand bits already persist.
+                join_scalar_int_pow_negative = 0
+                microstate = MICRO_FLOAT_MUL_CHECKED
+        if not clock_dispatch_handled and micro_is_join_scalar_float_pow_finish:
+            clock_dispatch_handled = 1
+            join_scalar_float_pow_final: float64_t = red2_float64_from_bits(
+                join_scalar_float_pow_result_bits
+            )
+            if join_scalar_float_pow_invert:
+                join_scalar_float_pow_final_one: float64_t = float64_t(
+                    sign=0, exp=1023, man=0
+                )
+                float_div_pow_left_hidden_bit: uint1_t = 1
+                float_div_pow_right_hidden_bit: uint1_t = 1
+                float_div_dividend = concat(
+                    float_div_pow_left_hidden_bit,
+                    join_scalar_float_pow_final_one.man,
+                )
+                float_div_divisor = concat(
+                    float_div_pow_right_hidden_bit,
+                    join_scalar_float_pow_final.man,
+                )
+                float_div_remainder = 0
+                float_div_quotient = 0
+                float_div_remaining = 106
+                float_div_left_exp = join_scalar_float_pow_final_one.exp
+                float_div_right_exp = join_scalar_float_pow_final.exp
+                float_div_sign = (
+                    join_scalar_float_pow_final_one.sign
+                    ^ join_scalar_float_pow_final.sign
+                )
+                float_div_left_zero = red2_float64_zero(
+                    join_scalar_float_pow_final_one
+                )
+                float_div_right_zero = red2_float64_zero(
+                    join_scalar_float_pow_final
+                )
+                float_div_resume_kind = FLOAT_DIV_RESUME_FLOAT_POW_RECIPROCAL
+                if (
+                    join_scalar_float_pow_final_one.exp == 0
+                    or join_scalar_float_pow_final.exp == 0
+                ):
+                    float_div_remaining = 0
+                    microstate = MICRO_FLOAT_DIV_FINISH
+                else:
+                    microstate = MICRO_FLOAT_DIV
+            else:
+                if not join_scalar_float_pow_valid:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    float_number_word_bits = red2_float64_to_bits(
+                        join_scalar_float_pow_final
+                    )
+                    float_number_word_resume_ep = join_scalar_return_ep
+                    microstate = MICRO_FLOAT_NUMBER_WORD
+
+        if not clock_dispatch_handled and micro_is_float_div:
+            clock_dispatch_handled = 1
+            if float_div_remaining == 0:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+            else:
+                # One restoring quotient bit per hardware clock.  The 53-bit
+                # dividend shift register supplies its hidden significand MSB-first;
+                # after 53 clocks it naturally supplies the required trailing zeros.
+                float_div_next_bit: uint1_t = float_div_dividend[52]
+                float_div_shifted_remainder: uint54_t = (
+                    (float_div_remainder << 1) | float_div_next_bit
+                )
+                float_div_next_quotient: uint54_t = float_div_quotient << 1
+                float_div_shifted_wide: uint64_t = float_div_shifted_remainder
+                float_div_divisor_wide: uint64_t = float_div_divisor
+                float_div_remainder_ge: uint1_t = red2_u64_ge(
+                    float_div_shifted_wide, float_div_divisor_wide
+                )
+                if float_div_remainder_ge:
+                    float_div_shifted_remainder = (
+                        float_div_shifted_remainder - float_div_divisor
+                    )
+                    float_div_next_quotient = float_div_next_quotient | 1
+                float_div_dividend = float_div_dividend << 1
+                float_div_remainder = float_div_shifted_remainder
+                float_div_quotient = float_div_next_quotient
+                if float_div_remaining == 1:
+                    float_div_remaining = 0
+                    microstate = MICRO_FLOAT_DIV_FINISH
+                else:
+                    float_div_remaining = float_div_remaining - 1
+
+        if not clock_dispatch_handled and micro_is_float_div_finish:
+            clock_dispatch_handled = 1
+            float_div_result_exp: uint11_t = 0
+            float_div_result_man: uint52_t = 0
+            if float_div_left_exp != 0 and float_div_right_exp != 0:
+                float_div_lhs_plus_bias: uint13_t = float_div_left_exp + 1023
+                float_div_biased_exp: uint13_t = (
+                    float_div_lhs_plus_bias - float_div_right_exp
+                )
+                float_div_hidden_man: uint53_t
+                float_div_final_exp: uint13_t
+                if float_div_quotient[53]:
+                    float_div_hidden_man = float_div_quotient[53:1]
+                    float_div_final_exp = float_div_biased_exp
+                else:
+                    float_div_hidden_man = float_div_quotient[52:0]
+                    float_div_final_exp = float_div_biased_exp + (-1)
+                float_div_result_exp = float_div_final_exp
+                float_div_result_man = float_div_hidden_man[51:0]
+
+            float_div_result: float64_t = float64_t(
+                sign=float_div_sign,
+                exp=float_div_result_exp,
+                man=float_div_result_man,
+            )
+            float_div_valid: uint1_t = red2_float64_supported(float_div_result)
+            if float_div_right_zero:
+                float_div_valid = 0
+            elif not float_div_left_zero:
+                float_div_checked_left_exp: int14_t = float_div_left_exp
+                float_div_checked_right_exp: int14_t = float_div_right_exp
+                float_div_checked_biased: int14_t = (
+                    float_div_checked_left_exp + 1023
+                )
+                float_div_checked_biased = (
+                    float_div_checked_biased - float_div_checked_right_exp
+                )
+                float_div_checked_biased_low: uint11_t = float_div_checked_biased
+                float_div_checked_final_exp: int14_t = float_div_checked_biased
+                if float_div_result.exp != float_div_checked_biased_low:
+                    float_div_checked_final_exp = float_div_checked_final_exp + (-1)
+                float_div_checked_negative: uint1_t = float_div_checked_final_exp[13]
+                float_div_checked_nonzero: uint1_t = float_div_checked_final_exp != 0
+                float_div_checked_wide: uint64_t = float_div_checked_final_exp
+                float_div_checked_ge_2047: uint1_t = red2_u64_ge(
+                    float_div_checked_wide, 2047
+                )
+                float_div_range_ok: uint1_t = (
+                    not float_div_checked_negative and float_div_checked_nonzero
+                )
+                float_div_range_ok = (
+                    float_div_range_ok and not float_div_checked_ge_2047
+                )
+                float_div_valid = float_div_valid and float_div_range_ok
+
+            if float_div_resume_kind == FLOAT_DIV_RESUME_SCALAR_DIV:
+                if not float_div_valid:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    join_publish_word = red2_word_t(
+                        lo=red2_float64_to_bits(float_div_result), hi=87293952
+                    )
+                    join_scalar_contract = 1
+                    join_scalar_preflight_done = 1
+                    if join_scalar_return_ep:
+                        microstate = MICRO_JOIN_EP_RESULT_WRITE
+                    else:
+                        microstate = MICRO_JOIN_PUBLISH
+            elif float_div_resume_kind == FLOAT_DIV_RESUME_INTEGER_DIV_FRACTION:
+                if not float_div_valid:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    join_publish_word = red2_word_t(
+                        lo=red2_float64_to_bits(float_div_result), hi=87293952
+                    )
+                    join_scalar_contract = 1
+                    join_scalar_preflight_done = 1
+                    if join_scalar_return_ep:
+                        microstate = MICRO_JOIN_EP_RESULT_WRITE
+                    else:
+                        microstate = MICRO_JOIN_PUBLISH
+            elif float_div_resume_kind == FLOAT_DIV_RESUME_FLOAT_POW_RECIPROCAL:
+                float_div_pow_valid: uint1_t = (
+                    join_scalar_float_pow_valid and float_div_valid
+                )
+                if not float_div_pow_valid:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    float_number_word_bits = red2_float64_to_bits(float_div_result)
+                    float_number_word_resume_ep = join_scalar_return_ep
+                    microstate = MICRO_FLOAT_NUMBER_WORD
+            else:
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+
+        if not clock_dispatch_handled and micro_is_float_mul_checked:
+            clock_dispatch_handled = 1
+            float_mul_binary_context: uint1_t = join_scalar_int_pow_negative
+            float_mul_left: float64_t = red2_float64_from_bits(
+                join_scalar_float_pow_result_bits
+            )
+            float_mul_right: float64_t = red2_float64_from_bits(
+                join_scalar_float_pow_factor_bits
+            )
+            if not float_mul_binary_context and join_scalar_float_pow_phase != 0:
+                float_mul_left = float_mul_right
+            float_mul_result: red2_float_checked_t = red2_float64_mul_checked(
+                float_mul_left, float_mul_right
+            )
+            if float_mul_binary_context:
+                if not float_mul_result.valid:
+                    red2_fault = FAULT_UNSUPPORTED_VALUE
+                    microstate = MICRO_FAULT
+                else:
+                    join_publish_word = red2_word_t(
+                        lo=red2_float64_to_bits(float_mul_result.value),
+                        hi=87293952,
+                    )
+                    join_scalar_contract = 1
+                    join_scalar_preflight_done = 1
+                    if join_scalar_return_ep:
+                        microstate = MICRO_JOIN_EP_RESULT_WRITE
+                    else:
+                        microstate = MICRO_JOIN_PUBLISH
+            elif join_scalar_float_pow_phase == 0:
+                if join_scalar_float_pow_remaining[0]:
+                    join_scalar_float_pow_result_bits = red2_float64_to_bits(
+                        float_mul_result.value
+                    )
+                    join_scalar_float_pow_valid = (
+                        join_scalar_float_pow_valid and float_mul_result.valid
+                    )
+                join_scalar_float_pow_remaining = join_scalar_float_pow_remaining >> 1
+                join_scalar_float_pow_phase = 1
+                microstate = MICRO_JOIN_SCALAR_FLOAT_POW
+            else:
+                join_scalar_float_pow_factor_bits = red2_float64_to_bits(
+                    float_mul_result.value
+                )
+                join_scalar_float_pow_valid = (
+                    join_scalar_float_pow_valid and float_mul_result.valid
+                )
+                join_scalar_float_pow_phase = 0
+                microstate = MICRO_JOIN_SCALAR_FLOAT_POW
+
+        if not clock_dispatch_handled and micro_is_int64_to_float:
+            clock_dispatch_handled = 1
+            int64_to_float_payload: uint64_t = 0
+            int64_to_float_valid_resume: uint1_t = 1
+            if u64_div_resume_kind == U64_DIV_RESUME_INT64_NEG_EXPT:
+                int64_to_float_payload = join_scalar_int_pow_base
+            elif u64_div_resume_kind == U64_DIV_RESUME_SCALAR_DIV:
+                int64_to_float_payload = u64_div_aux
+                if u64_div_flags[0]:
+                    int64_to_float_payload = 0 - u64_div_aux
+            elif u64_div_resume_kind == U64_DIV_RESUME_INT64_DIV_RIGHT:
+                int64_to_float_payload = u64_div_divisor
+                if u64_div_flags[1]:
+                    int64_to_float_payload = 0 - u64_div_divisor
+            else:
+                int64_to_float_valid_resume = 0
+                red2_fault = FAULT_ILLEGAL_TRANSITION
+                microstate = MICRO_FAULT
+
+            if int64_to_float_valid_resume:
+                int64_to_float_signed: int64_t = int64_t(int64_to_float_payload)
+                int64_to_float_result: float64_t = red2_int64_to_float64(
+                    int64_to_float_signed
+                )
+                if u64_div_resume_kind == U64_DIV_RESUME_INT64_NEG_EXPT:
+                    int64_to_float_pow_magnitude: uint64_t = 0 - join_scalar_right_word.lo
+                    int64_to_float_pow_exp6: uint6_t = int64_to_float_pow_magnitude
+                    int64_to_float_pow_one: float64_t = float64_t(
+                        sign=0, exp=1023, man=0
+                    )
+                    join_scalar_float_pow_result_bits = red2_float64_to_bits(
+                        int64_to_float_pow_one
+                    )
+                    join_scalar_float_pow_factor_bits = red2_float64_to_bits(
+                        int64_to_float_result
+                    )
+                    join_scalar_float_pow_remaining = int64_to_float_pow_exp6
+                    join_scalar_float_pow_valid = 1
+                    join_scalar_float_pow_invert = 1
+                    join_scalar_float_pow_phase = 0
+                    microstate = MICRO_JOIN_SCALAR_FLOAT_POW
+                elif u64_div_resume_kind == U64_DIV_RESUME_SCALAR_DIV:
+                    int64_to_float_left_hidden_bit: uint1_t = 1
+                    float_div_dividend = concat(
+                        int64_to_float_left_hidden_bit, int64_to_float_result.man
+                    )
+                    float_div_left_exp = int64_to_float_result.exp
+                    float_div_left_zero = red2_float64_zero(int64_to_float_result)
+                    float_div_sign = int64_to_float_result.sign
+                    u64_div_resume_kind = U64_DIV_RESUME_INT64_DIV_RIGHT
+                    microstate = MICRO_INT64_TO_FLOAT
+                elif u64_div_resume_kind == U64_DIV_RESUME_INT64_DIV_RIGHT:
+                    int64_to_float_right_hidden_bit: uint1_t = 1
+                    float_div_divisor = concat(
+                        int64_to_float_right_hidden_bit, int64_to_float_result.man
+                    )
+                    float_div_right_exp = int64_to_float_result.exp
+                    float_div_right_zero = red2_float64_zero(int64_to_float_result)
+                    float_div_sign = float_div_sign ^ int64_to_float_result.sign
+                    float_div_remainder = 0
+                    float_div_quotient = 0
+                    float_div_remaining = 106
+                    float_div_resume_kind = FLOAT_DIV_RESUME_INTEGER_DIV_FRACTION
+                    if float_div_left_exp == 0 or int64_to_float_result.exp == 0:
+                        float_div_remaining = 0
+                        microstate = MICRO_FLOAT_DIV_FINISH
+                    else:
+                        microstate = MICRO_FLOAT_DIV
+
+        if not clock_dispatch_handled and micro_is_float_inc:
+            clock_dispatch_handled = 1
+            float_inc_value: float64_t = red2_float64_from_bits(
+                float_number_word_bits
+            )
+            float_inc_one: float64_t = float64_t(sign=0, exp=1023, man=0)
+            float_inc_result: float64_t = red2_float64_add_raw(
+                float_inc_value, float_inc_one
+            )
+            float_number_word_bits = red2_float64_to_bits(float_inc_result)
+            microstate = MICRO_FLOAT_NUMBER_WORD
+
+        if not clock_dispatch_handled and micro_is_float_number_word:
+            clock_dispatch_handled = 1
+            float_number_word_value: float64_t = red2_float64_from_bits(
+                float_number_word_bits
+            )
+            float_number_word_result: red2_float_word_checked_t = red2_float64_number_word(
+                float_number_word_value
+            )
+            if not float_number_word_result.valid:
+                red2_fault = FAULT_UNSUPPORTED_VALUE
+                microstate = MICRO_FAULT
+            else:
+                join_publish_word = float_number_word_result.word
+                join_scalar_contract = 1
+                join_scalar_preflight_done = 1
+                if float_number_word_resume_ep:
+                    microstate = MICRO_JOIN_EP_RESULT_WRITE
+                else:
+                    microstate = MICRO_JOIN_PUBLISH
+
+        if not clock_dispatch_handled and micro_is_float_floor_ceil:
+            clock_dispatch_handled = 1
+            float_floor_ceil_value: float64_t = red2_float64_from_bits(
+                float_floor_ceil_bits
+            )
+            float_floor_ceil_result: red2_float_i64_t = red2_float64_floor_ceil_i64(
+                float_floor_ceil_value, float_floor_ceil_ceiling
+            )
+            if not float_floor_ceil_result.fits:
+                red2_fault = FAULT_UNSUPPORTED_VALUE
+                microstate = MICRO_FAULT
+            else:
+                join_publish_word = red2_word_t(
+                    lo=float_floor_ceil_result.payload,
+                    hi=85065728,
+                )
+                join_scalar_contract = 1
+                join_scalar_preflight_done = 1
+                if float_floor_ceil_resume_ep:
+                    microstate = MICRO_JOIN_EP_RESULT_WRITE
+                else:
+                    microstate = MICRO_JOIN_PUBLISH
+
         if not clock_dispatch_handled and micro_is_join_closure_code_read:
             clock_dispatch_handled = 1
             join_closure_code_valid: uint1_t = memory_out.p0.rd_data.hi[26]
@@ -12549,11 +13350,6 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 recp_selected_delta64: uint64_t = recp_address64 - recp_context
                 recp_selected_ge_context: uint1_t = red2_u64_ge(recp_address64, recp_context)
                 recp_selected_wrapped: uint1_t = recp_selected_ge_context == 0
-                recp_selected_div: red2_u64_divmod_t = red2_u64_divmod(recp_selected_delta64, 3)
-                recp_selected_remainder_bad: uint1_t = recp_selected_div.r != 0
-                recp_selected_upper_bad: uint1_t = recp_selected_div.q[63:16] != 0
-                recp_selected16: uint16_t = recp_selected_div.q[15:0]
-                recp_selected_outside: uint1_t = red2_u64_ge(recp_selected_div.q, recp_count)
                 if not recp_rup_count_match:
                     red2_fault = FAULT_ILLEGAL_TRANSITION
                     microstate = MICRO_FAULT
@@ -12566,18 +13362,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 elif recp_selected_wrapped:
                     red2_fault = FAULT_INVALID_ADDRESS
                     microstate = MICRO_FAULT
-                elif recp_selected_remainder_bad:
-                    red2_fault = FAULT_INVALID_ADDRESS
-                    microstate = MICRO_FAULT
-                elif recp_selected_upper_bad:
-                    red2_fault = FAULT_INVALID_ADDRESS
-                    microstate = MICRO_FAULT
-                elif recp_selected_outside:
-                    red2_fault = FAULT_INVALID_ADDRESS
-                    microstate = MICRO_FAULT
                 else:
-                    recp_selected = recp_selected16
-                    microstate = MICRO_RECP_RECON_PREFLIGHT
+                    u64_div_dividend = recp_selected_delta64
+                    u64_div_divisor = 3
+                    u64_div_quotient = 0
+                    u64_div_remainder = 0
+                    u64_div_remaining = 64
+                    u64_div_resume_kind = U64_DIV_RESUME_RECP
+                    u64_div_aux = 0
+                    u64_div_flags = 0
+                    microstate = MICRO_U64_DIV
         if not clock_dispatch_handled and micro_is_recp_recon_preflight:
             clock_dispatch_handled = 1
             recp_count17: uint17_t = recp_count

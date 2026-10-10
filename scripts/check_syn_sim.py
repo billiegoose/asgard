@@ -18,7 +18,10 @@ from run_syn import (
     _prepare_program as _prepare_thor_program,
 )
 
-from pypeline import sim_call, sim_reset
+from pypeline import sim_call as _raw_sim_call, sim_reset
+import operators.soft as _red2_soft
+
+_red2_soft.register_sw_lib_replacements()
 
 from abstract_red2_machine.loader import load_faithful_machine
 from abstract_red2_machine.machine import (
@@ -105,6 +108,14 @@ from synthesizable_red2_machine.machine import (
     red2_control_t,
     red2_word_t,
 )
+
+def sim_call(func, command):
+    # Architectural RAMs use registered reads. CMD_NOP is observational only,
+    # so prime the read once and return the second cycle's requested address.
+    if int(command.op) == CMD_NOP:
+        _raw_sim_call(func, command)
+    return _raw_sim_call(func, command)
+
 
 MASK64 = (1 << 64) - 1
 ZERO_WORD = red2_word_t(lo=0, hi=0)
