@@ -8723,7 +8723,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                             fsp = join_parent_address
                         else:
                             fsp = fsp - 2
-                    if join_scalar_contract and join_scalar_binary:
+                    # A successful saved scalar primitive publishes its result at
+                    # the parent slot. Concrete's scalar finish path therefore makes
+                    # that parent the live graph frontier for unary and binary ops.
+                    if join_scalar_contract:
                         fsp = join_parent_address
                     if struct_selector_contract:
                         fsp = join_parent_address

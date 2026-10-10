@@ -563,6 +563,22 @@ def _run_program_lockstep(
     return final, commits
 
 
+def check_floor_ceiling_fsp_regression() -> None:
+    """Lockstep the framed unary scalar frontier regression through real Synth."""
+    cases = (
+        "(FLOOR 1.5)",
+        "(CEILING 1.5)",
+        "(FLOOR -1.5)",
+        "(CEILING -1.5)",
+    )
+    for source in cases:
+        final, commits = _run_program_lockstep(source)
+        assert commits == 6, (source, commits)
+        assert final.halted == 1, source
+        # _run_program_lockstep compares every committed architectural field,
+        # including fsp, against Concrete via _assert_scalar_checkpoint().
+
+
 def _resume_host_checkpoint_matches_concrete(
     suspended: EncodedArchitecturalState,
     result_word: int,
@@ -10488,8 +10504,12 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["--generic-closure-materialization-only"]:
         check_generic_closure_materialization()
         print("PipelineC native RED2 generic closure materialization parity: PASS")
+    elif sys.argv[1:] == ["--floor-ceiling-fsp-regression-only"]:
+        check_floor_ceiling_fsp_regression()
+        print("PipelineC native RED2 FLOOR/CEILING fsp regression parity: PASS")
     else:
         raise SystemExit(
             "usage: check_syn_sim.py "
-            "[--generic-ep-patch-journal-only|--generic-closure-materialization-only]"
+            "[--generic-ep-patch-journal-only|--generic-closure-materialization-only|"
+            "--floor-ceiling-fsp-regression-only]"
         )

@@ -210,3 +210,93 @@ def test_task14_recursive_lambda_metadata_checks_remain_split_for_pipelinec() ->
         "equality_child_lambda_meta_ok = equality_child_lambda_meta_ok and "
         "equality_child_lambda_has_if"
     ) in text
+
+
+def test_floor_ceiling_fsp_regression_is_permanently_gated() -> None:
+    checker_path = Path("scripts/check_syn_sim.py")
+    tree = ast.parse(checker_path.read_text())
+    regression = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "check_floor_ceiling_fsp_regression"
+    )
+
+    cases_assign = next(
+        node
+        for node in regression.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "cases" for target in node.targets)
+    )
+    assert isinstance(cases_assign.value, ast.Tuple)
+    assert [ast.literal_eval(item) for item in cases_assign.value.elts] == [
+        "(FLOOR 1.5)",
+        "(CEILING 1.5)",
+        "(FLOOR -1.5)",
+        "(CEILING -1.5)",
+    ]
+
+    loops = [node for node in regression.body if isinstance(node, ast.For)]
+    assert len(loops) == 1
+    loop = loops[0]
+    assert isinstance(loop.target, ast.Name) and loop.target.id == "source"
+    assert isinstance(loop.iter, ast.Name) and loop.iter.id == "cases"
+    calls = [node for node in ast.walk(loop) if isinstance(node, ast.Call)]
+    lockstep_calls = [
+        node
+        for node in calls
+        if isinstance(node.func, ast.Name)
+        and node.func.id == "_run_program_lockstep"
+    ]
+    assert len(lockstep_calls) == 1
+    assert len(lockstep_calls[0].args) == 1
+    assert isinstance(lockstep_calls[0].args[0], ast.Name)
+    assert lockstep_calls[0].args[0].id == "source"
+
+    checker = checker_path.read_text()
+    assert "--floor-ceiling-fsp-regression-only" in checker
+
+
+def test_framed_scalar_join_restores_parent_fsp_for_unary_and_binary_contracts() -> None:
+    path = Path("src/machines/synthesizable_red2_machine/machine.py")
+    tree = ast.parse(path.read_text())
+    top = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "SynthesizableRED2Machine"
+    )
+
+    scalar_restore = []
+    binary_only_restore = []
+    for node in ast.walk(top):
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if isinstance(test, ast.Name) and test.id == "join_scalar_contract":
+            assignments = [
+                stmt
+                for stmt in node.body
+                if isinstance(stmt, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "fsp"
+                    for target in stmt.targets
+                )
+            ]
+            if any(
+                isinstance(stmt.value, ast.Name)
+                and stmt.value.id == "join_parent_address"
+                for stmt in assignments
+            ):
+                scalar_restore.append(node)
+
+        if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+            names = {
+                child.id
+                for child in ast.walk(test)
+                if isinstance(child, ast.Name)
+            }
+            if {"join_scalar_contract", "join_scalar_binary"} <= names:
+                binary_only_restore.append(node)
+
+    assert len(scalar_restore) >= 1
+    assert binary_only_restore == []
