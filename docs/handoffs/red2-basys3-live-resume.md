@@ -119,16 +119,25 @@ The experiment **passes all 10,703 commands and all 626 output bits** in mapped
 simulation with Xilinx RAM models. Dead-code cleanup leaves 2,217 extra FFs:
 12,492 FFs total, the same 20,050 mapped LUTs, 20 DSPs and 34.5 BRAM36 equivalents.
 The MMCM uses multiplier 6 and output divider 120: 5 MHz and UART 57600 baud.
-Placement is running in container `red2-phase-place-valid`; inspect
-`ram-phase-isolation/place.log` and `place-driver.log`. The `complete.sh` runner
-(tool session 18636) waits for placement, then routes, gates physical LUT fit,
-5 MHz routed timing and LUT truth tables, builds, loads SRAM and replays all
-626 bits. Inspect `complete-driver.log`, `route.log`, then
-`application-board-replay.log` and its result JSON. It stops on failure and
-does not retry UART commands. Do not start another serial client while this
-runner is active. No new hardware image has been built or loaded from this
-experiment yet. Its `replay-board.py` sets the standard termios 57600 baud rate
-before the first exchange; the maintained host default remains 115200.
+Placement completed normally. The first route (`ram-phase-isolation/route.log`)
+was stopped after roughly two CPU hours at iteration 5 with 16,278 overused
+resources. Packing retained the gated core net as `core.clk_25p0`, so the
+`core_clock` SDC lookup matched nothing; the route also lacked explicit
+`--freq 5`. The final clock-name gate would have rejected this attempt.
+Its inputs/logs and stopped container `red2-phase-route` are preserved.
+
+**Current runner:** `ram-phase-isolation-route5/complete.sh`, tool session 35428,
+container `red2-phase-route5`. It reuses the completed placement and mapped
+simulation, reloads a corrected SDC naming `core.clk_25p0`, and explicitly sets
+`--freq 5`. Both clock names were checked against the packed netlist before
+launch. The final gate now requires both `clock` and `core.clk_25p0` to pass at
+5 MHz, physical LUT fit and correct LUT truth tables before building/loading.
+Inspect this directory's `complete-driver.log`, `route.log`, then
+`application-board-replay.log` and result JSON. It stops on failure and does
+not retry UART commands. Do not start another serial client while this runner
+is active. No new hardware image has been built or loaded from this experiment
+yet. Its `replay-board.py` sets the standard termios 57600 baud rate before the
+first exchange; the maintained host default remains 115200.
 
 Routed-JSON resume experiments (`route-restored-hold/` and
 `restored-monitor-route/`) were stopped before completing an iteration. They

@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T20:22:59.902476+00:00",
+  "recorded_at_utc": "2026-10-12T22:52:17.380484+00:00",
   "scope": "Dedicated RED2 fits and passes routed timing; SRAM loading and physical UART work; wide graph-memory writes fixed and tested; complete physical application replay not yet passing",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Latest normal-monitor route passes 10 MHz timing and physical LUT fit; two fresh SRAM loads/replays match all 626 bits for 7506 commands then repeat the graph-memory/fault mismatch at clock 7506. Full physical application is not passing. RAM boundary register experiment passes all 10703 simulated commands; placement underway.",
+  "board_build_status": "Latest normal-monitor hardware still fails repeatedly at command 7506. RAM boundary experiment passes mapped simulation and placement (19834 physical LUT sites). First route stopped after about two CPU hours: core clock SDC lookup missed packed alias. Corrected route running with both packed clock names explicitly constrained to 5 MHz; no new board load yet.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -785,7 +785,7 @@
     }
   },
   "ram_phase_isolation_experiment": {
-    "status": "Mapped simulation passed; placement running; no routed or physical result yet",
+    "status": "Mapped simulation and placement passed; corrected 5 MHz route running; no routed or physical result yet",
     "mapped_replay_passed": true,
     "compared_commands": 10703,
     "output_bits_per_command": 626,
@@ -854,10 +854,39 @@
       "audit-lut-init.py": "3b7f7941421fac52d90eeb63b054b15db4ef26b909284dc5c74f326c53cb2725"
     },
     "runner": {
-      "script": "ram-phase-isolation/complete.sh",
-      "log": "ram-phase-isolation/complete-driver.log",
-      "exec_session": 18636,
-      "scope": "Wait for placement, route, gate physical LUTs/5 MHz timing/LUT truth tables, build/load SRAM, replay all 626 bits at 57600 baud; stop on failure; no implicit retries"
+      "script": "ram-phase-isolation-route5/complete.sh",
+      "log": "ram-phase-isolation-route5/complete-driver.log",
+      "exec_session": 35428,
+      "container": "red2-phase-route5",
+      "scope": "Reuse completed placement; route with corrected packed clock names and explicit --freq 5; gate physical LUTs/5 MHz timing/LUT truth tables; build/load SRAM; replay all 626 bits at 57600 baud; stop on failure; no implicit retries",
+      "packed_clock_names": [
+        "clock",
+        "core.clk_25p0"
+      ],
+      "both_clock_constraint_messages_verified": true
+    },
+    "placement_completed": true,
+    "placed_physical_lut_sites": 19834,
+    "placed_physical_lut_limit": 20800,
+    "initial_route": {
+      "stopped": true,
+      "container": "red2-phase-route",
+      "route_log": "ram-phase-isolation/route.log",
+      "last_iteration": 5,
+      "overused_resources": 16278,
+      "overuse": 16472,
+      "approximate_cpu_hours": 2.2,
+      "reason": "Packed core clock retained name core.clk_25p0; core_clock SDC lookup matched nothing and route lacked explicit --freq 5. Final clock-name gate would reject this attempt. No route result accepted.",
+      "route_log_sha256": "9575d188ac650541771b66f1b784425902fa0857b4523cf34337183c533d2761"
+    },
+    "corrected_route_files_sha256": {
+      "complete.sh": "1957dbe50afc2d6e5983fac698de04bda56c4430f2abbd209477792744290fda",
+      "finish.sh": "ca1de7879792dd454e48fa375de9db79acb07c86393b3ef1813088a8e11f720a",
+      "route.sh": "949cf2216e18fd71c22842f969eeaeecb70bc3b65324ed3f7b22657677d5b836",
+      "board.sdc": "6237e257c1e7fad70e1768d5eda23ddbc1956e54038b84b5ba50005e8d90a387",
+      "replay-board.py": "7dfc4589763bc096c053e3a73579c83bc998e5d6ad1d629cf7dc97b9b71766fd",
+      "program.py": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
+      "audit-lut-init.py": "3b7f7941421fac52d90eeb63b054b15db4ef26b909284dc5c74f326c53cb2725"
     }
   },
   "monitor_placement_reproduction": {
