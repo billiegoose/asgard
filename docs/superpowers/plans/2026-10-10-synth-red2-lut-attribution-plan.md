@@ -553,4 +553,64 @@ operators. Most automatic sharing candidates form combinational loops and roll
 back; this is evidence of false dependencies between inactive state handlers,
 not evidence of an area saving. The snapshot trial targets those dependencies
 while preserving the original independent handler guards and bodies. Its
-integer-profile gate passes; mapping the combined candidate is underway.
+integer-profile gate passes. The completed measurements follow below.
+
+### Sharing and storage follow-up (2026-10-12)
+
+The maintained source remains commit `93cce5e`, **41,170 total LUTs**. Three
+isolated experiments completed against that exact source:
+
+| Experiment | Total LUTs | Change | Decision |
+| --- | ---: | ---: | --- |
+| Entry snapshots plus accepted RAM bus | 43,017 | +1,847 | Reject |
+| 16 bounded address add/sub merges | 41,151 | -19 | Keep diagnostic only |
+| Weighted LUT1..8 cut library | 42,861 | +1,691 | Reject |
+
+The snapshot candidate passes full native parity, the integer-profile suite,
+and reversal of its AST transform. It removes 151 coarse add/sub cells and 989
+muxes, and saves 826 CARRY4s, but increases mapped LUTs. Arithmetic/operator
+counts alone are therefore insufficient evidence of an area improvement.
+
+The installed Yosys `share` pass has a merge-limit bug: its loop tests the
+unchanged `config.limit` while successful merges decrement local `limit`. An
+isolated plugin fixes only that condition and changes the pass name. Across
+limits 0/1/2/3, the four-adder regression retains 4/3/2/1 adders with the fix;
+stock retains 4/1/1/1. All eight equivalence checks pass. The real bounded run
+completes 16 merges after 138 loop rollbacks, saving only 19 LUTs. Neither the
+plugin nor its mapping recipe is installed in the production toolchain.
+
+The current coarse netlist contains 8,309 mux cells with 185,613 output bits,
+compared with 554 add/sub cells with 14,846 output bits. These are structural
+attribution counts, not removable LUT estimates. Both independent reviewers
+recommend moving operand selection, private scratch, RAM requests, and state
+writeback together behind a shared RED2 datapath. They initially differed on
+the first family; after comparing interfaces, the agreed order is APP/LAMBDA,
+lookup as the incremental scaling test, then publication as the transaction
+stress test. Publication must retain preparation, external JOIN/scalar preflight,
+and explicit commit authorization as separate boundaries.
+
+The APP/LAMBDA pilot covers all 20 named handlers, matching graph/control
+requests, and their execute-entry paths and validation. It lowers active source
+control flow into immutable RED2 control tables with synchronous BRAM scratch,
+bounded operand registers, and registered request ports. It must preserve exact
+widths, malformed address detection, incoming-state guards, source-order scalar
+updates and faults. Its setup/debug port addresses state only; it cannot load
+controller programs. A logical clock may require many physical clocks, with one
+acceptance and completion. A committed RED2 reduction remains a separate event.
+
+First compare complete standalone old/new family implementations behind the
+same addressed state and graph/control interfaces. Require real BRAM inference
+and include controller, reset, arbitration and adapter costs. Then remove the
+legacy handlers/requests and measure the integrated machine, including any
+bridges for fields used by other families. Lookup must reuse the same datapath;
+proportional growth in operand muxes would reject the approach. The full-core
+engineering budget is 18,000 LUTs before board integration, an acceptance target
+rather than a prediction.
+
+A whole-tail AUTO_FSM diagnostic schedules 17,019 operations onto 154 units in
+3,088 states, with 59,845 scheduled register bits. It excludes RAM requests and
+has a 521-field input / 313-field state output; it is not an integrated compact
+RED2 engine. Its scheduled HDL re-elaboration is still pending. A separate
+ABC9 mapping of the current complete core is also pending. Neither has an area
+result in this record. Detailed hashes and measurements are in
+`docs/handoffs/synth-red2-sharing-results.json`.

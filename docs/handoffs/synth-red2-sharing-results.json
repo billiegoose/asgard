@@ -1,0 +1,389 @@
+{
+  "measured_at_utc": "2026-10-12T02:41:47.633062+00:00",
+  "baseline_commit": "93cce5e",
+  "baseline_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "maintained_lut_total": 41170,
+  "target_lut_total": 20800,
+  "production_changed": false,
+  "board_wrapper_included": false,
+  "routing_or_timing_verified": false,
+  "experiments": [
+    {
+      "name": "Entry snapshots plus accepted RAM write-data selection",
+      "decision": "Rejected: 1847 more LUTs",
+      "lut_delta_from_maintained": 1847,
+      "resources": {
+        "top": "top",
+        "lut": 42699,
+        "lut_memory": 318,
+        "lut_total": 43017,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8613,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 20,
+        "carry4": 2359,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2359,
+          "DSP48E1": 20,
+          "FDRE": 8613,
+          "INV": 1803,
+          "LUT1": 1,
+          "LUT2": 6376,
+          "LUT3": 5373,
+          "LUT4": 6126,
+          "LUT5": 9109,
+          "LUT6": 15714,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 43017,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "validation": "Full native parity and integer profile PASS; AST reconstruction and exhaustive state guard checks PASS",
+      "provenance": {
+        "baseline_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+        "candidate_source_sha256": "ef7174bfe8a51161db9a8d2a65c8c609a0956c3cecde506da24373e67266dee1",
+        "compiler_manifest": {
+          "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+          "patches": [
+            {
+              "file": "pypeline-boolop-instance-names.patch",
+              "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+            },
+            {
+              "file": "pypeline-red2-enhancements.patch",
+              "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+            }
+          ],
+          "files": {
+            "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+            "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+            "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+            "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+            "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+            "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+            "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+            "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+            "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+          }
+        },
+        "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+        "mapping_scripts_sha256": {
+          "frontend.ys": "cbe287f874260d5e518b9fb2ef9ee208d995f05577077c09c93e2d5da3a05d6a",
+          "area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+          "baseline-area.ys": "ed06ae522806f47f07668606298ca34c221c8a4162e4f593f90d21d4d7f507aa",
+          "run.sh": "524343623b2b34d0f1a1b26f3db69a340d8eeb5fe99465b58f24bffbde01612a"
+        }
+      },
+      "artifact_root": "/tmp/asgard-area-next/bus-entry-snapshots",
+      "artifact_sha256": {
+        "provenance.json": "8acb3cd9e82f794b0e1e830eb4cabfec2b13b385d5a8a17c8b1cb020ea9ae880",
+        "baseline-area.json": "b8402c591d1607d10321e74ecc2bc0a1ea6a4c44ddca8e09236ec0477c29c5e5",
+        "baseline-area.log": "ddc868d2a406b478058cd93ead19877c2e1634e72f66456e6204da8c7283f525",
+        "resources.json": "c6a5a01230f4fbd5d1f229af56af91f386aacbb35a0abaddb1b826e28c121577"
+      }
+    },
+    {
+      "name": "16 successful merges of 17/18-bit add/sub cells",
+      "decision": "Not adopted: 19 LUT saving does not justify custom backend",
+      "lut_delta_from_maintained": -19,
+      "resources": {
+        "top": "top",
+        "lut": 40833,
+        "lut_memory": 318,
+        "lut_total": 41151,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8676,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 20,
+        "carry4": 3130,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 3130,
+          "DSP48E1": 20,
+          "FDRE": 8676,
+          "INV": 2836,
+          "LUT2": 6429,
+          "LUT3": 7830,
+          "LUT4": 7792,
+          "LUT5": 7665,
+          "LUT6": 11117,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 41151,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "validation": "Isolated limit fix verified on four-adder test: all eight equivalence runs PASS; real map zero structural problems",
+      "provenance": {
+        "baseline_commit": "93cce5e",
+        "baseline_lut_total": 41170,
+        "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+        "input_coarse_sha256": "d0e9fc0514e683e4021921b9767fe4d368b5d8e33bef3e35cc4f7e1939e28cef",
+        "plugin_original_source_url": "https://raw.githubusercontent.com/YosysHQ/yosys/v0.67/passes/opt/share.cc",
+        "plugin_original_source_sha256": "972f65b5b79433aa8ab865f44e8d8aabdc63559c364afba11642461027aead55",
+        "plugin_fixed_source_sha256": "969cac9be1a7fab09510fe3d3522bfdb6b8927204099386a61f2cf8592aef3dc",
+        "plugin_binary_sha256": "30d376f3311e1551767f45dedff52eb977dde70b39a4b730060a9017e73ae65f",
+        "plugin_change": "Fix merge limit loop condition, and register the isolated pass as share_bounded; no other algorithm changes.",
+        "plugin_validation": {
+          "share": {
+            "0": 4,
+            "1": 1,
+            "2": 1,
+            "3": 1
+          },
+          "share_bounded": {
+            "0": 4,
+            "1": 3,
+            "2": 2,
+            "3": 1
+          }
+        },
+        "merge_limit": 16,
+        "pattern_limit": 16
+      },
+      "artifact_root": "/tmp/asgard-area-next/address-share-bounded",
+      "artifact_sha256": {
+        "provenance.json": "94126217a9bbccbc3346474ece5b5d7f01fc350c681413fbebeacd5acd9fb911",
+        "baseline-area.json": "e655805aca2f864d8837418e2a6faa51e85c7c039ab0c55f7602dd6042c73c0f",
+        "baseline-area.log": "d029c8874339678e24cd5c3ae13c5eb2b71f191c97f1c1c152fad46344270a9a",
+        "resources.json": "fe8e13d4a5841377ffe4b6c6fb343c3084bc2f79a84a93a08e20d15359a5014a"
+      }
+    },
+    {
+      "name": "Weighted LUT1..8 mapping library",
+      "decision": "Rejected: 1691 more LUTs",
+      "lut_delta_from_maintained": 1691,
+      "resources": {
+        "top": "top",
+        "lut": 42543,
+        "lut_memory": 318,
+        "lut_total": 42861,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8676,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 20,
+        "carry4": 3185,
+        "muxf7": 380,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 3185,
+          "DSP48E1": 20,
+          "FDRE": 8676,
+          "INV": 2842,
+          "LUT1": 77,
+          "LUT2": 10961,
+          "LUT3": 9825,
+          "LUT4": 4786,
+          "LUT5": 4412,
+          "LUT6": 12482,
+          "MUXF7": 380,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 42861,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "validation": "Exact accepted pre-ABC input; zero structural problems",
+      "provenance": {
+        "baseline_commit": "93cce5e",
+        "baseline_lut_total": 41170,
+        "baseline_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+        "input_preabc_sha256": "34a7641233f2f6c5f1d49910b872db141897ef4bd26a2734e43eae24535d1d40",
+        "abc_script_sha256": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+        "area_script_sha256": "d81f9e3b05568c1bca3ba05e1200bf653ed637ccbb7d9540deb81871d532ff8e",
+        "change": "Same exact pre-ABC netlist and strash; dc2; if -a script, with the Xilinx default LUT1..8 cost library (2:2,3,6:5,10,20) replacing uniform LUT6 cuts. LUT7/8 expand into LUT6 and MUXF7/8 resources."
+      },
+      "artifact_root": "/tmp/asgard-area-next/wide-lut-map",
+      "artifact_sha256": {
+        "provenance.json": "68b42cc5e5b5375b1a35c6b4ca142fbbddc21516e74af873ce25553d26dde341",
+        "baseline-area.json": "bd9a1b8644476144e975bf217fe48d48fef396b121fc56577bef024b215c5e84",
+        "baseline-area.log": "3bd4a5ac86ebc7dac6d56e653f20a6214cc050302a010ec257d01d0d9ebdad6c",
+        "resources.json": "126533a67f0a23f458a930e426190ce623989e7c7f6ef348430d2da8db4f9671"
+      }
+    }
+  ],
+  "share_limit_diagnostic": {
+    "source": "https://github.com/YosysHQ/yosys/blob/v0.67/passes/opt/share.cc",
+    "bug": "while condition tests config.limit rather than the mutable decremented limit",
+    "isolated_patch": "while (!shareable_cells.empty() && config.limit != 0) -> while (!shareable_cells.empty() && limit != 0); pass renamed share_bounded",
+    "four_adder_counts": {
+      "share": {
+        "0": 4,
+        "1": 1,
+        "2": 1,
+        "3": 1
+      },
+      "share_bounded": {
+        "0": 4,
+        "1": 3,
+        "2": 2,
+        "3": 1
+      }
+    },
+    "real_successful_merges": 16,
+    "real_loop_rollbacks": 138,
+    "stock_unbounded_real_run": "Stopped; no mapped result",
+    "production_toolchain_changed": false,
+    "artifact_root": "/tmp/asgard-area-next/bounded-share-plugin"
+  },
+  "coarse_comparison": {
+    "integer-profile": {
+      "coarse_cells": 32420,
+      "mux": 8295,
+      "add": 304,
+      "sub": 250,
+      "adder_widths": {
+        "$add": {
+          "3": 2,
+          "15": 1,
+          "16": 5,
+          "17": 124,
+          "18": 78,
+          "32": 2,
+          "33": 45,
+          "64": 5,
+          "65": 39,
+          "66": 2,
+          "67": 1
+        },
+        "$sub": {
+          "3": 1,
+          "7": 1,
+          "9": 1,
+          "15": 2,
+          "16": 5,
+          "17": 34,
+          "18": 135,
+          "19": 7,
+          "33": 25,
+          "65": 39
+        }
+      }
+    },
+    "onehot-ram-write": {
+      "coarse_cells": 32846,
+      "mux": 8309,
+      "add": 304,
+      "sub": 250,
+      "adder_widths": {
+        "$add": {
+          "3": 2,
+          "15": 1,
+          "16": 5,
+          "17": 124,
+          "18": 78,
+          "32": 2,
+          "33": 45,
+          "64": 5,
+          "65": 39,
+          "66": 2,
+          "67": 1
+        },
+        "$sub": {
+          "3": 1,
+          "7": 1,
+          "9": 1,
+          "15": 2,
+          "16": 5,
+          "17": 34,
+          "18": 135,
+          "19": 7,
+          "33": 25,
+          "65": 39
+        }
+      }
+    },
+    "bus-entry-snapshots": {
+      "coarse_cells": 31611,
+      "mux": 7320,
+      "add": 225,
+      "sub": 178,
+      "adder_widths": {
+        "$add": {
+          "3": 2,
+          "15": 1,
+          "16": 5,
+          "17": 78,
+          "18": 62,
+          "32": 2,
+          "33": 30,
+          "64": 3,
+          "65": 39,
+          "66": 2,
+          "67": 1
+        },
+        "$sub": {
+          "3": 1,
+          "7": 1,
+          "9": 1,
+          "15": 2,
+          "16": 4,
+          "17": 27,
+          "18": 91,
+          "19": 5,
+          "33": 11,
+          "65": 35
+        }
+      }
+    }
+  },
+  "auto_fsm_diagnostic": {
+    "artifact_root": "/tmp/asgard-area-next/fsm-integer-probe",
+    "source_sha256": "4d5410afefdf5e96efad983cf1112d3fa7dab880526a3cbfb8631119974a18a7",
+    "operations": 17019,
+    "shared_units": 154,
+    "states": 3088,
+    "scheduled_register_bits": 59845,
+    "input_fields": 521,
+    "output_state_fields": 313,
+    "scope": "RAM-free transition tail only; request generation excluded",
+    "status": "Scheduled; hardware re-elaboration pending at report time",
+    "mapped_area": null,
+    "integrated_replacement": false
+  },
+  "next_backend_pilot": {
+    "architecture": "Immutable RED2 control-flow sequencing with synchronous BRAM scratch/control storage, shared operands, registered graph/control requests; no firmware interpreter",
+    "first_family": "All 16 LAMBDA and four APP handlers, matching requests, and execute-entry paths with common validation",
+    "second_family": "Lookup on the same datapath/storage backend",
+    "later_stress_test": "Publication prepare, external JOIN scalar preflight, then explicitly authorized patch/materialization commit",
+    "acceptance": "Compare complete standalone implementations behind identical addressed state and memory interfaces, then measure integrated core including bridges and removing legacy logic; no fit claim from isolated area",
+    "full_core_engineering_budget_lut": 18000
+  }
+}
