@@ -887,6 +887,18 @@
       "replay-board.py": "7dfc4589763bc096c053e3a73579c83bc998e5d6ad1d629cf7dc97b9b71766fd",
       "program.py": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
       "audit-lut-init.py": "3b7f7941421fac52d90eeb63b054b15db4ef26b909284dc5c74f326c53cb2725"
+    },
+    "corrected_route_budget": {
+      "maximum_wall_seconds": 3600,
+      "watchdog": "ram-phase-isolation-route5/limit-route.py",
+      "watchdog_exec_session": 16386,
+      "watchdog_sha256": "9f9614630b5ddaf5a050c8cb3c67b1b5c6eff63f5b0d7df85381553fe1ddcaed",
+      "last_observed_iteration": 1,
+      "last_observed_overused_resources": 56321,
+      "stack_sample": "ram-phase-isolation-route5/router-stack-probe.log",
+      "stack_observation": "Active Router2 route_arc path search; no hang established",
+      "previous_complete_router_seconds": 856.67,
+      "next_if_budget_exhausted": "Narrow RAM phase isolation to affected working memories rather than repeat blanket staging"
     }
   },
   "monitor_placement_reproduction": {

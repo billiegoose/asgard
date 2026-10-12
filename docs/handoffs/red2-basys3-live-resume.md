@@ -139,6 +139,17 @@ is active. No new hardware image has been built or loaded from this experiment
 yet. Its `replay-board.py` sets the standard termios 57600 baud rate before the
 first exchange; the maintained host default remains 115200.
 
+The corrected route is also slow: after about 25 minutes it had completed only
+iteration 1 (56,321 overused resources), compared with 856.67 seconds for the
+entire previous normal-monitor route. A brief GDB stack sample shows active
+Router2 path search, not a hung process; see `router-stack-probe.log`.
+`limit-route.py` (tool session 16386) caps this attempt at one hour from the
+container's start. If still running then, it records `route-time-limit.json`
+and stops the route container; the completion runner consequently stops before
+any load. Inspect this marker before assuming the route is still active. If
+the cap is reached, narrow staging to the affected working memories rather
+than restarting the same blanket RAM-register experiment.
+
 Routed-JSON resume experiments (`route-restored-hold/` and
 `restored-monitor-route/`) were stopped before completing an iteration. They
 were not accepted as route results. Re-import needs native BEL/site-wire names,
