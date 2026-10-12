@@ -13,7 +13,8 @@ for name, expected in record['files_sha256'].items():
 assert not Path('red2_basys3.bit').exists(), 'use a new output directory for a new build'
 PY
 yosys -V > backend-versions.txt
-nextpnr-xilinx --version >> backend-versions.txt 2>&1 || true
+nextpnr-xilinx --chipdb "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin" --version \
+    >> backend-versions.txt 2>&1
 yosys -Q -T -s board.ys > board-map.log 2>&1
 python3 yosys_resources.py board.json --top red2_basys3 > board-resources.json
 python3 - <<'PY'
@@ -27,7 +28,7 @@ assert 'Found and reported 0 problems' in Path('board-map.log').read_text()
 print('BOARD_MAPPING_PASS', resources['lut_total'], flush=True)
 PY
 nextpnr-xilinx \
-    --chipdb "$(readlink -f "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin")" \
+    --chipdb "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin" \
     --xdc board.xdc --json board.json --fasm board.fasm --seed 1 \
     > board-route.log 2>&1
 python3 - <<'PY'

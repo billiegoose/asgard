@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T12:59:38.008290+00:00",
+  "recorded_at_utc": "2026-10-12T13:15:17.614236+00:00",
   "scope": "Basys 3 dedicated RED2 core with UART processor monitor; preparation and local digital simulation only",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,10 +70,10 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "running: permissions restored, Podman and Digilent USB detected; board mapping and routing pending",
+  "board_build_status": "Mapped board fits at 20,050 LUTs; package correction allows placement; heap and SA placement attempts running",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
-  "board_mapping_completed": false,
+  "board_mapping_completed": true,
   "routed_timing_verified": false,
   "bitstream_built": false,
   "loaded_on_board": false,
@@ -131,18 +131,65 @@
     "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
     "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
     "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
-    "scripts/boards/red2_basys3/implement.sh": "86a3429886d65108977e8d89d498416cda0ff480f0ee9aa4b0217b8e56fb997d",
+    "scripts/boards/red2_basys3/implement.sh": "f0d03a09a373cff2287189ca808bdddabe9b7ca84b11a720293897b4301d294b",
     "scripts/boards/red2_basys3/monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
     "scripts/boards/red2_basys3/prepare.py": "2f97796b32adfe7a2994cb2c6d79cf6c8b63db25125dbeef4ddd6c6a6ca131ba",
     "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89"
   },
   "limitations": [
-    "Board wrapper area and physical timing are unmeasured",
+    "Mapped board fits nominal resources; routed timing still pending",
     "MMCM and BUFGCE analog/physical behavior not verified by local simulation",
     "No physical board replay yet",
     "Processor monitor, not an interactive THOR host adapter",
     "Existing list-equality execution gap remains open"
   ],
   "previous_permission_failure": "blocked before container start: Podman local socket connect operation not permitted",
-  "active_build_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver-live.log"
+  "active_build_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver-live.log",
+  "board_resources": {
+    "top": "red2_basys3",
+    "lut": 19724,
+    "lut_memory": 326,
+    "lut_total": 20050,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 10275,
+    "bram18": 21,
+    "bram36": 24,
+    "bram36_equivalent": 34.5,
+    "dsp48": 20,
+    "carry4": 793,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 2,
+      "BUFGCE": 1,
+      "CARRY4": 793,
+      "DSP48E1": 20,
+      "FDCE": 2,
+      "FDRE": 10264,
+      "FDSE": 9,
+      "IBUF": 2,
+      "INV": 894,
+      "LUT2": 2714,
+      "LUT3": 3772,
+      "LUT4": 2865,
+      "LUT5": 3908,
+      "LUT6": 6465,
+      "MMCME2_ADV": 1,
+      "OBUF": 9,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "board_netlist_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5",
+  "routing_retry_provenance": {
+    "reason": "Preserve package-bearing xc7a35tcpg236 symlink name; resolving to xc7a50t omitted package selection",
+    "mapped_board_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5",
+    "resume_script_sha256": "839d418203dc20f1910a83f4ee846d148c91a1fb5fcf9bb74f3da58adf1b21f6",
+    "original_preparation_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b"
+  }
 }
