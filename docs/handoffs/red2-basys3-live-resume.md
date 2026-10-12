@@ -5,6 +5,11 @@ this Mac, replaying it, and committing/pushing results. Permissions now work.
 The board is Digilent serial `210183735787`, JTAG ID `0x0362d093`, UART
 `/dev/cu.usbserial-2101837357871`. No bitstream has been loaded yet.
 
+Spread placement now passed its physical-site audit: **20,228 LUT sites**,
+572 spare; 12.17/12.32 MHz placement estimates. Routing is active.
+`finish-selected.sh` now independently audits the final routed physical sites
+before bit generation, and records that audit in the build hashes.
+
 The prepared, hash-verified build is `build/red2-basys3/`. Its complete mapped
 board is 20,050 LUTs including LUT RAM. **Also check physical LUT-site occupancy
 from saved placement before claiming final fit or programming.** nextpnr adds
@@ -44,8 +49,8 @@ After one bounded/spread route succeeds:
 3. `finish-selected.sh route-spread` (or `route-bounded`) in the pinned fpgatool
    Nix environment verifies original inputs and legal routed result, checks
    both clocks, produces canonical `red2_basys3.bit`, and hashes artifacts into
-   `build-result.json`. This helper is in the prepared build directory; it does
-   not yet perform the physical LUT-site audit, which must precede it.
+   `build-result.json`. This helper is in the prepared build directory; it also
+   audits final routed physical LUT sites against the 20,800-site limit.
    Use the same Podman image/volume/mounts as `resume-package-host.sh`, mount the
    prepared root read-write as `/design`, and invoke the finishing helper there.
 4. On the Mac, `python3 build/red2-basys3/program.py` verifies the build hashes

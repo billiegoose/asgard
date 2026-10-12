@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T14:18:43.101758+00:00",
+  "recorded_at_utc": "2026-10-12T14:32:50.776510+00:00",
   "scope": "Basys 3 dedicated RED2 core with UART monitor; complete board resource mapping and local digital simulation passed; JTAG detection passed; routing pending",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Spread analytical placement completed in 612.43s; parallel refinement running; default-density bounded placement and SA fallback also running. No routed timing or physical replay yet.",
+  "board_build_status": "Spread placement completed: 20,228 physical LUT sites, both placement timing estimates pass 10 MHz; bounded routing active. No routed timing or physical replay yet.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -258,5 +258,14 @@
     "save_placed_netlist": true,
     "input_board_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5"
   },
-  "physical_lut_site_audit_pending": true
+  "physical_lut_site_audit_pending": false,
+  "placed_physical_lut_site_audit": {
+    "placed_netlist_sha256": "06a24b81b7dcab66cd8204b89b8d95bf864b8efa32e7dac3c831906f53f8efc5",
+    "lut_half_cells": 25704,
+    "unique_physical_lut_sites": 20228,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "merge A5LUT/A6LUT (and B/C/D) only within the identical tile and slice"
+  },
+  "routed_physical_lut_site_audit_pending": true
 }
