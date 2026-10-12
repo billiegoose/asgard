@@ -1,0 +1,3 @@
+[submodule "tools/fpgatool"]
+	path = tools/fpgatool
+	url = https://github.com/billiegoose/fpgatool.git

@@ -1,0 +1,777 @@
+{
+  "target": {
+    "part": "xc7a35tcpg236-1",
+    "lut_total_limit": 20800
+  },
+  "required_architecture": "Dedicated RED2 application and graph engine; optional arithmetic/device hardware modules; latency may increase; no softcore firmware interpreter.",
+  "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+  "compiler": {
+    "root": "/tmp/asgard-fourway/compilers/patched_control",
+    "files": {
+      "PY_TO_LOGIC.py": "eb3cb8ab462b48bc2fc9045316f55119f96e157b0700eafd96047854a006c4eb",
+      "pypeline.py": "d29e70278241f27ce643a3379cdb253bbcd4ec15a7f7df5ba21fba133050219b",
+      "AUTO.py": "f97b2d50d25b5e80ea745de2bd517c36a52e03379f2db4673d3cb84b23abd4bf",
+      "AUTO_FSM.py": "f4ce144f52dcf8afd72db05578eebd79227f73362cd1a4e5fb78d5855979dad3",
+      "AUTO_PIPELINE.py": "4e9f06384509fe113f0b11827bc6e1c44d18624cafcaff7ca71b259ca7b22857"
+    },
+    "default_root": "build/pipelinec-enhanced",
+    "manifest": "tools/pipelinec/manifest.json",
+    "setup_command": "python scripts/setup_pipelinec.py",
+    "default_simulation_and_lowering_verified": true,
+    "measured_manifest": {
+      "base_revision": "d991e1f931a2303e3daa4f6256755f3ab47dd9c3",
+      "patches": [
+        {
+          "file": "pypeline-boolop-instance-names.patch",
+          "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+        },
+        {
+          "file": "pypeline-red2-enhancements.patch",
+          "sha256": "1e08d8ef6e10367c4ad2dbf3c19fde498ffbf88a5ce17c3c5d02c72f62fd6a6a"
+        }
+      ],
+      "files": {
+        "src/PY_TO_LOGIC.py": "eb3cb8ab462b48bc2fc9045316f55119f96e157b0700eafd96047854a006c4eb",
+        "src/pypeline.py": "d29e70278241f27ce643a3379cdb253bbcd4ec15a7f7df5ba21fba133050219b",
+        "src/AUTO.py": "f97b2d50d25b5e80ea745de2bd517c36a52e03379f2db4673d3cb84b23abd4bf",
+        "src/AUTO_FSM.py": "f4ce144f52dcf8afd72db05578eebd79227f73362cd1a4e5fb78d5855979dad3",
+        "src/AUTO_PIPELINE.py": "4e9f06384509fe113f0b11827bc6e1c44d18624cafcaff7ca71b259ca7b22857",
+        "src/VHDL.py": "93d9a9fc8387dc259a31499220e167c1758fd2928b3d380401ade6c0c2f7b730",
+        "src/SYN.py": "655de1845c70597f5cd43d67494fd063abf8918f4c1a45203e6d5618d45bfef1",
+        "src/OPEN_TOOLS.py": "4649f05c6aad73dec90549087ae248e3270d7c330244364a4a1285abc41e1a2c",
+        "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+      }
+    },
+    "role": "Historical compiler used for the recorded LUT experiments"
+  },
+  "artifact_root": "/tmp/asgard-lut-fit",
+  "experiments": {
+    "hierarchy_preserved": {
+      "top": "top",
+      "lut": 268129,
+      "lut_memory": 330,
+      "lut_total": 268459,
+      "unknown_memory_primitives": [],
+      "flipflops": 11419,
+      "bram18": 18,
+      "bram36": 7,
+      "bram36_equivalent": 16.0,
+      "dsp48": 44,
+      "carry4": 6773,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 6773,
+        "DSP48E1": 44,
+        "FDRE": 11419,
+        "INV": 7500,
+        "LUT2": 27689,
+        "LUT3": 231584,
+        "LUT4": 4258,
+        "LUT5": 1097,
+        "LUT6": 3501,
+        "RAM256X1S": 51,
+        "RAM64X1S": 126,
+        "RAMB18E1": 18,
+        "RAMB36E1": 7
+      },
+      "basys3_over_budget": {
+        "lut_total": {
+          "used": 268459,
+          "available": 20800
+        },
+        "carry4": {
+          "used": 6773,
+          "available": 5200
+        }
+      },
+      "within_basys3_resource_limits": false,
+      "source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81"
+    },
+    "float_helper_attribution": {
+      "note": "Hierarchy-preserved mapped arithmetic roots only, without double-counting nested helpers. Excludes float dispatch, scalar staging and divider logic inside the main machine; not an integer-only synthesis result.",
+      "logic_lut": 21975,
+      "dsp48": 12,
+      "roots": [
+        {
+          "entity": "red2_float64_add_raw_0clk_7d7e807b_Barch",
+          "instances": 2,
+          "lut": 4266,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_compare_0clk_65e6eb76_Barch",
+          "instances": 2,
+          "lut": 864,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_floor_ceil_i64_0clk_caa29b28_Barch",
+          "instances": 1,
+          "lut": 2619,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_from_bits_0clk_3cc92f42_Barch",
+          "instances": 9,
+          "lut": 0,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_i64_info_0clk_94dc4512_Barch",
+          "instances": 1,
+          "lut": 2136,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_integral_0clk_297328cb_Barch",
+          "instances": 1,
+          "lut": 936,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_mul_checked_0clk_18a21999_Barch",
+          "instances": 1,
+          "lut": 691,
+          "dsp48": 12
+        },
+        {
+          "entity": "red2_float64_number_word_0clk_7a43a010_Barch",
+          "instances": 1,
+          "lut": 3490,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_sub_raw_0clk_4154fb91_Barch",
+          "instances": 1,
+          "lut": 2134,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_supported_0clk_652cb486_Barch",
+          "instances": 6,
+          "lut": 186,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_to_bits_0clk_8b04ab02_Barch",
+          "instances": 15,
+          "lut": 0,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_float64_zero_0clk_b603b2ca_Barch",
+          "instances": 5,
+          "lut": 105,
+          "dsp48": 0
+        },
+        {
+          "entity": "red2_int64_to_float64_0clk_8023908a_Barch",
+          "instances": 3,
+          "lut": 4548,
+          "dsp48": 0
+        }
+      ]
+    },
+    "whole_transition_auto_fsm": {
+      "diagnostic_only": true,
+      "operations": 17746,
+      "units": 180,
+      "states": 3342,
+      "internal_register_bits": 39235,
+      "ram_adapter_implemented": false,
+      "adopted": false,
+      "area_sweep": "Stopped without a result; new dispatch experiment prioritized. No area or schedule success inferred."
+    },
+    "microstate_muxpack": {
+      "diagnostic_only": true,
+      "groups": 263,
+      "mux_bits_packed": 32594,
+      "selectors_sat_proven": true,
+      "proof": "/tmp/asgard-lut-fit/state-packed-proof.log",
+      "fast_resources": {
+        "top": "top",
+        "lut": 93910,
+        "lut_memory": 318,
+        "lut_total": 94228,
+        "unknown_memory_primitives": [],
+        "flipflops": 9193,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 32,
+        "carry4": 3772,
+        "primitives": {
+          "$scopeinfo": 22063,
+          "BUFG": 1,
+          "CARRY4": 3772,
+          "DSP48E1": 32,
+          "FDRE": 9193,
+          "INV": 3291,
+          "LUT1": 48,
+          "LUT2": 9268,
+          "LUT3": 15362,
+          "LUT4": 15173,
+          "LUT5": 23482,
+          "LUT6": 30577,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 94228,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "adopted": false,
+      "area_resources": {
+        "top": "top",
+        "lut": 64795,
+        "lut_memory": 318,
+        "lut_total": 65113,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9193,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 32,
+        "carry4": 3788,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 3788,
+          "DSP48E1": 32,
+          "FDRE": 9193,
+          "INV": 3478,
+          "LUT1": 3,
+          "LUT2": 8267,
+          "LUT3": 13473,
+          "LUT4": 11181,
+          "LUT5": 11680,
+          "LUT6": 20191,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 65113,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      }
+    },
+    "phase_muxpack": {
+      "diagnostic_only": true,
+      "groups": 530,
+      "mux_bits_packed": 45260,
+      "selectors_sat_proven": false,
+      "mapped": false,
+      "adopted": false
+    },
+    "scalar_family_bisection": {
+      "diagnostic_only": true,
+      "preserves": [
+        "application",
+        "graph construction and access",
+        "structural equality",
+        "RECP addressing divider"
+      ],
+      "arithmetic_falls_back_to_explicit_fault": true,
+      "generator": "/tmp/asgard-lut-fit/make_core_probe.py",
+      "directory": "/tmp/asgard-lut-fit/core-equality-probe",
+      "mapped": true,
+      "adopted": false,
+      "resources": {
+        "top": "top",
+        "lut": 37799,
+        "lut_memory": 318,
+        "lut_total": 38117,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8345,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 0,
+        "carry4": 2855,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2855,
+          "FDRE": 8345,
+          "INV": 2516,
+          "LUT1": 1,
+          "LUT2": 5543,
+          "LUT3": 8351,
+          "LUT4": 6981,
+          "LUT5": 6901,
+          "LUT6": 10022,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 38117,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81"
+    },
+    "flattened_area": {
+      "source_is_production": false,
+      "mapping_recipe": "flatten; opt -full; synth_xilinx through map_ffs; abc -lut 6 with strash/dc2/if -a; Xilinx FF/LUT maps and cleanup",
+      "resources": {
+        "top": "top",
+        "lut": 49969,
+        "lut_memory": 318,
+        "lut_total": 50287,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9193,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 32,
+        "carry4": 3780,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 3780,
+          "DSP48E1": 32,
+          "FDRE": 9193,
+          "INV": 3474,
+          "LUT2": 7260,
+          "LUT3": 11419,
+          "LUT4": 8601,
+          "LUT5": 8986,
+          "LUT6": 13703,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 50287,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "routed": false,
+      "source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81",
+      "source_note": "Clock-unwrapped production snapshot before the selector validation-reset fix."
+    },
+    "recp_constant_division": {
+      "source": "/tmp/asgard-lut-fit/recp-specialized/machine.py",
+      "adopted": false,
+      "default_div3_inputs_exhaustively_checked": 1024,
+      "existing_recp_witness_statements_preserved": 132,
+      "candidate_native_witnesses": "passed",
+      "baseline_native_witnesses": "passed",
+      "area_mapping": "complete",
+      "purpose": "Remove RECP reconstruction dependence on the optional general arithmetic divider; bounded constant division by three.",
+      "resources": {
+        "top": "top",
+        "lut": 50134,
+        "lut_memory": 318,
+        "lut_total": 50452,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9193,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 32,
+        "carry4": 3793,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 3793,
+          "DSP48E1": 32,
+          "FDRE": 9193,
+          "INV": 3450,
+          "LUT2": 7321,
+          "LUT3": 11356,
+          "LUT4": 8920,
+          "LUT5": 8641,
+          "LUT6": 13896,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 50452,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "lut_delta_vs_same_recipe_baseline": 165
+    },
+    "exclusive_dispatch_chain": {
+      "directory": "/tmp/asgard-lut-fit/exclusive-dispatch",
+      "source_sha256": "7876196f5b53b0b694f677f001a37fe55cc16a98a57ffd6527e1686dab233a6d",
+      "compares_to_source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81",
+      "handlers_ast_identical": 143,
+      "all_256_microstate_encodings_proven_exclusive": true,
+      "native_clock_traces_identical": 1024,
+      "native_trace_sha256": "25f9d19eeca2b32101f501d9b11ab434f5587a5bd7c4aa8c372d5b7bcc74b78f",
+      "mapping": "complete",
+      "adopted": false,
+      "note": "Reject as an area optimization: fewer carry cells but 646 more total LUTs. Comparison predates selector validation-reset repair.",
+      "resources": {
+        "top": "top",
+        "lut": 50615,
+        "lut_memory": 318,
+        "lut_total": 50933,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9160,
+        "bram18": 17,
+        "bram36": 7,
+        "bram36_equivalent": 15.5,
+        "dsp48": 32,
+        "carry4": 2959,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2959,
+          "DSP48E1": 32,
+          "FDRE": 9160,
+          "INV": 2397,
+          "LUT1": 3,
+          "LUT2": 7228,
+          "LUT3": 8506,
+          "LUT4": 6728,
+          "LUT5": 10228,
+          "LUT6": 17922,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 50933,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "lut_delta_vs_same_recipe_baseline": 646
+    },
+    "aggressive_yosys_sharing": {
+      "adopted": false,
+      "status": "Both all-operation and add/sub-only probes stopped without completed maps; no success or LUT result inferred."
+    },
+    "validation_reset_fixed_production": {
+      "source_sha256": "236db38a5d4ded9356845e3bce80b2909fa0de6299b265b9d9c819d8ef4106fe",
+      "directory": "/tmp/asgard-lut-fit/validation-fixed",
+      "frontend": "PASS",
+      "mapped": false,
+      "routed": false
+    },
+    "endpoint_attribution": {
+      "report": "/tmp/asgard-lut-fit/endpoint-attribution.json",
+      "logic_lut_accounted": 49969,
+      "unobserved_lut": 0,
+      "shared_lut": 29657,
+      "note": "Conservative mapped endpoint fanout attribution. Exclusive-cone counts are not removable-area predictions; RAM endpoint name classification needs inspection."
+    }
+  },
+  "fit_verified": false,
+  "validation": {
+    "static_and_resource_tests": "14 passed after semantic repair",
+    "full_native_parity": "Monolithic run reached the structure selector latency limit. Existing selector/RBLOCK tail (265 statements), RECP (132 statements), and Fibonacci milestone passed as focused runs after budget/semantic repairs; no final post-repair monolithic pass claimed.",
+    "recp_focused_default_compiler": "passed: scripts/check_syn_sim.py --recp-only",
+    "ordinary_tests": "1213 passed (three previously excluded environment/interactive cases)",
+    "selector_and_rblock_tail": "PASS with source assertions and actual finite cycle budgets, no timeout success or removed assertions",
+    "fibonacci_lockstep": "PASS, including every committed transition and final full graph/control RAM checks"
+  },
+  "semantic_repairs": [
+    {
+      "problem": "Selector promotion validation cleared promote_mat_count before graph publication, causing an illegal-transition fault after writing the valid rows.",
+      "change": "Validation completion only rewinds promote_write_index and clears promote_validate_active; it preserves the validated row count and materialized state.",
+      "regression": "scripts/check_syn_sim.py --selector-shared-app-only",
+      "result": "PASS, including repeated CMD_RESET and forwarding-cache generation reuse"
+    }
+  ],
+  "compiler_upgrade": {
+    "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+    "fpgatool_revision": "8356f4c8ba329dc77e4ab9d475891e30f1d1f44f",
+    "default_root": "build/pipelinec-enhanced-db7cdf7c79dd",
+    "manifest": "tools/pipelinec/manifest.json",
+    "files": {
+      "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+      "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+      "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+      "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+      "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+      "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+      "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+      "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+      "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+    },
+    "artifact_root": "/tmp/asgard-pipelinec-port",
+    "native_vhdl_regression": {
+      "passed": true,
+      "matched_trace_rows": 31,
+      "sim_finish_reached": true,
+      "simulator": "NVC 1.21.0",
+      "log": "/tmp/asgard-pipelinec-port/regression-final.log"
+    },
+    "full_top_frontend": {
+      "passed": true,
+      "mapped": true,
+      "log": "/tmp/asgard-pipelinec-port/frontend.log"
+    },
+    "native_focused": {
+      "recp": true,
+      "fibonacci": true,
+      "selector_shared_app_promotion": true
+    },
+    "native_monolithic": {
+      "passed": true,
+      "log": "/tmp/asgard-pipelinec-port/native-full.log"
+    },
+    "ordinary_tests": {
+      "passed": 1213,
+      "deselected": 3,
+      "duration_seconds": 281.23,
+      "excluded": [
+        "test_cli_uart_rx_returns_nil_when_open_stdin_has_no_ready_byte",
+        "test_mise_hdl_prints_placeholder",
+        "test_mise_thor_runs_hangman_quietly"
+      ],
+      "log": "/tmp/asgard-pipelinec-port/ordinary-tests.log"
+    },
+    "area_results_apply_to": "Historical full-arithmetic experiments retain their provenance. current_source_area records the default hardware profile with floating arithmetic omitted.",
+    "full_top_vhdl_analysis": {
+      "passed": true,
+      "files": 320,
+      "simulator": "NVC 1.21.0",
+      "arena_limit": "1 GiB per compilation unit",
+      "log": "/tmp/asgard-pipelinec-port/full-hdl-analysis.log"
+    },
+    "default_native_fibonacci": {
+      "passed": true,
+      "log": "/tmp/asgard-pipelinec-port/default-native-fibonacci.log"
+    },
+    "fpgatool_command_tests": {
+      "passed": 45,
+      "log": "/tmp/asgard-pipelinec-port/fpgatool-tests.log"
+    },
+    "boolop_negative_control": {
+      "expected_failure": true,
+      "diagnostic": "Duplicate submodule instance name BIN_OP_NEQ",
+      "log": "/tmp/asgard-pipelinec-port/negative.log"
+    }
+  },
+  "current_source_area": {
+    "report": "docs/handoffs/synth-red2-area-next-results.json",
+    "artifact_root": "/tmp/asgard-area-next/integer-profile",
+    "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+    "elaboration_environment": {
+      "RED2_SYN_FLOAT": "0"
+    },
+    "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+    "resources": {
+      "top": "top",
+      "lut": 41387,
+      "lut_memory": 318,
+      "lut_total": 41705,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 8676,
+      "bram18": 17,
+      "bram36": 7,
+      "bram36_equivalent": 15.5,
+      "dsp48": 20,
+      "carry4": 3185,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 3185,
+        "DSP48E1": 20,
+        "FDRE": 8676,
+        "INV": 2804,
+        "LUT2": 6402,
+        "LUT3": 8178,
+        "LUT4": 7688,
+        "LUT5": 7323,
+        "LUT6": 11796,
+        "RAM256X1S": 50,
+        "RAM64X1S": 118,
+        "RAMB18E1": 17,
+        "RAMB36E1": 7
+      },
+      "basys3_over_budget": {
+        "lut_total": {
+          "used": 41705,
+          "available": 20800
+        }
+      },
+      "within_basys3_resource_limits": false
+    },
+    "lut_total_delta_vs_full_arithmetic_baseline": -8648,
+    "routed": false,
+    "fit_verified": false
+  },
+  "full_arithmetic_source_area": {
+    "report": "docs/handoffs/synth-red2-upstream-lut-results.json",
+    "artifact_root": "/tmp/asgard-pipelinec-remeasure",
+    "source_sha256": "236db38a5d4ded9356845e3bce80b2909fa0de6299b265b9d9c819d8ef4106fe",
+    "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+    "resources": {
+      "top": "top",
+      "lut": 50035,
+      "lut_memory": 318,
+      "lut_total": 50353,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 9193,
+      "bram18": 17,
+      "bram36": 7,
+      "bram36_equivalent": 15.5,
+      "dsp48": 32,
+      "carry4": 3780,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 3780,
+        "DSP48E1": 32,
+        "FDRE": 9193,
+        "INV": 3437,
+        "LUT1": 1,
+        "LUT2": 7285,
+        "LUT3": 11312,
+        "LUT4": 8720,
+        "LUT5": 8845,
+        "LUT6": 13872,
+        "RAM256X1S": 50,
+        "RAM64X1S": 118,
+        "RAMB18E1": 17,
+        "RAMB36E1": 7
+      },
+      "basys3_over_budget": {
+        "lut_total": {
+          "used": 50353,
+          "available": 20800
+        }
+      },
+      "within_basys3_resource_limits": false
+    },
+    "lut_total_delta_vs_historical_baseline": 66,
+    "routed": false,
+    "fit_verified": false
+  },
+  "arithmetic_profile_validation": {
+    "hardware_default": {
+      "RED2_SYN_FLOAT": "0"
+    },
+    "native_cli_and_direct_full_parity_default": {
+      "RED2_SYN_FLOAT": "1"
+    },
+    "environment_override_supported": true,
+    "profile_gate": "scripts/check_syn_integer_profile.py",
+    "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+    "resources": {
+      "top": "top",
+      "lut": 41387,
+      "lut_memory": 318,
+      "lut_total": 41705,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 8676,
+      "bram18": 17,
+      "bram36": 7,
+      "bram36_equivalent": 15.5,
+      "dsp48": 20,
+      "carry4": 3185,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 3185,
+        "DSP48E1": 20,
+        "FDRE": 8676,
+        "INV": 2804,
+        "LUT2": 6402,
+        "LUT3": 8178,
+        "LUT4": 7688,
+        "LUT5": 7323,
+        "LUT6": 11796,
+        "RAM256X1S": 50,
+        "RAM64X1S": 118,
+        "RAMB18E1": 17,
+        "RAMB36E1": 7
+      },
+      "basys3_over_budget": {
+        "lut_total": {
+          "used": 41705,
+          "available": 20800
+        }
+      },
+      "within_basys3_resource_limits": false
+    },
+    "mapped_candidate_source_note": "The measured candidate defaulted to FLOAT=1 and was explicitly elaborated with FLOAT=0. Production defaults to FLOAT=0. Regeneration from production with no override emitted byte-identical HDL for all 211 files.",
+    "hdl_comparison": {
+      "files": 211,
+      "identical": true,
+      "changed": [],
+      "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5"
+    },
+    "frontend_log": "/tmp/asgard-area-next/production-frontend.log",
+    "native_profile_validation": {
+      "passed": true,
+      "log": "/tmp/asgard-area-next/production-native-profile.log"
+    },
+    "full_float_focused_validation": {
+      "passed": true,
+      "scope": "Four framed FLOOR/CEILING cases, including negative operands, through direct full-parity entry point with default FLOAT=1.",
+      "log": "/tmp/asgard-area-next/production-native-float.log"
+    },
+    "ordinary_tests": {
+      "passed": 1213,
+      "deselected": 3,
+      "duration_seconds": 284.48,
+      "log": "/tmp/asgard-area-next/ordinary-tests.log",
+      "exclusions": [
+        "test_cli_uart_rx_returns_nil_when_open_stdin_has_no_ready_byte",
+        "test_mise_hdl_prints_placeholder",
+        "test_mise_thor_runs_hangman_quietly"
+      ]
+    },
+    "profile_selection_tests": {
+      "passed": 3,
+      "test": "tests/test_syn_arithmetic_profile.py"
+    },
+    "lut_savings": 8648,
+    "lut_savings_percent": 17.17474629118424,
+    "lut_over_basys3_capacity": 20905,
+    "fit_verified": false,
+    "routed": false,
+    "timing_verified": false
+  }
+}

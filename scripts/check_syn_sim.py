@@ -7,8 +7,17 @@ pytest.  The covered subset grows with the hardware port; unsupported reducer
 semantics must remain explicit rather than approximated.
 """
 
+# Bootstrap and operator registration must precede imports of their dependents.
+# isort: skip_file
+
 from dataclasses import replace
+import os
 import sys
+
+if __name__ == "__main__":
+    # This is the full arithmetic parity suite. The hardware profile with
+    # floating arithmetic omitted has its own explicit omission/atomicity gate.
+    os.environ.setdefault("RED2_SYN_FLOAT", "1")
 
 # Importing run_syn first performs the deterministic PipelineC/Asgard path
 # bootstrap used by the native CLI.  Keep the parity gate runnable from a clean
@@ -90,6 +99,7 @@ from synthesizable_red2_machine.machine import (
     HW_FAULT_ADDRESS_RANGE,
     HW_FAULT_EXECUTION_NOT_IMPLEMENTED,
     HW_FAULT_NONE,
+    LITERAL_META_WORDS,
     LITERAL_SPECIAL_EQUAL_IF,
     LITERAL_SPECIAL_EQUAL_STAR,
     LITERAL_SPECIAL_EQUAL_STUCK,
@@ -281,24 +291,9 @@ def _assert_scalar_checkpoint(result, expected) -> None:
 def _run_one_commit(
     machine: AbstractRED2Machine, codec: RED2ABICodec
 ) -> tuple[object, object]:
-    encoded = codec.encode_state(machine.state)
-    processor = ConcreteRED2Machine(encoded)
-    _load_hardware(encoded)
-
-    expected_pulses = []
-    actual_pulses = []
-    result = None
-    for _ in range(3):
-        expected_pulses.append(bool(processor.clock()))
-        result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-        actual_pulses.append(bool(int(result.committed)))
-
-    assert expected_pulses == [False, False, True]
-    assert actual_pulses == expected_pulses
-    expected = processor.checkpoint()
-    assert result is not None
-    _assert_scalar_checkpoint(result, expected)
-    return result, expected
+    # Registered RAM and shared datapaths may take more clocks than the oracle.
+    # Compare the first committed transition with a bounded hardware wait.
+    return _run_bounded_to_same_commit(machine, codec)
 
 
 def _run_bounded_to_same_commit(
@@ -313,7 +308,7 @@ def _run_bounded_to_same_commit(
     expected = processor.checkpoint()
 
     result = None
-    for _ in range(32):
+    for _ in range(4 * LITERAL_META_WORDS + 8 * GRAPH_WORDS + 256):
         result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
         assert int(result.status) != 4, (
             f"hardware faulted before commit: red2={int(result.red2_fault)} "
@@ -336,7 +331,7 @@ def _with_control_entry(encoded, entry: int, *, index: int = 0):
 
 
 def _run_encoded_to_same_commit(
-    encoded, *, max_clocks: int = 32
+    encoded, *, max_clocks: int = 4 * LITERAL_META_WORDS + 8 * GRAPH_WORDS + 256
 ) -> tuple[object, object]:
     processor = ConcreteRED2Machine(encoded)
     _load_hardware(encoded)
@@ -361,7 +356,7 @@ def _run_encoded_to_same_commit(
 
 
 def _run_encoded_to_same_fault(
-    encoded, *, max_clocks: int = 32
+    encoded, *, max_clocks: int = 4 * LITERAL_META_WORDS + 8 * GRAPH_WORDS + 256
 ) -> tuple[object, object, int]:
     processor = ConcreteRED2Machine(encoded)
     assert not processor.run_to_commit()
@@ -1224,6 +1219,655 @@ def check_generic_closure_materialization() -> None:
         )
 
 
+def check_recp() -> None:
+    # Direct RECP cases share one three-word REC validation path.  Non-head
+    # forward is passive, head forward with quantum enters the binding through
+    # a PNP environment marker, and reverse with quantum rewrites RECP to APP
+    # while saving the recursive context on the typed control stack.
+    recp_nonhead_memory: list[Word | None] = [None] * 32
+    recp_nonhead_memory[0] = Word(MuredOpcode.RECP, 20, False)
+    recp_nonhead_memory[3] = Word(MuredOpcode.STOP)
+    recp_nonhead_memory[20] = Word(MuredOpcode.REC, 8, False)
+    recp_nonhead_memory[21] = Word(None, 20, False)
+    recp_nonhead_memory[22] = Word(None, 4, False)
+    recp_nonhead_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=recp_nonhead_memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=3,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=3,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_nonhead_expected = _run_bounded_to_same_commit(
+        recp_nonhead_machine, RED2ABICodec()
+    )
+    assert recp_nonhead_expected.pc == 1
+    assert recp_nonhead_expected.fsp == 4
+    assert recp_nonhead_expected.q == 3
+    assert recp_nonhead_expected.argcnt == 2
+    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=4))
+    assert _packed_memory_read(recp_read) == recp_nonhead_expected.memory[4]
+
+    recp_head_memory = list(recp_nonhead_memory)
+    recp_head_memory[0] = Word(MuredOpcode.RECP, 20, True)
+    recp_head_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=recp_head_memory,
+            control_stack=[None] * 8,
+            pc=0,
+            fsp=3,
+            env=20,
+            c=-1,
+            direction=Direction.F,
+            q=3,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_head_expected = _run_bounded_to_same_commit(
+        recp_head_machine, RED2ABICodec()
+    )
+    assert recp_head_expected.pc == 8
+    assert recp_head_expected.env == 19
+    assert recp_head_expected.free_space == 19
+    assert recp_head_expected.q == 2
+    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=19))
+    assert _packed_memory_read(recp_read) == recp_head_expected.memory[19]
+
+    recp_reverse_memory: list[Word | None] = [None] * 32
+    recp_reverse_memory[4] = Word(MuredOpcode.RECP, 20, False)
+    recp_reverse_memory[20] = Word(MuredOpcode.REC, 8, False)
+    recp_reverse_memory[21] = Word(None, 20, False)
+    recp_reverse_memory[22] = Word(None, 4, False)
+    recp_reverse_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=recp_reverse_memory,
+            control_stack=[None] * 8,
+            pc=4,
+            fsp=4,
+            env=20,
+            c=-1,
+            direction=Direction.B,
+            q=2,
+            phi=0,
+            free_space=20,
+            argcnt=0,
+        )
+    )
+    _, recp_reverse_expected = _run_bounded_to_same_commit(
+        recp_reverse_machine, RED2ABICodec()
+    )
+    assert recp_reverse_expected.pc == 4
+    assert recp_reverse_expected.q == 1
+    assert recp_reverse_expected.c == 1
+    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=4))
+    assert _packed_memory_read(recp_read) == recp_reverse_expected.memory[4]
+    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(recp_read) == recp_reverse_expected.control_stack[0]
+
+    # Head RECP at q=0 reconstructs the recursive wrapper: parent PNP marker,
+    # one UBV per binding, copied RBLOCKs, replacement paths, matching RUP, and
+    # a head VAR selecting this REC's index.  Publication ends in reverse mode.
+    recp_zero_memory: list[Word | None] = [None] * 40
+    recp_zero_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    recp_zero_memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
+    recp_zero_memory[2] = Word(MuredOpcode.RUP, 2, False)
+    recp_zero_memory[3] = Word(MuredOpcode.VAR, 1, True)
+    recp_zero_memory[4] = Word(MuredOpcode.SYM, "x", False)
+    recp_zero_memory[5] = Word(MuredOpcode.VAR, 0, True)
+    recp_zero_memory[6] = Word(MuredOpcode.SYM, "y", False)
+    recp_zero_memory[7] = Word(MuredOpcode.VAR, 1, True)
+    recp_zero_memory[8] = Word(MuredOpcode.RECP, 31, True)
+    recp_zero_memory[12] = Word(MuredOpcode.STOP)
+    recp_zero_memory[28] = Word(MuredOpcode.REC, 7, False)
+    recp_zero_memory[29] = Word(None, 28, False)
+    recp_zero_memory[30] = Word(None, 0, False)
+    recp_zero_memory[31] = Word(MuredOpcode.REC, 5, False)
+    recp_zero_memory[32] = Word(None, 28, False)
+    recp_zero_memory[33] = Word(None, 0, False)
+    recp_zero_machine = AbstractRED2Machine(
+        AbstractRED2MachineState(
+            memory=recp_zero_memory,
+            control_stack=[None] * 10,
+            pc=8,
+            fsp=12,
+            env=28,
+            c=-1,
+            direction=Direction.F,
+            q=0,
+            phi=0,
+            free_space=28,
+            argcnt=0,
+        )
+    )
+    _, recp_zero_expected = _run_bounded_to_same_commit(
+        recp_zero_machine, RED2ABICodec()
+    )
+    assert recp_zero_expected.pc == 15
+    assert recp_zero_expected.fsp == 16
+    assert recp_zero_expected.env == 25
+    assert recp_zero_expected.free_space == 25
+    assert recp_zero_expected.direction == abi.DIRECTION_REVERSE
+    assert recp_zero_expected.q == 0
+    assert recp_zero_expected.phi == 2
+    for address in (13, 14, 15, 16, 25, 26, 27):
+        recp_zero_read = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(recp_zero_read) == recp_zero_expected.memory[address]
+    for address in (0, 1):
+        recp_zero_read = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_control_read(recp_zero_read) == recp_zero_expected.control_stack[address]
+
+    # Reverse head/tail RECP at q=0 first enters a subgraph and then runs the
+    # same reconstruction serializer.  Verify both normalized-frontier shapes.
+    for recp_reverse_env in (28, 27):
+        recp_reverse_zero_state = AbstractRED2MachineState(
+            memory=list(recp_zero_memory),
+            control_stack=[None] * 32,
+            pc=8,
+            fsp=12,
+            env=recp_reverse_env,
+            c=-1,
+            direction=Direction.B,
+            q=0,
+            phi=0,
+            free_space=28,
+            argcnt=0,
+        )
+        recp_reverse_zero_machine = AbstractRED2Machine(recp_reverse_zero_state)
+        _, recp_reverse_zero_expected = _run_bounded_to_same_commit(
+            recp_reverse_zero_machine, RED2ABICodec()
+        )
+        assert recp_reverse_zero_expected.fsp == 17
+        assert recp_reverse_zero_expected.direction == abi.DIRECTION_REVERSE
+        assert recp_reverse_zero_expected.q == 0
+        assert recp_reverse_zero_expected.phi == 2
+        expected_frontier = 25 if recp_reverse_env == 28 else 24
+        assert recp_reverse_zero_expected.env == expected_frontier
+        assert recp_reverse_zero_expected.free_space == expected_frontier
+        assert recp_reverse_zero_expected.c == 3
+        for address in range(13, 18):
+            recp_reverse_zero_read = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
+        for address in range(expected_frontier, 28):
+            recp_reverse_zero_read = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
+        for address in range(3):
+            recp_reverse_zero_read = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_control_read(recp_reverse_zero_read) == recp_reverse_zero_expected.control_stack[address]
+
+    # Exercise the actual RECP-parent JOIN return, not only its reconstruction
+    # entry commit.  Advance faithful muRED to the exact JOIN-return checkpoint;
+    # the native hardware transition must preserve the child graph, restore the
+    # frame, and rewrite the original RECP as non-head APP(published_root).
+    recp_join_state = AbstractRED2MachineState(
+        memory=[None] * 40,
+        control_stack=[None] * 12,
+        pc=10,
+        fsp=10,
+        env=28,
+        c=-1,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        prim="CAR",
+        fire=2,
+    )
+    recp_join_state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
+    recp_join_state.memory[1] = Word(MuredOpcode.RUP, 1, False)
+    recp_join_state.memory[2] = Word(MuredOpcode.VAR, 0, True)
+    recp_join_state.memory[4] = Word(MuredOpcode.SYM, "x", False)
+    recp_join_state.memory[5] = Word(MuredOpcode.INT, 7, True)
+    recp_join_state.memory[9] = Word(MuredOpcode.STOP)
+    recp_join_state.memory[10] = Word(MuredOpcode.RECP, 28, False)
+    recp_join_state.memory[28] = Word(MuredOpcode.REC, 5, False)
+    recp_join_state.memory[29] = Word(None, 28, False)
+    recp_join_state.memory[30] = Word(None, 0, False)
+    recp_join_machine = AbstractRED2Machine(recp_join_state)
+    for _ in range(7):
+        recp_join_machine.step()
+    _, recp_join_expected = _run_bounded_to_same_commit(
+        recp_join_machine, RED2ABICodec()
+    )
+    assert recp_join_expected.pc == 9
+    assert recp_join_expected.fsp == 17
+    assert recp_join_expected.env == 28
+    assert recp_join_expected.free_space == 28
+    assert recp_join_expected.c == 0
+    assert recp_join_expected.direction == abi.DIRECTION_REVERSE
+    assert recp_join_expected.q == 0
+    assert recp_join_expected.phi == 0
+    assert recp_join_expected.fire == 1
+    recp_join_parent = sim_call(
+        SynthesizableRED2Machine, _command(CMD_NOP, address=10)
+    )
+    assert _packed_memory_read(recp_join_parent) == recp_join_expected.memory[10]
+    recp_join_child = sim_call(
+        SynthesizableRED2Machine, _command(CMD_NOP, address=12)
+    )
+    assert _packed_memory_read(recp_join_child) == recp_join_expected.memory[12]
+    recp_join_frame = sim_call(
+        SynthesizableRED2Machine, _command(CMD_NOP, address=0)
+    )
+    assert _packed_control_read(recp_join_frame) == recp_join_expected.control_stack[0]
+
+    # Malformed recursive residuals must fault before the RECP parent/frame is
+    # published.  Compare the native hardware fault and unchanged architecture
+    # directly against the bounded processor for the supported validator subset.
+    def _recp_join_residual_state(*, bad_rup_count: bool = False, missing_binding: bool = False):
+        memory = [None] * 64
+        memory[3] = Word(MuredOpcode.RECP, 40, False)
+        memory[4] = Word(MuredOpcode.JOIN, 3, False)
+        memory[5] = Word(MuredOpcode.RBLOCK, 20, False)
+        memory[6] = Word(MuredOpcode.RUP, 2 if bad_rup_count else 1, False)
+        memory[7] = Word(MuredOpcode.VAR, 0, True)
+        memory[20] = Word(MuredOpcode.SYM, "x", False)
+        if not missing_binding:
+            memory[21] = Word(MuredOpcode.INT, 7, True)
+        memory[40] = Word(MuredOpcode.REC, 21, False)
+        memory[41] = Word(None, 40, False)
+        memory[42] = Word(None, 5, False)
+        state = AbstractRED2MachineState(
+            memory=memory,
+            control_stack=[None] * 8,
+            pc=4,
+            fsp=7,
+            env=30,
+            free_space=30,
+            c=0,
+            direction=Direction.B,
+            q=0,
+            phi=1,
+            argcnt=0,
+        )
+        state.control_stack[0] = _SubgraphFrame(
+            env=44, free_space=44, prim=None, fire=0
+        )
+        return state
+
+    for recp_fault_state, recp_fault_code in (
+        (_recp_join_residual_state(bad_rup_count=True), abi.FAULT_ILLEGAL_TRANSITION),
+        (_recp_join_residual_state(missing_binding=True), abi.FAULT_INVALID_ADDRESS),
+    ):
+        recp_fault_encoded = RED2ABICodec().encode_state(recp_fault_state)
+        _, recp_fault_expected, recp_fault_actual = _run_encoded_to_same_fault(
+            recp_fault_encoded
+        )
+        assert recp_fault_actual == recp_fault_code
+        assert recp_fault_expected == recp_fault_encoded
+
+    # Fault precedence follows the reconstruction phases.  With fsp=21 the
+    # marker/UBVs and both RBLOCK copies fit, while the final RUP+VAR do not.
+    # If only one control slot remains, CONTROL_OVERFLOW must therefore win
+    # before the later graph collision, and no reconstruction writes may land.
+    recp_zero_precedence_state = AbstractRED2MachineState(
+        memory=list(recp_zero_memory),
+        control_stack=[None] * CONTROL_WORDS,
+        pc=8,
+        fsp=21,
+        env=28,
+        c=-1,
+        direction=Direction.F,
+        q=0,
+        phi=0,
+        free_space=28,
+        argcnt=0,
+    )
+    recp_zero_precedence_encoded = RED2ABICodec().encode_state(
+        recp_zero_precedence_state
+    )
+    recp_zero_precedence_control = list(recp_zero_precedence_encoded.control_stack)
+    for control_index in range(CONTROL_WORDS - 1):
+        recp_zero_precedence_control[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    recp_zero_precedence_encoded = replace(
+        recp_zero_precedence_encoded,
+        control_stack=tuple(recp_zero_precedence_control),
+        c=CONTROL_WORDS - 1,
+    )
+    _, recp_zero_precedence_expected, recp_zero_precedence_fault = (
+        _run_encoded_to_same_fault(recp_zero_precedence_encoded)
+    )
+    assert recp_zero_precedence_fault == abi.FAULT_CONTROL_OVERFLOW
+    assert recp_zero_precedence_expected == recp_zero_precedence_encoded
+
+    # All direct RECP writes are post-validation: malformed REC/context records,
+    # graph collisions, and a full control stack fault without publishing a
+    # partial APP, PNP marker, or graph result.
+    recp_bad_memory = list(recp_head_memory)
+    recp_bad_memory[20] = Word(MuredOpcode.INT, 8, False)
+    recp_bad_state = AbstractRED2MachineState(
+        memory=recp_bad_memory,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_bad_encoded = RED2ABICodec().encode_state(recp_bad_state)
+    _, recp_bad_expected, recp_bad_fault = _run_encoded_to_same_fault(recp_bad_encoded)
+    assert recp_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
+    assert recp_bad_expected.memory[19] == 0
+
+    recp_missing_context_memory = list(recp_head_memory)
+    recp_missing_context_memory[21] = None
+    recp_missing_context_state = AbstractRED2MachineState(
+        memory=recp_missing_context_memory,
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=3,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_missing_context_encoded = RED2ABICodec().encode_state(recp_missing_context_state)
+    _, _, recp_missing_context_fault = _run_encoded_to_same_fault(
+        recp_missing_context_encoded
+    )
+    assert recp_missing_context_fault == abi.FAULT_INVALID_ADDRESS
+
+    recp_collision_state = AbstractRED2MachineState(
+        memory=list(recp_head_memory),
+        control_stack=[None] * 8,
+        pc=0,
+        fsp=19,
+        env=20,
+        c=-1,
+        direction=Direction.F,
+        q=3,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_collision_encoded = RED2ABICodec().encode_state(recp_collision_state)
+    _, recp_collision_expected, recp_collision_fault = _run_encoded_to_same_fault(
+        recp_collision_encoded
+    )
+    assert recp_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
+    assert recp_collision_expected.memory[19] == 0
+
+    recp_overflow_state = AbstractRED2MachineState(
+        memory=list(recp_reverse_memory),
+        control_stack=[None] * CONTROL_WORDS,
+        pc=4,
+        fsp=4,
+        env=20,
+        c=-1,
+        direction=Direction.B,
+        q=2,
+        phi=0,
+        free_space=20,
+        argcnt=0,
+    )
+    recp_overflow_encoded = RED2ABICodec().encode_state(recp_overflow_state)
+    recp_overflow_entries = list(recp_overflow_encoded.control_stack)
+    for control_index in range(CONTROL_WORDS):
+        recp_overflow_entries[control_index] = abi.pack_control_entry(
+            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
+        )
+    recp_overflow_encoded = replace(
+        recp_overflow_encoded,
+        control_stack=tuple(recp_overflow_entries),
+        c=CONTROL_WORDS,
+    )
+    _, recp_overflow_expected, recp_overflow_fault = _run_encoded_to_same_fault(
+        recp_overflow_encoded
+    )
+    assert recp_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
+    assert recp_overflow_expected.memory[4] == recp_overflow_encoded.memory[4]
+
+
+def check_fibonacci() -> None:
+    # Program-level milestone: compile/load once, then compare every committed
+    # architectural transition from the exact same encoded image.  Fibonacci is
+    # deliberately last because it composes closures, IF, scalar primitives,
+    # recursive environment records, EP paths, and changing accumulators.
+    fibonacci_source = """
+fib == (lambda (n)
+  (letrec ((fib-iter
+            (lambda (i current next)
+              (if (= i 0)
+                  current
+                  (fib-iter (1- i) next (+ current next))))))
+    (fib-iter n 0 1)))
+
+fib-six == (fib 6)
+
+fib-six
+"""
+    fibonacci_final, fibonacci_commits = _run_program_lockstep(fibonacci_source)
+    assert fibonacci_commits > 0
+    assert fibonacci_final.halted == 1
+
+
+
+def check_selector_shared_app_promotion() -> None:
+    # Generic selector-result promotion must relinearize an APP problem into
+    # fresh relative scratch before publication. Two descriptors that share one
+    # target must continue sharing that single materialized target after relocation.
+    app_shared_memory: list[Word | None] = [None] * 32
+    app_shared_control: list[object | None] = [None] * 8
+    app_shared_memory[3] = Word(MuredOpcode.APP, 5, False)
+    app_shared_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    app_shared_memory[5] = Word(MuredOpcode.APP, 9, False)
+    app_shared_memory[6] = Word(MuredOpcode.APP, 9, False)
+    app_shared_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
+    app_shared_memory[9] = Word(MuredOpcode.INT, 7, True)
+    app_shared_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="__STRUCT_SELECTOR_RESULT__",
+        fire=1,
+    )
+    app_shared_state = AbstractRED2MachineState(
+        memory=app_shared_memory,
+        control_stack=app_shared_control,
+        pc=4,
+        fsp=9,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=0,
+    )
+    app_shared_codec = RED2ABICodec()
+    app_shared_encoded = app_shared_codec.encode_state(app_shared_state)
+    app_shared_result_id = app_shared_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+    app_shared_oracle = ConcreteRED2Machine(
+        app_shared_encoded,
+        struct_selector_result_literal_id=app_shared_result_id,
+    )
+    assert app_shared_oracle.run_to_commit(), app_shared_oracle.fault
+    app_shared_expected = app_shared_oracle.checkpoint()
+    assert app_shared_expected.pc == 2
+    assert app_shared_expected.fsp == 6
+    assert app_shared_expected.q == 0
+    assert app_shared_expected.memory[3] == app_shared_codec.encode_word(
+        Word(MuredOpcode.APP, 6, False)
+    )
+    assert app_shared_expected.memory[4] == app_shared_codec.encode_word(
+        Word(MuredOpcode.APP, 6, False)
+    )
+    assert app_shared_expected.memory[5] == app_shared_codec.encode_word(
+        Word(MuredOpcode.PRIM_2, "CONS", True)
+    )
+    assert app_shared_expected.memory[6] == app_shared_codec.encode_word(
+        Word(MuredOpcode.INT, 7, True)
+    )
+
+    _load_hardware(app_shared_encoded)
+    _load_literal_meta(
+        42,
+        app_shared_result_id,
+        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+    )
+    app_shared_result = None
+    for _ in range(512):
+        app_shared_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+        if int(app_shared_result.status) == STATUS_FAULT:
+            raise AssertionError(
+                "selector-result APP/shared hardware faulted: "
+                f"red2={int(app_shared_result.red2_fault)} "
+                f"hw={int(app_shared_result.hw_fault)} "
+                f"micro={int(app_shared_result.microstate)}"
+            )
+        if int(app_shared_result.committed):
+            break
+    else:
+        raise AssertionError("selector-result APP/shared failed to reach bounded commit")
+    assert app_shared_result is not None
+    _assert_scalar_checkpoint(app_shared_result, app_shared_expected)
+    for address in range(3, 10):
+        app_shared_read = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert (
+            _packed_memory_read(app_shared_read)
+            == app_shared_expected.memory[address]
+        ), f"selector-result APP/shared memory mismatch at {address}"
+    app_shared_control_read = sim_call(
+        SynthesizableRED2Machine, _command(CMD_NOP, address=0)
+    )
+    assert (
+        _packed_control_read(app_shared_control_read)
+        == app_shared_expected.control_stack[0]
+    )
+
+    # Forwarding scratch survives an architectural CMD_RESET, so a second generic
+    # promotion at the same source addresses must ignore rows from the previous
+    # generation. Changing only the shared target value makes a stale hit visible:
+    # without the generation tag, old materialized INT 7 would leak into this run.
+    app_shared_second_memory: list[Word | None] = [None] * 32
+    app_shared_second_control: list[object | None] = [None] * 8
+    app_shared_second_memory[3] = Word(MuredOpcode.APP, 5, False)
+    app_shared_second_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    app_shared_second_memory[5] = Word(MuredOpcode.APP, 9, False)
+    app_shared_second_memory[6] = Word(MuredOpcode.APP, 9, False)
+    app_shared_second_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
+    app_shared_second_memory[9] = Word(MuredOpcode.INT, 11, True)
+    app_shared_second_control[0] = _SubgraphFrame(
+        env=32,
+        free_space=32,
+        prim="__STRUCT_SELECTOR_RESULT__",
+        fire=1,
+    )
+    app_shared_second_state = AbstractRED2MachineState(
+        memory=app_shared_second_memory,
+        control_stack=app_shared_second_control,
+        pc=4,
+        fsp=9,
+        env=28,
+        free_space=28,
+        c=0,
+        direction=Direction.B,
+        q=0,
+        phi=0,
+        argcnt=0,
+    )
+    app_shared_second_codec = RED2ABICodec()
+    app_shared_second_encoded = app_shared_second_codec.encode_state(
+        app_shared_second_state
+    )
+    app_shared_second_result_id = app_shared_second_codec.literal_id(
+        "__STRUCT_SELECTOR_RESULT__"
+    )
+    app_shared_second_oracle = ConcreteRED2Machine(
+        app_shared_second_encoded,
+        struct_selector_result_literal_id=app_shared_second_result_id,
+    )
+    assert app_shared_second_oracle.run_to_commit(), app_shared_second_oracle.fault
+    app_shared_second_expected = app_shared_second_oracle.checkpoint()
+    assert app_shared_second_expected.memory[6] == app_shared_second_codec.encode_word(
+        Word(MuredOpcode.INT, 11, True)
+    )
+
+    # Deliberately do not call _load_hardware(): sim_reset() would clear internal
+    # scratch and make this incapable of detecting stale forwarding state.
+    sim_call(SynthesizableRED2Machine, _command(CMD_RESET))
+    for index, packed in enumerate(app_shared_second_encoded.memory):
+        sim_call(
+            SynthesizableRED2Machine,
+            _command(CMD_LOAD_MEMORY, address=index, word=_word_struct(packed)),
+        )
+    for index, packed in enumerate(app_shared_second_encoded.control_stack):
+        if packed:
+            sim_call(
+                SynthesizableRED2Machine,
+                _command(
+                    CMD_LOAD_CONTROL,
+                    address=index,
+                    control=_control_struct(packed),
+                ),
+            )
+    sim_call(
+        SynthesizableRED2Machine,
+        _command(CMD_LOAD_STATE, state=_state_struct(app_shared_second_encoded)),
+    )
+    _load_literal_meta(
+        42,
+        app_shared_second_result_id,
+        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
+    )
+    app_shared_second_result = None
+    for _ in range(192):
+        app_shared_second_result = sim_call(
+            SynthesizableRED2Machine, _command(CMD_CLOCK)
+        )
+        assert int(app_shared_second_result.status) != STATUS_FAULT, (
+            "second selector-result APP/shared hardware faulted: "
+            f"red2={int(app_shared_second_result.red2_fault)} "
+            f"hw={int(app_shared_second_result.hw_fault)} "
+            f"micro={int(app_shared_second_result.microstate)}"
+        )
+        if int(app_shared_second_result.committed):
+            break
+    else:
+        raise AssertionError(
+            "second selector-result APP/shared failed to reach bounded commit"
+        )
+    assert app_shared_second_result is not None
+    _assert_scalar_checkpoint(
+        app_shared_second_result, app_shared_second_expected
+    )
+    for address in range(3, 10):
+        app_shared_second_read = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert (
+            _packed_memory_read(app_shared_second_read)
+            == app_shared_second_expected.memory[address]
+        ), f"second selector-result APP/shared memory mismatch at {address}"
+
+
 def check() -> None:
     # IO-RETURN fires both after a saved JOIN and directly on an inline value.  Pin
     # q==0 suppression and compositions through IO-BIND/IO-THEN so the synthesizable
@@ -1431,20 +2075,7 @@ def check() -> None:
         memory_words=64,
         control_words=32,
     )
-    encoded = codec.encode_state(machine.state)
-    processor = ConcreteRED2Machine(encoded)
-    _load_hardware(encoded)
-    pulses = []
-    result = None
-    expected_pulses = [False, False, True]
-    for expected_pulse in expected_pulses:
-        assert bool(processor.clock()) is expected_pulse
-        result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-        pulses.append(bool(int(result.committed)))
-    assert pulses == [False, False, True]
-    assert result is not None
-    expected = processor.checkpoint()
-    _assert_scalar_checkpoint(result, expected)
+    result, expected = _run_bounded_to_same_commit(machine, codec)
     result = sim_call(
         SynthesizableRED2Machine,
         _command(CMD_NOP, address=expected.fsp),
@@ -1680,7 +2311,7 @@ def check() -> None:
         )
     )
     _, _, fault = _run_encoded_to_same_fault(
-        codec.encode_state(ep_cycle_machine.state), max_clocks=300
+        codec.encode_state(ep_cycle_machine.state), max_clocks=4 * GRAPH_WORDS + 32
     )
     assert fault == abi.FAULT_ILLEGAL_TRANSITION
 
@@ -2066,7 +2697,8 @@ def check() -> None:
             )
 
         result = None
-        for _ in range(96):
+        # A missing literal scans the synchronous metadata RAM before faulting.
+        for _ in range(4 * LITERAL_META_WORDS + 32):
             result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
             if expect_fault is not None:
                 if int(result.status) == STATUS_FAULT:
@@ -3696,7 +4328,7 @@ def check() -> None:
         },
     )
     result, expected, fault = _run_encoded_to_same_fault(
-        join_ep_cycle, max_clocks=300
+        join_ep_cycle, max_clocks=4 * GRAPH_WORDS + 32
     )
     assert fault == abi.FAULT_ILLEGAL_TRANSITION
     result = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=3))
@@ -3949,7 +4581,7 @@ def check() -> None:
         }
     )
     result, expected, fault = _run_encoded_to_same_fault(
-        join_closure_pnp_cycle, max_clocks=1200
+        join_closure_pnp_cycle, max_clocks=8 * GRAPH_WORDS + 32
     )
     assert fault == abi.FAULT_ILLEGAL_TRANSITION
     for address in (3, 5, 22, 23, 30):
@@ -4658,7 +5290,7 @@ def check() -> None:
     # exhausted primitives.  With 64 metadata slots this path commits in 72
     # native clocks, so give this regression an explicit bounded allowance.
     result, expected = _run_encoded_to_same_commit(
-        saved_fire_one_qzero, max_clocks=96
+        saved_fire_one_qzero, max_clocks=4 * LITERAL_META_WORDS + 32
     )
     assert expected.q == 0
     assert expected.prim_id == 0 and expected.fire == 0
@@ -4755,7 +5387,7 @@ def check() -> None:
     invalidated_memory = tuple(metadata_invalidation_case.memory)
     invalidated_control = tuple(metadata_invalidation_case.control_stack)
     metadata_result = None
-    for _ in range(96):
+    for _ in range(4 * LITERAL_META_WORDS + 32):
         metadata_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
         if int(metadata_result.status) == STATUS_FAULT:
             break
@@ -4779,7 +5411,7 @@ def check() -> None:
     fire_one_memory = tuple(saved_fire_one.memory)
     fire_one_control = tuple(saved_fire_one.control_stack)
     fire_one_result, _, fire_one_fault = _run_encoded_to_same_fault(
-        saved_fire_one, max_clocks=96
+        saved_fire_one, max_clocks=4 * LITERAL_META_WORDS + 32
     )
     assert fire_one_fault == abi.FAULT_ILLEGAL_TRANSITION
     for address in (3, 4, 5):
@@ -6089,7 +6721,7 @@ def check() -> None:
                 36, equal_if_child_id, special_flags=LITERAL_SPECIAL_EQUAL_IF
             )
         result = None
-        for _ in range(260):
+        for _ in range(4 * LITERAL_META_WORDS + 8 * GRAPH_WORDS + 256):
             result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
             if int(result.status) == STATUS_FAULT or int(result.committed):
                 break
@@ -8468,428 +9100,7 @@ def check() -> None:
     _, _, rup_collision_fault = _run_encoded_to_same_fault(rup_collision_encoded)
     assert rup_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
 
-    # Direct RECP cases share one three-word REC validation path.  Non-head
-    # forward is passive, head forward with quantum enters the binding through
-    # a PNP environment marker, and reverse with quantum rewrites RECP to APP
-    # while saving the recursive context on the typed control stack.
-    recp_nonhead_memory: list[Word | None] = [None] * 32
-    recp_nonhead_memory[0] = Word(MuredOpcode.RECP, 20, False)
-    recp_nonhead_memory[3] = Word(MuredOpcode.STOP)
-    recp_nonhead_memory[20] = Word(MuredOpcode.REC, 8, False)
-    recp_nonhead_memory[21] = Word(None, 20, False)
-    recp_nonhead_memory[22] = Word(None, 4, False)
-    recp_nonhead_machine = AbstractRED2Machine(
-        AbstractRED2MachineState(
-            memory=recp_nonhead_memory,
-            control_stack=[None] * 8,
-            pc=0,
-            fsp=3,
-            env=20,
-            c=-1,
-            direction=Direction.F,
-            q=3,
-            phi=0,
-            free_space=20,
-            argcnt=0,
-        )
-    )
-    _, recp_nonhead_expected = _run_bounded_to_same_commit(
-        recp_nonhead_machine, RED2ABICodec()
-    )
-    assert recp_nonhead_expected.pc == 1
-    assert recp_nonhead_expected.fsp == 4
-    assert recp_nonhead_expected.q == 3
-    assert recp_nonhead_expected.argcnt == 2
-    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=4))
-    assert _packed_memory_read(recp_read) == recp_nonhead_expected.memory[4]
-
-    recp_head_memory = list(recp_nonhead_memory)
-    recp_head_memory[0] = Word(MuredOpcode.RECP, 20, True)
-    recp_head_machine = AbstractRED2Machine(
-        AbstractRED2MachineState(
-            memory=recp_head_memory,
-            control_stack=[None] * 8,
-            pc=0,
-            fsp=3,
-            env=20,
-            c=-1,
-            direction=Direction.F,
-            q=3,
-            phi=0,
-            free_space=20,
-            argcnt=0,
-        )
-    )
-    _, recp_head_expected = _run_bounded_to_same_commit(
-        recp_head_machine, RED2ABICodec()
-    )
-    assert recp_head_expected.pc == 8
-    assert recp_head_expected.env == 19
-    assert recp_head_expected.free_space == 19
-    assert recp_head_expected.q == 2
-    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=19))
-    assert _packed_memory_read(recp_read) == recp_head_expected.memory[19]
-
-    recp_reverse_memory: list[Word | None] = [None] * 32
-    recp_reverse_memory[4] = Word(MuredOpcode.RECP, 20, False)
-    recp_reverse_memory[20] = Word(MuredOpcode.REC, 8, False)
-    recp_reverse_memory[21] = Word(None, 20, False)
-    recp_reverse_memory[22] = Word(None, 4, False)
-    recp_reverse_machine = AbstractRED2Machine(
-        AbstractRED2MachineState(
-            memory=recp_reverse_memory,
-            control_stack=[None] * 8,
-            pc=4,
-            fsp=4,
-            env=20,
-            c=-1,
-            direction=Direction.B,
-            q=2,
-            phi=0,
-            free_space=20,
-            argcnt=0,
-        )
-    )
-    _, recp_reverse_expected = _run_bounded_to_same_commit(
-        recp_reverse_machine, RED2ABICodec()
-    )
-    assert recp_reverse_expected.pc == 4
-    assert recp_reverse_expected.q == 1
-    assert recp_reverse_expected.c == 1
-    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=4))
-    assert _packed_memory_read(recp_read) == recp_reverse_expected.memory[4]
-    recp_read = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
-    assert _packed_control_read(recp_read) == recp_reverse_expected.control_stack[0]
-
-    # Head RECP at q=0 reconstructs the recursive wrapper: parent PNP marker,
-    # one UBV per binding, copied RBLOCKs, replacement paths, matching RUP, and
-    # a head VAR selecting this REC's index.  Publication ends in reverse mode.
-    recp_zero_memory: list[Word | None] = [None] * 40
-    recp_zero_memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
-    recp_zero_memory[1] = Word(MuredOpcode.RBLOCK, 6, False)
-    recp_zero_memory[2] = Word(MuredOpcode.RUP, 2, False)
-    recp_zero_memory[3] = Word(MuredOpcode.VAR, 1, True)
-    recp_zero_memory[4] = Word(MuredOpcode.SYM, "x", False)
-    recp_zero_memory[5] = Word(MuredOpcode.VAR, 0, True)
-    recp_zero_memory[6] = Word(MuredOpcode.SYM, "y", False)
-    recp_zero_memory[7] = Word(MuredOpcode.VAR, 1, True)
-    recp_zero_memory[8] = Word(MuredOpcode.RECP, 31, True)
-    recp_zero_memory[12] = Word(MuredOpcode.STOP)
-    recp_zero_memory[28] = Word(MuredOpcode.REC, 7, False)
-    recp_zero_memory[29] = Word(None, 28, False)
-    recp_zero_memory[30] = Word(None, 0, False)
-    recp_zero_memory[31] = Word(MuredOpcode.REC, 5, False)
-    recp_zero_memory[32] = Word(None, 28, False)
-    recp_zero_memory[33] = Word(None, 0, False)
-    recp_zero_machine = AbstractRED2Machine(
-        AbstractRED2MachineState(
-            memory=recp_zero_memory,
-            control_stack=[None] * 10,
-            pc=8,
-            fsp=12,
-            env=28,
-            c=-1,
-            direction=Direction.F,
-            q=0,
-            phi=0,
-            free_space=28,
-            argcnt=0,
-        )
-    )
-    _, recp_zero_expected = _run_bounded_to_same_commit(
-        recp_zero_machine, RED2ABICodec()
-    )
-    assert recp_zero_expected.pc == 15
-    assert recp_zero_expected.fsp == 16
-    assert recp_zero_expected.env == 25
-    assert recp_zero_expected.free_space == 25
-    assert recp_zero_expected.direction == abi.DIRECTION_REVERSE
-    assert recp_zero_expected.q == 0
-    assert recp_zero_expected.phi == 2
-    for address in (13, 14, 15, 16, 25, 26, 27):
-        recp_zero_read = sim_call(
-            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-        )
-        assert _packed_memory_read(recp_zero_read) == recp_zero_expected.memory[address]
-    for address in (0, 1):
-        recp_zero_read = sim_call(
-            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-        )
-        assert _packed_control_read(recp_zero_read) == recp_zero_expected.control_stack[address]
-
-    # Reverse head/tail RECP at q=0 first enters a subgraph and then runs the
-    # same reconstruction serializer.  Verify both normalized-frontier shapes.
-    for recp_reverse_env in (28, 27):
-        recp_reverse_zero_state = AbstractRED2MachineState(
-            memory=list(recp_zero_memory),
-            control_stack=[None] * 32,
-            pc=8,
-            fsp=12,
-            env=recp_reverse_env,
-            c=-1,
-            direction=Direction.B,
-            q=0,
-            phi=0,
-            free_space=28,
-            argcnt=0,
-        )
-        recp_reverse_zero_machine = AbstractRED2Machine(recp_reverse_zero_state)
-        _, recp_reverse_zero_expected = _run_bounded_to_same_commit(
-            recp_reverse_zero_machine, RED2ABICodec()
-        )
-        assert recp_reverse_zero_expected.fsp == 17
-        assert recp_reverse_zero_expected.direction == abi.DIRECTION_REVERSE
-        assert recp_reverse_zero_expected.q == 0
-        assert recp_reverse_zero_expected.phi == 2
-        expected_frontier = 25 if recp_reverse_env == 28 else 24
-        assert recp_reverse_zero_expected.env == expected_frontier
-        assert recp_reverse_zero_expected.free_space == expected_frontier
-        assert recp_reverse_zero_expected.c == 3
-        for address in range(13, 18):
-            recp_reverse_zero_read = sim_call(
-                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-            )
-            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
-        for address in range(expected_frontier, 28):
-            recp_reverse_zero_read = sim_call(
-                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-            )
-            assert _packed_memory_read(recp_reverse_zero_read) == recp_reverse_zero_expected.memory[address]
-        for address in range(3):
-            recp_reverse_zero_read = sim_call(
-                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-            )
-            assert _packed_control_read(recp_reverse_zero_read) == recp_reverse_zero_expected.control_stack[address]
-
-    # Exercise the actual RECP-parent JOIN return, not only its reconstruction
-    # entry commit.  Advance faithful muRED to the exact JOIN-return checkpoint;
-    # the native hardware transition must preserve the child graph, restore the
-    # frame, and rewrite the original RECP as non-head APP(published_root).
-    recp_join_state = AbstractRED2MachineState(
-        memory=[None] * 40,
-        control_stack=[None] * 12,
-        pc=10,
-        fsp=10,
-        env=28,
-        c=-1,
-        direction=Direction.B,
-        q=0,
-        phi=0,
-        prim="CAR",
-        fire=2,
-    )
-    recp_join_state.memory[0] = Word(MuredOpcode.RBLOCK, 4, False)
-    recp_join_state.memory[1] = Word(MuredOpcode.RUP, 1, False)
-    recp_join_state.memory[2] = Word(MuredOpcode.VAR, 0, True)
-    recp_join_state.memory[4] = Word(MuredOpcode.SYM, "x", False)
-    recp_join_state.memory[5] = Word(MuredOpcode.INT, 7, True)
-    recp_join_state.memory[9] = Word(MuredOpcode.STOP)
-    recp_join_state.memory[10] = Word(MuredOpcode.RECP, 28, False)
-    recp_join_state.memory[28] = Word(MuredOpcode.REC, 5, False)
-    recp_join_state.memory[29] = Word(None, 28, False)
-    recp_join_state.memory[30] = Word(None, 0, False)
-    recp_join_machine = AbstractRED2Machine(recp_join_state)
-    for _ in range(7):
-        recp_join_machine.step()
-    _, recp_join_expected = _run_bounded_to_same_commit(
-        recp_join_machine, RED2ABICodec()
-    )
-    assert recp_join_expected.pc == 9
-    assert recp_join_expected.fsp == 17
-    assert recp_join_expected.env == 28
-    assert recp_join_expected.free_space == 28
-    assert recp_join_expected.c == 0
-    assert recp_join_expected.direction == abi.DIRECTION_REVERSE
-    assert recp_join_expected.q == 0
-    assert recp_join_expected.phi == 0
-    assert recp_join_expected.fire == 1
-    recp_join_parent = sim_call(
-        SynthesizableRED2Machine, _command(CMD_NOP, address=10)
-    )
-    assert _packed_memory_read(recp_join_parent) == recp_join_expected.memory[10]
-    recp_join_child = sim_call(
-        SynthesizableRED2Machine, _command(CMD_NOP, address=12)
-    )
-    assert _packed_memory_read(recp_join_child) == recp_join_expected.memory[12]
-    recp_join_frame = sim_call(
-        SynthesizableRED2Machine, _command(CMD_NOP, address=0)
-    )
-    assert _packed_control_read(recp_join_frame) == recp_join_expected.control_stack[0]
-
-    # Malformed recursive residuals must fault before the RECP parent/frame is
-    # published.  Compare the native hardware fault and unchanged architecture
-    # directly against the bounded processor for the supported validator subset.
-    def _recp_join_residual_state(*, bad_rup_count: bool = False, missing_binding: bool = False):
-        memory = [None] * 64
-        memory[3] = Word(MuredOpcode.RECP, 40, False)
-        memory[4] = Word(MuredOpcode.JOIN, 3, False)
-        memory[5] = Word(MuredOpcode.RBLOCK, 20, False)
-        memory[6] = Word(MuredOpcode.RUP, 2 if bad_rup_count else 1, False)
-        memory[7] = Word(MuredOpcode.VAR, 0, True)
-        memory[20] = Word(MuredOpcode.SYM, "x", False)
-        if not missing_binding:
-            memory[21] = Word(MuredOpcode.INT, 7, True)
-        memory[40] = Word(MuredOpcode.REC, 21, False)
-        memory[41] = Word(None, 40, False)
-        memory[42] = Word(None, 5, False)
-        state = AbstractRED2MachineState(
-            memory=memory,
-            control_stack=[None] * 8,
-            pc=4,
-            fsp=7,
-            env=30,
-            free_space=30,
-            c=0,
-            direction=Direction.B,
-            q=0,
-            phi=1,
-            argcnt=0,
-        )
-        state.control_stack[0] = _SubgraphFrame(
-            env=44, free_space=44, prim=None, fire=0
-        )
-        return state
-
-    for recp_fault_state, recp_fault_code in (
-        (_recp_join_residual_state(bad_rup_count=True), abi.FAULT_ILLEGAL_TRANSITION),
-        (_recp_join_residual_state(missing_binding=True), abi.FAULT_INVALID_ADDRESS),
-    ):
-        recp_fault_encoded = RED2ABICodec().encode_state(recp_fault_state)
-        _, recp_fault_expected, recp_fault_actual = _run_encoded_to_same_fault(
-            recp_fault_encoded
-        )
-        assert recp_fault_actual == recp_fault_code
-        assert recp_fault_expected == recp_fault_encoded
-
-    # Fault precedence follows the reconstruction phases.  With fsp=21 the
-    # marker/UBVs and both RBLOCK copies fit, while the final RUP+VAR do not.
-    # If only one control slot remains, CONTROL_OVERFLOW must therefore win
-    # before the later graph collision, and no reconstruction writes may land.
-    recp_zero_precedence_state = AbstractRED2MachineState(
-        memory=list(recp_zero_memory),
-        control_stack=[None] * CONTROL_WORDS,
-        pc=8,
-        fsp=21,
-        env=28,
-        c=-1,
-        direction=Direction.F,
-        q=0,
-        phi=0,
-        free_space=28,
-        argcnt=0,
-    )
-    recp_zero_precedence_encoded = RED2ABICodec().encode_state(
-        recp_zero_precedence_state
-    )
-    recp_zero_precedence_control = list(recp_zero_precedence_encoded.control_stack)
-    for control_index in range(CONTROL_WORDS - 1):
-        recp_zero_precedence_control[control_index] = abi.pack_control_entry(
-            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
-        )
-    recp_zero_precedence_encoded = replace(
-        recp_zero_precedence_encoded,
-        control_stack=tuple(recp_zero_precedence_control),
-        c=CONTROL_WORDS - 1,
-    )
-    _, recp_zero_precedence_expected, recp_zero_precedence_fault = (
-        _run_encoded_to_same_fault(recp_zero_precedence_encoded)
-    )
-    assert recp_zero_precedence_fault == abi.FAULT_CONTROL_OVERFLOW
-    assert recp_zero_precedence_expected == recp_zero_precedence_encoded
-
-    # All direct RECP writes are post-validation: malformed REC/context records,
-    # graph collisions, and a full control stack fault without publishing a
-    # partial APP, PNP marker, or graph result.
-    recp_bad_memory = list(recp_head_memory)
-    recp_bad_memory[20] = Word(MuredOpcode.INT, 8, False)
-    recp_bad_state = AbstractRED2MachineState(
-        memory=recp_bad_memory,
-        control_stack=[None] * 8,
-        pc=0,
-        fsp=3,
-        env=20,
-        c=-1,
-        direction=Direction.F,
-        q=3,
-        phi=0,
-        free_space=20,
-        argcnt=0,
-    )
-    recp_bad_encoded = RED2ABICodec().encode_state(recp_bad_state)
-    _, recp_bad_expected, recp_bad_fault = _run_encoded_to_same_fault(recp_bad_encoded)
-    assert recp_bad_fault == abi.FAULT_ILLEGAL_TRANSITION
-    assert recp_bad_expected.memory[19] == 0
-
-    recp_missing_context_memory = list(recp_head_memory)
-    recp_missing_context_memory[21] = None
-    recp_missing_context_state = AbstractRED2MachineState(
-        memory=recp_missing_context_memory,
-        control_stack=[None] * 8,
-        pc=0,
-        fsp=3,
-        env=20,
-        c=-1,
-        direction=Direction.F,
-        q=3,
-        phi=0,
-        free_space=20,
-        argcnt=0,
-    )
-    recp_missing_context_encoded = RED2ABICodec().encode_state(recp_missing_context_state)
-    _, _, recp_missing_context_fault = _run_encoded_to_same_fault(
-        recp_missing_context_encoded
-    )
-    assert recp_missing_context_fault == abi.FAULT_INVALID_ADDRESS
-
-    recp_collision_state = AbstractRED2MachineState(
-        memory=list(recp_head_memory),
-        control_stack=[None] * 8,
-        pc=0,
-        fsp=19,
-        env=20,
-        c=-1,
-        direction=Direction.F,
-        q=3,
-        phi=0,
-        free_space=20,
-        argcnt=0,
-    )
-    recp_collision_encoded = RED2ABICodec().encode_state(recp_collision_state)
-    _, recp_collision_expected, recp_collision_fault = _run_encoded_to_same_fault(
-        recp_collision_encoded
-    )
-    assert recp_collision_fault == abi.FAULT_GRAPH_ENV_COLLISION
-    assert recp_collision_expected.memory[19] == 0
-
-    recp_overflow_state = AbstractRED2MachineState(
-        memory=list(recp_reverse_memory),
-        control_stack=[None] * CONTROL_WORDS,
-        pc=4,
-        fsp=4,
-        env=20,
-        c=-1,
-        direction=Direction.B,
-        q=2,
-        phi=0,
-        free_space=20,
-        argcnt=0,
-    )
-    recp_overflow_encoded = RED2ABICodec().encode_state(recp_overflow_state)
-    recp_overflow_entries = list(recp_overflow_encoded.control_stack)
-    for control_index in range(CONTROL_WORDS):
-        recp_overflow_entries[control_index] = abi.pack_control_entry(
-            abi.CONTROL_ADDRESS, control_index, 0, 0, 0
-        )
-    recp_overflow_encoded = replace(
-        recp_overflow_encoded,
-        control_stack=tuple(recp_overflow_entries),
-        c=CONTROL_WORDS,
-    )
-    _, recp_overflow_expected, recp_overflow_fault = _run_encoded_to_same_fault(
-        recp_overflow_encoded
-    )
-    assert recp_overflow_fault == abi.FAULT_CONTROL_OVERFLOW
-    assert recp_overflow_expected.memory[4] == recp_overflow_encoded.memory[4]
+    check_recp()
 
     # Core STRUCT execution: reconstruction saves/restores quantum, while positive-q
     # APP_VAR/EP/APP result heads bind through the same environment shapes as LAMBDA.
@@ -9406,9 +9617,9 @@ def check() -> None:
         )
         result = None
         # Selector-result launch includes a full semantic-metadata scan before
-        # replacing the returning frame; keep this bounded above the ~96-clock
-        # reducible path while still detecting accidental nontermination.
-        for _ in range(160):
+        # replacing the returning frame; allow the serialized metadata scan
+        # for the configured capacity while still detecting nontermination.
+        for _ in range(4 * LITERAL_META_WORDS + 8 * GRAPH_WORDS + 256):
             result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
             assert int(result.status) != STATUS_FAULT, (
                 f"selector hardware faulted before commit: red2={int(result.red2_fault)} "
@@ -9862,203 +10073,7 @@ def check() -> None:
     assert selector_result_lambda_symbol.pc == 3
     assert selector_result_lambda_symbol.fsp == 2
 
-    # Generic selector-result promotion must relinearize an APP problem into
-    # fresh relative scratch before publication. Two descriptors that share one
-    # target must continue sharing that single materialized target after relocation.
-    app_shared_memory: list[Word | None] = [None] * 32
-    app_shared_control: list[object | None] = [None] * 8
-    app_shared_memory[3] = Word(MuredOpcode.APP, 5, False)
-    app_shared_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
-    app_shared_memory[5] = Word(MuredOpcode.APP, 9, False)
-    app_shared_memory[6] = Word(MuredOpcode.APP, 9, False)
-    app_shared_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
-    app_shared_memory[9] = Word(MuredOpcode.INT, 7, True)
-    app_shared_control[0] = _SubgraphFrame(
-        env=32,
-        free_space=32,
-        prim="__STRUCT_SELECTOR_RESULT__",
-        fire=1,
-    )
-    app_shared_state = AbstractRED2MachineState(
-        memory=app_shared_memory,
-        control_stack=app_shared_control,
-        pc=4,
-        fsp=9,
-        env=28,
-        free_space=28,
-        c=0,
-        direction=Direction.B,
-        q=0,
-        phi=0,
-        argcnt=0,
-    )
-    app_shared_codec = RED2ABICodec()
-    app_shared_encoded = app_shared_codec.encode_state(app_shared_state)
-    app_shared_result_id = app_shared_codec.literal_id("__STRUCT_SELECTOR_RESULT__")
-    app_shared_oracle = ConcreteRED2Machine(
-        app_shared_encoded,
-        struct_selector_result_literal_id=app_shared_result_id,
-    )
-    assert app_shared_oracle.run_to_commit(), app_shared_oracle.fault
-    app_shared_expected = app_shared_oracle.checkpoint()
-    assert app_shared_expected.pc == 2
-    assert app_shared_expected.fsp == 6
-    assert app_shared_expected.q == 0
-    assert app_shared_expected.memory[3] == app_shared_codec.encode_word(
-        Word(MuredOpcode.APP, 6, False)
-    )
-    assert app_shared_expected.memory[4] == app_shared_codec.encode_word(
-        Word(MuredOpcode.APP, 6, False)
-    )
-    assert app_shared_expected.memory[5] == app_shared_codec.encode_word(
-        Word(MuredOpcode.PRIM_2, "CONS", True)
-    )
-    assert app_shared_expected.memory[6] == app_shared_codec.encode_word(
-        Word(MuredOpcode.INT, 7, True)
-    )
-
-    _load_hardware(app_shared_encoded)
-    _load_literal_meta(
-        42,
-        app_shared_result_id,
-        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
-    )
-    app_shared_result = None
-    for _ in range(512):
-        app_shared_result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
-        if int(app_shared_result.status) == STATUS_FAULT:
-            raise AssertionError(
-                "selector-result APP/shared hardware faulted: "
-                f"red2={int(app_shared_result.red2_fault)} "
-                f"hw={int(app_shared_result.hw_fault)} "
-                f"micro={int(app_shared_result.microstate)}"
-            )
-        if int(app_shared_result.committed):
-            break
-    else:
-        raise AssertionError("selector-result APP/shared failed to reach bounded commit")
-    assert app_shared_result is not None
-    _assert_scalar_checkpoint(app_shared_result, app_shared_expected)
-    for address in range(3, 10):
-        app_shared_read = sim_call(
-            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-        )
-        assert (
-            _packed_memory_read(app_shared_read)
-            == app_shared_expected.memory[address]
-        ), f"selector-result APP/shared memory mismatch at {address}"
-    app_shared_control_read = sim_call(
-        SynthesizableRED2Machine, _command(CMD_NOP, address=0)
-    )
-    assert (
-        _packed_control_read(app_shared_control_read)
-        == app_shared_expected.control_stack[0]
-    )
-
-    # Forwarding scratch survives an architectural CMD_RESET, so a second generic
-    # promotion at the same source addresses must ignore rows from the previous
-    # generation. Changing only the shared target value makes a stale hit visible:
-    # without the generation tag, old materialized INT 7 would leak into this run.
-    app_shared_second_memory: list[Word | None] = [None] * 32
-    app_shared_second_control: list[object | None] = [None] * 8
-    app_shared_second_memory[3] = Word(MuredOpcode.APP, 5, False)
-    app_shared_second_memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
-    app_shared_second_memory[5] = Word(MuredOpcode.APP, 9, False)
-    app_shared_second_memory[6] = Word(MuredOpcode.APP, 9, False)
-    app_shared_second_memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
-    app_shared_second_memory[9] = Word(MuredOpcode.INT, 11, True)
-    app_shared_second_control[0] = _SubgraphFrame(
-        env=32,
-        free_space=32,
-        prim="__STRUCT_SELECTOR_RESULT__",
-        fire=1,
-    )
-    app_shared_second_state = AbstractRED2MachineState(
-        memory=app_shared_second_memory,
-        control_stack=app_shared_second_control,
-        pc=4,
-        fsp=9,
-        env=28,
-        free_space=28,
-        c=0,
-        direction=Direction.B,
-        q=0,
-        phi=0,
-        argcnt=0,
-    )
-    app_shared_second_codec = RED2ABICodec()
-    app_shared_second_encoded = app_shared_second_codec.encode_state(
-        app_shared_second_state
-    )
-    app_shared_second_result_id = app_shared_second_codec.literal_id(
-        "__STRUCT_SELECTOR_RESULT__"
-    )
-    app_shared_second_oracle = ConcreteRED2Machine(
-        app_shared_second_encoded,
-        struct_selector_result_literal_id=app_shared_second_result_id,
-    )
-    assert app_shared_second_oracle.run_to_commit(), app_shared_second_oracle.fault
-    app_shared_second_expected = app_shared_second_oracle.checkpoint()
-    assert app_shared_second_expected.memory[6] == app_shared_second_codec.encode_word(
-        Word(MuredOpcode.INT, 11, True)
-    )
-
-    # Deliberately do not call _load_hardware(): sim_reset() would clear internal
-    # scratch and make this incapable of detecting stale forwarding state.
-    sim_call(SynthesizableRED2Machine, _command(CMD_RESET))
-    for index, packed in enumerate(app_shared_second_encoded.memory):
-        sim_call(
-            SynthesizableRED2Machine,
-            _command(CMD_LOAD_MEMORY, address=index, word=_word_struct(packed)),
-        )
-    for index, packed in enumerate(app_shared_second_encoded.control_stack):
-        if packed:
-            sim_call(
-                SynthesizableRED2Machine,
-                _command(
-                    CMD_LOAD_CONTROL,
-                    address=index,
-                    control=_control_struct(packed),
-                ),
-            )
-    sim_call(
-        SynthesizableRED2Machine,
-        _command(CMD_LOAD_STATE, state=_state_struct(app_shared_second_encoded)),
-    )
-    _load_literal_meta(
-        42,
-        app_shared_second_result_id,
-        struct_role=STRUCT_ROLE_SELECTOR_RESULT,
-    )
-    app_shared_second_result = None
-    for _ in range(192):
-        app_shared_second_result = sim_call(
-            SynthesizableRED2Machine, _command(CMD_CLOCK)
-        )
-        assert int(app_shared_second_result.status) != STATUS_FAULT, (
-            "second selector-result APP/shared hardware faulted: "
-            f"red2={int(app_shared_second_result.red2_fault)} "
-            f"hw={int(app_shared_second_result.hw_fault)} "
-            f"micro={int(app_shared_second_result.microstate)}"
-        )
-        if int(app_shared_second_result.committed):
-            break
-    else:
-        raise AssertionError(
-            "second selector-result APP/shared failed to reach bounded commit"
-        )
-    assert app_shared_second_result is not None
-    _assert_scalar_checkpoint(
-        app_shared_second_result, app_shared_second_expected
-    )
-    for address in range(3, 10):
-        app_shared_second_read = sim_call(
-            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
-        )
-        assert (
-            _packed_memory_read(app_shared_second_read)
-            == app_shared_second_expected.memory[address]
-        ), f"second selector-result APP/shared memory mismatch at {address}"
+    check_selector_shared_app_promotion()
 
     # Promotion validates the entire narrow lambda problem before its first write.
     # A composite body still belongs to generic relinearization, so hardware must
@@ -10381,8 +10396,8 @@ def check() -> None:
         if saved_primitive and frame_fire == 1 and q == 0:
             # Exhausted fire==1 JOINs scan semantic metadata so the private
             # selector-result continuation can still be recognized.  RBLOCK adds
-            # its own phi bookkeeping around that bounded 64-slot scan.
-            join_clock_budget = 96
+            # its own phi bookkeeping around the configured metadata scan.
+            join_clock_budget = 4 * LITERAL_META_WORDS + 32
         _, expected = _run_encoded_to_same_commit(
             encoded, max_clocks=join_clock_budget
         )
@@ -10472,32 +10487,21 @@ def check() -> None:
         expect_fault=abi.FAULT_ILLEGAL_TRANSITION,
     )
 
-    # Program-level milestone: compile/load once, then compare every committed
-    # architectural transition from the exact same encoded image.  Fibonacci is
-    # deliberately last because it composes closures, IF, scalar primitives,
-    # recursive environment records, EP paths, and changing accumulators.
-    fibonacci_source = """
-fib == (lambda (n)
-  (letrec ((fib-iter
-            (lambda (i current next)
-              (if (= i 0)
-                  current
-                  (fib-iter (1- i) next (+ current next))))))
-    (fib-iter n 0 1)))
-
-fib-six == (fib 6)
-
-fib-six
-"""
-    fibonacci_final, fibonacci_commits = _run_program_lockstep(fibonacci_source)
-    assert fibonacci_commits > 0
-    assert fibonacci_final.halted == 1
-
+    check_fibonacci()
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         check()
         print("PipelineC native RED2 first-slice parity: PASS")
+    elif sys.argv[1:] == ["--selector-shared-app-only"]:
+        check_selector_shared_app_promotion()
+        print("PipelineC native RED2 selector shared-APP promotion parity: PASS")
+    elif sys.argv[1:] == ["--fibonacci-only"]:
+        check_fibonacci()
+        print("PipelineC native RED2 Fibonacci lockstep parity: PASS")
+    elif sys.argv[1:] == ["--recp-only"]:
+        check_recp()
+        print("PipelineC native RED2 RECP parity: PASS")
     elif sys.argv[1:] == ["--generic-ep-patch-journal-only"]:
         check_generic_ep_patch_journal()
         print("PipelineC native RED2 generic EP patch-journal parity: PASS")
@@ -10510,6 +10514,6 @@ if __name__ == "__main__":
     else:
         raise SystemExit(
             "usage: check_syn_sim.py "
-            "[--generic-ep-patch-journal-only|--generic-closure-materialization-only|"
+            "[--selector-shared-app-only|--fibonacci-only|--recp-only|--generic-ep-patch-journal-only|--generic-closure-materialization-only|"
             "--floor-ceiling-fsp-regression-only]"
         )

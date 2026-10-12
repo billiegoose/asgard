@@ -8,8 +8,13 @@ import os
 import sys
 from pathlib import Path
 
+from pipelinec_toolchain import (
+    DEFAULT_PIPELINEC_ROOT,
+    configured_root,
+    verify_enhanced_compiler,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PIPELINEC_ROOT = REPO_ROOT.parent / "PipelineC-pypeline-red2-pinned"
 LIB_ROOT = REPO_ROOT / "src" / "lib"
 MACHINES_ROOT = REPO_ROOT / "src" / "machines"
 
@@ -21,13 +26,9 @@ def _bootstrap_import_paths() -> None:
         if source not in sys.path:
             sys.path.insert(0, source)
 
-    configured = os.environ.get("PIPELINEC_ROOT")
-    root = (
-        Path(configured).expanduser().resolve()
-        if configured
-        else DEFAULT_PIPELINEC_ROOT
-    )
+    root = configured_root()
     if root.is_dir():
+        verify_enhanced_compiler(root)
         # The checkout contains both the simulator runtime (`src/pypeline.py`) and
         # a header package (`include/pypeline`).  A caller-provided PYTHONPATH may
         # already contain the include tree ahead of src, so merely inserting absent
@@ -43,13 +44,10 @@ def _bootstrap_import_paths() -> None:
         sys.path[:0] = checkout_paths
         return
 
-    try:
-        __import__("pypeline")
-    except ImportError as error:
-        raise RuntimeError(
-            "native Pypeline simulator unavailable; set PIPELINEC_ROOT to a PipelineC "
-            f"checkout (tested checkout: {DEFAULT_PIPELINEC_ROOT})"
-        ) from error
+    raise RuntimeError(
+        "enhanced PipelineC unavailable; run python scripts/setup_pipelinec.py "
+        f"(default: {DEFAULT_PIPELINEC_ROOT}), or set PIPELINEC_ROOT"
+    )
 
 
 _bootstrap_import_paths()
@@ -60,6 +58,9 @@ _bootstrap_import_paths()
 # caller configuration still wins.
 if __name__ == "__main__":
     os.environ.setdefault("RED2_SYN_GRAPH_WORDS", "8192")
+    # The software-facing simulator retains the complete arithmetic model.
+    # Hardware defaults to omitting the optional floating arithmetic module.
+    os.environ.setdefault("RED2_SYN_FLOAT", "1")
 
 import pypeline as _pypeline  # noqa: E402
 from pypeline import sim_call, sim_reset  # noqa: E402

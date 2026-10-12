@@ -1,4 +1,5 @@
 import ast
+import importlib
 import os
 import subprocess
 import sys
@@ -7,7 +8,8 @@ from pathlib import Path
 
 def test_task14_hardware_checker_pins_real_frontend_and_persistent_processor() -> None:
     text = Path("scripts/check_syn.py").read_text()
-    assert "171c52b3f1411f632a07ccfc3dbfb177efa901cd" in text
+    assert "verify_enhanced_compiler" in text
+    assert "tools/pipelinec/manifest.json" in text
     assert 'PROCESSOR_SOURCE = Path("src/machines/synthesizable_red2_machine/machine.py")' in text
     assert "legacy red2_step_word" in text
     assert "--no_synth" in text
@@ -22,7 +24,7 @@ def test_task14_hardware_checker_pins_real_frontend_and_persistent_processor() -
 
 def test_task14_explicit_gate_hard_fails_when_frontend_is_hidden() -> None:
     env = os.environ.copy()
-    env.pop("PIPELINEC_ROOT", None)
+    env["PIPELINEC_ROOT"] = "/nonexistent/pipelinec-hidden-for-test"
     env["PATH"] = ""
     result = subprocess.run(
         [sys.executable, "scripts/check_syn.py"],
@@ -35,54 +37,41 @@ def test_task14_explicit_gate_hard_fails_when_frontend_is_hidden() -> None:
     assert result.stdout == ""
     assert result.stderr.strip() == (
         "syn-check: missing PipelineC/Pypeline frontend; "
-        "set PIPELINEC_ROOT to a checkout at "
-        "171c52b3f1411f632a07ccfc3dbfb177efa901cd or put pypelinec/pipelinec on PATH"
+        "run python scripts/setup_pipelinec.py or set PIPELINEC_ROOT to the "
+        "enhanced compiler matching tools/pipelinec/manifest.json"
     )
 
 
-def test_task14_frontend_only_bypasses_synthesis_backend_preflight(tmp_path: Path) -> None:
+def test_task14_frontend_only_bypasses_synthesis_backend_preflight(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    monkeypatch.syspath_prepend(str(Path("scripts").resolve()))
+    gate = importlib.import_module("check_syn")
     fake_frontend = tmp_path / "pypelinec"
     fake_frontend.write_text("#!/bin/sh\nexit 0\n")
     fake_frontend.chmod(0o755)
-
-    env = os.environ.copy()
-    env.pop("PIPELINEC_ROOT", None)
-    env["PATH"] = str(tmp_path)
-    result = subprocess.run(
-        [sys.executable, "scripts/check_syn.py", "--frontend-only"],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    assert result.returncode == 4
-    assert "synthesis backend unavailable" not in result.stderr
-    assert "did not emit SynthesizableRED2Machine VHDL" in result.stderr
+    # Exercise the gate after compiler selection, without requiring a compiler
+    # installation for this backend/error-path unit test.
+    monkeypatch.setattr(gate, "discover_frontend", lambda: (fake_frontend, None))
+    monkeypatch.setenv("PATH", str(tmp_path))
+    assert gate.check(frontend_only=True) == 4
+    output = capsys.readouterr()
+    assert "synthesis backend unavailable" not in output.err
+    assert "did not emit SynthesizableRED2Machine VHDL" in output.err
 
 
 def test_task14_full_gate_hard_fails_before_frontend_when_synthesis_backend_is_hidden(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch, capsys
 ) -> None:
+    monkeypatch.syspath_prepend(str(Path("scripts").resolve()))
+    gate = importlib.import_module("check_syn")
     fake_frontend = tmp_path / "pypelinec"
     fake_frontend.write_text("#!/bin/sh\nexit 99\n")
     fake_frontend.chmod(0o755)
-
-    env = os.environ.copy()
-    env.pop("PIPELINEC_ROOT", None)
-    env["PATH"] = str(tmp_path)
-    result = subprocess.run(
-        [sys.executable, "scripts/check_syn.py"],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    assert result.returncode == 5
-    assert result.stderr.strip() == (
-        "syn-check: synthesis backend unavailable: the generic PyRTL flow "
-        "requires Yosys plus a usable GHDL prefix; install the synthesis toolchain "
-        "or use --frontend-only"
-    )
+    monkeypatch.setattr(gate, "discover_frontend", lambda: (fake_frontend, None))
+    monkeypatch.setenv("PATH", str(tmp_path))
+    assert gate.check() == 5
+    assert capsys.readouterr().err.strip() == gate.MISSING_SYNTHESIS_BACKEND_DIAGNOSTIC
 
 
 def test_task14_mise_exposes_explicit_non_skipping_hardware_gate() -> None:
@@ -121,7 +110,7 @@ def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
 
     long_dispatch_chains: list[tuple[int, int]] = []
     for node in ast.walk(top):
-        if not isinstance(node, ast.If) or node.col_offset != 8:
+        if not isinstance(node, ast.If):
             continue
         parent = parents.get(node)
         if (
@@ -141,7 +130,20 @@ def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
 
     assert long_dispatch_chains == []
     source = path.read_text()
-    assert "micro_is_commit_entry: uint1_t = microstate == MICRO_COMMIT" in source
+    # The predicate can be declared outside the clock prelude and assigned
+    # inside it. Check the snapshot expression independently of its annotation.
+    assert any(
+        isinstance(node, (ast.Assign, ast.AnnAssign))
+        and any(
+            isinstance(target, ast.Name) and target.id == "micro_is_commit_entry"
+            for target in (
+                node.targets if isinstance(node, ast.Assign) else [node.target]
+            )
+        )
+        and ast.dump(node.value)
+        == ast.dump(ast.parse("microstate == MICRO_COMMIT", mode="eval").body)
+        for node in ast.walk(top)
+    )
     assert "clock_dispatch_handled: uint1_t = 0" in source
     assert source.count("clock_dispatch_handled = 1") == 145
 

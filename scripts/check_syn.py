@@ -16,12 +16,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-PIPELINEC_TESTED_REVISION = "171c52b3f1411f632a07ccfc3dbfb177efa901cd"
+from pipelinec_toolchain import configured_root, verify_enhanced_compiler
+
 PROCESSOR_SOURCE = Path("src/machines/synthesizable_red2_machine/machine.py")
 MISSING_FRONTEND_DIAGNOSTIC = (
     "syn-check: missing PipelineC/Pypeline frontend; "
-    f"set PIPELINEC_ROOT to a checkout at {PIPELINEC_TESTED_REVISION} "
-    "or put pypelinec/pipelinec on PATH"
+    "run python scripts/setup_pipelinec.py or set PIPELINEC_ROOT to the "
+    "enhanced compiler matching tools/pipelinec/manifest.json"
 )
 MISSING_TOP_DIAGNOSTIC = (
     "syn-check: RED2 hardware top missing: persistent reducer source "
@@ -60,25 +61,15 @@ def discover_frontend() -> tuple[Path, Path | None] | None:
             return frontend, root
         return None
 
-    for name in ("pypelinec", "pipelinec"):
-        found = shutil.which(name)
-        if found:
-            return Path(found).resolve(), None
+    root = configured_root()
+    frontend = _frontend_from_root(root)
+    if frontend is not None:
+        return frontend, root
     return None
 
 
 def _checkout_revision(root: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(
-            "syn-check: cannot determine configured PipelineC checkout revision"
-        )
-    return result.stdout.strip()
+    return verify_enhanced_compiler(root)
 
 
 def _pipelinec_environment(root: Path | None, repo: Path) -> dict[str, str]:
@@ -182,7 +173,12 @@ def _find_emitted_top(out_dir: Path) -> Path | None:
 
 
 def _run_native_sim(checkout_root: Path | None, repo: Path) -> subprocess.CompletedProcess[str]:
-    script = repo / "scripts" / "check_syn_sim.py"
+    script_name = (
+        "check_syn_integer_profile.py"
+        if os.environ.get("RED2_SYN_FLOAT", "0") == "0"
+        else "check_syn_sim.py"
+    )
+    script = repo / "scripts" / script_name
     return subprocess.run(
         [sys.executable, str(script)],
         check=False,
@@ -234,13 +230,6 @@ def check(frontend_only: bool = False) -> int:
             revision = _checkout_revision(checkout_root)
         except RuntimeError as exc:
             print(str(exc), file=sys.stderr)
-            return 2
-        if revision != PIPELINEC_TESTED_REVISION:
-            print(
-                "syn-check: PipelineC revision mismatch: "
-                f"expected {PIPELINEC_TESTED_REVISION}, got {revision}",
-                file=sys.stderr,
-            )
             return 2
         print(f"PipelineC revision: {revision}")
     else:

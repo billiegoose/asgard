@@ -1,0 +1,205 @@
+{
+  "measured_at_utc": "2026-10-11T23:01:44.793982+00:00",
+  "target": "Basys 3 xc7a35tcpg236-1",
+  "source": "src/machines/synthesizable_red2_machine/machine.py",
+  "source_sha256": "236db38a5d4ded9356845e3bce80b2909fa0de6299b265b9d9c819d8ef4106fe",
+  "source_note": "Historical full-arithmetic source before RED2_SYN_FLOAT profile selection, including the selector promotion validation-reset repair. Dedicated RED2 hardware.",
+  "compiler": {
+    "default_root": "build/pipelinec-enhanced-db7cdf7c79dd",
+    "emitter_root": "/tmp/asgard-pipelinec-port/compiler",
+    "manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+    "manifest": {
+      "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+      "patches": [
+        {
+          "file": "pypeline-boolop-instance-names.patch",
+          "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+        },
+        {
+          "file": "pypeline-red2-enhancements.patch",
+          "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+        }
+      ],
+      "files": {
+        "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+        "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+        "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+        "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+        "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+        "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+        "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+        "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+        "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+      }
+    },
+    "fpgatool_revision": "8356f4c8ba329dc77e4ab9d475891e30f1d1f44f"
+  },
+  "backend": {
+    "versions": [
+      "Yosys 0.67+post (git sha1 v0.67, Release, GNU /nix/store/vdaz6sk455r8sbpi7wzaf9vlz5i9yyvx-gcc-wrapper-15.2.0/bin/g++ 15.2.0)",
+      "GHDL 6.0.0 (tarball) [Dunoon edition]",
+      " Compiled with GNAT Version: 15.2.0",
+      " static elaboration, mcode JIT code generator"
+    ],
+    "yosys_store": "/nix/store/8xp00x56zj0nxqk3h334176g2d25jmvd-yosys-0.67",
+    "ghdl_store": "/nix/store/4gcl6ba0jcmvq2py06cz57fimap9xjvm-ghdl-mcode-6.0.0",
+    "ghdl_plugin_store": "/nix/store/c01zl2b0iqg31j0lpc904cf8jj6f1djv-yosys-ghdl-0-unstable-2025-05-23",
+    "container_image_digest": "sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+    "same_yosys_and_ghdl_plugin_as_baseline": true
+  },
+  "hdl": {
+    "reused_validated_emission": true,
+    "origin": "/tmp/asgard-pipelinec-port/hdl",
+    "files": 320,
+    "file_hash_manifest_sha256": "51a77829067299acc19d2dcfdb7891935d39566841c1aa2dee684826032cdb34",
+    "frontend_log": "/tmp/asgard-pipelinec-port/frontend.log",
+    "full_vhdl_analysis_log": "/tmp/asgard-pipelinec-port/full-hdl-analysis.log"
+  },
+  "mapping": {
+    "top": "top",
+    "frontend_commands": [
+      "ghdl --std=08 <candidate-specific file paths from hdl/vhdl_files.txt> -e top",
+      "hierarchy -check -top top",
+      "write_rtlil /experiment/frontend.il",
+      "flatten",
+      "opt -full",
+      "opt_muxtree",
+      "opt -full",
+      "write_json /experiment/coarse.json",
+      "stat -width"
+    ],
+    "area_script": [
+      "read_json /experiment/coarse.json",
+      "synth_xilinx -arch xc7 -noiopad -top top -run begin:map_luts",
+      "write_rtlil /experiment/baseline-preabc.il",
+      "abc -lut 6 -script /experiment/area.abc",
+      "clean",
+      "techmap -map +/xilinx/ff_map.v",
+      "techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6",
+      "xilinx_dffopt",
+      "opt_lut_ins -tech xilinx",
+      "synth_xilinx -arch xc7 -noiopad -top top -run finalize:edif",
+      "write_json /experiment/baseline-area.json"
+    ],
+    "abc_script": [
+      "strash",
+      "dc2",
+      "if -a"
+    ],
+    "script_sha256": {
+      "frontend.ys": "f3e24160d44dc1be9b6b4be1c5dfb43899f3629dad752783b856e8ee58ab780b",
+      "area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+      "baseline-area.ys": "ed06ae522806f47f07668606298ca34c221c8a4162e4f593f90d21d4d7f507aa",
+      "run.sh": "45347c62bcf9fa97b60c1c4794d1dab5968a40fcb05c7ed179d33ed6461a9d30"
+    },
+    "same_area_script_and_abc_script_as_baseline": true,
+    "board_wrapper_included": false,
+    "io_pads_included": false
+  },
+  "artifact_root": "/tmp/asgard-pipelinec-remeasure",
+  "artifacts": {
+    "provenance.json": "/tmp/asgard-pipelinec-remeasure/provenance.json",
+    "frontend.log": "/tmp/asgard-pipelinec-remeasure/frontend.log",
+    "baseline-area.log": "/tmp/asgard-pipelinec-remeasure/baseline-area.log",
+    "baseline-area.json": "/tmp/asgard-pipelinec-remeasure/baseline-area.json",
+    "baseline-preabc.il": "/tmp/asgard-pipelinec-remeasure/baseline-preabc.il",
+    "coarse.json": "/tmp/asgard-pipelinec-remeasure/coarse.json",
+    "resources.json": "/tmp/asgard-pipelinec-remeasure/resources.json",
+    "run.sh": "/tmp/asgard-pipelinec-remeasure/run.sh"
+  },
+  "resource_counter": "scripts/yosys_resources.py",
+  "resource_counter_sha256": "5a9c60262aca48a9abd1c8646345fe895690d2a3b4f33d95047e25c6b3e5db78",
+  "resources": {
+    "top": "top",
+    "lut": 50035,
+    "lut_memory": 318,
+    "lut_total": 50353,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 9193,
+    "bram18": 17,
+    "bram36": 7,
+    "bram36_equivalent": 15.5,
+    "dsp48": 32,
+    "carry4": 3780,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 1,
+      "CARRY4": 3780,
+      "DSP48E1": 32,
+      "FDRE": 9193,
+      "INV": 3437,
+      "LUT1": 1,
+      "LUT2": 7285,
+      "LUT3": 11312,
+      "LUT4": 8720,
+      "LUT5": 8845,
+      "LUT6": 13872,
+      "RAM256X1S": 50,
+      "RAM64X1S": 118,
+      "RAMB18E1": 17,
+      "RAMB36E1": 7
+    },
+    "basys3_over_budget": {
+      "lut_total": {
+        "used": 50353,
+        "available": 20800
+      }
+    },
+    "within_basys3_resource_limits": false
+  },
+  "comparison": {
+    "baseline_report": "docs/handoffs/synth-red2-basys3-fit-results.json",
+    "baseline_experiment": "flattened_area",
+    "baseline_source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81",
+    "baseline_compiler_revision": "d991e1f931a2303e3daa4f6256755f3ab47dd9c3",
+    "baseline_resources": {
+      "lut": 49969,
+      "lut_memory": 318,
+      "lut_total": 50287,
+      "flipflops": 9193,
+      "bram36_equivalent": 15.5,
+      "dsp48": 32,
+      "carry4": 3780,
+      "muxf7": 0,
+      "muxf8": 0
+    },
+    "deltas": {
+      "lut": 66,
+      "lut_memory": 0,
+      "lut_total": 66,
+      "flipflops": 0,
+      "bram36_equivalent": 0.0,
+      "dsp48": 0,
+      "carry4": 0,
+      "muxf7": 0,
+      "muxf8": 0
+    },
+    "lut_total_percent_change": 0.13124664426193977,
+    "caveat": "Both the compiler pin and the promotion validation-reset source repair changed. This is not an isolated compiler-only comparison.",
+    "coarse_netlist": {
+      "old_cells": 36702,
+      "new_cells": 36702,
+      "cell_type_deltas": {
+        "$or": -1,
+        "$reduce_or": 1
+      }
+    }
+  },
+  "lut_reduction_required_to_fit": 29553,
+  "lut_reduction_percent_required_to_fit": 58.69163704248009,
+  "validation": {
+    "mapping_exit_code": 0,
+    "yosys_check_problems": 0,
+    "all_source_python_hashes_unchanged_during_mapping": true,
+    "all_emitted_vhdl_hashes_unchanged_during_mapping": true,
+    "compiler_fingerprints_verified": true,
+    "independent_top_lut_and_lut_ram_counts_match": true,
+    "primitive_accounting_complete": true
+  },
+  "routed": false,
+  "timing_verified": false,
+  "fit_verified": false,
+  "superseded_by_default_hardware_profile": "docs/handoffs/synth-red2-area-next-results.json"
+}

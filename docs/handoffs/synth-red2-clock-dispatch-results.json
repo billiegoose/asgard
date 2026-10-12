@@ -1,0 +1,164 @@
+{
+  "date": "2026-10-11",
+  "experiment": "clock-dispatch-unwrapping",
+  "recipe": "synth_xilinx -abc9 -arch xc7 -noiopad",
+  "compiler_sha256": {
+    "PY_TO_LOGIC.py": "eb3cb8ab462b48bc2fc9045316f55119f96e157b0700eafd96047854a006c4eb",
+    "pypeline.py": "d29e70278241f27ce643a3379cdb253bbcd4ec15a7f7df5ba21fba133050219b"
+  },
+  "baseline": {
+    "source_sha256": "e1bdf1e94ee4fe931bed9a9b5021d7fa655c469e1733de1fb1b6af70d03f2bd6",
+    "manifest": {
+      "candidate": "scalar",
+      "top": "top",
+      "vhdl_files": 320,
+      "machine_mux": 11165,
+      "machine_bytes": 47807319
+    },
+    "resources": {
+      "path": "/Users/billie/code/billiegoose/fpgatool/build/asgard-idiomatic-last/scalar/mapped.json",
+      "top": "top",
+      "module_definitions": 767,
+      "reachable_module_definitions": 326,
+      "hierarchical_lut_total": 278039,
+      "lut_breakdown": {
+        "LUT1": 0,
+        "LUT2": 27680,
+        "LUT3": 241503,
+        "LUT4": 4258,
+        "LUT5": 1097,
+        "LUT6": 3501
+      },
+      "hierarchical_flipflops": 11419,
+      "hierarchical_bram": 16.0,
+      "primitive_resource_counts": {
+        "top": "top",
+        "lut": 278039,
+        "lut_memory": 330,
+        "lut_total": 278369,
+        "unknown_memory_primitives": [],
+        "flipflops": 11419,
+        "bram18": 18,
+        "bram36": 7,
+        "bram36_equivalent": 16.0,
+        "dsp48": 44,
+        "carry4": 6773,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 6773,
+          "DSP48E1": 44,
+          "FDRE": 11419,
+          "INV": 7500,
+          "LUT2": 27680,
+          "LUT3": 241503,
+          "LUT4": 4258,
+          "LUT5": 1097,
+          "LUT6": 3501,
+          "RAM256X1S": 51,
+          "RAM64X1S": 126,
+          "RAMB18E1": 18,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 278369,
+            "available": 20800
+          },
+          "carry4": {
+            "used": 6773,
+            "available": 5200
+          }
+        },
+        "within_basys3_resource_limits": false
+      }
+    },
+    "mux_luts": 240887
+  },
+  "candidate": {
+    "source_sha256": "885b757199b5759dfa5e5ead959ad29f519bacf9797585307eaef83fcd3b9a81",
+    "manifest": {
+      "candidate": "clock_unwrap",
+      "top": "top",
+      "vhdl_files": 320,
+      "machine_mux": 10854,
+      "machine_bytes": 46809223
+    },
+    "resources": {
+      "path": "/Users/billie/code/billiegoose/fpgatool/build/asgard-clock-dispatch/clock_unwrap/mapped.json",
+      "top": "top",
+      "module_definitions": 767,
+      "reachable_module_definitions": 326,
+      "hierarchical_lut_total": 268129,
+      "lut_breakdown": {
+        "LUT1": 0,
+        "LUT2": 27689,
+        "LUT3": 231584,
+        "LUT4": 4258,
+        "LUT5": 1097,
+        "LUT6": 3501
+      },
+      "hierarchical_flipflops": 11419,
+      "hierarchical_bram": 16.0,
+      "primitive_resource_counts": {
+        "top": "top",
+        "lut": 268129,
+        "lut_memory": 330,
+        "lut_total": 268459,
+        "unknown_memory_primitives": [],
+        "flipflops": 11419,
+        "bram18": 18,
+        "bram36": 7,
+        "bram36_equivalent": 16.0,
+        "dsp48": 44,
+        "carry4": 6773,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 6773,
+          "DSP48E1": 44,
+          "FDRE": 11419,
+          "INV": 7500,
+          "LUT2": 27689,
+          "LUT3": 231584,
+          "LUT4": 4258,
+          "LUT5": 1097,
+          "LUT6": 3501,
+          "RAM256X1S": 51,
+          "RAM64X1S": 126,
+          "RAMB18E1": 18,
+          "RAMB36E1": 7
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 268459,
+            "available": 20800
+          },
+          "carry4": {
+            "used": 6773,
+            "available": 5200
+          }
+        },
+        "within_basys3_resource_limits": false
+      }
+    },
+    "mux_luts": 230968
+  },
+  "validation": {
+    "clock_body_ast_statements": 237,
+    "nonclock_trace_count": 5220,
+    "nonclock_traces_equal": true,
+    "nonclock_trace_sha256": "a1d5f94df828ec3e664ef0e500d2cac4f50c4ab3ca4f03ad8d76d24b21574aa2",
+    "ordinary_suite": {
+      "passed": 1209,
+      "deselected": 3,
+      "static_failure_fixed": true,
+      "final_static_tests_passed": 11
+    },
+    "native_ep_patch_journal": "passed",
+    "native_closure_materialization": "passed",
+    "full_native_gate": "pre-existing exact-three-clock assertion failure on both baseline and candidate",
+    "native_floor_ceiling_fsp": "passed"
+  },
+  "lut_reduction": 9910,
+  "lut_reduction_percent": 3.5642481810105777,
+  "resource_counting_note": "Primitive blackboxes are leaves; expanding their simulation models previously caused the FF and BRAM fields to be incorrectly reported as zero. Logic LUT totals are unchanged; LUT RAM is separately counted in lut_total."
+}
