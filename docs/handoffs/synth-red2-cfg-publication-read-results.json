@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T07:37:00.449512+00:00",
+  "recorded_at_utc": "2026-10-12T08:06:04.603352+00:00",
   "scope": "Same dedicated RED2 datapath plus MICRO_PUB_EXEC and two synchronous read-only metadata sidecars; legacy publication stack retains write authorization",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
@@ -216,30 +216,35 @@
       "log_sha256": "523b3591c2d99f39722664060132208700c3963c76a8e8f5e9e6489df9071c7d"
     },
     "publication boundary": {
-      "completed_pass": false,
+      "completed_pass": true,
       "tail": [
-        "INTEGRATED_BOUNDARY_PASS 19 126 1681",
-        "INTEGRATED_BOUNDARY_PASS 20 126 1759",
-        "INTEGRATED_BOUNDARY_PASS 21 126 2515",
-        "INTEGRATED_BOUNDARY_PASS 22 126 1759",
-        "INTEGRATED_BOUNDARY_PASS 23 126 1813"
-      ]
+        "INTEGRATED_BOUNDARY_PASS 30 126 1663",
+        "INTEGRATED_BOUNDARY_ALL_PASS 31",
+        "INTEGRATED_RESET_BOUNDARY_PASS",
+        "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+        "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+      ],
+      "log_sha256": "47d5283f1ddd099f159307e992daf4a27d48f61fa860c76e70051c3e2c6087f5"
     },
     "full boundary": {
-      "completed_pass": false,
+      "completed_pass": true,
       "tail": [
-        "INTEGRATED_BOUNDARY_PASS 1 96 507",
-        "INTEGRATED_BOUNDARY_PASS 2 96 495",
-        "INTEGRATED_BOUNDARY_PASS 3 97 741",
-        "INTEGRATED_BOUNDARY_PASS 4 97 723",
-        "INTEGRATED_BOUNDARY_PASS 5 97 693"
-      ]
+        "INTEGRATED_BOUNDARY_PASS 369 1 2209",
+        "INTEGRATED_BOUNDARY_ALL_PASS 370",
+        "INTEGRATED_RESET_BOUNDARY_PASS",
+        "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+        "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+      ],
+      "log_sha256": "368344dcad53b30b9a9d09a3f20a6f86e13d17fb7f8cca3cdad03ea4ec7ba537"
     },
     "publication parity": {
       "completed_pass": false,
       "tail": [
-        "INTEGRATED_PROGRESS 25 53389 max_latency 3181",
-        "INTEGRATED_PROGRESS 50 110333 max_latency 3181"
+        "INTEGRATED_PROGRESS 100 229754 max_latency 3181",
+        "INTEGRATED_PROGRESS 125 288462 max_latency 3181",
+        "INTEGRATED_PROGRESS 150 345968 max_latency 3181",
+        "INTEGRATED_PROGRESS 175 403936 max_latency 3181",
+        "INTEGRATED_PROGRESS 200 470186 max_latency 3181"
       ]
     }
   },
@@ -252,9 +257,12 @@
     "/tmp/asgard-area-next/cfg-publication-read-coverage/native-coverage.json": "35257cc12a75a9eed78cbebcf61b94ce50255a719f335b71081fe0abc02d4cf0",
     "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/machine.py": "7c21c4625bb8a9648719e1128f7f96f156cfbad379200406dfe7da6c9aa9032a",
     "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/integration.json": "2fbf7951fc5fa987666e769bb46ea8392c45296b7472acd159193ce42b2c2033",
-    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/provenance.json": "c05f911e68df9aa32c6052daa89001b383efad10ceccbc0d929c9ce4a30b4266"
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/provenance.json": "c05f911e68df9aa32c6052daa89001b383efad10ceccbc0d929c9ce4a30b4266",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/baseline-area.json": "a0485b249780b1529a02443ce3ec4a4a0c650d11782168996e42be4584611f58",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/baseline-area.log": "7b1e302fd3d8b6449516534cb2845d4d361f20c28ff6ac784f671b8aac865413",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/resources.json": "a62f5da40af3f0eb9e12685a29eb3c477e0e587d4807f24db7e736cb04673067"
   },
-  "mapping_status": "pending",
+  "mapping_status": "complete",
   "limitations": [
     "Coverage is all rows observed in the typed trials, not every possible source branch/input",
     "Full supported-program parity, RTL simulation and board routing/timing remain outstanding",
@@ -263,6 +271,45 @@
   ],
   "stronger_full_top_byte_identical": true,
   "hdl_files_verified_unchanged": 239,
+  "resources": {
+    "top": "top",
+    "lut": 32981,
+    "lut_memory": 318,
+    "lut_total": 33299,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 9615,
+    "bram18": 37,
+    "bram36": 9,
+    "bram36_equivalent": 27.5,
+    "dsp48": 20,
+    "carry4": 1643,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 1,
+      "CARRY4": 1643,
+      "DSP48E1": 20,
+      "FDRE": 9615,
+      "INV": 1517,
+      "LUT2": 3875,
+      "LUT3": 6287,
+      "LUT4": 5507,
+      "LUT5": 6661,
+      "LUT6": 10651,
+      "RAM256X1S": 50,
+      "RAM64X1S": 118,
+      "RAMB18E1": 37,
+      "RAMB36E1": 9
+    },
+    "basys3_over_budget": {
+      "lut_total": {
+        "used": 33299,
+        "available": 20800
+      }
+    },
+    "within_basys3_resource_limits": false
+  },
   "source_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
     "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
@@ -275,20 +322,22 @@
     "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
     "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
+    "scripts/experiments/red2_cfg_pilot/check_prune_aliases.py": "896f4c299cb1e829f394aa4fc75bfb80ae76f3212818f07798f50ffee112a8b2",
     "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
     "scripts/experiments/red2_cfg_pilot/emit.py": "c865cb5d7fb3930cf6158d206979218074166d41233b85b1c5f0073d4f50187f",
     "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
     "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
     "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
-    "scripts/experiments/red2_cfg_pilot/integrate.py": "c377a5d072f7020ba63b78ad74afe8307d4cf21449ac6d8431c37dfd942f4536",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "3f5f5a9011db65645a62a3bc6f8079b583752fac7fe0c01ccef45ba16339929a",
     "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
     "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
-    "scripts/experiments/red2_cfg_pilot/owned.py": "d964916f1ec117bce8c7132bc7d627bf9d21106e4dc253430e82e17a4976bff7",
+    "scripts/experiments/red2_cfg_pilot/owned.py": "13ab539a1b17db0478d82f2787889416eb9b44d1db66d6844812bd51ef616e18",
     "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
     "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
     "scripts/experiments/red2_cfg_pilot/packets.py": "0a07d0ce0c778f0aa3c2bbc9ca3f9322507621bd97e9ed634cb8af2563a93b73",
     "scripts/experiments/red2_cfg_pilot/paths.py": "0c7d0d718ac09acdf901b7f0ac544be30a40228f90d475991c019444c9515d0c",
     "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
+    "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
     "scripts/experiments/red2_cfg_pilot/publication_reads.py": "5f04c616b574f189d058a40068ed1930b6ca7dd335cf6af726e423b643a3b7f6"
   }
 }

@@ -802,3 +802,38 @@ The earlier indexed scope regenerates byte-identically with sidecars disabled.
 Indexed-store RECP parity passes at 79,540 physical clocks. Publication quick
 full-top pause/lifecycle checks pass. Stronger validation and mapping use byte-
 identical complete-top sources, with exact hashes recorded separately.
+
+### Publication read result and next ownership boundary
+
+The read-sidecar complete top maps to **33,299 LUTs**, 9,615 FF, 20 DSP,
+1,643 CARRY4 and 27.5 BRAM36 equivalents. All primitives are accounted for,
+HDL hashes match and structural checks report zero problems. This saves only
+302 LUTs against the matching indexed-store top. Private ownership stays at
+60 words while shared transfers grow from 144 to 205 words; computation-only
+extraction does not establish a large area win. All 31 publication boundary
+witnesses pass, including read-only metadata assertions, pauses and lifecycle
+checks. Full 370-case boundary and existing publication parity checks continue.
+
+A diagnostic pass removes 56 unused, single-definition, call-free aliases before
+ownership analysis. It finds zero additional private words at this scope. Do
+not infer LUT savings or map this diagnostic as a new optimization. The surviving
+publication stack and launch writers really keep the state shared.
+
+The next useful boundary is the connected publication stack and its state:
+
+- Adapt all five original publication RAM packets, including typed write data
+  and write enables; issue each packet once using the original incoming phase.
+- Collect compound graph request arms such as `micro_is_pub_stack and phase ==
+  COMMIT_GRAPH`, not only exact microstate-name arms. Retain source order and
+  remove the same extracted arms from legacy logic.
+- Attach the uniquely owned publication-completion bank to the stack handler;
+  keep its lifecycle predicates in legacy arbitration. Preserve explicit
+  preparation, external preflight and authorized commit phases.
+- Prove zero struct initializers using exact original struct fields/constants,
+  prune unused pure aliases, and move only state with no surviving legacy use
+  into persistent BRAM. Connect the remaining launch writers before declaring
+  their publication state private; retain generation/epoch behavior exactly.
+
+Use a distinct opt-in configuration and source-derived typed oracle. Metadata
+writes need exact request/payload and read-first RAM checks, accepted-write
+lifecycle tests, and full native publication parity before adoption.

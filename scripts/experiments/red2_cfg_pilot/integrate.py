@@ -264,6 +264,10 @@ missing_events = unbridged(fn, effect_writes)
 assert not missing_events, ("unbridged legacy events", missing_events)
 
 if os.environ.get("RED2_CFG_PILOT_OWNED", "0") == "1":
+    if os.environ.get("RED2_CFG_PILOT_PRUNE_ALIASES", "0") == "1":
+        from prune_aliases import prune
+
+        m["pruned_pure_aliases"] = prune(fn)
     if "publication_reads" in m:
         assert os.environ.get("RED2_CFG_PILOT_STREAM_BRIDGE") == "1"
     from owned import emit_owned

@@ -280,6 +280,8 @@ def publish_owned(
         "scope": "Experimental persistent private BRAM ownership; per-entry shared masks; coherent scalar observation; graph256 only",
     }
     record.update(extra or {})
+    if "pruned_pure_aliases" in m:
+        record["pruned_pure_aliases"] = m["pruned_pure_aliases"]
     (root / "integration.json").write_text(json.dumps(record, indent=2) + "\n")
     print(
         "OWNED_INTEGRATED_TOP",
