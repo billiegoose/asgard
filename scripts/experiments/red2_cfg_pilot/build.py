@@ -5,7 +5,8 @@ import copy
 import hashlib
 import json
 
-from paths import INCLUDE_GRAPH, INCLUDE_LOOKUP, OUT, ROOT
+from expression_types import ExpressionTypes
+from paths import EXTRA_STATES, INCLUDE_GRAPH, INCLUDE_LOOKUP, OUT, ROOT
 
 SOURCE = ROOT / "src/machines/synthesizable_red2_machine/machine.py"
 source = SOURCE.read_text()
@@ -107,7 +108,8 @@ for x in fn.body:
     ):
         name = ast.unparse(x.test).split("micro_is_", 1)[1]
         if (
-            name.startswith(("app_", "lambda_"))
+            "MICRO_" + name.upper() in EXTRA_STATES
+            or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
                 INCLUDE_GRAPH
@@ -116,7 +118,8 @@ for x in fn.body:
             )
         ):
             selected["MICRO_" + name.upper()] = (x, constants["MICRO_" + name.upper()])
-if not INCLUDE_GRAPH:
+assert set(EXTRA_STATES) <= set(selected), "unknown additional microstate"
+if not INCLUDE_GRAPH and not EXTRA_STATES:
     assert len(selected) == (24 if INCLUDE_LOOKUP else 20)
 request_parent = next(
     x
@@ -220,6 +223,7 @@ def slot(name, width=64):
 
 
 def const(value):
+    assert 0 <= value < (1 << 64), ("constant needs wider scratch", value)
     value &= (1 << 64) - 1
     n = "$constant_" + str(value)
     i = slot(n)
@@ -245,7 +249,10 @@ def ceval(x):
     )
 
 
-def expr(x):
+expression_types = ExpressionTypes(constants, leaves, key)
+
+
+def expr(x, cap=None):
     if isinstance(x, ast.Constant):
         return const(x.value)
     if isinstance(x, (ast.Name, ast.Attribute)):
@@ -286,10 +293,28 @@ def expr(x):
             ast.LShift: "shl",
             ast.RShift: "shr",
         }[type(x.op)]
-        a = expr(x.left)
-        b = expr(x.right)
+        width, raw = expression_types.infer(x)
+        if raw:
+            return const(ceval(x))
+        if cap is not None:
+            width = min(width, cap)
+        assert width <= 64, ("expression needs wider scratch", ast.unparse(x), width)
+        # Low-bit arithmetic/bitwise/shl results do not require higher input
+        # bits. Right shifts and comparisons must retain their full operands.
+        child_cap = (
+            width
+            if isinstance(x.op, (ast.Add, ast.Sub, ast.BitAnd, ast.BitOr, ast.LShift))
+            else None
+        )
+        a = expr(x.left, child_cap)
+        b = expr(
+            x.right,
+            child_cap
+            if isinstance(x.op, (ast.Add, ast.Sub, ast.BitAnd, ast.BitOr))
+            else None,
+        )
         d = temp()
-        emit(op, a, b, d)
+        emit(op, a, b, d, width)
         return d
     if isinstance(x, ast.Compare) and len(x.ops) == 1:
         op = {ast.Eq: "eq", ast.NotEq: "ne"}[type(x.ops[0])]
@@ -326,7 +351,7 @@ def assign(name, value):
             assign(name + "." + f, field_value(value, f))
     else:
         w = leaves(name)[0][1]
-        a = expr(value)
+        a = expr(value, cap=w)
         emit("copy", a, 0, slot(name, w), w)
 
 
@@ -439,6 +464,7 @@ manifest = {
     "ops": OP,
     "include_lookup": INCLUDE_LOOKUP,
     "include_graph": INCLUDE_GRAPH,
+    "extra_states": list(EXTRA_STATES),
     "entry_opcodes": ["MOP_APP", "MOP_LAMBDA"]
     + ["MOP_" + op.upper() for op in entry_ops[2:]]
     + (["MOP_VAR", "MOP_APP_VAR"] if INCLUDE_LOOKUP else []),

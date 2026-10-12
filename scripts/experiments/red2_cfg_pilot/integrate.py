@@ -11,6 +11,8 @@ import json
 import os
 
 import build as c
+from banks import inspect as inspect_banks
+from events import unbridged
 from paths import INTEGRATED
 
 m = json.loads((c.OUT / "control.json").read_text())
@@ -206,30 +208,48 @@ for n in fn.body:
 fn.body = new_body
 assert set(removed_handlers) == selected_names
 
+# This adapter issues requests before consuming the read response. Dependent
+# writes need another transaction phase, rather than being silently discarded.
+for node, _ in c.selected.values():
+    for assignment in ast.walk(node):
+        if isinstance(assignment, (ast.Assign, ast.AnnAssign)):
+            targets = (
+                assignment.targets
+                if isinstance(assignment, ast.Assign)
+                else [assignment.target]
+            )
+            for target in targets:
+                while isinstance(target, ast.Attribute):
+                    target = target.value
+                assert not (
+                    isinstance(target, ast.Name)
+                    and target.id in {"memory_req", "control_req"}
+                ), "post-response RAM requests require an extended adapter"
+
+# Some memory side effects are formed outside the ordinary request parent.
+# They need an explicit adapter before this controller may own their state.
+_, external_bank_effects = inspect_banks(c)
+unsupported_banks = {
+    name: sorted(external_bank_effects[name])
+    for name in selected_names
+    if name in external_bank_effects
+}
+assert not unsupported_banks, ("unsupported external RAM requests", unsupported_banks)
+
 # Selected handlers may not drop same-cycle events consumed by legacy reset
 # banks. Dispatch acknowledgement is handled by the wrapper's NOP admission.
-effects = (
-    {
-        n.id
-        for statement in [
-            *(s for node, _ in c.selected.values() for s in node.body),
-            *c.entry,
-        ]
-        for n in ast.walk(statement)
-        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)
-    }
-    - c.regs
-    - {"clock_dispatch_handled"}
-)
-remaining_reads = {
-    n.id
-    for n in ast.walk(fn)
-    if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
-}
-assert not effects & remaining_reads, (
-    "unbridged legacy events",
-    effects & remaining_reads,
-)
+effect_writes = {}
+for statement in [*(s for node, _ in c.selected.values() for s in node.body), *c.entry]:
+    for n in ast.walk(statement):
+        if (
+            isinstance(n, ast.Name)
+            and isinstance(n.ctx, ast.Store)
+            and n.id not in c.regs
+            and n.id != "clock_dispatch_handled"
+        ):
+            effect_writes[n.id] = min(effect_writes.get(n.id, n.lineno), n.lineno)
+missing_events = unbridged(fn, effect_writes)
+assert not missing_events, ("unbridged legacy events", missing_events)
 
 if os.environ.get("RED2_CFG_PILOT_OWNED", "0") == "1":
     from owned import emit_owned

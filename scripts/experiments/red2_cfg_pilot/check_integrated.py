@@ -2,7 +2,6 @@
 """Run existing architectural parity checks through the complete candidate top."""
 
 import importlib.util
-import functools
 import os
 import sys
 import time
@@ -16,22 +15,9 @@ import pypeline
 # Simulation creates a fresh immutable C type descriptor for every bit slice.
 # Intern descriptors by their exact name to avoid millions of duplicate Python
 # classes during long physical-clock runs. No compiler/source/RTL is modified.
-original_make_ctype = pypeline._make_ctype
-scalar_make_ctype = functools.cache(original_make_ctype)
+from native_runtime import cache_scalar_types
 
-
-def cached_scalar_type(name):
-    # Array descriptors carry mutable factory metadata; leave them uncached.
-    if (
-        name.startswith(("uint", "int"))
-        and name.endswith("_t")
-        and name.removesuffix("_t").removeprefix("uint").removeprefix("int").isdigit()
-    ):
-        return scalar_make_ctype(name)
-    return original_make_ctype(name)
-
-
-pypeline._make_ctype = cached_scalar_type
+cache_scalar_types(pypeline)
 
 name = "synthesizable_red2_machine.machine"
 spec = importlib.util.spec_from_file_location(name, INTEGRATED / "machine.py")

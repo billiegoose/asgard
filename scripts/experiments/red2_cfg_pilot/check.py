@@ -8,8 +8,13 @@ from paths import ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import run_syn  # noqa: F401 -- verifies and bootstraps enhanced PipelineC
+import pypeline
+from native_runtime import cache_scalar_types
+
 from pypeline import sim_call
 from paths import OUT as P
+
+cache_scalar_types(pypeline)
 
 m = json.loads((P / "control.json").read_text())
 ops = m["ops"]
@@ -86,9 +91,9 @@ def model(values, state, response):
             elif name == "bool_or":
                 v = bool(a) or bool(b)
             elif name == "shr":
-                v = a >> (b & 63)
+                v = a >> b if b < 64 else 0
             elif name == "shl":
-                v = a << (b & 63)
+                v = a << b if b < 64 else 0
             else:
                 v = {
                     "add": operator.add,

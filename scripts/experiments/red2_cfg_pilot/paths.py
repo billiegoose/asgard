@@ -9,6 +9,9 @@ OUT = Path(
 ).resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 INCLUDE_LOOKUP = os.environ.get("RED2_CFG_PILOT_LOOKUP", "0") == "1"
+EXTRA_STATES = tuple(
+    filter(None, os.environ.get("RED2_CFG_PILOT_EXTRA_STATES", "").split(","))
+)
 INCLUDE_GRAPH = os.environ.get("RED2_CFG_PILOT_GRAPH", "0") == "1"
 INTEGRATED = OUT / os.environ.get("RED2_CFG_PILOT_INTEGRATED_NAME", "integrated")
 

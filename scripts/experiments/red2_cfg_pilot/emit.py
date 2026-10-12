@@ -161,9 +161,13 @@ def red2_app_lambda_cfg(i: input_t) -> output_t:
     elif row.op == OP_bool_or:
         result = (a != 0) or (b != 0)
     elif row.op == OP_shr:
-        result = a >> b[5:0]
+        result = 0
+        if b[63:6] == 0:
+            result = a >> b[5:0]
     elif row.op == OP_shl:
-        result = a << b[5:0]
+        result = 0
+        if b[63:6] == 0:
+            result = a << b[5:0]
     elif row.op == OP_response:
         result = graph_lo
         if row.b == 1:

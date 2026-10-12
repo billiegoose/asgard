@@ -8,8 +8,13 @@ from paths import ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import run_syn  # noqa: F401 -- compiler bootstrap must precede pypeline
+import pypeline
+from native_runtime import cache_scalar_types
+
 from pypeline import sim_call, sim_reset
 from paths import OUT as P
+
+cache_scalar_types(pypeline)
 
 m = json.loads((P / "control.json").read_text())
 cases = json.loads((P / "native-cases.json").read_text())

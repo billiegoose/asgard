@@ -6,7 +6,6 @@ microstates cannot be loaded through the public architectural command port.
 Every tested transition then runs the emitted complete top cycle by cycle.
 """
 
-import functools
 import importlib.util
 import json
 import sys
@@ -16,22 +15,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import run_syn  # noqa: F401 -- verified compiler/runtime bootstrap
 import pypeline as py
 
-original_make_ctype = py._make_ctype
-scalar_make_ctype = functools.cache(original_make_ctype)
+from native_runtime import cache_scalar_types
 
-
-def cached_scalar_type(name):
-    # Array descriptors carry mutable factory metadata; leave them uncached.
-    if (
-        name.startswith(("uint", "int"))
-        and name.endswith("_t")
-        and name.removesuffix("_t").removeprefix("uint").removeprefix("int").isdigit()
-    ):
-        return scalar_make_ctype(name)
-    return original_make_ctype(name)
-
-
-py._make_ctype = cached_scalar_type
+cache_scalar_types(py)
 spec = importlib.util.spec_from_file_location(
     "integrated_boundary", INTEGRATED / "machine.py"
 )
@@ -175,7 +161,10 @@ for index, case in enumerate(chosen):
         # capture may settle while paused, but no logical or graph write advances.
         if cycle in {0, 20, 44, 65, 150, 500, 900}:
             stage = int(regs["cfg_stage"])
-            cursor = int(regs["cfg_index"])
+            cursors = {
+                k: int(regs[k])
+                for k in ["cfg_index", *integration.get("pause_registers", [])]
+            }
             values = {k: leaf(regs, k) for k in case["values"]}
             for _ in range(3):
                 paused = call(empty)
@@ -184,7 +173,7 @@ for index, case in enumerate(chosen):
                     "partial scalar observation during pause"
                 )
                 assert int(regs["cfg_stage"]) == stage
-                assert int(regs["cfg_index"]) == cursor
+                assert all(int(regs[k]) == v for k, v in cursors.items())
                 assert all(leaf(regs, k) == v for k, v in values.items())
         out = call(clock)
         after = int(regs["cfg_mem_phase"])
@@ -285,7 +274,13 @@ if private:
             ready = (
                 int(regs["cfg_mem_phase"]) == 1
                 if phase == "accepted_write"
-                else int(regs["cfg_stage"]) == 5 and int(regs["cfg_index"]) > 0
+                else int(regs["cfg_stage"])
+                == integration.get("export_capture_stage", 5)
+                and (
+                    int(regs["cfg_bridge_pc"]) > int(regs["cfg_export_pc"]) + 1
+                    if integration.get("bridge_kind") == "stream"
+                    else int(regs["cfg_index"]) > 0
+                )
             )
             if ready:
                 break

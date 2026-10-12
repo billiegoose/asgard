@@ -3,6 +3,7 @@
 
 import ast
 import json
+import os
 
 from ownership import prove_private, schedules
 
@@ -35,6 +36,28 @@ def emit_owned(
     ]
     snapshot = "".join(f"cfg_visible_{k}: Reg[{c.typ(k)}]\n" for k in visible)
     capture = "".join(f"    cfg_visible_{k} = {k}\n" for k in visible)
+    if os.environ.get("RED2_CFG_PILOT_STREAM_BRIDGE", "0") == "1":
+        from owned_stream import emit_stream
+
+        return emit_stream(
+            source,
+            fn,
+            controller,
+            m,
+            root,
+            c,
+            removed,
+            sync_states,
+            selected,
+            sync,
+            execute,
+            proof,
+            shared,
+            plans,
+            visible,
+            snapshot,
+            capture,
+        )
     admit = f"""
 {snapshot}
 cfg_stage: Reg[uint3_t]
@@ -182,6 +205,43 @@ cfg_busy: uint1_t = cfg_stage != 0 or cfg_pending
         if isinstance(n, ast.AnnAssign) and ast.unparse(n.target) == "status"
     )
     fn.body[position:position] = ast.parse(finish).body
+    global_definitions = f"cfg_bridge_index_t = make_uint_t({bits})\ncfg_mask_t = make_uint_t({count * 2})\ncfg_plan_rom, _ = make_ram(cfg_mask_t, 256, ports=('r',), read_latency=1, init={masks!r})"
+    publish_owned(
+        source,
+        fn,
+        controller,
+        m,
+        root,
+        c,
+        removed,
+        sync_states,
+        proof,
+        shared,
+        plans,
+        visible,
+        global_definitions,
+    )
+
+
+def publish_owned(
+    source,
+    fn,
+    controller,
+    m,
+    root,
+    c,
+    removed,
+    sync_states,
+    proof,
+    shared,
+    plans,
+    visible,
+    global_definitions,
+    extra=None,
+):
+    ret = fn.body[-1]
+    count = len(shared)
+    private = proof["private_fields"]
     # Returned snapshot must not write back into architectural Reg state.
     # Bind combinational output aliases, leaving legacy registers untouched.
     for k in visible:
@@ -204,12 +264,7 @@ cfg_busy: uint1_t = cfg_stage != 0 or cfg_pending
     )
     status_type.body += ast.parse("busy: uint1_t").body
     idx = source.body.index(fn)
-    source.body[idx:idx] = (
-        ast.parse(
-            f"cfg_bridge_index_t = make_uint_t({bits})\ncfg_mask_t = make_uint_t({count * 2})\ncfg_plan_rom, _ = make_ram(cfg_mask_t, 256, ports=('r',), read_latency=1, init={masks!r})"
-        ).body
-        + controller.body
-    )
+    source.body[idx:idx] = ast.parse(global_definitions).body + controller.body
     ast.fix_missing_locations(source)
     (root / "machine.py").write_text(ast.unparse(source) + "\n")
     record = {
@@ -224,6 +279,7 @@ cfg_busy: uint1_t = cfg_stage != 0 or cfg_pending
         "protocol": "CLOCK advances, NOP pauses. One busy lifecycle command is queued and applied after logical completion; wait for busy=0 before another command. Private lifecycle writes are serialized with exact original masks.",
         "scope": "Experimental persistent private BRAM ownership; per-entry shared masks; coherent scalar observation; graph256 only",
     }
+    record.update(extra or {})
     (root / "integration.json").write_text(json.dumps(record, indent=2) + "\n")
     print(
         "OWNED_INTEGRATED_TOP",

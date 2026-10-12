@@ -85,6 +85,7 @@ record = {
     },
     "include_lookup": control["include_lookup"],
     "include_graph": control.get("include_graph", False),
+    "extra_states": control.get("extra_states", []),
     "entry_opcodes": control.get("entry_opcodes", []),
 }
 (root / "provenance.json").write_text(json.dumps(record, indent=2) + "\n")

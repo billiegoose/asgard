@@ -724,3 +724,37 @@ supported programs, RTL simulation and board implementation remain outstanding.
 A new generator guard rejects dropped non-Reg events still read by legacy code;
 it regenerates byte-identical hardware for the measured scope. Evidence and
 hashes are in `docs/handoffs/synth-red2-cfg-integration-results.json`.
+
+### Connected selector/JOIN extension in progress
+
+After measuring ownership at fixed graph scope, add 52 selector/JOIN handlers
+on the same datapath. Keep optional scalar arithmetic outside this extraction.
+The resulting 108-entry controller has 11,709 rows, a 16,384x37-bit control ROM,
+and 389 allocated scratch words in 512 locations. Its 12,960 typed reference
+cases and 339 physical witnesses pass, including reset and constants. The
+integrated candidate owns 60 private words and has 144 shared bridge words.
+All 339 full-top path witnesses pass, including pauses, coherent observations,
+nonzero private lifecycle masks and queued invalid START. Application/list
+program lockstep also passes. RECP parity and mapping are ongoing; no new LUT
+total is claimed until that exact source finishes the mapped flow.
+
+The larger domain caught a 17-bit subtraction used before comparison: unsigned
+intermediate wrap must follow enhanced PipelineC type rules. Lowering now uses
+its public arithmetic result-type helper and preserves typed intermediate
+widths. Native regression covers narrow underflow and widened addition. A
+second rejected candidate included a handler that forms a post-response RAM
+write; it needs another explicit request phase and stays in legacy hardware.
+Record both failed experiments rather than treating them as successful lowerings.
+
+Discovery and integration guards cover metadata writes outside handler bodies,
+post-response requests and non-Reg launch events. Reused temporary names in
+different legacy handlers are safe only with fresh dominating assignments;
+zero defaults before extraction do not discharge launch-event obligations.
+Evidence is in `docs/handoffs/synth-red2-cfg-connected-results.json`.
+
+At this expanded scope, fixed scans visit 144 shared words although the average
+entry imports 7.49 and exports 4.94. A second complete-top variant uses immutable
+short transfer lists (1,558 nine-bit words) instead of the wide masks. Measure
+both at identical scope. The transfer-list prototype passes initial boundary,
+pause and lifecycle checks; full path/program checks and mapping remain
+pending. Its emitter refactor reproduces the fixed-mask source byte for byte.
