@@ -151,3 +151,13 @@ observations on every busy cycle. `check_integrated.py --application` runs
 application/lookup and list construction/access in lockstep with the concrete
 RED2 reference. All integration variants remain experiments until full parity,
 complete mapped resources, and board implementation satisfy acceptance.
+
+The corrected graph mirror maps to 38,908 total LUTs; persistent ownership maps
+to 38,417, including its mask ROM, scalar observation bank and queued lifecycle
+logic. The latter uses 9,959 FF and 26 BRAM36 equivalents. Both maps account for
+all primitives and report zero structural problems. All 159 owned integration
+path witnesses, nonzero lifecycle masks, queued invalid START, application/list
+lockstep and RECP parity checks pass. This is still above the 20,800-LUT board
+capacity; production remains at 41,170 LUT. The event audit regenerates identical
+hardware and rejects extraction of non-Reg events still consumed by legacy code.
+See `docs/handoffs/synth-red2-cfg-integration-results.json` for exact provenance.

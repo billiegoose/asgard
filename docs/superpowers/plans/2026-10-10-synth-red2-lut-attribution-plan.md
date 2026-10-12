@@ -697,3 +697,30 @@ Then migrate connected JOIN/selector/equality/publication state into the same
 persistent backend, preserving preparation, external preflight and explicit
 commit authorization. Acceptance still requires full native parity, complete
 primitive accounting and 18k LUT engineering headroom before board routing.
+
+Completed full-core comparison with the same graph scope and pinned mapper:
+
+| Candidate | Total LUTs | FF | BRAM36 equivalents |
+| --- | ---: | ---: | ---: |
+| Maintained production | 41,170 | 8,676 | 15.5 |
+| Corrected graph serial mirror | 38,908 | 9,731 | 24.5 |
+| Persistent private ownership | 38,417 | 9,959 | 26.0 |
+
+Both experimental maps have zero structural problems and no unaccounted
+primitives. Ownership saves 491 LUTs against the same-scope mirror, including
+its coherent observation bank, per-entry mask ROM and queued lifecycle logic.
+It saves 2,753 LUTs against production but is still 17,617 above board capacity.
+The added observation/queue registers mean FF count increases despite removing
+private mirrors; no claim that ownership alone solves area is supported.
+
+All 159 integrated path witnesses pass against the typed source results,
+including all family leaves, graph/control payloads, pauses, nonzero private
+lifecycle masks and queued invalid START after accepted writes/during export.
+Application and list construction/access pass concrete lockstep (46,448
+physical clocks), and existing RECP parity passes (70,844). Existing closure
+materialization compatibility passes, but that particular suite exercises only
+legacy transitions plus lifecycle initialization. Full-program parity for all
+supported programs, RTL simulation and board implementation remain outstanding.
+A new generator guard rejects dropped non-Reg events still read by legacy code;
+it regenerates byte-identical hardware for the measured scope. Evidence and
+hashes are in `docs/handoffs/synth-red2-cfg-integration-results.json`.

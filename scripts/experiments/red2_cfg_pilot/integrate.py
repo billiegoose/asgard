@@ -206,6 +206,31 @@ for n in fn.body:
 fn.body = new_body
 assert set(removed_handlers) == selected_names
 
+# Selected handlers may not drop same-cycle events consumed by legacy reset
+# banks. Dispatch acknowledgement is handled by the wrapper's NOP admission.
+effects = (
+    {
+        n.id
+        for statement in [
+            *(s for node, _ in c.selected.values() for s in node.body),
+            *c.entry,
+        ]
+        for n in ast.walk(statement)
+        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)
+    }
+    - c.regs
+    - {"clock_dispatch_handled"}
+)
+remaining_reads = {
+    n.id
+    for n in ast.walk(fn)
+    if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
+}
+assert not effects & remaining_reads, (
+    "unbridged legacy events",
+    effects & remaining_reads,
+)
+
 if os.environ.get("RED2_CFG_PILOT_OWNED", "0") == "1":
     from owned import emit_owned
 

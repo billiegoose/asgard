@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T05:32:53.365639+00:00",
+  "recorded_at_utc": "2026-10-12T05:49:45.259150+00:00",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
   "production_lut_total": 41170,
@@ -188,6 +188,13 @@
             "           ^^^^^^^^^^^^^^^^^^^^^^^^^^",
             "AssertionError: (8, 22, 'red2_fault', 2, 0)"
           ]
+        },
+        "check-recp.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_NATIVE_PARITY_PASS --recp physical_clocks 1646 admitted 0 max_latency 0 seconds 30.079"
+          ],
+          "sha256": "508d29e5616700c7a50911048aac714085332229e56065f17b56ab089187c9bd"
         }
       },
       "bridge_words": 43
@@ -238,11 +245,54 @@
       "artifact_sha256": {
         "machine.py": "ce1c62506739ef35697372e0f339caaf1850e362f15378de81a5b34a90d25449",
         "provenance.json": "bdd5b55d21f0c1f7582e3cc8f7268f9125691d1daaa3b150ee5e5ce9cc0ca066",
+        "resources.json": "bdcbf8b92455d2dff365bcaec3ddd9554d6c9b27275fbad7d9018f11959ff7c8",
+        "baseline-area.json": "c50f749798ca56a0fa46ff1329b7148bbc6872476f7818e1fc8b3da74ae34e9a",
+        "baseline-area.log": "8ab7008380061ddfd79ba34e4398e5bb1ed4d627cee30f8bdb1fae18103394de",
         "integration.json": "5bb15edfb10255fbd8178128186d215cfdba31788fca65a9707384d80d04a9ac",
         "frontend-driver.log": "8e25c36823d6bfc0f9b2f323270a91480e745f11900a5b48262fa89f603717e0"
       },
       "hdl_files_verified_unchanged": 242,
-      "mapping_status": "In progress; no measured resource result yet",
+      "resources": {
+        "top": "top",
+        "lut": 38590,
+        "lut_memory": 318,
+        "lut_total": 38908,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9731,
+        "bram18": 17,
+        "bram36": 16,
+        "bram36_equivalent": 24.5,
+        "dsp48": 20,
+        "carry4": 2404,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2404,
+          "DSP48E1": 20,
+          "FDRE": 9731,
+          "INV": 2106,
+          "LUT1": 8,
+          "LUT2": 5400,
+          "LUT3": 7438,
+          "LUT4": 7585,
+          "LUT5": 7048,
+          "LUT6": 11111,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 16
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 38908,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "map_structural_problems_zero": true,
       "validation": {
         "check-boundary-entries.log": {
           "completed_pass": true,
@@ -305,11 +355,53 @@
       "artifact_sha256": {
         "machine.py": "12aa71dc49d2610a68bd3be7697f9a37127018e83595677d1a0aaf5b150bf795",
         "provenance.json": "78be9386eab647ced6ea53dd2fc556345679de83732947249aba23e4a116a4cf",
+        "resources.json": "2fe03c6a8b3499fa7d1207030a25593c8778ddb563959daab88caea1c6f1b78c",
+        "baseline-area.json": "d996fe75ef734d3549e5f6a78ca39bf06f3419e88325df2dbf024ba88c509a87",
+        "baseline-area.log": "6fb7034f2e1f7925da8c21bf3f8eb7e047c017d6b296cf1987c1d7d561e40314",
         "integration.json": "7f88adf97160a9eeb9dbcb196f3dafc3522aea2a4ffd032a09084966873c3f67",
         "frontend-driver.log": "5b096d5a9d5837a5165948cac2f6bcf8b18209555d413a6057e4ec793dce07d0"
       },
       "hdl_files_verified_unchanged": 245,
-      "mapping_status": "In progress; no measured resource result yet",
+      "resources": {
+        "top": "top",
+        "lut": 38099,
+        "lut_memory": 318,
+        "lut_total": 38417,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9959,
+        "bram18": 20,
+        "bram36": 16,
+        "bram36_equivalent": 26.0,
+        "dsp48": 20,
+        "carry4": 2388,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2388,
+          "DSP48E1": 20,
+          "FDRE": 9959,
+          "INV": 2102,
+          "LUT2": 5509,
+          "LUT3": 8486,
+          "LUT4": 6833,
+          "LUT5": 6547,
+          "LUT6": 10724,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 20,
+          "RAMB36E1": 16
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 38417,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "map_structural_problems_zero": true,
       "validation": {
         "check-boundary-entries.log": {
           "completed_pass": true,
@@ -324,15 +416,16 @@
           "sha256": "082994694e3e8d38eba57a14f06bc31d9e54fcd3081fed9312a83c240235272d"
         },
         "check-boundary-all.log": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 13 8 628",
-            "INTEGRATED_BOUNDARY_PASS 14 18 458",
-            "INTEGRATED_BOUNDARY_PASS 15 19 563",
-            "INTEGRATED_BOUNDARY_PASS 16 9 643",
-            "INTEGRATED_BOUNDARY_PASS 17 9 633",
-            "INTEGRATED_BOUNDARY_PASS 18 9 643"
-          ]
+            "INTEGRATED_BOUNDARY_PASS 157 1 1893",
+            "INTEGRATED_BOUNDARY_PASS 158 1 1848",
+            "INTEGRATED_BOUNDARY_ALL_PASS 159",
+            "INTEGRATED_RESET_BOUNDARY_PASS",
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+          ],
+          "sha256": "d0eb9d72faa418648d6edb0ede51e9b8eba4cb643c850dd20fc144c1f8aa11f0"
         },
         "check-lifecycle.log": {
           "completed_pass": true,
@@ -345,11 +438,32 @@
           "sha256": "ce083088287f1eba71f671ee23b82a25063ee7098f16be687839ee45aa91c4c0"
         },
         "check-application.log": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
             "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
-            "INTEGRATED_PROGRESS 25 29148 max_latency 2228"
-          ]
+            "INTEGRATED_PROGRESS 25 29148 max_latency 2228",
+            "INTEGRATED_PROGRAM_PASS (CAR (CONS 7 (CONS 8 NIL)))",
+            "INTEGRATED_NATIVE_PARITY_PASS --application physical_clocks 46448 admitted 39 max_latency 2228 seconds 244.93"
+          ],
+          "sha256": "7f42ec5ccd182ee41bab516339c8535dc58f6e1336e2b6836fec177593012afe"
+        },
+        "check-recp.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 25 16912 max_latency 1908",
+            "INTEGRATED_PROGRESS 50 31885 max_latency 1908",
+            "INTEGRATED_PROGRESS 75 46201 max_latency 1908",
+            "INTEGRATED_PROGRESS 100 60191 max_latency 1908",
+            "INTEGRATED_NATIVE_PARITY_PASS --recp physical_clocks 70844 admitted 115 max_latency 1908 seconds 347.648"
+          ],
+          "sha256": "6caabdb804cd4dfb4e7dc51ce3872212b5a61ca6c6fe4f50a5e8ef02ef536932"
+        },
+        "check-closure.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_NATIVE_PARITY_PASS --closure physical_clocks 926 admitted 4 max_latency 30 seconds 18.155"
+          ],
+          "sha256": "72115d027d1966f84a066dbc68d7c48b29e0653c157b46192cec1aa1f59ae2a3"
         }
       },
       "bridge_words": 55,
@@ -493,6 +607,7 @@
       "check-hardware.log": "deec472591233b828edacd79b0af5d930f1d7e6f95c4ca3c09443e0b7c226960"
     }
   },
+  "event_audit_regenerated_hardware_identical": true,
   "source_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
     "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
@@ -503,7 +618,7 @@
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "a5ed0507abd1832fa6c95d4053e1794e52215f712ba86c038cf29c7071715dae",
     "scripts/experiments/red2_cfg_pilot/emit.py": "b2ae0811e558d28bd788c13d6985875fdc8c4a876ca72fef20a5fcc542509094",
     "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
-    "scripts/experiments/red2_cfg_pilot/integrate.py": "9fb7bf45850fb9ccbad97ede256e6a9051fedcb344d7b2c4940b61c9f899ecb6",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "88da704ff929f5f6cb1a193dea5bc5fa8ff890d673cd5d251fd270278c1abbb7",
     "scripts/experiments/red2_cfg_pilot/oracle.py": "76556364d9307d909be0cf450a140192109969138b5f56fc5af96bc6ca52bab0",
     "scripts/experiments/red2_cfg_pilot/owned.py": "994342125f16815e96c74ff5495582532d475e989951ce7f09d7b3496eeee67f",
     "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
