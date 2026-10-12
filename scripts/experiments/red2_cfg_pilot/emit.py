@@ -2,6 +2,7 @@
 """Emit the fixed control-table experiment through the enhanced PipelineC frontend."""
 
 import json
+import os
 
 from paths import OUT as P
 
@@ -27,6 +28,13 @@ for r in rows:
     r["a"] = remap[r["a"]]
     if r["op"] not in [ops[n] for n in ("branch", "jump", "request", "halt")]:
         r["d"] = remap[r["d"]]
+compact = os.environ.get("RED2_CFG_PILOT_COMPACT", "0") == "1"
+if compact:
+    from allocate import allocate
+
+    allocate(m)
+    scratch_bits = max(1, max(m["slots"].values()).bit_length())
+    m["scratch_words"] = 1 << scratch_bits
 (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
 text = """from typing import NamedTuple
 from pypeline import MAIN, Reg, struct, make_uint_t, uint1_t, uint3_t, uint4_t, uint5_t, uint7_t, uint8_t, uint64_t
@@ -243,10 +251,92 @@ text += """            if row.d == 15:
     return output_t(ready=ready, done=done, request_valid=request_valid, request=request, setup_data=so.p0.rd_data)
 """
 text = text.replace("WRITABLE_WORDS", str(m["writable_words"]))
+if "ge" in ops:
+    text = text.replace(
+        "addr_t = make_uint_t(10)", "wide_t = make_uint_t(65)\naddr_t = make_uint_t(10)"
+    )
+    text = text.replace(
+        "subtract: uint1_t = row.op == OP_sub",
+        "subtract: uint1_t = row.op == OP_sub or row.op == OP_ge",
+    )
+    text = text.replace(
+        "add_result: uint64_t = a + add_b + subtract",
+        "add_wide: wide_t = a\n    wide_b: wide_t = add_b\n"
+        "    add_wide = add_wide + wide_b + subtract\n"
+        "    add_result: uint64_t = add_wide",
+    )
+    text = text.replace(
+        "elif row.op == OP_and:",
+        "elif row.op == OP_ge:\n        result = add_wide[64]\n"
+        "    elif row.op == OP_and:",
+    )
+if compact:
+    # Branch true targets are fall-through; only false targets need storage.
+    # Control fields share packed bits because their uses are disjoint by op.
+    width_values = sorted({r["width"] for r in rows})
+    width_bits = max(1, (len(width_values) - 1).bit_length())
+    word_bits = max(5 + 3 * scratch_bits + width_bits, 5 + scratch_bits + control_bits)
+    packed = []
+    for pc, r in enumerate(rows):
+        value = r["op"]
+        if r["op"] == ops["branch"]:
+            assert r["yes"] == pc + 1
+            value |= r["a"] << 5
+            value |= r["no"] << (5 + scratch_bits)
+        elif r["op"] == ops["jump"]:
+            value |= r["yes"] << 5
+        else:
+            value |= r["a"] << 5
+            value |= r["b"] << (5 + scratch_bits)
+            value |= r["d"] << (5 + 2 * scratch_bits)
+            value |= width_values.index(r["width"]) << (5 + 3 * scratch_bits)
+        assert value < 1 << word_bits
+        packed.append(value)
+    start = text.index("CONTROL_INIT =")
+    end = text.index("control_rom, _ =", start)
+    text = (
+        text[:start]
+        + f"control_word_t = make_uint_t({word_bits})\n"
+        + "CONTROL_INIT = "
+        + repr(packed)
+        + "\n"
+        + text[end:]
+    )
+    text = text.replace("make_ram(control_t,", "make_ram(control_word_t,")
+    decode = f"""    decoded: control_t
+    decoded.op = rom_out.p0.rd_data[4:0]
+    decoded.a = rom_out.p0.rd_data[{4 + scratch_bits}:5]
+    decoded.b = rom_out.p0.rd_data[{4 + 2 * scratch_bits}:{5 + scratch_bits}]
+    decoded.d = rom_out.p0.rd_data[{4 + 3 * scratch_bits}:{5 + 2 * scratch_bits}]
+    decoded.width = {width_values[0]}
+    decoded.yes = pc + 1
+    decoded.no = rom_out.p0.rd_data[{4 + scratch_bits + control_bits}:{5 + scratch_bits}]
+    if decoded.op == OP_jump:
+        decoded.yes = rom_out.p0.rd_data[{4 + control_bits}:5]
+"""
+    for i, w in enumerate(width_values[1:], 1):
+        decode += f"    if rom_out.p0.rd_data[{word_bits - 1}:{5 + 3 * scratch_bits}] == {i}:\n        decoded.width = {w}\n"
+    text = text.replace(
+        "    sr: scratch_ram.p0_in_t\n", decode + "    sr: scratch_ram.p0_in_t\n"
+    )
+    text = text.replace("rom_out.p0.rd_data.a", "decoded.a")
+    text = text.replace("row = rom_out.p0.rd_data", "row = decoded")
+    m["control_encoding"] = {
+        "method": "Fixed packed control fields with opcode-dependent branch targets",
+        "word_bits": word_bits,
+        "scratch_address_bits": scratch_bits,
+        "width_values": width_values,
+        "branch_true_target": "fall-through",
+    }
+    (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
 text = text.replace("make_uint_t(10)", f"make_uint_t({scratch_bits})")
 text = text.replace("make_uint_t(12)", f"make_uint_t({control_bits})")
 text = text.replace(
     "make_ram(control_t,4096,", f"make_ram(control_t,{m['control_words']},"
+)
+text = text.replace(
+    "make_ram(control_word_t,4096,",
+    f"make_ram(control_word_t,{m['control_words']},",
 )
 text = text.replace(
     "make_ram(uint64_t,1024,", f"make_ram(uint64_t,{m['scratch_words']},"

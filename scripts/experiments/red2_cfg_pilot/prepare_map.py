@@ -5,13 +5,19 @@ import json
 import sys
 from pathlib import Path
 
-from paths import OUT, ROOT
+from paths import INTEGRATED, OUT, ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import pipelinec_toolchain as tc
 
 tc.verify_enhanced_compiler(tc.configured_root())
-root = OUT / "baseline" if "--baseline" in sys.argv else OUT
+root = (
+    INTEGRATED
+    if "--integrated" in sys.argv
+    else OUT / "baseline"
+    if "--baseline" in sys.argv
+    else OUT
+)
 hdl = root / "hdl"
 files = [Path(f).resolve() for f in (hdl / "vhdl_files.txt").read_text().split()]
 assert files and all(f.is_file() for f in files)
@@ -62,7 +68,12 @@ assert control["source_sha256"] == sha(
     ROOT / "src/machines/synthesizable_red2_machine/machine.py"
 )
 record = {
-    "scope": "Standalone family, addressed state and graph/control handshake",
+    "scope": (
+        "Complete experimental top, selected RED2 family shared controller "
+        "and serial state bridge"
+        if "--integrated" in sys.argv
+        else "Standalone family, addressed state and graph/control handshake"
+    ),
     "original_source_sha256": control["source_sha256"],
     "candidate_source_sha256": sha(root / "machine.py"),
     "compiler_manifest": json.loads(tc.MANIFEST.read_text()),
@@ -73,6 +84,8 @@ record = {
         for n in ("frontend.ys", "area.abc", "baseline-area.ys", "run.sh")
     },
     "include_lookup": control["include_lookup"],
+    "include_graph": control.get("include_graph", False),
+    "entry_opcodes": control.get("entry_opcodes", []),
 }
 (root / "provenance.json").write_text(json.dumps(record, indent=2) + "\n")
 print("PREPARED_FAMILY_MAPPING", root, len(files), "VHDL files")

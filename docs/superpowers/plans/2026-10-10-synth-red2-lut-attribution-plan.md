@@ -659,3 +659,41 @@ subtracted from that figure. Full-core acceptance remains 18,000 LUTs before
 board integration, full native program parity and complete primitive accounting,
 followed by routing and timing checks. Detailed source, HDL, mapping and
 validation hashes are in `docs/handoffs/synth-red2-cfg-pilot-results.json`.
+
+### Integration and persistent ownership follow-up (2026-10-12)
+
+Temporary liveness allocation and packed control reduce the lookup controller
+from 12 BRAM36 equivalents to five, at 1,459 LUT (82 more than the uncompressed
+controller). Default noncompact lookup generation is byte-identical to the
+previously mapped source. The broader graph configuration covers 56 entries,
+6,229 rows and 218 used scratch cells; 6,720 typed cases and 159 physical path
+witnesses pass. EP_REVERSE_CONTROL_READ remains external because its shared
+initialization launch is consumed by other original logic.
+
+The first full lookup integration mapped to 40,826 LUT, but is rejected:
+a paused operand-consume phase allowed a synchronous scratch address to drift.
+Corrected address hold passes all 25 lookup and 56 graph entry boundaries,
+including RAM payload, pause and reset checks. The corrected graph complete top
+is mapped separately. No production change or Basys 3 fit is claimed.
+
+The two-reviewer diagnosis separates two effects: the standalone original
+baseline contains debug/setup selection absent from production, and the serial
+integration adds FF mirrors and writeback selection. The nominal isolated
+saving is not additive, and coarse bridge mux-bit counts are not mapped LUT
+attribution. Freeze the 56-entry graph scope before expanding again.
+
+The next owned integration removes 26 lifecycle-only Reg roots (29 leaves,
+923 typed bits), retaining their BRAM cells across transitions. Ownership must
+be proved against the transformed remaining AST, with no surviving runtime
+legacy reference. Use entry-specific shared import=(read-before-write union
+may-write) minus private and export=may-write minus private. Stage only the
+observable scalar bank for coherent publication; do not snapshot private state.
+Queue a busy lifecycle command until logical completion so an accepted graph
+write cannot be paired with an incomplete scalar transition. Extract exact
+RESET/LOAD_STATE/valid START initializer masks; invalid START must preserve
+private state. Include this entire boundary in the next full-core measurement.
+
+Then migrate connected JOIN/selector/equality/publication state into the same
+persistent backend, preserving preparation, external preflight and explicit
+commit authorization. Acceptance still requires full native parity, complete
+primitive accounting and 18k LUT engineering headroom before board routing.

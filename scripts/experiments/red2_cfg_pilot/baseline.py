@@ -19,6 +19,18 @@ header += (
     )
     + "\n"
 )
+if c.INCLUDE_GRAPH:
+    header += (
+        "\n"
+        + ast.unparse(
+            next(
+                n
+                for n in c.tree.body
+                if isinstance(n, ast.FunctionDef) and n.name == "red2_u64_ge"
+            )
+        )
+        + "\n"
+    )
 header += """
 @struct
 class red2_command_t(NamedTuple):

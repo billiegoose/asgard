@@ -5,7 +5,7 @@ import copy
 import hashlib
 import json
 
-from paths import INCLUDE_LOOKUP, OUT, ROOT
+from paths import INCLUDE_GRAPH, INCLUDE_LOOKUP, OUT, ROOT
 
 SOURCE = ROOT / "src/machines/synthesizable_red2_machine/machine.py"
 source = SOURCE.read_text()
@@ -106,11 +106,18 @@ for x in fn.body:
         "clock_dispatch_enable and micro_is_"
     ):
         name = ast.unparse(x.test).split("micro_is_", 1)[1]
-        if name.startswith(("app_", "lambda_")) or (
-            INCLUDE_LOOKUP and name.startswith("lookup_")
+        if (
+            name.startswith(("app_", "lambda_"))
+            or (INCLUDE_LOOKUP and name.startswith("lookup_"))
+            or (
+                INCLUDE_GRAPH
+                and name.startswith(("ep_", "closure_", "rup_", "recp_"))
+                and name != "ep_reverse_control_read"
+            )
         ):
             selected["MICRO_" + name.upper()] = (x, constants["MICRO_" + name.upper()])
-assert len(selected) == (24 if INCLUDE_LOOKUP else 20)
+if not INCLUDE_GRAPH:
+    assert len(selected) == (24 if INCLUDE_LOOKUP else 20)
 request_parent = next(
     x
     for x in fn.body
@@ -139,17 +146,17 @@ for x in execute.body:
         and isinstance(x.target, ast.Name)
     ):
         aliases[x.target.id] = x
+entry_ops = ["lambda", "app"]
+if INCLUDE_GRAPH:
+    entry_ops += ["ep", "closure", "rup", "recp"]
 entry = [
     x
     for x in execute.body
     if isinstance(x, ast.If)
     and ast.unparse(x.test)
-    in (
-        "not fetched_invalid and opcode_is_lambda",
-        "not fetched_invalid and opcode_is_app",
-    )
+    in {"not fetched_invalid and opcode_is_" + op for op in entry_ops}
 ]
-assert len(entry) == 2
+assert len(entry) == len(entry_ops)
 if INCLUDE_LOOKUP:
     entry.append(
         next(
@@ -192,6 +199,8 @@ OP_NAMES = [
     "response",
     "halt",
 ]
+if INCLUDE_GRAPH:
+    OP_NAMES.insert(OP_NAMES.index("branch"), "ge")
 OP = {n: i for i, n in enumerate(OP_NAMES)}
 rows = []
 slots = {}
@@ -288,6 +297,17 @@ def expr(x):
         b = expr(x.comparators[0])
         d = temp()
         emit(op, a, b, d, 1)
+        return d
+    if (
+        INCLUDE_GRAPH
+        and isinstance(x, ast.Call)
+        and isinstance(x.func, ast.Name)
+        and x.func.id == "red2_u64_ge"
+    ):
+        assert len(x.args) == 2 and not x.keywords
+        a, b = (expr(arg) for arg in x.args)
+        d = temp()
+        emit("ge", a, b, d, 1)
         return d
     raise ValueError("Unsupported expression: " + ast.unparse(x))
 
@@ -418,10 +438,14 @@ manifest = {
     "response_keys": RESPONSE_KEYS,
     "ops": OP,
     "include_lookup": INCLUDE_LOOKUP,
+    "include_graph": INCLUDE_GRAPH,
+    "entry_opcodes": ["MOP_APP", "MOP_LAMBDA"]
+    + ["MOP_" + op.upper() for op in entry_ops[2:]]
+    + (["MOP_VAR", "MOP_APP_VAR"] if INCLUDE_LOOKUP else []),
     "graph_words": 256,
     "admission": (
         "One already-admitted logical transition. MICRO_EXECUTE accepts "
-        "APP/LAMBDA only, plus VAR/APP_VAR with lookup enabled. "
+        "the entry_opcodes listed above (graph scope adds EP/CLOSURE/RUP/RECP). "
         "Outer command/fault/synchronous-read arbitration remains "
         "outside this pilot."
     ),
@@ -461,7 +485,9 @@ for start, end in zip(starts, [*starts[1:], len(rows)], strict=True):
                 "bool_or",
                 "shr",
                 "shl",
+                "ge",
             )
+            if n in OP
         }:
             reads.append(r["b"])
         assert set(reads) <= defined, (start, pc, set(reads) - defined)

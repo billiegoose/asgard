@@ -4,14 +4,20 @@ import os
 import subprocess
 import sys
 
-from paths import OUT, ROOT
+from paths import INTEGRATED, OUT, ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import pipelinec_toolchain as tc
 
 compiler = tc.configured_root()
 tc.verify_enhanced_compiler(compiler)
-root = OUT / "baseline" if "--baseline" in sys.argv else OUT
+root = (
+    INTEGRATED
+    if "--integrated" in sys.argv
+    else OUT / "baseline"
+    if "--baseline" in sys.argv
+    else OUT
+)
 environment = os.environ.copy()
 search_paths = [
     compiler / "src",

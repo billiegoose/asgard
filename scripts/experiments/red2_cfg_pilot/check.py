@@ -97,6 +97,7 @@ def model(values, state, response):
                     "or": operator.or_,
                     "eq": operator.eq,
                     "ne": operator.ne,
+                    "ge": operator.ge,
                 }[name](a, b)
         mem[r["d"]] = int(v) & ((1 << r["width"]) - 1)
     else:
@@ -137,9 +138,7 @@ for state in m["entry_pc"]:
                 if widths[k] == 1:
                     values[k] = rng.randrange(2)
         if int(state) == ref.MICRO_EXECUTE:
-            entry_ops = [ref.MOP_APP, ref.MOP_LAMBDA]
-            if m["include_lookup"]:
-                entry_ops.extend([ref.MOP_VAR, ref.MOP_APP_VAR])
+            entry_ops = [getattr(ref, n) for n in m["entry_opcodes"]]
             values["fetched_word.hi"] = (
                 (rng.choice(entry_ops) << 21)
                 | (rng.choice([0, 1, 1, 1, 1]) << 26)

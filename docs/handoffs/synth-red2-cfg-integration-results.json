@@ -1,0 +1,513 @@
+{
+  "recorded_at_utc": "2026-10-12T05:32:53.365639+00:00",
+  "production_changed": false,
+  "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "production_lut_total": 41170,
+  "basys3_lut_capacity": 20800,
+  "engineering_target_lut": 18000,
+  "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+  "mapping_recipe": "Same pinned enhanced PipelineC/GHDL/Yosys classic xc7 LUT6 area recipe as maintained core; no IO pads, placement or routing",
+  "configurations": [
+    {
+      "name": "compact standalone lookup",
+      "artifact_root": "/tmp/asgard-area-next/cfg-compact",
+      "generated_source_sha256": "705b23ccd8f8fc68de0fc3eb520e2c220b2c52febe28732f44fef3bc4257a3b2",
+      "graph_words": 256,
+      "entries": 25,
+      "rows": 3240,
+      "scratch_words": 256,
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 1438,
+        "allocated_words": 146,
+        "persistent_words": 43,
+        "temporary_colors": 53,
+        "constant_words": 50,
+        "all_live_sets_disjoint": true
+      },
+      "control_encoding": {
+        "method": "Fixed packed control fields with opcode-dependent branch targets",
+        "word_bits": 33,
+        "scratch_address_bits": 8,
+        "width_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          16,
+          17,
+          24,
+          32,
+          55,
+          56,
+          64
+        ],
+        "branch_true_target": "fall-through"
+      },
+      "status": "Experimental; no production adoption",
+      "artifact_sha256": {
+        "machine.py": "705b23ccd8f8fc68de0fc3eb520e2c220b2c52febe28732f44fef3bc4257a3b2",
+        "control.json": "e402b74cc0f84830de785456d067eec9ea35fad3dc2771eb134f99ffc99564bd",
+        "provenance.json": "11be3e66a16b3133d478f3211a4de12f9068f9e198008019a0a7ad25a6084232",
+        "resources.json": "13ced195d9535c9faa54a0bb8a880d6077668259e748b8ef8b3edd9e28647514",
+        "baseline-area.json": "36cc894038701f05d83431a0929228ef286ef1c665a05d973b0e4daedaaaf694",
+        "baseline-area.log": "afe028ba2c6ccfff2703f497cf29e9507936c41565cda4688b2fef808a5029d1",
+        "frontend-driver.log": "bdc2f352d48c00eaee67aeaf6b6839a23700ef2d6e8e97b453fb48db47d10aec"
+      },
+      "hdl_files_verified_unchanged": 77,
+      "resources": {
+        "top": "top",
+        "lut": 1459,
+        "lut_memory": 0,
+        "lut_total": 1459,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 732,
+        "bram18": 0,
+        "bram36": 5,
+        "bram36_equivalent": 5.0,
+        "dsp48": 0,
+        "carry4": 22,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 22,
+          "FDRE": 732,
+          "INV": 12,
+          "LUT2": 65,
+          "LUT3": 631,
+          "LUT4": 100,
+          "LUT5": 153,
+          "LUT6": 510,
+          "RAMB36E1": 5
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "map_structural_problems_zero": true,
+      "validation": {
+        "check.log": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_TYPED_REFERENCE_PASS 4",
+            "CFG_TYPED_REFERENCE_PASS 118",
+            "CFG_TYPED_REFERENCE_PASS 117",
+            "CFG_TYPED_REFERENCE_PASS 5",
+            "CFG_TYPED_REFERENCE_PASS 1",
+            "CFG_TYPED_REFERENCE_ALL_PASS 3000"
+          ],
+          "sha256": "ab44ae8a17d58e6bfd0b0c0eff78ca9bff94336616db380cd8edc67f8fb16758"
+        },
+        "check-hardware.log": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_PHYSICAL_CONTROLLER_PASS 86 1 1618",
+            "CFG_PHYSICAL_CONTROLLER_PASS 87 1 1664",
+            "CFG_PHYSICAL_CONTROLLER_PASS 88 1 1605",
+            "CFG_PHYSICAL_CONTROLLER_ALL_PASS 89",
+            "CFG_RESET_CANCEL_PASS",
+            "CFG_CONSTANT_PROTECTION_PASS"
+          ],
+          "sha256": "e80fc4d9166819b5973541479228ca90e5885eb394bf6e68b04ce67e1ac992a2"
+        }
+      }
+    },
+    {
+      "name": "lookup integration v1 rejected",
+      "artifact_root": "/tmp/asgard-area-next/cfg-lookup/integrated",
+      "generated_source_sha256": "08ca35247d570bea4cad0b0e0549a9a27b9cc9c23799de3737990951f5ee2dae",
+      "graph_words": 256,
+      "entries": 25,
+      "rows": 3240,
+      "scratch_words": 2048,
+      "scratch_allocation": null,
+      "control_encoding": null,
+      "status": "Rejected diagnostic: operand RAM address drift during paused consume phases",
+      "artifact_sha256": {
+        "machine.py": "08ca35247d570bea4cad0b0e0549a9a27b9cc9c23799de3737990951f5ee2dae",
+        "provenance.json": "8627d2fd85b02d1aa3ddd3ee958eaf1f6125d6d7264626621669d7b28872ea5f",
+        "resources.json": "caf3a2a5da7fa7fdb44330c0a8cde11a78d1fb4282d3fdcdbfc0106cb252a48d",
+        "baseline-area.json": "2616e148b35a08e859d44b0ab8e70ff07f5e564e5d93a5a65617a77649180529",
+        "baseline-area.log": "d10633ca0d48ac3b05a0c098eb71c4b77f2ca76daa109f426ad984fb396134d4",
+        "integration.json": "0c4b180066ce73d7d2066ac2762983c2ce24887cc5c6e51beb3fb4fd25dbab25",
+        "frontend-driver.log": "126eb4c88d3d2cd49b66dbf2245548f1fbbdc7a540c2758ea0c95bc9054dab89"
+      },
+      "hdl_files_verified_unchanged": 252,
+      "resources": {
+        "top": "top",
+        "lut": 40508,
+        "lut_memory": 318,
+        "lut_total": 40826,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9698,
+        "bram18": 17,
+        "bram36": 19,
+        "bram36_equivalent": 27.5,
+        "dsp48": 20,
+        "carry4": 2837,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 2837,
+          "DSP48E1": 20,
+          "FDRE": 9698,
+          "INV": 2432,
+          "LUT2": 5822,
+          "LUT3": 8108,
+          "LUT4": 7428,
+          "LUT5": 7722,
+          "LUT6": 11428,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 17,
+          "RAMB36E1": 19
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 40826,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "map_structural_problems_zero": true,
+      "validation": {
+        "check-boundary-entries.log": {
+          "completed_pass": false,
+          "tail": [
+            "INTEGRATED_BOUNDARY_PASS 7 23 410",
+            "Traceback (most recent call last):",
+            "  File \"/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_boundary.py\", line 138, in <module>",
+            "    assert leaf(regs, name) == wanted, (",
+            "           ^^^^^^^^^^^^^^^^^^^^^^^^^^",
+            "AssertionError: (8, 22, 'red2_fault', 2, 0)"
+          ]
+        }
+      },
+      "bridge_words": 43
+    },
+    {
+      "name": "graph integration corrected serial mirror",
+      "artifact_root": "/tmp/asgard-area-next/cfg-graph/integrated-v2",
+      "generated_source_sha256": "ce1c62506739ef35697372e0f339caaf1850e362f15378de81a5b34a90d25449",
+      "graph_words": 256,
+      "entries": 56,
+      "rows": 6229,
+      "scratch_words": 256,
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 2402,
+        "allocated_words": 218,
+        "persistent_words": 84,
+        "temporary_colors": 53,
+        "constant_words": 81,
+        "all_live_sets_disjoint": true
+      },
+      "control_encoding": {
+        "method": "Fixed packed control fields with opcode-dependent branch targets",
+        "word_bits": 34,
+        "scratch_address_bits": 8,
+        "width_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          16,
+          17,
+          24,
+          31,
+          32,
+          47,
+          48,
+          55,
+          56,
+          64
+        ],
+        "branch_true_target": "fall-through"
+      },
+      "status": "Experimental; no production adoption",
+      "artifact_sha256": {
+        "machine.py": "ce1c62506739ef35697372e0f339caaf1850e362f15378de81a5b34a90d25449",
+        "provenance.json": "bdd5b55d21f0c1f7582e3cc8f7268f9125691d1daaa3b150ee5e5ce9cc0ca066",
+        "integration.json": "5bb15edfb10255fbd8178128186d215cfdba31788fca65a9707384d80d04a9ac",
+        "frontend-driver.log": "8e25c36823d6bfc0f9b2f323270a91480e745f11900a5b48262fa89f603717e0"
+      },
+      "hdl_files_verified_unchanged": 242,
+      "mapping_status": "In progress; no measured resource result yet",
+      "validation": {
+        "check-boundary-entries.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_BOUNDARY_PASS 52 18 543",
+            "INTEGRATED_BOUNDARY_PASS 53 8 728",
+            "INTEGRATED_BOUNDARY_PASS 54 7 588",
+            "INTEGRATED_BOUNDARY_PASS 55 6 948",
+            "INTEGRATED_BOUNDARY_ALL_PASS 56",
+            "INTEGRATED_RESET_BOUNDARY_PASS"
+          ],
+          "sha256": "2f98f31b9c0af75d72826b7906a630df9d07f5dd9aa4a818838bac1d098bf54e"
+        }
+      },
+      "bridge_words": 84
+    },
+    {
+      "name": "graph integration persistent ownership",
+      "artifact_root": "/tmp/asgard-area-next/cfg-graph/integrated-owned",
+      "generated_source_sha256": "12aa71dc49d2610a68bd3be7697f9a37127018e83595677d1a0aaf5b150bf795",
+      "graph_words": 256,
+      "entries": 56,
+      "rows": 6229,
+      "scratch_words": 256,
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 2402,
+        "allocated_words": 218,
+        "persistent_words": 84,
+        "temporary_colors": 53,
+        "constant_words": 81,
+        "all_live_sets_disjoint": true
+      },
+      "control_encoding": {
+        "method": "Fixed packed control fields with opcode-dependent branch targets",
+        "word_bits": 34,
+        "scratch_address_bits": 8,
+        "width_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          16,
+          17,
+          24,
+          31,
+          32,
+          47,
+          48,
+          55,
+          56,
+          64
+        ],
+        "branch_true_target": "fall-through"
+      },
+      "status": "Experimental; no production adoption",
+      "artifact_sha256": {
+        "machine.py": "12aa71dc49d2610a68bd3be7697f9a37127018e83595677d1a0aaf5b150bf795",
+        "provenance.json": "78be9386eab647ced6ea53dd2fc556345679de83732947249aba23e4a116a4cf",
+        "integration.json": "7f88adf97160a9eeb9dbcb196f3dafc3522aea2a4ffd032a09084966873c3f67",
+        "frontend-driver.log": "5b096d5a9d5837a5165948cac2f6bcf8b18209555d413a6057e4ec793dce07d0"
+      },
+      "hdl_files_verified_unchanged": 245,
+      "mapping_status": "In progress; no measured resource result yet",
+      "validation": {
+        "check-boundary-entries.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_BOUNDARY_PASS 53 8 643",
+            "INTEGRATED_BOUNDARY_PASS 54 7 503",
+            "INTEGRATED_BOUNDARY_PASS 55 6 863",
+            "INTEGRATED_BOUNDARY_ALL_PASS 56",
+            "INTEGRATED_RESET_BOUNDARY_PASS",
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS"
+          ],
+          "sha256": "082994694e3e8d38eba57a14f06bc31d9e54fcd3081fed9312a83c240235272d"
+        },
+        "check-boundary-all.log": {
+          "completed_pass": false,
+          "tail": [
+            "INTEGRATED_BOUNDARY_PASS 13 8 628",
+            "INTEGRATED_BOUNDARY_PASS 14 18 458",
+            "INTEGRATED_BOUNDARY_PASS 15 19 563",
+            "INTEGRATED_BOUNDARY_PASS 16 9 643",
+            "INTEGRATED_BOUNDARY_PASS 17 9 633",
+            "INTEGRATED_BOUNDARY_PASS 18 9 643"
+          ]
+        },
+        "check-lifecycle.log": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_BOUNDARY_ALL_PASS 0",
+            "INTEGRATED_RESET_BOUNDARY_PASS",
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+          ],
+          "sha256": "ce083088287f1eba71f671ee23b82a25063ee7098f16be687839ee45aa91c4c0"
+        },
+        "check-application.log": {
+          "completed_pass": false,
+          "tail": [
+            "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
+            "INTEGRATED_PROGRESS 25 29148 max_latency 2228"
+          ]
+        }
+      },
+      "bridge_words": 55,
+      "ownership": {
+        "private_roots": [
+          "app_definition_pop_saved",
+          "closure_target",
+          "ep_hops",
+          "lookup_address",
+          "lookup_hops",
+          "lookup_origin_address",
+          "lookup_push_control",
+          "lookup_remaining",
+          "lookup_word",
+          "recp_binding",
+          "recp_block",
+          "recp_context",
+          "recp_copy_word",
+          "recp_index",
+          "recp_parent_environment",
+          "recp_replacement",
+          "recp_reverse_entry_env",
+          "recp_reverse_needs_bridge",
+          "recp_reverse_parent_env",
+          "recp_reverse_zero",
+          "recp_rup_word",
+          "rup_block",
+          "rup_count",
+          "rup_index",
+          "rup_rec_binding",
+          "rup_rec_payload_bad"
+        ],
+        "private_fields": [
+          "app_definition_pop_saved",
+          "ep_hops",
+          "closure_target",
+          "rup_index",
+          "rup_count",
+          "rup_block",
+          "rup_rec_binding",
+          "rup_rec_payload_bad",
+          "recp_binding",
+          "recp_context",
+          "recp_block",
+          "recp_index",
+          "recp_replacement",
+          "recp_parent_environment",
+          "recp_copy_word.lo",
+          "recp_copy_word.hi",
+          "recp_rup_word.lo",
+          "recp_rup_word.hi",
+          "recp_reverse_zero",
+          "recp_reverse_needs_bridge",
+          "recp_reverse_parent_env",
+          "recp_reverse_entry_env",
+          "lookup_address",
+          "lookup_remaining",
+          "lookup_hops",
+          "lookup_origin_address",
+          "lookup_word.lo",
+          "lookup_word.hi",
+          "lookup_push_control"
+        ],
+        "private_bits": 923,
+        "initialize_on_start": [
+          "app_definition_pop_saved",
+          "ep_hops",
+          "closure_target",
+          "rup_index",
+          "rup_count",
+          "rup_block",
+          "rup_rec_binding",
+          "rup_rec_payload_bad",
+          "recp_binding",
+          "recp_context",
+          "recp_block",
+          "recp_index",
+          "recp_replacement",
+          "recp_parent_environment",
+          "recp_copy_word.lo",
+          "recp_copy_word.hi",
+          "recp_rup_word.lo",
+          "recp_rup_word.hi",
+          "recp_reverse_zero",
+          "recp_reverse_needs_bridge",
+          "recp_reverse_parent_env",
+          "recp_reverse_entry_env",
+          "lookup_address",
+          "lookup_remaining",
+          "lookup_hops",
+          "lookup_word.lo",
+          "lookup_word.hi"
+        ],
+        "proof": "No remaining legacy AST reference after lifecycle-zero writes and Reg declarations removed",
+        "visible_snapshot_fields": [
+          "red2_fault",
+          "hw_fault",
+          "microstate",
+          "pc",
+          "fsp",
+          "env",
+          "control_top",
+          "direction",
+          "q",
+          "phi",
+          "free_space",
+          "argcnt",
+          "prim_id",
+          "fire",
+          "s_a",
+          "s_d",
+          "halted",
+          "pending_host_op",
+          "pending_host_argument"
+        ],
+        "protocol": "CLOCK advances, NOP pauses. One busy lifecycle command is queued and applied after logical completion; wait for busy=0 before another command. Private lifecycle writes are serialized with exact original masks.",
+        "average_shared_import": 6.232142857142857,
+        "average_shared_export": 4.017857142857143
+      }
+    }
+  ],
+  "limitations": [
+    "All integration tops remain experiments; full native parity, RTL simulation, routing and timing are not established",
+    "Standalone original baselines include addressed debug/setup logic absent from production; standalone savings are not additive whole-core savings",
+    "The first lookup full-top map predates a native-proven pause-address bug fix and is rejected diagnostic evidence",
+    "Busy lifecycle command queue admits one command; callers must wait for busy=0 before another command",
+    "Per-entry masks currently suppress transfers during a fixed shared-index scan; they do not eliminate all scan cycles",
+    "The old v1 full-program suite was explicitly interrupted after switching validation to the corrected ownership candidate; it is not a pass"
+  ],
+  "next_steps": [
+    "Use completed full-top measurements to compare ownership against the same graph scope",
+    "Extend connected JOIN, selector, equality and publication families into the same persistent store/datapath; preserve prepare/preflight/authorized commit",
+    "Require full parity and complete primitive accounting before production adoption or claiming board fit"
+  ],
+  "default_noncompact_lookup_source_identical_to_prior_map": true,
+  "graph_isolated_validation": {
+    "typed_cases": 6720,
+    "physical_cases": 159,
+    "logs": {
+      "check.log": "98c2c69a27c1d9eb217823cb2fcac1415ac5cc936849aa6c6cb55df623c69361",
+      "check-hardware.log": "deec472591233b828edacd79b0af5d930f1d7e6f95c4ca3c09443e0b7c226960"
+    }
+  },
+  "source_scripts_sha256": {
+    "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
+    "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
+    "scripts/experiments/red2_cfg_pilot/build.py": "1d439753f5b985ff13225a1b7a27b54fd698ac3a1853ec98c97b97ccb33f83ee",
+    "scripts/experiments/red2_cfg_pilot/check.py": "1747859691899e044e75a42cb56ddcf7a65d4fd4b5e4f42746d7d5379536d78c",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "f9877d00e764e6e845afba987b501c1bec79ebd5b26758b31de55fec391701af",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "a2e1003e417ca749ac883c5b5aaeb619c5a35b95d4e565b663ee936716af370b",
+    "scripts/experiments/red2_cfg_pilot/check_integrated.py": "a5ed0507abd1832fa6c95d4053e1794e52215f712ba86c038cf29c7071715dae",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "b2ae0811e558d28bd788c13d6985875fdc8c4a876ca72fef20a5fcc542509094",
+    "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "9fb7bf45850fb9ccbad97ede256e6a9051fedcb344d7b2c4940b61c9f899ecb6",
+    "scripts/experiments/red2_cfg_pilot/oracle.py": "76556364d9307d909be0cf450a140192109969138b5f56fc5af96bc6ca52bab0",
+    "scripts/experiments/red2_cfg_pilot/owned.py": "994342125f16815e96c74ff5495582532d475e989951ce7f09d7b3496eeee67f",
+    "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "6019f5dfc68765ffd09c99198a8f86f96f6561777762f15361c24cd3df614cc0",
+    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "748c4043f06991a289f83c57622a447d1ec4ceb222c46b6650ad4f740580fe78"
+  }
+}
