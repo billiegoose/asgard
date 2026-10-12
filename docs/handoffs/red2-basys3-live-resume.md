@@ -1,5 +1,13 @@
 # Live Basys 3 bring-up checkpoint
 
+**An autonomous runner is active:** `build/red2-basys3/complete-bringup.py`
+(exec session 49887; log `build/red2-basys3/complete-bringup.log`). It waits for
+a completed bounded route, independently verifies routed physical LUT fit and
+both clocks, generates the bitstream, loads SRAM on the explicit board serial,
+and runs the 10,703-clock application replay. It stops on failure. Check its
+state and logs before manual steps below; do not load/replay concurrently.
+It does not update source/docs or commit physical results automatically.
+
 The user authorized loading the dedicated RED2 hardware into volatile SRAM on
 this Mac, replaying it, and committing/pushing results. Permissions now work.
 The board is Digilent serial `210183735787`, JTAG ID `0x0362d093`, UART
@@ -22,7 +30,7 @@ Live Podman containers (independent output directories):
 - `red2-basys3-route-spread`: most promising; alpha 1.0, beta 0.7,
   parallel refinement with 4 threads; analytical placement finished in 612s.
 - `red2-basys3-route-bounded`: default-density placement, parallel refinement.
-- `red2-basys3-route-sa`: slower independent SA placement fallback.
+- The SA fallback failed relative-chain placement; its log is retained.
 
 Both new attempts save `board-placed.json` before routing, then use
 `--no-pack --no-place --router2-bb-expand-max 12 --router2-cong-mult 1.2`.

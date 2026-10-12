@@ -267,5 +267,18 @@
     "within_basys3_physical_lut_limit": true,
     "normalization": "merge A5LUT/A6LUT (and B/C/D) only within the identical tile and slice"
   },
-  "routed_physical_lut_site_audit_pending": true
+  "routed_physical_lut_site_audit_pending": true,
+  "autonomous_bringup_runner": {
+    "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.py",
+    "script_sha256": "e8c5aed16e338729d92b1be6b2a08d2c5ee777c8df500dfe4f5644c09de22d72",
+    "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.log",
+    "exec_session": 49887,
+    "scope": "wait for bounded route, gate final physical LUT fit and routed clocks, bit generation, SRAM load, physical application replay; stop on failure; no automatic source commits"
+  },
+  "sa_fallback": {
+    "passed": false,
+    "reason": "failed to place relative chain during final legalisation",
+    "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-sa/route.log",
+    "log_sha256": "3b33996951de4b515f31300f9977075b56802429ca2bfd9454f05a058d136211"
+  }
 }
