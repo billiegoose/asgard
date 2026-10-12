@@ -9,11 +9,13 @@ synchronous RAM reads and would not reproduce the same trace.
 
 The complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
 the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5
-BRAM36 equivalents. Routing uses **19,984 physical LUT sites**, leaving 816;
-both domains pass the 10 MHz requirement (core 10.39 MHz, monitor 10.35 MHz).
+BRAM36 equivalents. The latest normal-monitor route uses **19,991 physical LUT
+sites**, leaving 809; both domains pass the 10 MHz requirement (core 10.57 MHz,
+monitor 10.45 MHz).
 SRAM loading and physical UART work. A nextpnr wide-write configuration fix
 makes all 131 graph-memory diagnostic words pass. Full application replay
-currently matches 3,999 clocks before a microstate mismatch; diagnosis continues.
+now matches 7,506 clocks before a repeatable graph-memory/fault mismatch;
+diagnosis continues.
 The mapped core also passes all 10,703 clocks with Xilinx RAM simulation models.
 The [resource overview](../../../docs/handoffs/red2-basys3-resource-overview.md)
 details memory, register and arithmetic ownership and further sharing options.
@@ -51,6 +53,20 @@ the patched nextpnr backend. Clock constraints are explicitly reloaded from
 SDC after importing the saved placement; native XDC constraints are not retained
 in that JSON. The final audit checks physical LUT sites and unchanged cell
 locations, accounting for nextpnr's different placed/routed BEL name formats.
+
+`relocate_monitor.py` reproduces the experimental thirteen monitor LUT/FF pair
+moves used by the latest normal-monitor route. It accepts an unrouted saved
+placement, preserves logic and core cell locations, and writes a new placement
+and move/hash report. It verifies the selected monitor load muxes and compatible
+flip-flop control sets. This is a diagnostic recipe, not a general placement
+fix or part of the default build. The resulting hardware still fails at clock
+7,506. For the preserved local artifacts:
+
+```sh
+python3 scripts/boards/red2_basys3/relocate_monitor.py \
+  build/red2-basys3/route-bounded/board-placed.json \
+  --output /tmp/red2-monitor-placed.json --report /tmp/red2-monitor-moves.json
+```
 
 The prepared `core.json` is a snapshot; the generated build no longer depends
 on the original `/tmp` netlist. Preserve the prepared directory if restarting

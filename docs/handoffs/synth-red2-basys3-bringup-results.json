@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T18:06:24.357077+00:00",
+  "recorded_at_utc": "2026-10-12T20:22:59.902476+00:00",
   "scope": "Dedicated RED2 fits and passes routed timing; SRAM loading and physical UART work; wide graph-memory writes fixed and tested; complete physical application replay not yet passing",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Base bitstream loaded successfully. First replay failed on graph-memory read at clock 257. Correcting 14 wide-SDP-write bits makes the 131-word memory test pass; application now matches 3999 clocks before a repeatable microstate bit mismatch (actual 5, expected 13). Mapped primitive simulation with Xilinx RAM models passes all 10703 clocks. Further implementation/physical diagnosis in progress.",
+  "board_build_status": "Latest normal-monitor route passes 10 MHz timing and physical LUT fit; two fresh SRAM loads/replays match all 626 bits for 7506 commands then repeat the graph-memory/fault mismatch at clock 7506. Full physical application is not passing. RAM boundary register experiment passes all 10703 simulated commands; placement underway.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -146,7 +146,7 @@
     }
   },
   "current_sources_sha256": {
-    "scripts/boards/red2_basys3/README.md": "c73ed7ee94ebae3c5932b80b701bf3e9dca97daaa97bcbf8703a6edc2b31c800",
+    "scripts/boards/red2_basys3/README.md": "faa6615ba9952ffa2142192bf4d1ea0e5fb21d7faa9e2b3d592be75ff9b2a120",
     "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
     "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
     "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
@@ -154,10 +154,11 @@
     "scripts/boards/red2_basys3/monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
     "scripts/boards/red2_basys3/prepare.py": "c72b94fa3c091d0086a4246db40b9ff4e15fecc8eefbe40222a6e6fdc98a1336",
     "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89",
-    "scripts/boards/red2_basys3/audit.py": "6bb0689ae6dfb55b144f2709f49f16a2ff4c22b21f7ba1afa8918321f2bb13d3"
+    "scripts/boards/red2_basys3/audit.py": "6bb0689ae6dfb55b144f2709f49f16a2ff4c22b21f7ba1afa8918321f2bb13d3",
+    "scripts/boards/red2_basys3/relocate_monitor.py": "24d144a8e7947bdc83dc38bbacf286aa58330514185aed6b617285a3c7dbd6b2"
   },
   "limitations": [
-    "Full physical application replay currently fails at clock 3999 after the wide-write correction",
+    "Full physical application replay currently fails at clock 7506 on the latest normal-monitor route, repeated after fresh SRAM load",
     "Mapped/core simulations do not establish physical execution correctness",
     "Processor monitor, not an interactive THOR host adapter",
     "Existing list-equality execution gap remains open"
@@ -302,16 +303,17 @@
     "log_sha256": "3b33996951de4b515f31300f9977075b56802429ca2bfd9454f05a058d136211"
   },
   "active_backend": {
-    "nextpnr_executable": "/nix/store/7anbqfygsd5dx69naa368sln2430nhsn-nextpnr-1.0.0/bin/nextpnr-himbaechel",
-    "nextpnr_sha256": "df4a16a9a3a6341a0cb61c842f4d976207243cffed8dd3b21f72656107625a59",
+    "nextpnr_executable": "/nix/store/0apsy55ndakz03k2vzf1snhfwnbr6b0b-nextpnr-1.0.0/bin/nextpnr-himbaechel",
+    "nextpnr_sha256": "e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc",
     "chipdb": "/nix/store/v2764cclyfrslx741fg1b906rfnnpmix-fpgatool-basys3-himbaechel-chipdb-1.0.0/xc7a35tcpg236.bin",
     "chipdb_sha256": "ec876fe0eb87f977a4d5781c5ae9dc03fadc3072f83bd89d31346485b78bc760",
     "resume_patch_sha256": "2505f527f3ac866f6784c7b4fae19aff3133949dea3ed03de410fe5214e69dc6",
     "placement_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
-    "placement_and_circuit_unchanged": true,
+    "placement_and_circuit_unchanged": false,
     "regression_driver_sha256": "a1af15141a649013bafb2792e9e0eebe3122e5fe34c6a970cd2d187127541039",
     "regression_new_log_sha256": "9d9c2ca92bc479d67d97462b1219a2a88e020357e7531a581389d02fe56300bf",
-    "fpgatool_commit": "f5d6dba"
+    "fpgatool_commit": "f8da9ea",
+    "scope": "Both nextpnr fixes active; normal-monitor placement differs from original by thirteen LUT/FF pairs, core circuit unchanged"
   },
   "placed_physical_lut_site_audits": {
     "route-bounded": {
@@ -370,23 +372,23 @@
   "resource_attribution": "docs/handoffs/red2-basys3-resource-attribution.json",
   "routed_timing": {
     "core_clock": {
-      "achieved_mhz": 10.39,
+      "achieved_mhz": 10.57,
       "status": "PASS",
       "required_mhz": 10.0
     },
     "clock": {
-      "achieved_mhz": 10.35,
+      "achieved_mhz": 10.45,
       "status": "PASS",
       "required_mhz": 10.0
     }
   },
   "routed_physical_lut_site_audit": {
-    "placed_netlist_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
-    "routed_netlist_sha256": "a1d215c00ea399ee54b7cdd1679e07066498cd4011dadfbfb5a8f195dadd20c4",
+    "placed_netlist_sha256": "5443178e9e2916d1cf34223e4deb55f38f1368ccde7a0bd789658c546a31d72a",
+    "routed_netlist_sha256": "db991ceb3e4c14bb0d281d8c18b520ff4c5ba59dc31a93af3670d9af11c6e990",
     "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
     "preserved_cell_placements": 37015,
     "lut_half_cells": 25704,
-    "unique_physical_lut_sites": 19984,
+    "unique_physical_lut_sites": 19991,
     "basys3_lut_limit": 20800,
     "within_basys3_physical_lut_limit": true,
     "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
@@ -491,10 +493,11 @@
     }
   },
   "current_physical_diagnostic": {
-    "variant": "scratch-observer",
-    "status": "Loaded; 4050-command probe complete; normal full-route restoration is running",
-    "application_capable": false,
-    "next_step": "normal-monitor-fullroute/route.log and complete-driver.log: route from original observer placement with thirteen normal monitor inputs restored, then audit/build/load and compare all 626 output bits for 10703 clocks. Routed-JSON incremental resume was stopped without completing an iteration; no result accepted."
+    "variant": "normal-monitor-fullroute",
+    "status": "Loaded; two full-width replay attempts stopped at identical clock-7506 mismatch",
+    "application_capable": true,
+    "application_passed": false,
+    "next_step": "ram-phase-isolation: finish placement, route with 5 MHz SDC, audit physical LUT fit and LUT truth tables, build/load SRAM, replay all 626 bits at UART 57600 baud"
   },
   "clock_slow_probe": {
     "clock_mhz": 8.333333333333334,
@@ -668,5 +671,339 @@
       "ram-configuration-comparison.json": "20ade09b3534cae31e8422ba517441f8a8808efbb2a9347f9e757e97e0761ea6",
       "pair-route.log": "05680dff1b58cb4b861b93cd096e8d2c79f09d92ef94a9acc5b7d5dccaa3d4a1"
     }
+  },
+  "normal_monitor_fullroute": {
+    "passed": false,
+    "output_bits_compared_per_command": 626,
+    "route_timing": {
+      "core_clock": {
+        "achieved_mhz": 10.57,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "achieved_mhz": 10.45,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "placement_audit": {
+      "placed_netlist_sha256": "5443178e9e2916d1cf34223e4deb55f38f1368ccde7a0bd789658c546a31d72a",
+      "routed_netlist_sha256": "db991ceb3e4c14bb0d281d8c18b520ff4c5ba59dc31a93af3670d9af11c6e990",
+      "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+      "preserved_cell_placements": 37015,
+      "lut_half_cells": 25704,
+      "unique_physical_lut_sites": 19991,
+      "basys3_lut_limit": 20800,
+      "within_basys3_physical_lut_limit": true,
+      "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+    },
+    "load": {
+      "started_at_utc": "2026-10-12T19:54:32.102533+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3/normal-monitor-fullroute/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "00bc146d22f16b0819bc0a1a0e6b6d30eae58bd184980e2c967c9d8923a88194",
+      "build_result_sha256": "ba0daeac754e993985e50bb2de84a5ab14e5513967db86d8a1ecd27f11292612",
+      "program_script_sha256": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-12T19:54:35.513083+00:00",
+      "load_log_sha256": "952d38324132af04f7123cc2f6eb707be313f3fb704da902a4412500a52a3dfd"
+    },
+    "replay": {
+      "port": "/dev/cu.usbserial-2101837357871",
+      "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+      "prepared_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+      "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+      "expected_clocks": 10703,
+      "completed_pass": false,
+      "compared_clocks": 7506,
+      "mismatch_clock": 7506,
+      "actual": "803D800000000000000000000000401EA0000000000000F9E0000003D4001003D4060C",
+      "expected": "462000000000000000000F7000000000000000000000803D800000000000000000000000401EA0000000000000F9E0000003D4001003D40200",
+      "error": "FPGA output mismatch at clock 7506",
+      "elapsed_seconds": 171.358
+    },
+    "confirm_load": {
+      "started_at_utc": "2026-10-12T20:13:28.197429+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3/normal-monitor-fullroute/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "00bc146d22f16b0819bc0a1a0e6b6d30eae58bd184980e2c967c9d8923a88194",
+      "build_result_sha256": "ba0daeac754e993985e50bb2de84a5ab14e5513967db86d8a1ecd27f11292612",
+      "program_script_sha256": "6414dcbb8c948c3c93add8c054133e7bd792d9ad2d4b7d6eda93dfa097f190e2",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-12T20:13:31.480890+00:00",
+      "load_log_sha256": "8977279cc75074a36719eccc5357c8787733d26f49ddef6e9a5591a19e186ba5"
+    },
+    "confirm_replay": {
+      "port": "/dev/cu.usbserial-2101837357871",
+      "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+      "prepared_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+      "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+      "expected_clocks": 10703,
+      "completed_pass": false,
+      "compared_clocks": 7506,
+      "mismatch_clock": 7506,
+      "actual": "803D800000000000000000000000401EA0000000000000F9E0000003D4001003D4060C",
+      "expected": "462000000000000000000F7000000000000000000000803D800000000000000000000000401EA0000000000000F9E0000003D4001003D40200",
+      "error": "FPGA output mismatch at clock 7506",
+      "elapsed_seconds": 210.091
+    },
+    "interpretation": "A fresh route from the observer placement restores all monitor outputs and passes the old clock-3999 failure. Two fresh loads repeat a later clock-7506 graph-memory/fault mismatch. No specific physical timing or routing cause established.",
+    "files_sha256": {
+      "red2_basys3.bit": "00bc146d22f16b0819bc0a1a0e6b6d30eae58bd184980e2c967c9d8923a88194",
+      "build-result.json": "ba0daeac754e993985e50bb2de84a5ab14e5513967db86d8a1ecd27f11292612",
+      "route.log": "fd0a6a470404018d5c94dbb3c55a095440a3a01d380cd574057fb5165ddb7ae7",
+      "lut-init-audit.json": "9da26033c9806625886e8f6552c1d103554239aecfdd9ab59cad4587a01aaac5",
+      "application-board-result.json": "3b845e0055b83d741841b80fe704932246b39336484a4bd549b6fac4229d6f19",
+      "confirm-board-result.json": "a59d8a2baf549e852697516009bb048b9dc41ac752abcce9c5b6e9d1c531d60b",
+      "normal-placed.json": "5443178e9e2916d1cf34223e4deb55f38f1368ccde7a0bd789658c546a31d72a",
+      "restoration.json": "c90bf1848ef3fba42aa32350be0d6707d23ea4abb24b5cbe70f2fa5190565bbe"
+    }
+  },
+  "ram_phase_isolation_experiment": {
+    "status": "Mapped simulation passed; placement running; no routed or physical result yet",
+    "mapped_replay_passed": true,
+    "compared_commands": 10703,
+    "output_bits_per_command": 626,
+    "added_used_flip_flops": 2217,
+    "resources": {
+      "top": "red2_basys3",
+      "lut": 19724,
+      "lut_memory": 326,
+      "lut_total": 20050,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 12492,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 20,
+      "carry4": 793,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 2,
+        "BUFGCE": 1,
+        "CARRY4": 793,
+        "DSP48E1": 20,
+        "FDCE": 2,
+        "FDRE": 12481,
+        "FDSE": 9,
+        "IBUF": 2,
+        "INV": 894,
+        "LUT2": 2714,
+        "LUT3": 3772,
+        "LUT4": 2865,
+        "LUT5": 3908,
+        "LUT6": 6465,
+        "MMCME2_ADV": 1,
+        "OBUF": 9,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "clock_mhz": 5,
+    "uart_baud": 57600,
+    "scope": "Negative-edge free monitor-clock registers on variable synchronous RAM inputs and outputs. RAM clocks remain gated core clock. Both buffer layers require enough free-clock edges between commands to settle. UART monitor schedule provides this; not a continuous-core drop-in.",
+    "cause_established": false,
+    "files_sha256": {
+      "prepare.py": "f14e37bfa16408f6a890794d16c30eb76eca203f516cd255b1328eeda16235d0",
+      "board.json": "07a954fdaa27b818410847e50c6e1ffcfdf29b43572fec49634df6b2d6ba3270",
+      "board-clean.json": "0634f8727624ac8b6df612eb3b2e2fbf32a736123f0e2cd46266af9c40d4ace1",
+      "board-resources.json": "3579e086a3a49a3a67c92c659481237093cedad175be695d60b7182fbbe4a720",
+      "isolation.json": "38d05c55a3d045ed33f4ef9d2375672bbe939d6a7532eaf9a59b71a5da6a351e",
+      "board.xdc": "8eee79b7c435a922ca07baf2680b98a98a075c3d5d0eeefd28aa7fac00112f47",
+      "board.sdc": "a8be540e0db41060edfd003a1710803fd256541de9db4fce84bac9e9ed5b9f2e",
+      "place.sh": "65cd92334de46f796aebe37930d37c2157dda1290799333793bfe1bc1813ce5e",
+      "mapped-board-sim/replay.sv": "0ad48dab1781e25ec472fe315b74949733640a475a198fff0c686cc0a073a254",
+      "mapped-board-sim/replay.log": "2c8e98f6812110a105a80c000915e628ea14a73f44ea1ad01f59c3d54a855275",
+      "mapped-board-sim/extraction.json": "f3e5437ebb07b3e4f841a28e25320d03741c3f3afb65c842b11241c871c39788",
+      "complete.sh": "9e9bb6dbe1a6de226e9c82c1f3d98e97b6827a2f4cb87e84f3ac1b8c3b70c578",
+      "finish.sh": "f015d4a1d2f73394c03cfcfb76f182a23b6d846645df06dc828daff6ea565eb8",
+      "route.sh": "5bdc01105a45662022a7c41b612456e100bc1de368711537072bf94596c32224",
+      "replay-board.py": "7dfc4589763bc096c053e3a73579c83bc998e5d6ad1d629cf7dc97b9b71766fd",
+      "program.py": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
+      "audit-lut-init.py": "3b7f7941421fac52d90eeb63b054b15db4ef26b909284dc5c74f326c53cb2725"
+    },
+    "runner": {
+      "script": "ram-phase-isolation/complete.sh",
+      "log": "ram-phase-isolation/complete-driver.log",
+      "exec_session": 18636,
+      "scope": "Wait for placement, route, gate physical LUTs/5 MHz timing/LUT truth tables, build/load SRAM, replay all 626 bits at 57600 baud; stop on failure; no implicit retries"
+    }
+  },
+  "monitor_placement_reproduction": {
+    "script": "scripts/boards/red2_basys3/relocate_monitor.py",
+    "script_sha256": "24d144a8e7947bdc83dc38bbacf286aa58330514185aed6b617285a3c7dbd6b2",
+    "input": "route-bounded/board-placed.json",
+    "report": {
+      "input_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
+      "output_sha256": "a97abd8a0cd90eadacab11931487c1cf03ce86d5c01d7f1df22aa64bf454f575",
+      "scope": "Move monitor LUT/FF pairs only; preserve all logic and core placements",
+      "moves": [
+        {
+          "status_bit": 364,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204185",
+          "flip_flop": "$auto$ff.cc:337:slice$197225",
+          "old_lut_bel": "X42Y22/SLICE_X0Y0.B5LUT",
+          "new_lut_bel": "X39Y1/SLICE_X1Y0.B5LUT",
+          "old_ff_bel": "X42Y22/SLICE_X0Y0.B5FF",
+          "new_ff_bel": "X39Y1/SLICE_X1Y0.B5FF",
+          "distance_tiles": 24
+        },
+        {
+          "status_bit": 365,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204184",
+          "flip_flop": "$auto$ff.cc:337:slice$197226",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.A5LUT",
+          "new_lut_bel": "X62Y18/SLICE_X0Y0.C5LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.A5FF",
+          "new_ff_bel": "X62Y18/SLICE_X0Y0.C5FF",
+          "distance_tiles": 11
+        },
+        {
+          "status_bit": 366,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204183",
+          "flip_flop": "$auto$ff.cc:337:slice$197227",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.A6LUT",
+          "new_lut_bel": "X62Y16/SLICE_X1Y0.B6LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.AFF",
+          "new_ff_bel": "X62Y16/SLICE_X1Y0.BFF",
+          "distance_tiles": 13
+        },
+        {
+          "status_bit": 367,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204182",
+          "flip_flop": "$auto$ff.cc:337:slice$197228",
+          "old_lut_bel": "X46Y21/SLICE_X0Y0.A5LUT",
+          "new_lut_bel": "X62Y16/SLICE_X1Y0.C5LUT",
+          "old_ff_bel": "X46Y21/SLICE_X0Y0.A5FF",
+          "new_ff_bel": "X62Y16/SLICE_X1Y0.C5FF",
+          "distance_tiles": 21
+        },
+        {
+          "status_bit": 368,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204181",
+          "flip_flop": "$auto$ff.cc:337:slice$197229",
+          "old_lut_bel": "X46Y21/SLICE_X0Y0.A6LUT",
+          "new_lut_bel": "X51Y3/SLICE_X1Y0.B6LUT",
+          "old_ff_bel": "X46Y21/SLICE_X0Y0.AFF",
+          "new_ff_bel": "X51Y3/SLICE_X1Y0.BFF",
+          "distance_tiles": 23
+        },
+        {
+          "status_bit": 369,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204180",
+          "flip_flop": "$auto$ff.cc:337:slice$197230",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.B5LUT",
+          "new_lut_bel": "X51Y3/SLICE_X1Y0.D5LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.B5FF",
+          "new_ff_bel": "X51Y3/SLICE_X1Y0.D5FF",
+          "distance_tiles": 15
+        },
+        {
+          "status_bit": 370,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204179",
+          "flip_flop": "$auto$ff.cc:337:slice$197231",
+          "old_lut_bel": "X46Y21/SLICE_X0Y0.B5LUT",
+          "new_lut_bel": "X67Y18/SLICE_X1Y0.A5LUT",
+          "old_ff_bel": "X46Y21/SLICE_X0Y0.B5FF",
+          "new_ff_bel": "X67Y18/SLICE_X1Y0.A5FF",
+          "distance_tiles": 24
+        },
+        {
+          "status_bit": 371,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204178",
+          "flip_flop": "$auto$ff.cc:337:slice$197232",
+          "old_lut_bel": "X56Y17/SLICE_X0Y0.A5LUT",
+          "new_lut_bel": "X56Y5/SLICE_X0Y0.D5LUT",
+          "old_ff_bel": "X56Y17/SLICE_X0Y0.A5FF",
+          "new_ff_bel": "X56Y5/SLICE_X0Y0.D5FF",
+          "distance_tiles": 12
+        },
+        {
+          "status_bit": 372,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204177",
+          "flip_flop": "$auto$ff.cc:337:slice$197233",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.B6LUT",
+          "new_lut_bel": "X67Y18/SLICE_X1Y0.D6LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.BFF",
+          "new_ff_bel": "X67Y18/SLICE_X1Y0.DFF",
+          "distance_tiles": 16
+        },
+        {
+          "status_bit": 373,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204176",
+          "flip_flop": "$auto$ff.cc:337:slice$197234",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.C5LUT",
+          "new_lut_bel": "X51Y1/SLICE_X1Y0.B5LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.C5FF",
+          "new_ff_bel": "X51Y1/SLICE_X1Y0.B5FF",
+          "distance_tiles": 17
+        },
+        {
+          "status_bit": 374,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204175",
+          "flip_flop": "$auto$ff.cc:337:slice$197235",
+          "old_lut_bel": "X56Y17/SLICE_X0Y0.A6LUT",
+          "new_lut_bel": "X65Y14/SLICE_X0Y0.D6LUT",
+          "old_ff_bel": "X56Y17/SLICE_X0Y0.AFF",
+          "new_ff_bel": "X65Y14/SLICE_X0Y0.DFF",
+          "distance_tiles": 12
+        },
+        {
+          "status_bit": 375,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204174",
+          "flip_flop": "$auto$ff.cc:337:slice$197236",
+          "old_lut_bel": "X56Y17/SLICE_X0Y0.B5LUT",
+          "new_lut_bel": "X62Y8/SLICE_X1Y0.B5LUT",
+          "old_ff_bel": "X56Y17/SLICE_X0Y0.B5FF",
+          "new_ff_bel": "X62Y8/SLICE_X1Y0.B5FF",
+          "distance_tiles": 15
+        },
+        {
+          "status_bit": 376,
+          "lut": "$abc$203829$auto$blifparse.cc:557:parse_blif$204173",
+          "flip_flop": "$auto$ff.cc:337:slice$197237",
+          "old_lut_bel": "X51Y18/SLICE_X1Y0.C6LUT",
+          "new_lut_bel": "X51Y1/SLICE_X1Y0.C6LUT",
+          "old_ff_bel": "X51Y18/SLICE_X1Y0.CFF",
+          "new_ff_bel": "X51Y1/SLICE_X1Y0.CFF",
+          "distance_tiles": 17
+        }
+      ]
+    },
+    "all_cell_dictionaries_equal_to_normal_route_input": true,
+    "cell_count": 37015,
+    "ruff_passed": true,
+    "scope": "Diagnostic reproduction only; not enabled in default build; latest resulting hardware still fails clock 7506"
   }
 }

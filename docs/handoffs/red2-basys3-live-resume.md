@@ -66,8 +66,8 @@ eight bits and larger addresses alias. Preserve the raw reports, interpreting
 only their first 256 rows. This validates initialization encoding in another
 RAM location, not the live scratch write/read path.
 
-**Current board SRAM contains `scratch-observer/red2_basys3.bit`, a diagnostic
-image**, SHA256 `2fe79a9e9fbf374de7aa8fe7ad6ceb400b8a629855f4f61b782cbc1b81e2878c`.
+The earlier `scratch-observer/red2_basys3.bit` diagnostic image has SHA256
+`2fe79a9e9fbf374de7aa8fe7ad6ceb400b8a629855f4f61b782cbc1b81e2878c`.
 It replaces thirteen graph readback bits (status 364..376) with scratch DI3,
 DO3, ten address bits, and write-enable. Thirteen monitor LUT/FF pairs moved
 into compatible control sets; no core cell placement or logic changed.
@@ -85,15 +85,50 @@ monitor 10.45 MHz). The model reports no hold violations. All 25,378 logic LUT
 truth tables match the emitted FASM. All 5,835 RAMB18 configuration/INIT feature
 lines exactly match the old corrected image; no additional RAM settings changed.
 
-**Active work:** `normal-monitor-fullroute/route.log` routes afresh from the
-observer's saved placement, with all thirteen normal monitor inputs restored.
-Core and monitor placements stay as in the passing observer. Its host runner
-`normal-monitor-fullroute/complete.sh` waits, audits, builds, loads SRAM, and
-replays the original 10,703 clocks comparing all 626 output bits. Inspect
-`complete-driver.log`, then `application-board-replay.log` and result JSON.
-Do not start another serial client while this runner is active. Tool sessions:
-route 59978, completion 69801. The board is still the observer until a new
-load-result.json proves otherwise.
+**Current board SRAM contains `normal-monitor-fullroute/red2_basys3.bit`**,
+SHA256 `00bc146d22f16b0819bc0a1a0e6b6d30eae58bd184980e2c967c9d8923a88194`.
+This restores all thirteen normal graph readback bits and routes afresh from
+the observer's saved placement. Core and monitor placements stay as in the
+passing observer. It uses 19,991 physical LUT sites, passes 10 MHz timing (core
+10.57 MHz, monitor 10.45 MHz), and passes all 25,378 logic LUT truth-table checks.
+
+Physical replay compares all 626 bits successfully for 7,506 commands, then
+fails at clock 7,506: graph readback is zero instead of
+`0x462000000000000000000f7`, with status 4 instead of 0, fault 1 instead of 0,
+and microstate 3 instead of 1. A fresh SRAM reload and replay repeats the exact
+failure. Preserve `application-board-result.json` and `confirm-board-result.json`.
+Both runners have stopped. This is progress past clock 3,999, not a full
+application pass or proof of a specific routing defect.
+
+`scripts/boards/red2_basys3/relocate_monitor.py` reproduces the thirteen monitor
+LUT/FF moves from `route-bounded/board-placed.json` without changing any logic.
+Its guarded output has exactly the same 37,015 cell dictionaries as
+`normal-monitor-fullroute/normal-placed.json`; Ruff passes. The default build
+does not use this experimental placement recipe.
+
+**Active experiment:** `ram-phase-isolation/` inserts negative-edge registers
+on variable synchronous BRAM inputs and outputs, clocked by the free-running
+monitor clock. RAMs retain the gated core clock. This tests RAM boundary timing;
+unmodeled hold timing is a hypothesis, not an established cause. It requires
+enough monitor edges between commands for both register layers to settle, as
+the UART monitor provides. It is not a drop-in change for a continuously
+clocked core. It also changes placement and MMCM settings, so a hardware pass
+would not by itself identify the precise cause.
+
+The experiment **passes all 10,703 commands and all 626 output bits** in mapped
+simulation with Xilinx RAM models. Dead-code cleanup leaves 2,217 extra FFs:
+12,492 FFs total, the same 20,050 mapped LUTs, 20 DSPs and 34.5 BRAM36 equivalents.
+The MMCM uses multiplier 6 and output divider 120: 5 MHz and UART 57600 baud.
+Placement is running in container `red2-phase-place-valid`; inspect
+`ram-phase-isolation/place.log` and `place-driver.log`. The `complete.sh` runner
+(tool session 18636) waits for placement, then routes, gates physical LUT fit,
+5 MHz routed timing and LUT truth tables, builds, loads SRAM and replays all
+626 bits. Inspect `complete-driver.log`, `route.log`, then
+`application-board-replay.log` and its result JSON. It stops on failure and
+does not retry UART commands. Do not start another serial client while this
+runner is active. No new hardware image has been built or loaded from this
+experiment yet. Its `replay-board.py` sets the standard termios 57600 baud rate
+before the first exchange; the maintained host default remains 115200.
 
 Routed-JSON resume experiments (`route-restored-hold/` and
 `restored-monitor-route/`) were stopped before completing an iteration. They

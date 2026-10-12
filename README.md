@@ -46,11 +46,11 @@ dedicated shared-controller candidate now maps to **19,172 LUTs**, below Basys
 3's 20,800-LUT limit, and passes 232,090 clocks of RTL program replay. The
 [Basys 3 bring-up target](scripts/boards/red2_basys3/README.md) adds a UART monitor
 and a 10 MHz clock. The complete board maps to **20,050 LUTs** and routes into
-**19,984 physical LUT sites**, leaving 816 spare. Both clock domains meet the
+**19,991 physical LUT sites** in the latest routed image, leaving 809 spare. Both clock domains meet the
 10 MHz requirement, and SRAM loading/UART communication work. A corrected
 wide-RAM configuration passes a 131-word physical memory test; full application
-replay currently matches 3,999 clocks before a microstate mismatch under
-investigation. The [resource overview](docs/handoffs/red2-basys3-resource-overview.md)
+replay now matches 7,506 clocks before a repeatable graph-memory/fault mismatch
+under investigation. The [resource overview](docs/handoffs/red2-basys3-resource-overview.md)
 details storage ownership and further sharing opportunities. The candidate is
 separate from the maintained top. Set
 `RED2_SYN_FLOAT=1` to include the existing floating-point
