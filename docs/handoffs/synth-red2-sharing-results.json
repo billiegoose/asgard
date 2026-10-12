@@ -374,7 +374,7 @@
     "input_fields": 521,
     "output_state_fields": 313,
     "scope": "RAM-free transition tail only; request generation excluded",
-    "status": "Scheduled; hardware re-elaboration pending at report time",
+    "status": "Stopped during scheduled hardware re-elaboration; no generated scheduled HDL or mapped area. The 59845-bit scheduled state and excluded request frontend make this a compiler diagnostic, not the selected storage backend.",
     "mapped_area": null,
     "integrated_replacement": false
   },
@@ -384,6 +384,30 @@
     "second_family": "Lookup on the same datapath/storage backend",
     "later_stress_test": "Publication prepare, external JOIN scalar preflight, then explicitly authorized patch/materialization commit",
     "acceptance": "Compare complete standalone implementations behind identical addressed state and memory interfaces, then measure integrated core including bridges and removing legacy logic; no fit claim from isolated area",
-    "full_core_engineering_budget_lut": 18000
+    "full_core_engineering_budget_lut": 18000,
+    "status": "Standalone APP/LAMBDA and incremental lookup pilots validated and mapped; production integration remains",
+    "results": "docs/handoffs/synth-red2-cfg-pilot-results.json"
+  },
+  "abc9_diagnostic": {
+    "artifact_root": "/tmp/asgard-area-next/abc9-map",
+    "status": "Stopped after 31 minutes wall time, including about 24.5 minutes of ABC CPU time; no mapped result",
+    "decision": "No area claim; prioritize the measured control-flow/storage backend",
+    "provenance": {
+      "baseline_commit": "93cce5e",
+      "baseline_lut_total": 41170,
+      "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+      "input_coarse_sha256": "d0e9fc0514e683e4021921b9767fe4d368b5d8e33bef3e35cc4f7e1939e28cef",
+      "area_script_sha256": "4f8311c517adae5ad6b56d595852ca171d998b5db2e8d6c856f8a391b4739e7d",
+      "change": "Same verified integer-profile HDL and flattened coarse netlist; complete Yosys Xilinx ABC9 flow with -widemux 5, replacing the classic fixed area mapping recipe.",
+      "memory_limit_mib": 7000,
+      "cpus": 5
+    },
+    "artifact_sha256": {
+      "provenance.json": "523e2181c9aedaa213828288bf8252d52d8c7e0f58c1c6fca46b45bf81ba5df2",
+      "abc9.ys": "4f8311c517adae5ad6b56d595852ca171d998b5db2e8d6c856f8a391b4739e7d",
+      "abc9-area.log": "3252ed43993a9e9baa2df5f1773d1d12bc4b5cb27492082a0f3d663145e22f59",
+      "stopped-processes.txt": "5f2e334c71b3669a3715c6215dfa841ece3d16d9d5bd1e92a680c73433dfb350"
+    },
+    "mapped_area": null
   }
 }

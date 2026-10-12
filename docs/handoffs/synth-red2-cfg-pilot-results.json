@@ -1,0 +1,331 @@
+{
+  "measured_at_utc": "2026-10-12T03:14:41.065255+00:00",
+  "status": "Validated and mapped standalone hardware pilot; not integrated into production",
+  "baseline_commit": "93cce5e",
+  "original_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "maintained_full_core_lut_total": 41170,
+  "basys3_lut_capacity": 20800,
+  "full_core_engineering_target_lut": 18000,
+  "production_changed": false,
+  "compiler_manifest": {
+    "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+    "patches": [
+      {
+        "file": "pypeline-boolop-instance-names.patch",
+        "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+      },
+      {
+        "file": "pypeline-red2-enhancements.patch",
+        "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+      }
+    ],
+    "files": {
+      "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+      "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+      "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+      "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+      "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+      "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+      "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+      "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+      "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+    }
+  },
+  "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+  "backend_versions": [
+    "Yosys 0.67+post (git sha1 v0.67, Release, GNU /nix/store/vdaz6sk455r8sbpi7wzaf9vlz5i9yyvx-gcc-wrapper-15.2.0/bin/g++ 15.2.0)",
+    "GHDL 6.0.0 (tarball) [Dunoon edition]",
+    " Compiled with GNAT Version: 15.2.0",
+    " static elaboration, mcode JIT code generator",
+    "Written by Tristan Gingold.",
+    "",
+    "Copyright (C) 2003 - 2026 Tristan Gingold.",
+    "GHDL is free software, covered by the GNU General Public License.  There is NO",
+    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+  ],
+  "backend_container": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+  "mapping_recipe": "Flattened GHDL/Yosys Xilinx xc7, no IO pads; classic ABC LUT6 strash; dc2; if -a; same recipe as maintained full core",
+  "implementation": "Original typed AST control flow before SSA lowered into immutable synchronous control ROM, synchronous 64-bit scratch BRAM, shared add/sub and Boolean/shift lanes, registered graph/control request/response interface",
+  "source_scripts_sha256": {
+    "scripts/experiments/red2_cfg_pilot/baseline.py": "67d465f45834e2392a3d2c1168840732101fd52b253a011ad7bfb9b4585367bd",
+    "scripts/experiments/red2_cfg_pilot/build.py": "014a9c7d0d73fa563841dcc2895ab70515c0978430bf344f0625515516ca7089",
+    "scripts/experiments/red2_cfg_pilot/check.py": "a56ad2236a0dffccfdd533d9390be843436c8a6d1e302a8d84de3b7e3b522917",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "a2e1003e417ca749ac883c5b5aaeb619c5a35b95d4e565b663ee936716af370b",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "10b8041de26d93c160de177fff251f9437cbfbce5125785adca23db56df1814e",
+    "scripts/experiments/red2_cfg_pilot/frontend.py": "2614f32ea2c96f907eae073a1f44e9b6a812312ec5d2caa58b4e392c063b381a",
+    "scripts/experiments/red2_cfg_pilot/oracle.py": "76556364d9307d909be0cf450a140192109969138b5f56fc5af96bc6ca52bab0",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "dd7c482701915b88ee3e7c43ec9719761ac831a19a8f6f1f2a6984912c01cde9",
+    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "247d5df609decda1aa99de7eb31706645c5ac4b48e9174e0400fef26704242a1"
+  },
+  "configurations": [
+    {
+      "name": "APP/LAMBDA",
+      "graph_words": 256,
+      "logical_entries": 21,
+      "control_rows": 2311,
+      "control_depth": 4096,
+      "scratch_used_words": 964,
+      "scratch_depth": 1024,
+      "scratch_writable_words": 921,
+      "constant_words": 43,
+      "family_state_fields": 30,
+      "handoffs": [
+        "MICRO_COMMIT",
+        "MICRO_EP_REVERSE_PUBLISH",
+        "MICRO_FAULT"
+      ],
+      "static_all_paths_operands_initialized": true,
+      "typed_reference_cases_passed": 2520,
+      "physical_native_cases_passed_per_variant": 67,
+      "lut_saving": 2496,
+      "lut_saving_percent": 62.76,
+      "variants": {
+        "shared_controller": {
+          "resources": {
+            "top": "top",
+            "lut": 1481,
+            "lut_memory": 0,
+            "lut_total": 1481,
+            "unknown_memory_primitives": [],
+            "unaccounted_primitives": [],
+            "flipflops": 749,
+            "bram18": 15,
+            "bram36": 2,
+            "bram36_equivalent": 9.5,
+            "dsp48": 0,
+            "carry4": 22,
+            "muxf7": 0,
+            "muxf8": 0,
+            "primitives": {
+              "BUFG": 1,
+              "CARRY4": 22,
+              "FDRE": 749,
+              "INV": 12,
+              "LUT2": 55,
+              "LUT3": 627,
+              "LUT4": 114,
+              "LUT5": 259,
+              "LUT6": 426,
+              "RAMB18E1": 15,
+              "RAMB36E1": 2
+            },
+            "basys3_over_budget": {},
+            "within_basys3_resource_limits": true
+          },
+          "generated_source_sha256": "f6b00cf723c51b7c64bb18dc43f4387bcc659895b1b33b1afd7449c04daa0db1",
+          "hdl_files_verified_unchanged": 75,
+          "physical_native_validation_log": "/tmp/asgard-area-next/cfg-pilot/check-hardware-protocol.log",
+          "physical_native_validation_log_sha256": "6052230d54baf7588f75a17e68517e0e217b07341db3a1649081855cd3c6d6a3",
+          "artifact_root": "/tmp/asgard-area-next/cfg-pilot",
+          "artifact_sha256": {
+            "machine.py": "f6b00cf723c51b7c64bb18dc43f4387bcc659895b1b33b1afd7449c04daa0db1",
+            "provenance.json": "124c7f6cc079066ca764ebf2c25dad9c0ce7ec61ff241cddda833bee9ced2759",
+            "baseline-area.json": "d314fb4f32e9e78f500bd74661e7e075644ae1bf4f6930e5d0a48e1e8e5bbe66",
+            "baseline-area.log": "496a921bf1146cef19a7744f540c2ddc3f209ff4476a8afe8245096197624af0",
+            "resources.json": "c81a5dfacfb3eed9cfdda803bebb91cc3cc923719f9ba49cef7c013e539484cc",
+            "backend-versions.txt": "6e9613ae98053bd2b5e9aecdf9f8aaec7be3836d42e942b4a64c9a5f4e8c29aa"
+          }
+        },
+        "original_family": {
+          "resources": {
+            "top": "top",
+            "lut": 3977,
+            "lut_memory": 0,
+            "lut_total": 3977,
+            "unknown_memory_primitives": [],
+            "unaccounted_primitives": [],
+            "flipflops": 985,
+            "bram18": 0,
+            "bram36": 0,
+            "bram36_equivalent": 0.0,
+            "dsp48": 0,
+            "carry4": 280,
+            "muxf7": 0,
+            "muxf8": 0,
+            "primitives": {
+              "BUFG": 1,
+              "CARRY4": 280,
+              "FDRE": 985,
+              "INV": 428,
+              "LUT2": 471,
+              "LUT3": 582,
+              "LUT4": 856,
+              "LUT5": 1030,
+              "LUT6": 1038
+            },
+            "basys3_over_budget": {},
+            "within_basys3_resource_limits": true
+          },
+          "generated_source_sha256": "fe7f1751d586c52b9618a2455ac9fa082a285095e85b998e044e2d71ab736ca4",
+          "hdl_files_verified_unchanged": 69,
+          "physical_native_validation_log": "/tmp/asgard-area-next/cfg-pilot/check-baseline-protocol.log",
+          "physical_native_validation_log_sha256": "936845f1dde1dbea1f5816c119f2b7834445d3ae1478dc851d8518e442555ec5",
+          "artifact_root": "/tmp/asgard-area-next/cfg-pilot/baseline",
+          "artifact_sha256": {
+            "machine.py": "fe7f1751d586c52b9618a2455ac9fa082a285095e85b998e044e2d71ab736ca4",
+            "provenance.json": "720ce7e0e92b24bbf96665f2cf6d3fa8cb9d920d2e74b26d126bf6b4bf98bbd4",
+            "baseline-area.json": "344c66908f5431905be253b10f7ee878d74c1c28d100d02dbb94e4cd69617361",
+            "baseline-area.log": "a1337fa50534826fc25a34f5229736eb179bc38bb156edf3405b607e6fb3e28a",
+            "resources.json": "8a3d70371028c24079ad2ae3a0c33689fea69531e7a722a53f72c8837fbbba84",
+            "backend-versions.txt": "6e9613ae98053bd2b5e9aecdf9f8aaec7be3836d42e942b4a64c9a5f4e8c29aa"
+          }
+        }
+      },
+      "artifact_sha256": {
+        "control.json": "703ee13d4c5feb5d9f019df027cab8e0f7e44719211ec604e0e0b8e2112a581b",
+        "control-unmapped.json": "236d9a94a8528f7d75084c7bea09cae7067c44432bc4452177c3b1abd8079cf0",
+        "reference.py": "806df7386f158d8814674358cb2bbd9a3569e0107cf6e041819aae46b7ba5537",
+        "reference-regs.json": "e1f30f22467665f50b29f3f57aae328848de95cedb128b05ab61294a8747f85a",
+        "native-cases.json": "01dd1ba397af3b5dd2a0b23463442caf20e94be4a1a9e925c2df59d9bba2d764",
+        "check.log": "4983d68d50cd298c0c03dfeb96281b9d5f26300b681d3a06535368c871f7d90f",
+        "check-hardware-protocol.log": "6052230d54baf7588f75a17e68517e0e217b07341db3a1649081855cd3c6d6a3",
+        "check-baseline-protocol.log": "936845f1dde1dbea1f5816c119f2b7834445d3ae1478dc851d8518e442555ec5"
+      }
+    },
+    {
+      "name": "APP/LAMBDA plus lookup",
+      "graph_words": 256,
+      "logical_entries": 25,
+      "control_rows": 3240,
+      "control_depth": 4096,
+      "scratch_used_words": 1438,
+      "scratch_depth": 2048,
+      "scratch_writable_words": 1388,
+      "constant_words": 50,
+      "family_state_fields": 40,
+      "handoffs": [
+        "MICRO_COMMIT",
+        "MICRO_EP_REVERSE_PUBLISH",
+        "MICRO_FAULT",
+        "MICRO_RECP_VALIDATE_REC"
+      ],
+      "static_all_paths_operands_initialized": true,
+      "typed_reference_cases_passed": 3000,
+      "physical_native_cases_passed_per_variant": 89,
+      "lut_saving": 4877,
+      "lut_saving_percent": 77.98,
+      "variants": {
+        "shared_controller": {
+          "resources": {
+            "top": "top",
+            "lut": 1377,
+            "lut_memory": 0,
+            "lut_total": 1377,
+            "unknown_memory_primitives": [],
+            "unaccounted_primitives": [],
+            "flipflops": 751,
+            "bram18": 0,
+            "bram36": 12,
+            "bram36_equivalent": 12.0,
+            "dsp48": 0,
+            "carry4": 22,
+            "muxf7": 0,
+            "muxf8": 0,
+            "primitives": {
+              "BUFG": 1,
+              "CARRY4": 22,
+              "FDRE": 751,
+              "INV": 12,
+              "LUT2": 30,
+              "LUT3": 588,
+              "LUT4": 100,
+              "LUT5": 211,
+              "LUT6": 448,
+              "RAMB36E1": 12
+            },
+            "basys3_over_budget": {},
+            "within_basys3_resource_limits": true
+          },
+          "generated_source_sha256": "071ccec2cf90b16e944a1669a946a97a4fcecd46cf13d1fe0b6b58b1965bc0c4",
+          "hdl_files_verified_unchanged": 75,
+          "physical_native_validation_log": "/tmp/asgard-area-next/cfg-lookup/check-hardware-protocol.log",
+          "physical_native_validation_log_sha256": "e80fc4d9166819b5973541479228ca90e5885eb394bf6e68b04ce67e1ac992a2",
+          "artifact_root": "/tmp/asgard-area-next/cfg-lookup",
+          "artifact_sha256": {
+            "machine.py": "071ccec2cf90b16e944a1669a946a97a4fcecd46cf13d1fe0b6b58b1965bc0c4",
+            "provenance.json": "19af5ce4359cca9ce0a91b9d4458cdcafb62677ccbdbb65848f4f94805839d73",
+            "baseline-area.json": "079d25c63194dfca0663772e0793083d043ebb92c670aee690bd2e077016dd6d",
+            "baseline-area.log": "ee07d2732506f45d20f90356b5c4c2c613120a4f615acdcd0b4eab79776b219f",
+            "resources.json": "b9f83d68b19fb4a4569859daf893821398c0bd7ec93bbc275b74d3031d9dd2fd",
+            "backend-versions.txt": "6e9613ae98053bd2b5e9aecdf9f8aaec7be3836d42e942b4a64c9a5f4e8c29aa"
+          }
+        },
+        "original_family": {
+          "resources": {
+            "top": "top",
+            "lut": 6254,
+            "lut_memory": 0,
+            "lut_total": 6254,
+            "unknown_memory_primitives": [],
+            "unaccounted_primitives": [],
+            "flipflops": 1437,
+            "bram18": 0,
+            "bram36": 0,
+            "bram36_equivalent": 0.0,
+            "dsp48": 0,
+            "carry4": 379,
+            "muxf7": 0,
+            "muxf8": 0,
+            "primitives": {
+              "BUFG": 1,
+              "CARRY4": 379,
+              "FDRE": 1437,
+              "INV": 521,
+              "LUT2": 766,
+              "LUT3": 878,
+              "LUT4": 1314,
+              "LUT5": 1508,
+              "LUT6": 1788
+            },
+            "basys3_over_budget": {},
+            "within_basys3_resource_limits": true
+          },
+          "generated_source_sha256": "46fa28f63eae9350a9d6e470f106bb774c91999472561f684172130ec6d308fa",
+          "hdl_files_verified_unchanged": 79,
+          "physical_native_validation_log": "/tmp/asgard-area-next/cfg-lookup/check-baseline-protocol.log",
+          "physical_native_validation_log_sha256": "39daebae1cd91be16e7e2b62f9b759db36a180066e5cec8987173e7ab3fbe8ab",
+          "artifact_root": "/tmp/asgard-area-next/cfg-lookup/baseline",
+          "artifact_sha256": {
+            "machine.py": "46fa28f63eae9350a9d6e470f106bb774c91999472561f684172130ec6d308fa",
+            "provenance.json": "defe9f611ba0cb9e6c0f7203c2ab24ac00ef86b0df0e2c3ec13b31441e9497aa",
+            "baseline-area.json": "721bbb7e9a64eb381ae385040c34b9c903835536b94325ef7389506fb6009c27",
+            "baseline-area.log": "096bfaabbb86e9e81ae13dee299f4490ebfbda087c4768ad984e16fb3c8e6abc",
+            "resources.json": "fd9a6ee0b1dc96c3c9dcc82a5915db528b4b8fd4f7ad1f00aa9a073a00b0bbd7",
+            "backend-versions.txt": "6e9613ae98053bd2b5e9aecdf9f8aaec7be3836d42e942b4a64c9a5f4e8c29aa"
+          }
+        }
+      },
+      "artifact_sha256": {
+        "control.json": "1f192575d52f20cdad9913e133a43ee162fd4af69fe8758ff812cb121e582840",
+        "control-unmapped.json": "b8dcde1a42d532d99f873dce94a19a8e9619845becea58268ba2ee64b9733cae",
+        "reference.py": "147e4b6be2b0d9876ecc2577da29e06e007968b27f9c3ccf7dcd638e584f63a0",
+        "reference-regs.json": "24a4e12cdf4de6e28db8ec285e487136652fa30a216e347c1e624ea2e42a88af",
+        "native-cases.json": "bd44573db69e631a232cfc05731eaf7b2b0c7b4f0aa470ee07924a1921581032",
+        "check.log": "ab44ae8a17d58e6bfd0b0c0eff78ca9bff94336616db380cd8edc67f8fb16758",
+        "check-hardware-protocol.log": "e80fc4d9166819b5973541479228ca90e5885eb394bf6e68b04ce67e1ac992a2",
+        "check-baseline-protocol.log": "39daebae1cd91be16e7e2b62f9b759db36a180066e5cec8987173e7ab3fbe8ab"
+      }
+    }
+  ],
+  "validation_scope": [
+    "Independent typed native reference extracted from original source, compared against table model on deterministic random and boundary cases",
+    "Greedy path witnesses run against original-family and emitted physical-controller native simulation; all state fields and request bits compared",
+    "Delayed responses, changed inputs after start, ignored busy starts/setup writes, stale scratch across transitions, reset cancellation and constant-pool protection checked",
+    "Latest regenerated HDL byte-identical to mapped inputs; generated source hashes match mapping provenance; all four maps report zero structural problems"
+  ],
+  "limitations": [
+    "No integrated full-core resource saving or board fit claimed; standalone family savings cannot be subtracted directly from whole-core totals",
+    "Outer command and fault arbitration, architectural RESET/LOAD_STATE and synchronous-read admission remain outside the pilot",
+    "Shared fields need explicit ownership or state bridges to legacy handlers; those integration costs are not measured",
+    "Only admitted APP/LAMBDA and optionally VAR/APP_VAR EXECUTE paths covered; unsupported states and unused setup locations outside interface contract",
+    "Controller reset cancels internal work but does not roll back previously accepted graph/control writes",
+    "Complete-program integrated parity, RTL-level simulation, routing and timing not yet verified"
+  ],
+  "next_steps": [
+    "Integrate APP/LAMBDA plus lookup, remove their old request/transition logic, preserve remaining-state ownership and measure full core including bridge overhead",
+    "Extend same physical datapath to additional graph rule families, with publication prepare/preflight/authorized commit kept distinct",
+    "Compact scratch lifetimes and control tables as needed to stay within the 50 BRAM36 equivalent board capacity",
+    "Separate optional arithmetic and UART/CLOCK behind request/completion interfaces; measure their contribution before dropping supported operations",
+    "Require whole-program parity and full mapped primitive counts, then board implementation with LUT headroom"
+  ]
+}

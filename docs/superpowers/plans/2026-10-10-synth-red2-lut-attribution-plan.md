@@ -610,7 +610,52 @@ rather than a prediction.
 A whole-tail AUTO_FSM diagnostic schedules 17,019 operations onto 154 units in
 3,088 states, with 59,845 scheduled register bits. It excludes RAM requests and
 has a 521-field input / 313-field state output; it is not an integrated compact
-RED2 engine. Its scheduled HDL re-elaboration is still pending. A separate
-ABC9 mapping of the current complete core is also pending. Neither has an area
-result in this record. Detailed hashes and measurements are in
+RED2 engine. Its scheduled HDL re-elaboration was stopped without generated
+scheduled HDL. A separate ABC9 mapping was stopped after 31 minutes of wall
+time, including about 24.5 minutes of ABC CPU time. Neither produced an area
+result. Detailed hashes and measurements are in
 `docs/handoffs/synth-red2-sharing-results.json`.
+
+## Validated control-flow/storage pilot
+
+The reproducible generator and checks now live in
+`scripts/experiments/red2_cfg_pilot/`. All variants use the pinned enhanced
+PipelineC compiler and the maintained core's classic flattened LUT6 mapping
+recipe. The original-family comparison has the same addressed state and
+registered graph/control handshake interface as the shared controller.
+
+| Isolated scope | Original LUTs | Shared LUTs | Shared BRAM36 equivalents |
+| --- | ---: | ---: | ---: |
+| APP/LAMBDA | 3,977 | 1,481 | 9.5 |
+| APP/LAMBDA and lookup | 6,254 | 1,377 | 12.0 |
+
+Lookup increases the immutable control rows from 2,311 to 3,240 and scratch
+depth from 1,024 to 2,048 64-bit words. It reuses the physical datapath. The
+small LUT decrease between candidates is mapping variation, not a prediction
+that additional rules always reduce area. Static all-path analysis proves
+operand initialization within each admitted transition; generation rejects
+unsupported AST constructs and types.
+
+The independent typed reference passes 2,520 and 3,000 cases respectively.
+Greedy path witnesses pass 67 and 89 cases against both original-family and
+physical-controller native simulation, checking all family state fields and
+request bits. Protocol checks cover delayed responses, input changes after
+admission, busy-start/setup rejection, retained scratch across transitions,
+reset cancellation and protected constants. The latest emitted HDL is byte
+identical to all four mapped inputs; maps report zero structural problems and
+no unaccounted primitives. These checks do not establish integrated program
+parity or RTL-level simulation.
+
+The next step is to integrate APP/LAMBDA and lookup, remove the old handlers
+and request generation, and measure the complete core with shared-field bridges
+and command/reset arbitration included. State ownership and handoffs are
+recorded in each generated manifest. Then extend the same datapath to other
+graph rule families, retaining publication's prepare/preflight/authorized-commit
+boundaries. Compact scratch lifetimes and control tables as needed: moving
+logic into BRAM must stay within the board's 50 BRAM36-equivalent capacity.
+
+The maintained production core remains 41,170 LUTs; isolated savings are not
+subtracted from that figure. Full-core acceptance remains 18,000 LUTs before
+board integration, full native program parity and complete primitive accounting,
+followed by routing and timing checks. Detailed source, HDL, mapping and
+validation hashes are in `docs/handoffs/synth-red2-cfg-pilot-results.json`.
