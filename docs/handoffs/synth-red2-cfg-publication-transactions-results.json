@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T08:48:53.499114+00:00",
+  "recorded_at_utc": "2026-10-12T09:21:23.812135+00:00",
   "scope": "Dedicated RED2: source-derived publication EXEC/STACK, five typed synchronous metadata packets, unchanged external JOIN commit preflight",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
@@ -1726,15 +1726,16 @@
           "log_sha256": "1034717c3514e4804a8aec9adda1b45465d8dc23b7f47c87b045522d6283121b"
         },
         "full boundary": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 184 120 595",
-            "INTEGRATED_BOUNDARY_PASS 185 121 447",
-            "INTEGRATED_BOUNDARY_PASS 186 121 393",
-            "INTEGRATED_BOUNDARY_PASS 187 121 417",
-            "INTEGRATED_BOUNDARY_PASS 188 121 405",
-            "INTEGRATED_BOUNDARY_PASS 189 122 396"
-          ]
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "4a28cb11ba66ea595290549bc10eb28253a436f4c9b2516ed13c77a9370aadb7"
         },
         "metadata read-first and lifecycle": {
           "completed_pass": true,
@@ -1762,7 +1763,12 @@
         "publication program": {
           "completed_pass": false,
           "tail": [
-            "INTEGRATED_PROGRESS 25 41318 max_latency 3073"
+            "INTEGRATED_PROGRESS 100 171136 max_latency 3073",
+            "INTEGRATED_PROGRESS 125 216995 max_latency 3073",
+            "INTEGRATED_PROGRESS 150 259501 max_latency 3073",
+            "INTEGRATED_PROGRESS 175 301507 max_latency 3073",
+            "INTEGRATED_PROGRESS 200 347282 max_latency 3073",
+            "INTEGRATED_PROGRESS 225 387879 max_latency 3073"
           ]
         }
       },
@@ -1776,9 +1782,12 @@
         "/tmp/asgard-area-next/cfg-publication-sparse-dce/native-coverage.json": "ff376e2ebbf5255e6c8950b6c4adb9b51bc2488e089f915dd5d511b71325af18",
         "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/machine.py": "5d44cdf457ddcccb2698f6ae44133624d925825619643a5fea9d84af5b790ef6",
         "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/integration.json": "d7b526281fe44d9a69d688358beb26be51f537abbb394fbccad395961d7696d2",
-        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/provenance.json": "fbe99c81cc08c8e045e25061b4b26a9d930c70e8dd2706024cb4bab14f338dcb"
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/provenance.json": "fbe99c81cc08c8e045e25061b4b26a9d930c70e8dd2706024cb4bab14f338dcb",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/resources.json": "8a66385be8894ced7ebdb92508c08b9b590c9833af1883f62b6ce713406275ae",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/baseline-area.json": "8446ca6db5a93f345e6dc4abaaaadb5310c082e61e50b590b44d5226dc8602b0",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/baseline-area.log": "0b341045aa0b45ef3221083f8147da7fa18f06b367dbacacdd7a128c1fc811f2"
       },
-      "mapping_status": "pending",
+      "mapping_status": "complete",
       "dead_temporaries": {
         "removed_rows": 1542,
         "original_rows": 14048,
@@ -1786,7 +1795,46 @@
         "rule": "Preserve all state writes, requests, branches and halts; remove only dead temporary writes and their dead operand chains"
       },
       "sparse_publication": "Original zero-default metadata packet, cleared on accepted start; only referenced banks serialized per entry",
-      "hdl_files_verified_unchanged": 238
+      "hdl_files_verified_unchanged": 238,
+      "resources": {
+        "top": "top",
+        "lut": 32958,
+        "lut_memory": 318,
+        "lut_total": 33276,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 10448,
+        "bram18": 35,
+        "bram36": 15,
+        "bram36_equivalent": 32.5,
+        "dsp48": 20,
+        "carry4": 1611,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 1611,
+          "DSP48E1": 20,
+          "FDRE": 10448,
+          "INV": 1515,
+          "LUT2": 4276,
+          "LUT3": 6494,
+          "LUT4": 4626,
+          "LUT5": 7212,
+          "LUT6": 10350,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 35,
+          "RAMB36E1": 15
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 33276,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      }
     }
   },
   "rejected_generation": {
@@ -1804,33 +1852,37 @@
     "scripts/experiments/red2_cfg_pilot/allocate.py": "cfa9ab79e0c0b91fb28756ccd37148064186939ea2df8dace9ab8a3213de1f1c",
     "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
     "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
-    "scripts/experiments/red2_cfg_pilot/build.py": "789cba3579dab1fe7e23d90476a582b654da63e7db33be8c0db8829caa4c9d74",
+    "scripts/experiments/red2_cfg_pilot/build.py": "a813a2a2a62653ff39c5189adcb84db45100f27e85d20cc5e1c01c65063fd1fc",
     "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
-    "scripts/experiments/red2_cfg_pilot/check.py": "cd370503b8643a655afffedc47db9264ed4563464803a72428a60b1f630de591",
-    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "2bb61289996dd231af5099a6305e856655e2ec0af4a3d5ec3e37ed7f10699c93",
+    "scripts/experiments/red2_cfg_pilot/check.py": "7b3c1b0be1b1e17deaf4026e7c857a5a6fb4e3c2e0c4125ac83883db8bf3260d",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "492bd2a5a311a5d8662cb1913ecc8d438739c17083e4d381c35148a37dc4531d",
     "scripts/experiments/red2_cfg_pilot/check_dead_temporaries.py": "1f7420da2bc298dbb20dbeab3e15226ed5294c514ed6173692c9132b3358158c",
     "scripts/experiments/red2_cfg_pilot/check_events.py": "f4adfe456f6cc83c67def85eedcc03a0737133cb7c7b0aa529c65dc9124cf312",
     "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
-    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "4afbb28be40dad0cdf00ee3fbee7e6c6a0f3a3bf8d2393d02d06b87f986355df",
+    "scripts/experiments/red2_cfg_pilot/check_import_mux.py": "4334092f0e1bb2adbf1f34a7085c3a194a17c2e4b23db96d466ac800e783b895",
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
     "scripts/experiments/red2_cfg_pilot/check_ownership_initializers.py": "1a61873fb2b41bb4837447183b803d8d463858bb5e85537a9eac41d49a67216a",
     "scripts/experiments/red2_cfg_pilot/check_prune_aliases.py": "896f4c299cb1e829f394aa4fc75bfb80ae76f3212818f07798f50ffee112a8b2",
+    "scripts/experiments/red2_cfg_pilot/check_publication_launches.py": "e4c1c3781567ef5671fe3ebfb4995a41f33ce8a547e9cb1211f39e0d47d4b1b9",
     "scripts/experiments/red2_cfg_pilot/dead_temporaries.py": "de491879f208e651b8ac26b62da1b353fed2a58d446f2a4186c9f0545915a627",
     "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
     "scripts/experiments/red2_cfg_pilot/emit.py": "a00cfea47a21a4da0575ace76d40a00bbae70fb38ff89e778b57032d12ad1bc8",
     "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
     "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
     "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
-    "scripts/experiments/red2_cfg_pilot/integrate.py": "b5b7d5b0a434dd87f67b282f1e6a152fe9d5c0cb34bb91f43ae1a28565d13fe3",
+    "scripts/experiments/red2_cfg_pilot/import_mux.py": "ca0ed479036bf333ab9aabe141b6a29085452791519f5de026996ef3e20898d9",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "2cc0061c9f46834932149bb954f077f021c116e8a9cf6b13567de2fe4d65dadd",
     "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
     "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
     "scripts/experiments/red2_cfg_pilot/owned.py": "13ab539a1b17db0478d82f2787889416eb9b44d1db66d6844812bd51ef616e18",
-    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
+    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "ef8238ed71b085ca05c48da0743cd4a34367ca34779f9675c7360c10eea3db1f",
     "scripts/experiments/red2_cfg_pilot/ownership.py": "725a426cd907164a1005890ccb307a7fad196664907d7fd96b61f736739c653a",
     "scripts/experiments/red2_cfg_pilot/packets.py": "6bd1d2e70ad3b6028c7977d108a180ac809a7c6f3ccc1b82c95f7b670c37fe45",
-    "scripts/experiments/red2_cfg_pilot/paths.py": "cdd65d8d130bc46ca4c47689dba626e28e01045889c4ddeed23c6bba7e61a95e",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "45ab998f8ffd93d180c0e81017c5b7c15df748e705501fb64a606920e79422ba",
     "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
     "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
+    "scripts/experiments/red2_cfg_pilot/publication_launches.py": "6e8d6b836b40ba4b3e037ef77a25489e53d2550f060681a0060578ab2254e6d3",
     "scripts/experiments/red2_cfg_pilot/publication_reads.py": "8818c82a83386a1d72cb7b5b6a00b13182cd596c4630b5f8ce7a930407233c0d",
     "scripts/experiments/red2_cfg_pilot/publication_transactions.py": "2a27ad58cfa2b0209ffc1b1977692fb2be52d10f2baa2853ffa052882d5a59ec"
   }

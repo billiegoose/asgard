@@ -197,6 +197,9 @@ elif "--metadata-writes" in sys.argv:
         next(c for c in cases if c["request"][fields.index(name + "_write_enable")])
         for name, _ in m["publication_reads"]["banks"]
     ]
+elif "--launch-only" in sys.argv:
+    chosen = [c for c in cases if "launch_witness" in c]
+    assert len(chosen) == 6
 elif "--entries" in sys.argv:
     chosen = list({c["state"]: c for c in reversed(cases)}.values())
 for index, case in enumerate(chosen):

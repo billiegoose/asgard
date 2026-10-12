@@ -222,6 +222,11 @@ if m.get("publication_reads", {}).get("read_only") is False:
     from publication_transactions import remove_legacy
 
     remove_legacy(fn)
+if "publication_launch_events" in m:
+    from publication_launches import remove_legacy as remove_launch_banks
+
+    assert m["publication_launch_events"] == c.launch_events
+    remove_launch_banks(fn, m["publication_launch_events"])
 assert set(removed_handlers) == selected_names
 
 # This adapter issues requests before consuming the read response. Dependent

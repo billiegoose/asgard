@@ -2,6 +2,7 @@
 """Short immutable transfer streams instead of full shared-state mask scans."""
 
 import ast
+import os
 
 from owned import publish_owned
 from publication_reads import bridge as publication_bridge
@@ -88,10 +89,10 @@ if cfg_admit or cfg_initialize:
     )
     fn.body[position:position] = ast.parse(publication_bridge(admit, m, "admit")).body
     bridge = "cfg_setup_addr: cfg_addr_t = cfg_transfer_slot\ncfg_setup_data: uint64_t = 0\ncfg_setup_write: uint1_t = cfg_incoming_stage == 3 and not cfg_transfer_mode\n"
-    for k in shared:
-        bridge += (
-            f"if cfg_transfer_slot == {m['slots'][k]}:\n    cfg_setup_data = {k}\n"
-        )
+    from import_mux import emit as emit_import_mux
+
+    onehot_import = os.environ.get("RED2_CFG_PILOT_ONEHOT_IMPORT", "0") == "1"
+    bridge += emit_import_mux([(m["slots"][k], k) for k in shared], onehot_import)
     bridge += (
         "if cfg_incoming_stage == 8:\n    cfg_setup_data = 0\n    cfg_setup_write = 0\n"
     )
@@ -121,7 +122,9 @@ if cfg_issue:
         for i, n in enumerate(fn.body)
         if isinstance(n, ast.Assign) and ast.unparse(n.targets[0]) == "memory_out"
     )
-    fn.body[position:position] = ast.parse(publication_bridge(bridge, m, "request")).body
+    fn.body[position:position] = ast.parse(
+        publication_bridge(bridge, m, "request")
+    ).body
     finish = f"""
 if cfg_admit:
     cfg_stage = 7
@@ -225,6 +228,8 @@ cfg_bridge_dispatch_rom, _ = make_ram(cfg_bridge_dispatch_t, 256, ports=('r',), 
         "export_capture_stage": 4,
         "scope": "Experimental persistent private BRAM ownership; short per-entry transfer streams; coherent scalar observation; graph256 only",
     }
+    if onehot_import:
+        extra["import_mux"] = "One-hot gated typed fields, balanced bitwise OR"
     publish_owned(
         source,
         fn,

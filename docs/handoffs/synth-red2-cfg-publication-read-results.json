@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T08:06:04.603352+00:00",
+  "recorded_at_utc": "2026-10-12T08:57:02.634874+00:00",
   "scope": "Same dedicated RED2 datapath plus MICRO_PUB_EXEC and two synchronous read-only metadata sidecars; legacy publication stack retains write authorization",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
@@ -238,14 +238,15 @@
       "log_sha256": "368344dcad53b30b9a9d09a3f20a6f86e13d17fb7f8cca3cdad03ea4ec7ba537"
     },
     "publication parity": {
-      "completed_pass": false,
+      "completed_pass": true,
       "tail": [
-        "INTEGRATED_PROGRESS 100 229754 max_latency 3181",
-        "INTEGRATED_PROGRESS 125 288462 max_latency 3181",
-        "INTEGRATED_PROGRESS 150 345968 max_latency 3181",
-        "INTEGRATED_PROGRESS 175 403936 max_latency 3181",
-        "INTEGRATED_PROGRESS 200 470186 max_latency 3181"
-      ]
+        "INTEGRATED_PROGRESS 350 867686 max_latency 3181",
+        "INTEGRATED_PROGRESS 375 933936 max_latency 3181",
+        "INTEGRATED_PROGRESS 400 1000186 max_latency 3181",
+        "INTEGRATED_PROGRESS 425 1066436 max_latency 3181",
+        "INTEGRATED_NATIVE_PARITY_PASS --publication physical_clocks 1076556 admitted 429 max_latency 3181 seconds 5278.753"
+      ],
+      "log_sha256": "b74d580d97dc9c62926a8faad717ced1d401f118ce10d3098aff227611aa3077"
     }
   },
   "artifacts": {
@@ -311,33 +312,39 @@
     "within_basys3_resource_limits": false
   },
   "source_scripts_sha256": {
-    "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
+    "scripts/experiments/red2_cfg_pilot/allocate.py": "cfa9ab79e0c0b91fb28756ccd37148064186939ea2df8dace9ab8a3213de1f1c",
     "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
     "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
-    "scripts/experiments/red2_cfg_pilot/build.py": "5a2131ce7b368bb8a0b3f354b4921d3c28a0b1007cea80aeca1e9db1303837e8",
+    "scripts/experiments/red2_cfg_pilot/build.py": "a813a2a2a62653ff39c5189adcb84db45100f27e85d20cc5e1c01c65063fd1fc",
     "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
-    "scripts/experiments/red2_cfg_pilot/check.py": "873331d08ad4a3df1ea7c130c3556453a46bc029e0f972febc16dac0b3eea139",
-    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "5c5cdaf09481c161ed3efd767ebb322b32e485107712fd6c0b01844506b6083a",
+    "scripts/experiments/red2_cfg_pilot/check.py": "cd370503b8643a655afffedc47db9264ed4563464803a72428a60b1f630de591",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "2bb61289996dd231af5099a6305e856655e2ec0af4a3d5ec3e37ed7f10699c93",
+    "scripts/experiments/red2_cfg_pilot/check_dead_temporaries.py": "1f7420da2bc298dbb20dbeab3e15226ed5294c514ed6173692c9132b3358158c",
     "scripts/experiments/red2_cfg_pilot/check_events.py": "f4adfe456f6cc83c67def85eedcc03a0737133cb7c7b0aa529c65dc9124cf312",
     "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
     "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
+    "scripts/experiments/red2_cfg_pilot/check_ownership_initializers.py": "1a61873fb2b41bb4837447183b803d8d463858bb5e85537a9eac41d49a67216a",
     "scripts/experiments/red2_cfg_pilot/check_prune_aliases.py": "896f4c299cb1e829f394aa4fc75bfb80ae76f3212818f07798f50ffee112a8b2",
+    "scripts/experiments/red2_cfg_pilot/check_publication_launches.py": "e4c1c3781567ef5671fe3ebfb4995a41f33ce8a547e9cb1211f39e0d47d4b1b9",
+    "scripts/experiments/red2_cfg_pilot/dead_temporaries.py": "de491879f208e651b8ac26b62da1b353fed2a58d446f2a4186c9f0545915a627",
     "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
-    "scripts/experiments/red2_cfg_pilot/emit.py": "c865cb5d7fb3930cf6158d206979218074166d41233b85b1c5f0073d4f50187f",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "a00cfea47a21a4da0575ace76d40a00bbae70fb38ff89e778b57032d12ad1bc8",
     "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
     "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
     "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
-    "scripts/experiments/red2_cfg_pilot/integrate.py": "3f5f5a9011db65645a62a3bc6f8079b583752fac7fe0c01ccef45ba16339929a",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "2cc0061c9f46834932149bb954f077f021c116e8a9cf6b13567de2fe4d65dadd",
     "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
     "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
     "scripts/experiments/red2_cfg_pilot/owned.py": "13ab539a1b17db0478d82f2787889416eb9b44d1db66d6844812bd51ef616e18",
     "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
-    "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
-    "scripts/experiments/red2_cfg_pilot/packets.py": "0a07d0ce0c778f0aa3c2bbc9ca3f9322507621bd97e9ed634cb8af2563a93b73",
-    "scripts/experiments/red2_cfg_pilot/paths.py": "0c7d0d718ac09acdf901b7f0ac544be30a40228f90d475991c019444c9515d0c",
+    "scripts/experiments/red2_cfg_pilot/ownership.py": "725a426cd907164a1005890ccb307a7fad196664907d7fd96b61f736739c653a",
+    "scripts/experiments/red2_cfg_pilot/packets.py": "6bd1d2e70ad3b6028c7977d108a180ac809a7c6f3ccc1b82c95f7b670c37fe45",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "45ab998f8ffd93d180c0e81017c5b7c15df748e705501fb64a606920e79422ba",
     "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
     "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
-    "scripts/experiments/red2_cfg_pilot/publication_reads.py": "5f04c616b574f189d058a40068ed1930b6ca7dd335cf6af726e423b643a3b7f6"
+    "scripts/experiments/red2_cfg_pilot/publication_launches.py": "6e8d6b836b40ba4b3e037ef77a25489e53d2550f060681a0060578ab2254e6d3",
+    "scripts/experiments/red2_cfg_pilot/publication_reads.py": "8818c82a83386a1d72cb7b5b6a00b13182cd596c4630b5f8ce7a930407233c0d",
+    "scripts/experiments/red2_cfg_pilot/publication_transactions.py": "2a27ad58cfa2b0209ffc1b1977692fb2be52d10f2baa2853ffa052882d5a59ec"
   }
 }

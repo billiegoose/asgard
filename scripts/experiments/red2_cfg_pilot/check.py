@@ -205,6 +205,33 @@ for state in m["entry_pc"]:
             and int(state) == ref.MICRO_PUB_STACK
         ):
             values["pub_stack_phase"] = trial % 16
+        launch_witness = None
+        if (
+            "publication_launch_events" in m
+            and int(state) == ref.MICRO_JOIN_TAIL_READ
+            and trial < 6
+        ):
+            # Force both reset-bank launches from nonzero old state. Random
+            # opcode sampling alone rarely reaches these selector continuations.
+            values = {k: (1 << widths[k]) - 1 for k in state_keys}
+            values.update(
+                microstate=int(state),
+                red2_fault=0,
+                hw_fault=0,
+                join_io_active=0,
+                join_host_active=0,
+                join_io_return_active=0,
+                struct_selector_result_active=1,
+                join_result_address=32,
+                join_parent_address=12,
+                fsp=35,
+                promote_generation=0 if trial % 2 == 0 else (1 << 32) - 1,
+            )
+            opcode = [ref.MOP_STRUCT, ref.MOP_APP, ref.MOP_LAMBDA][trial // 2]
+            response[0] = 700 if opcode == ref.MOP_STRUCT else 20
+            kind = ref.DATA_LITERAL_ID if opcode == ref.MOP_STRUCT else ref.DATA_SIGNED
+            response[1] = (1 << 26) | (opcode << 21) | (1 << 20) | (kind << 17)
+            launch_witness = trial
         original = sim_call(
             getattr(
                 ref,
@@ -238,6 +265,8 @@ for state in m["entry_pc"]:
                 "trace": trace,
             }
         )
+        if launch_witness is not None:
+            candidates[-1]["launch_witness"] = launch_witness
     covered = set()
     witnesses = []
     publication = "publication_reads" in m and (
@@ -265,6 +294,14 @@ for state in m["entry_pc"]:
             )
             covered |= best["trace"]
             selected = best.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
+    for candidate in candidates:
+        if "launch_witness" in candidate and not any(
+            w.get("launch_witness") == candidate["launch_witness"] for w in witnesses
+        ):
+            covered |= candidate["trace"]
+            selected = candidate.copy()
             selected.pop("trace")
             witnesses.append(selected)
     cases += witnesses

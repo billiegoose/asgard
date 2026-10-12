@@ -19,6 +19,9 @@ cache_scalar_types(pypeline)
 
 m = json.loads((P / "control.json").read_text())
 cases = json.loads((P / "native-cases.json").read_text())
+if "--launch-only" in sys.argv:
+    cases = [c for c in cases if "launch_witness" in c]
+    assert len(cases) == 6
 spec = importlib.util.spec_from_file_location(
     "cfg_hardware",
     P / ("baseline/machine.py" if "--baseline" in sys.argv else "machine.py"),

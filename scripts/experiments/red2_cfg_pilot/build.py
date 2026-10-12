@@ -11,6 +11,7 @@ from paths import (
     INCLUDE_GRAPH,
     INCLUDE_LOOKUP,
     OUT,
+    PUBLICATION_LAUNCHES,
     PUBLICATION_READS,
     PUBLICATION_TRANSACTIONS,
     ROOT,
@@ -113,6 +114,14 @@ def leaves(name):
 publication_reads = None
 publication_requests = []
 publication_defaults = []
+launch_events = []
+launch_banks = []
+launch_states = set()
+if PUBLICATION_LAUNCHES:
+    from publication_launches import STATES, describe
+
+    launch_states = STATES
+    launch_events, launch_banks = describe(fn)
 if PUBLICATION_READS:
     from publication_reads import configure
 
@@ -137,6 +146,7 @@ for x in fn.body:
             "MICRO_" + name.upper() in EXTRA_STATES
             or (PUBLICATION_READS and name == "pub_exec")
             or (PUBLICATION_TRANSACTIONS and name in {"pub_exec", "pub_stack"})
+            or name in launch_states
             or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
@@ -219,6 +229,9 @@ if PUBLICATION_TRANSACTIONS:
         req,
         [*body, ast.fix_missing_locations(completion_bank(fn))],
     )
+if PUBLICATION_LAUNCHES:
+    req, body = family["MICRO_JOIN_TAIL_READ"]
+    family["MICRO_JOIN_TAIL_READ"] = (req, [*body, *launch_banks])
 family["MICRO_EXECUTE"] = (requests["execute"], entry_setup + entry)
 
 OP_NAMES = [
@@ -565,6 +578,8 @@ if SPARSE_PUBLICATION:
         "Original zero-default metadata packet, cleared on accepted start; "
         "only referenced banks serialized per entry"
     )
+if PUBLICATION_LAUNCHES:
+    manifest["publication_launch_events"] = launch_events
 # The source CFG is acyclic within one admitted logical transition. Prove that
 # every semantic operand is initialized on every path, rather than treating
 # zeroed simulation scratch as a substitute for an assignment.

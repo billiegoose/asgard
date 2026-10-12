@@ -881,3 +881,36 @@ private words (1,230 bits), before introducing those handlers' additional state.
 This is an ownership opportunity, not a LUT estimate or validated hardware.
 JOIN_TAIL_READ also launches selector-copy and promotion reset banks; their
 source-ordered effects must be explicitly lowered when that handler moves.
+
+The read-sidecar publication program suite completes successfully at 1,076,556
+physical clocks, 429 controller admissions and maximum latency 3,181. It covers
+nested/shared EP paths, failure atomicity and the exact cyclic-EP bound. This
+completes that candidate's focused publication parity; the newer full-stack
+candidate has its own independent run still pending.
+
+The sparse/dead-temporary publication top completes at **33,276 LUTs**, 10,448
+FF, 20 DSP, 1,611 CARRY4 and 32.5 BRAM36 equivalents. It frees six BRAMs but
+costs 571 LUTs against the dense variant. All 391 complete-top witnesses and
+five-bank read-first/accepted-write lifecycle checks pass. Keep dense 32,705 as
+the measured LUT minimum; the compact encoding is a BRAM tradeoff, not a LUT win.
+
+The five launch handlers now lower with their two uniquely triggered reset-bank
+effects. Source guards check unique defaults/assertions/readers and exact bank
+hashes before removing legacy event terms. At 115 entries, 134 private words
+(3,992 bits) and 162 shared words remain. All 13,800 typed comparisons and 414
+initial standalone witnesses pass. Six mandatory selector-continuation cases
+force STRUCT/APP/LAMBDA branches with nonzero old bank state and promotion epoch
+wrap; they pass on byte-identical physical-controller and complete-top sources.
+Selector program parity passes (7,531 clocks). Full boundary checks and mapping
+continue. A separate optional one-hot import bridge preserves the function and
+passes exhaustive selector tests plus the six complete-top launch/lifecycle
+cases; measure it independently before claiming an area effect.
+
+The launch extension maps to **29,224 LUTs** (28,906 logic plus 318 LUTRAM),
+9,227 FF, 20 DSP, 1,503 CARRY4 and 34 BRAM36 equivalents. Source and all 240
+HDL files match the recorded hashes; structural checks report zero problems,
+and every primitive is accounted for. It saves 4,052 LUTs against the matching
+compact stack core and leaves an 8,424-LUT gap to the board limit. Keep the
+publication program and stronger full boundary runs independent and pending.
+A separate scalar-entry fault diagnostic measures whole-handler attribution;
+it is explicitly not an equivalent candidate or a proposed feature removal.

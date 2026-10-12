@@ -242,7 +242,7 @@ short-list variant remains the lowest measured LUT count. The indexed variant
 is the storage baseline for further core extraction. Its exact results are in
 `docs/handoffs/synth-red2-cfg-dictionary-results.json`.
 
-`RED2_CFG_PILOT_PUBLICATION_READS=1` is the next opt-in experiment. It adds only
+`RED2_CFG_PILOT_PUBLICATION_READS=1` enables a read-sidecar experiment. It adds only
 MICRO_PUB_EXEC and explicit synchronous read sidecars for `pub_root_ram` and
 `pub_patch_ram`; the original publication stack retains metadata and graph write
 authorization. Factory types, depth and latency are pinned to the original AST,
@@ -250,7 +250,8 @@ and the extracted request arm must contain only the two address assignments.
 The single accepted packet reads graph, control and both metadata banks together.
 The candidate has 109 entries, 14,634 rows, 3,901 unique control words and 482
 allocated scratch words. It passes 13,080 typed comparisons and 370 standalone
-hardware witnesses. Full-core validation and mapped measurements are ongoing. Use a separate output
+hardware witnesses. All 370 complete-top witnesses and publication program
+parity pass; the full top maps to 33,299 LUTs. Use a separate output
 directory with persistent ownership and short-list bridging enabled.
 
 The native fixture helpers construct nested task/root structs by their declared
@@ -270,7 +271,7 @@ records are in `docs/handoffs/synth-red2-cfg-publication-read-results.json`.
 
 The read-sidecar complete top measures **33,299 LUTs and 27.5 BRAM36
 equivalents**, saving only 302 LUTs against the indexed-store baseline. All 370
-boundary witnesses pass; the longer publication program parity run is pending.
+boundary witnesses and publication program parity pass (1,076,556 physical clocks).
 Its 60 private words and 205 shared words identify state ownership as the next
 boundary, rather than isolated computation.
 
@@ -308,3 +309,40 @@ checks captured read-first data as well as final contents. Boundary checks also
 queue invalid START after each bank's accepted write, finish that transition,
 and verify preserved RAM and state before the lifecycle fault. These are native
 physical-clock checks, not RTL simulation or board implementation results.
+
+The dense publication transaction top maps to **32,705 LUTs and 38.5 BRAM36
+equivalents**. Sparse packets plus dead temporary removal map to **33,276 LUTs
+and 32.5 BRAM36 equivalents**: this trades 571 LUTs for six BRAMs, rather than
+improving the LUT minimum. The compact top passes all 391 boundary witnesses,
+five-bank read-first/lifecycle checks and application/list parity. Its focused
+publication program run remains pending. See the transaction results file.
+
+`RED2_CFG_PILOT_PUBLICATION_LAUNCHES=1` adds JOIN_TAIL_READ, JOIN_EP_CHASE,
+JOIN_APP_SCAN, JOIN_APP_TARGET_READ and JOIN_MULTI_TARGET_READ. Both uniquely
+triggered JOIN-tail selector/promotion banks are copied in source order. Source
+guards require one zero default, one selected assertion and one bank reader;
+legacy event terms are removed only after matching the bank-body hash. At this
+scope, 115 entries own 134 private words (3,992 bits) and share 162 words. The
+control table has 13,861 rows, 4,686 unique 40-bit words, and 524 scratch words in
+1,024 locations. All 13,800 typed comparisons and 414 initial physical witnesses
+pass. Six mandatory STRUCT/APP/LAMBDA selector-continuation fixtures start with
+nonzero bank state and exercise promotion-generation wrap. They pass on the
+physical controller and complete top, including lifecycle checks. Selector
+program parity passes at 7,531 physical clocks. Complete boundary checks and
+publication checks continue; the stronger fixtures use byte-identical hardware.
+The complete top maps to **29,224 LUTs and 34 BRAM36 equivalents**, saving
+4,052 LUTs against the matching compact stack top. This remains 8,424 LUTs
+over the Basys 3 limit. Production stays unchanged.
+
+`RED2_CFG_PILOT_ONEHOT_IMPORT=1` changes only the short-list bridge's import
+mux to independently gated typed fields and a balanced OR tree. Selector codes
+must be unique. Exhaustive selector tests cover 5,120 codes across varied field
+counts and widths; the prior source regenerates byte-identically with the option
+off. The opt-in complete top passes the six mandatory launch/lifecycle fixtures;
+its area map is separate and pending. This is an implementation choice with the
+same latency and state-transfer contract.
+
+`diagnose_scalar.py` creates a separately labelled attribution top that faults
+at the legacy scalar entry. It deliberately changes semantics and cannot be a
+fit candidate. Its whole-top delta includes scalar control and preflight as well
+as arithmetic, and is not an additive standalone arithmetic-unit estimate.
