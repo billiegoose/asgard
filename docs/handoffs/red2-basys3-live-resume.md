@@ -40,6 +40,14 @@ and unused aliases to 5.7 MB without changing the circuit. The simulation took
 about three minutes. This separates source/logic mapping from the remaining
 packing/configuration/routing/physical issue.
 
+The core cone extracted from the final mapped board netlist also **passes all
+10,703 clocks**, with the same vendor RAM models. It cuts only the 722 command
+register outputs and core clock, then retains the backward cone of all 626
+results, including state inputs. It contains 28,839 cells and 8,095 FFs.
+`mapped-board-sim/replay.log` ends MAPPED_REPLAY_PASS 10703. This rules out a
+functional change introduced by mapping the core inside the UART board for
+this trace; packing/configuration/routing/physical behavior remains to diagnose.
+
 The 8.333 MHz clock probe completed and repeats exactly the same clock-3999
 failure. It changes only six MMCM bits (divide 100 -> 120); UART is 96000.
 Reducing frequency did not cure the fault. Hold timing remains a hypothesis,
@@ -58,22 +66,51 @@ eight bits and larger addresses alias. Preserve the raw reports, interpreting
 only their first 256 rows. This validates initialization encoding in another
 RAM location, not the live scratch write/read path.
 
-**Current board SRAM contains `tdp-scratch-init-1/red2_basys3.bit`, a diagnostic
-image, not the normal application.** Its serial probe is complete; no serial
-client is active. Reload the corrected 10 MHz application before normal replay.
+**Current board SRAM contains `scratch-observer/red2_basys3.bit`, a diagnostic
+image**, SHA256 `2fe79a9e9fbf374de7aa8fe7ad6ceb400b8a629855f4f61b782cbc1b81e2878c`.
+It replaces thirteen graph readback bits (status 364..376) with scratch DI3,
+DO3, ten address bits, and write-enable. Thirteen monitor LUT/FF pairs moved
+into compatible control sets; no core cell placement or logic changed.
 
-A read-only import of reconstructed native route names succeeded. Resuming also
-requires clearing clock routes (the backend otherwise binds them twice) and
-removing unused LUT pins inserted during final physical legalization (otherwise
-false timing loops appear). These experiments remain under
-`routed-native-json/` and `route-restored-hold/`; no maintained backend change
-has been made for route re-import. The re-imported routes stalled before completing a router iteration and were
-stopped. The current observer instead starts from the original known-good
-saved placement. Thirteen monitor LUT/FF pairs move together into compatible
-control sets; no core cell moves. `scratch-observer/pair-route.log` is the active
-route, with hold analysis requested. Do not treat it as a completed route until
-normal completion, zero overuse, timing, and placement audits pass. Its finish
-script and serial observer are prepared but have not run yet.
+This image **passes all 4,050 scratch observations and all other output bits**.
+At clock 3999, the physical microstate is now correctly 13. Hardware observes
+the expected constant read, bit 3 at the scratch write, and bit 3 on readback.
+`application-result.json` has null first_debug_mismatch and
+first_output_mismatch. This is a diagnostic pass, not a full 626-bit application
+pass, because thirteen graph readback bits were replaced.
+
+The observer uses 19,991 physical LUT sites, preserves all 37,015 placements
+from its modified placement input, and passes 10 MHz timing (core 10.68,
+monitor 10.45 MHz). The model reports no hold violations. All 25,378 logic LUT
+truth tables match the emitted FASM. All 5,835 RAMB18 configuration/INIT feature
+lines exactly match the old corrected image; no additional RAM settings changed.
+
+**Active work:** `normal-monitor-fullroute/route.log` routes afresh from the
+observer's saved placement, with all thirteen normal monitor inputs restored.
+Core and monitor placements stay as in the passing observer. Its host runner
+`normal-monitor-fullroute/complete.sh` waits, audits, builds, loads SRAM, and
+replays the original 10,703 clocks comparing all 626 output bits. Inspect
+`complete-driver.log`, then `application-board-replay.log` and result JSON.
+Do not start another serial client while this runner is active. Tool sessions:
+route 59978, completion 69801. The board is still the observer until a new
+load-result.json proves otherwise.
+
+Routed-JSON resume experiments (`route-restored-hold/` and
+`restored-monitor-route/`) were stopped before completing an iteration. They
+were not accepted as route results. Re-import needs native BEL/site-wire names,
+removal of unused LUT pins added during final physical legalization, and
+clearing already-bound clock routes; it may still have other issues. Use the
+known-good saved placement for current work. Normal route outputs now go to
+container /tmp and are copied out only when complete, avoiding slow per-line
+Mac shared-filesystem exports.
+
+The diagnostic fast FASM reader (`fast-fasm2frames.py`) retains the pinned
+Project X-Ray frame assembler and rejects unsupported syntax. On the original
+710k-line FASM it produced byte-for-byte identical board.frames; validation log
+ends FAST_FASM_BASELINE_EXACT_MATCH. The observer and normal restoration use
+this verified reader for faster frame generation. Original models/logs and
+failed attempts are preserved; some bulky diagnostic files were losslessly
+compressed to recover disk space. VM fstrim recovered additional host space.
 
 The initial autonomous runner is stopped after the comparison failure. Its
 `complete-bringup.log` records the initial load and failure. Later probes use

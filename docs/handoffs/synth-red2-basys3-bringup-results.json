@@ -491,10 +491,10 @@
     }
   },
   "current_physical_diagnostic": {
-    "variant": "tdp-scratch-init-1",
-    "status": "loaded; serial probe complete; no serial client active",
+    "variant": "scratch-observer",
+    "status": "Loaded; 4050-command probe complete; normal full-route restoration is running",
     "application_capable": false,
-    "next_step": "Scratch observer route from original saved placement is running in scratch-observer/pair-route.log; thirteen monitor LUT/FF pairs moved together; no core cell placement changes. Re-imported route attempts stalled and were stopped."
+    "next_step": "normal-monitor-fullroute/route.log and complete-driver.log: route from original observer placement with thirteen normal monitor inputs restored, then audit/build/load and compare all 626 output bits for 10703 clocks. Routed-JSON incremental resume was stopped without completing an iteration; no result accepted."
   },
   "clock_slow_probe": {
     "clock_mhz": 8.333333333333334,
@@ -556,5 +556,117 @@
       4002
     ],
     "physical_observation": "At clock 3999, visible microstate is 5 instead of 13."
+  },
+  "mapped_board_core_replay": {
+    "source_board_json_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5",
+    "cells": 28839,
+    "types": {
+      "LUT4": 2826,
+      "FDRE": 8095,
+      "LUT3": 3127,
+      "CARRY4": 774,
+      "LUT5": 3847,
+      "LUT2": 2684,
+      "LUT6": 6362,
+      "RAM64X1S": 126,
+      "INV": 883,
+      "RAM256X1S": 50,
+      "RAMB18E1": 21,
+      "DSP48E1": 20,
+      "RAMB36E1": 24
+    },
+    "boundary": "Cut only the monitor command register outputs and core BUFG clock; retain backward cone of all 626 core result bits, including every reached state element and its inputs.",
+    "passed": true,
+    "compared_clocks": 10703,
+    "files_sha256": {
+      "extract-mapped-board-core.py": "72b395521854c91c99feb735b61df328164c0670683f9b5f85301378077f5d1a",
+      "mapped-board-sim/core.json": "17e6bda2d00bdd4040e0a86211b86f4f045681b4ee30b4640098eed4a581e3f5",
+      "mapped-board-sim/core.v": "04dc58068cccf5a224a668c42c57d2dabdd47fe5372b509c31e99df9aec67dc5",
+      "mapped-board-sim/extraction.json": "74cfa3f1d45aa8a9a30dc9005fa86a14ab6ec3b8a5e032cdbf8593d5b5b6c0ee",
+      "mapped-board-sim/replay.log": "6dd573222e6eb834936045637dfad2e4bef1e1fedb8064fc6748ca9ae864e84a",
+      "mapped-board-sim/compile.log": "c360b97471f9f1007393f6d256db6d1d5a21c2530890557d11d0838410e3a24c",
+      "mapped-sim/replay.sv": "b8f2fb1274d16db403b9e3a110c63abd401f3d0bfeb559de7f73a3e349bf7358",
+      "mapped-sim/cells_sim.v": "f108df3fc3a28f6a6d527cc1c7eefc05261c0dc24fe4e0781fa66c3106ae1151",
+      "mapped-sim/RAMB18E1.v": "f04b8980e1565e9b622723334d48d687e6dc48b93d08cb99ecb1206a0700848b",
+      "mapped-sim/RAMB36E1.v": "b6153b595696f7eebe6840b2b8d518e32df698cb8e8b2730c8838648ceec72fb"
+    }
+  },
+  "scratch_observer_physical": {
+    "diagnostic_only": true,
+    "compared_clocks": 4050,
+    "scratch_debug_mismatches": 0,
+    "other_output_mismatches": 0,
+    "replaced_readback_status_bits": [
+      364,
+      376
+    ],
+    "microstate_at_clock_3999": 13,
+    "elapsed_seconds": 94.799,
+    "route_timing": {
+      "core_clock": {
+        "achieved_mhz": 10.68,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "achieved_mhz": 10.45,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "placement_audit": {
+      "placed_netlist_sha256": "7cfaced76020ea943d51d1d79df20954e7bb5cc8a1d0975a83b359b5868a0166",
+      "routed_netlist_sha256": "e6eb426f0b4524979de29d854728578acea010a34509330b0bcc9e758dc5b0ee",
+      "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+      "preserved_cell_placements": 37015,
+      "lut_half_cells": 25704,
+      "unique_physical_lut_sites": 19991,
+      "basys3_lut_limit": 20800,
+      "within_basys3_physical_lut_limit": true,
+      "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+    },
+    "load": {
+      "started_at_utc": "2026-10-12T19:26:36.048668+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3/scratch-observer/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "2fe79a9e9fbf374de7aa8fe7ad6ceb400b8a629855f4f61b782cbc1b81e2878c",
+      "build_result_sha256": "81f57b43e44d225dfb2d2ef9448144fe2b03660995b1712ec4863108a8300e9f",
+      "program_script_sha256": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-12T19:26:39.739191+00:00",
+      "load_log_sha256": "9cc9811d718174e174a985b391c1400212422a0be6856103360fb411f079ba44"
+    },
+    "ram_configuration_comparison": {
+      "scope": "All RAMB18_Y0/Y1 BRAM configuration and initialization feature lines, excluding interconnect PIPs",
+      "old_feature_count": 5835,
+      "new_feature_count": 5835,
+      "old_only": [],
+      "new_only": [],
+      "fasm_sha256": {
+        "bram72-width-fix/corrected.fasm": "fd5a8bb960462f17315b609534781036789c17829b5b0a775d7cc700845edcc4",
+        "scratch-observer/board.fasm": "f9141959b0a35115275460356f0688d7c146af985e86c4cd25c9f1460c8a6222"
+      }
+    },
+    "interpretation": "The failing microstate is correct after rerouting unchanged core logic and placements. This diagnostic replaces thirteen graph readback bits and is not a full application pass. All 4050 scratch observations and all other output bits match simulation.",
+    "evidence_sha256": {
+      "application-result.json": "5fbbb0bc3e0528b8e340c53f8b072ec8f1ff55d22572c8d9020b5ffff6f0f0cf",
+      "application-replay.log": "5861174816f7b1181b98157f27b644f163c49759e4aae2915015298f5be149c5",
+      "build-result.json": "81f57b43e44d225dfb2d2ef9448144fe2b03660995b1712ec4863108a8300e9f",
+      "lut-init-audit.json": "9da26033c9806625886e8f6552c1d103554239aecfdd9ab59cad4587a01aaac5",
+      "ram-configuration-comparison.json": "20ade09b3534cae31e8422ba517441f8a8808efbb2a9347f9e757e97e0761ea6",
+      "pair-route.log": "05680dff1b58cb4b861b93cd096e8d2c79f09d92ef94a9acc5b7d5dccaa3d4a1"
+    }
   }
 }
