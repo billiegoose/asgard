@@ -491,9 +491,70 @@
     }
   },
   "current_physical_diagnostic": {
-    "variant": "clock-slow-probe",
-    "exec_session": 49898,
-    "scope": "unchanged route and corrected RAM widths; MMCM divide 100 -> 120 only; UART host 96000; compare original application trace",
-    "status": "running"
+    "variant": "tdp-scratch-init-1",
+    "status": "loaded; serial probe complete; no serial client active",
+    "application_capable": false,
+    "next_step": "Scratch observer route from original saved placement is running in scratch-observer/pair-route.log; thirteen monitor LUT/FF pairs moved together; no core cell placement changes. Re-imported route attempts stalled and were stopped."
+  },
+  "clock_slow_probe": {
+    "clock_mhz": 8.333333333333334,
+    "uart_baud": 96000,
+    "configuration_bits_changed": 6,
+    "physical_replay": {
+      "port": "/dev/cu.usbserial-2101837357871",
+      "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+      "prepared_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+      "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+      "expected_clocks": 10703,
+      "completed_pass": false,
+      "compared_clocks": 3999,
+      "mismatch_clock": 3999,
+      "actual": "1000000000000000000000000000000F7000000000422000000000000000000030000000000000000000000000000000000000000000000000801EE0000000000000FA00000803DC001400040A00",
+      "expected": "1000000000000000000000000000000F7000000000422000000000000000000030000000000000000000000000000000000000000000000000801EE0000000000000FA00000803DC001400041A00",
+      "error": "FPGA output mismatch at clock 3999",
+      "elapsed_seconds": 129.759
+    },
+    "conclusion": "Same first mismatch at clock 3999; reducing frequency did not cure this fault."
+  },
+  "scratch_initialization_clones": [
+    {
+      "variant": "tdp-scratch-init-0",
+      "valid_host_addresses": [
+        0,
+        255
+      ],
+      "valid_source_addresses": "0..510 step 2",
+      "valid_words": 256,
+      "valid_mismatches": 0,
+      "raw_probe_sha256": "b860c426682961ae7ae929f0bcdfb577083919c896d641222f6f8a03ad43c797",
+      "interpretation": "Host addresses above 255 alias because graph address is eight bits. Raw report contains invalid expectations above that limit; these do not indicate RAM defects."
+    },
+    {
+      "variant": "tdp-scratch-init-1",
+      "valid_host_addresses": [
+        0,
+        255
+      ],
+      "valid_source_addresses": "1..511 step 2",
+      "valid_words": 256,
+      "valid_mismatches": 0,
+      "raw_probe_sha256": "3235a32a74f85cf66752d48220ccb33e1bae087634a0e4ef3ba27bbdbf58a99d",
+      "interpretation": "Host addresses above 255 alias because graph address is eight bits. Raw report contains invalid expectations above that limit; these do not indicate RAM defects."
+    }
+  ],
+  "scratch_simulation_trace": {
+    "scope": "Passing mapped simulation only; intermediate values not yet observed on hardware",
+    "constant_address": 449,
+    "constant_read_value": 13,
+    "constant_read_clock": 3970,
+    "write_address": 4,
+    "write_clock": 3973,
+    "write_value": 13,
+    "bridge_read_address": 4,
+    "bridge_read_clocks": [
+      3996,
+      4002
+    ],
+    "physical_observation": "At clock 3999, visible microstate is 5 instead of 13."
   }
 }

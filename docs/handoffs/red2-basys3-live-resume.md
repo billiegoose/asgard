@@ -40,15 +40,40 @@ and unused aliases to 5.7 MB without changing the circuit. The simulation took
 about three minutes. This separates source/logic mapping from the remaining
 packing/configuration/routing/physical issue.
 
-Current diagnostic: **exec session 49898**, `clock-slow-probe/`. It changes only
-six MMCM configuration bits (CLKOUT0 high/low counts 50 -> 60, divide 100 -> 120),
-yielding 8.333 MHz. Feedback/filter/lock and routing are unchanged. The host uses
-Mac IOSSIOSPEED 96000 to match UART_DIV87. SRAM loading and replay run explicitly;
-inspect `clock-slow-probe/application-board-replay.log` and result JSON. Do not
-start another serial client while it runs. A pass beyond 3999 would implicate
-setup timing; unchanged failure would leave configuration/packing or hold timing
-as candidates. The normal host defaults to 115200 and will not match this slow
-probe. Reload the corrected 10 MHz bitstream before normal host diagnostics.
+The 8.333 MHz clock probe completed and repeats exactly the same clock-3999
+failure. It changes only six MMCM bits (divide 100 -> 120); UART is 96000.
+Reducing frequency did not cure the fault. Hold timing remains a hypothesis,
+not a demonstrated cause.
+
+The passing mapped simulation reads scratch constant address 449 as 13 at clock
+3970, writes 13 to scratch address 4 at clock 3973, and reads 13 back during the
+bridge export at clocks 3996..4002. These intermediate values are simulation
+observations only. Hardware has so far exposed the final microstate 5.
+
+Two diagnostic images clone scratch RAM initialization into the graph monitor's
+RAM in the same TDP36 read mode. Together, the valid probes read all 512 source
+words 0..511 without a mismatch, including address 449 = 13. Each raw probe
+attempted 512 host addresses, but only 0..255 are valid: the graph address is
+eight bits and larger addresses alias. Preserve the raw reports, interpreting
+only their first 256 rows. This validates initialization encoding in another
+RAM location, not the live scratch write/read path.
+
+**Current board SRAM contains `tdp-scratch-init-1/red2_basys3.bit`, a diagnostic
+image, not the normal application.** Its serial probe is complete; no serial
+client is active. Reload the corrected 10 MHz application before normal replay.
+
+A read-only import of reconstructed native route names succeeded. Resuming also
+requires clearing clock routes (the backend otherwise binds them twice) and
+removing unused LUT pins inserted during final physical legalization (otherwise
+false timing loops appear). These experiments remain under
+`routed-native-json/` and `route-restored-hold/`; no maintained backend change
+has been made for route re-import. The re-imported routes stalled before completing a router iteration and were
+stopped. The current observer instead starts from the original known-good
+saved placement. Thirteen monitor LUT/FF pairs move together into compatible
+control sets; no core cell moves. `scratch-observer/pair-route.log` is the active
+route, with hold analysis requested. Do not treat it as a completed route until
+normal completion, zero overuse, timing, and placement audits pass. Its finish
+script and serial observer are prepared but have not run yet.
 
 The initial autonomous runner is stopped after the comparison failure. Its
 `complete-bringup.log` records the initial load and failure. Later probes use
@@ -58,7 +83,7 @@ New maintained builds automatically use the BRAM fix through fpgatool.
 
 Asgard `7c5b290` already contains resource attribution, SDC reload, physical BEL
 normalization, and 9 focused tests. Additional handoff evidence and the fpgatool
-pin are being committed alongside this checkpoint. The native XDC clocks are
+pin were committed in Asgard `279beb0`. The native XDC clocks are
 lost across saved JSON import, so the route reloads SDC. A small two-test probe
 confirmed the resumed 10 MHz target with the delay model enabled and disabled.
 Do not import final routed JSON directly: its normalized site names are not
