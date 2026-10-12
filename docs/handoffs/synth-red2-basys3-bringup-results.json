@@ -1,6 +1,6 @@
 {
-  "recorded_at_utc": "2026-10-12T13:15:17.614236+00:00",
-  "scope": "Basys 3 dedicated RED2 core with UART processor monitor; preparation and local digital simulation only",
+  "recorded_at_utc": "2026-10-12T14:18:43.101758+00:00",
+  "scope": "Basys 3 dedicated RED2 core with UART monitor; complete board resource mapping and local digital simulation passed; JTAG detection passed; routing pending",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
     "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Mapped board fits at 20,050 LUTs; package correction allows placement; heap and SA placement attempts running",
+  "board_build_status": "Spread analytical placement completed in 612.43s; parallel refinement running; default-density bounded placement and SA fallback also running. No routed timing or physical replay yet.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -127,11 +127,11 @@
     }
   },
   "current_sources_sha256": {
-    "scripts/boards/red2_basys3/README.md": "a9fe9f8f5509d2592781dfdb3cf0a028f2c30f9a4a98e9d903b8aa06107c16dc",
+    "scripts/boards/red2_basys3/README.md": "67cce430291467e3ffbfd4fb2a62538f4e45e6ca3d53bdc99a86c59f00fc409e",
     "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
     "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
     "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
-    "scripts/boards/red2_basys3/implement.sh": "f0d03a09a373cff2287189ca808bdddabe9b7ca84b11a720293897b4301d294b",
+    "scripts/boards/red2_basys3/implement.sh": "649c5f2b98c29a5305eeb6d16cff2673673e78a816c672dbf44c59d7af8ed2c4",
     "scripts/boards/red2_basys3/monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
     "scripts/boards/red2_basys3/prepare.py": "2f97796b32adfe7a2994cb2c6d79cf6c8b63db25125dbeef4ddd6c6a6ca131ba",
     "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89"
@@ -191,5 +191,72 @@
     "mapped_board_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5",
     "resume_script_sha256": "839d418203dc20f1910a83f4ee846d148c91a1fb5fcf9bb74f3da58adf1b21f6",
     "original_preparation_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b"
-  }
+  },
+  "route_toolchain": {
+    "nextpnr_executable": "/nix/store/y8w2pcqwz7zpvfyr4g6hb3ms6k57kmb1-nextpnr-1.0.0/bin/nextpnr-himbaechel",
+    "nextpnr_sha256": "bacb58c590460c27afab787e02e3b787e1da1e3735868fc918a6b548a570a3f6",
+    "package_chipdb": "/nix/store/v2764cclyfrslx741fg1b906rfnnpmix-fpgatool-basys3-himbaechel-chipdb-1.0.0/xc7a35tcpg236.bin",
+    "chipdb_sha256": "ec876fe0eb87f977a4d5781c5ae9dc03fadc3072f83bd89d31346485b78bc760",
+    "compatibility_shim": "/nix/store/iv5gdayjch0i2zxgsqgm088mzpg0jjag-fpgatool-nextpnr-xilinx-compat/bin/nextpnr-xilinx",
+    "fpgatool_commit": "f8b237d",
+    "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0"
+  },
+  "hardware_detection": {
+    "jtag_detected": true,
+    "usb_serial": "210183735787",
+    "idcode": "0x0362d093",
+    "device": "xc7a35",
+    "scan_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/usb-scan.log",
+    "scan_log_sha256": "16ca2e2459dfbc4ce9f2f5f1b6042762991ac179853665b32c0c4bb8164b930e",
+    "detect_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/board-detect.log",
+    "detect_log_sha256": "ea9a89106d1b397fc7cf208069596d0d3035c3f0516d4aa956762f980e6181a0"
+  },
+  "application_trace_snapshot": {
+    "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/application-vectors.txt",
+    "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+    "metadata": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/application-vectors.json",
+    "metadata_sha256": "40107305705bf48de1044f885b408229b2fa5678ade66abcdd5519d02b287f3c"
+  },
+  "timing_parser_correction": {
+    "reason": "nextpnr aligns shorter clock names with multiple spaces; accept whitespace and require both clocks",
+    "finish_script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/finish-routed.sh",
+    "finish_script_sha256": "348059a52c3e81d2bded89b2e87c37f14d42dd5beea28ec821fb3dfb5e2c37f3",
+    "active_prepared_scripts_unchanged": true
+  },
+  "active_routing_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/board-route-package.log",
+  "unbounded_route_attempt": {
+    "stopped": true,
+    "reason": "overuse fell near 100 then rose across subsequent passes, matching the unbounded-expansion divergence described in the pinned router source",
+    "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/board-route-package.log",
+    "log_sha256": "8d8e954f01b2799e5cdb93f9c7648de4ad7c988b47774d4afc85fe0fbdaec0f1",
+    "routed_timing_verified": false,
+    "placement_estimates_mhz": {
+      "core_clock": 12.07,
+      "clock": 12.19
+    }
+  },
+  "bounded_route_attempt": {
+    "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-bounded/route.sh",
+    "script_sha256": "09b366e3cac9428ab1a54a9893d3ec563b810bdb579979c4f987ff4ff4e3823c",
+    "parallel_refine": true,
+    "threads": 4,
+    "router2_bb_expand_max": 12,
+    "router2_cong_mult": 1.2,
+    "save_placed_netlist": true,
+    "input_board_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5"
+  },
+  "live_resume_instructions": "docs/handoffs/red2-basys3-live-resume.md",
+  "spread_route_attempt": {
+    "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-spread/route.sh",
+    "script_sha256": "21c04dbbe758c04e1aeb55524f8f368582f8157655d19feaa790d7dfd1db4f3b",
+    "alpha": 1.0,
+    "beta": 0.7,
+    "parallel_refine": true,
+    "threads": 4,
+    "router2_bb_expand_max": 12,
+    "router2_cong_mult": 1.2,
+    "save_placed_netlist": true,
+    "input_board_sha256": "1339ead9802a6258af356b8745a89b6c19ae592590498508760541c187485cb5"
+  },
+  "physical_lut_site_audit_pending": true
 }

@@ -45,8 +45,9 @@ arithmetic. The maintained top's earlier measurement was 41,170 LUTs. The
 dedicated shared-controller candidate now maps to **19,172 LUTs**, below Basys
 3's 20,800-LUT limit, and passes 232,090 clocks of RTL program replay. The
 [Basys 3 bring-up target](scripts/boards/red2_basys3/README.md) adds a UART monitor
-and a 10 MHz clock; its board-level mapping, routing and physical validation
-remain pending. The candidate is separate from the maintained top. Set
+and a 10 MHz clock. The complete board maps to **20,050 LUTs**, leaving 750
+spare; routed timing and physical validation remain pending. The candidate is
+separate from the maintained top. Set
 `RED2_SYN_FLOAT=1` to include the existing floating-point
 module. The native `syn` CLI and full native parity suite retain floating-point
 support by default. The synthesis gate selects the matching profile checks.

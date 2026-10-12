@@ -37,7 +37,7 @@ from pathlib import Path
 log = Path('board-route.log').read_text()
 clocks = {}
 for name, achieved, status, required in re.findall(
-    r"Max frequency for clock '([^']+)': ([0-9.]+) MHz \((PASS|FAIL) at ([0-9.]+) MHz\)", log
+    r"Max frequency for clock\s+'([^']+)': ([0-9.]+) MHz \((PASS|FAIL) at ([0-9.]+) MHz\)", log
 ):
     clocks[name] = {'achieved_mhz': float(achieved), 'status': status, 'required_mhz': float(required)}
 assert clocks, 'no clock timing result; do not load this design'

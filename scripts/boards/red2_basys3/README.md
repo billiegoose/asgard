@@ -7,6 +7,10 @@ edge per accepted command. Between packets it receives no edges. This preserves
 the public-port trace contract; continuously issuing CMD_NOP would still clock
 synchronous RAM reads and would not reproduce the same trace.
 
+The complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
+the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5
+BRAM36 equivalents. Routed timing and physical replay are still pending.
+
 This is a processor monitor for bring-up. It does not execute RED2 in host
 software, and it does not yet provide an interactive THOR CLI on the board.
 The host sends previously compiled command vectors and compares every output
