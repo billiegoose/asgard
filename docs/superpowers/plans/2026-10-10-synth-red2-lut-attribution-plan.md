@@ -1002,3 +1002,28 @@ with both simulations explicitly reaching `sim_finish`. The native runtime is
 byte-identical. Recompile the frozen candidate under the corrected pin, replay
 its same concrete-checked public inputs and outputs, and remeasure before
 claiming a usable fit. Production source remains unchanged.
+
+The corrected compiler remeasurement completes at **19,172 LUTs** (18,846
+logic plus 326 LUTRAM), **8,095 FF**, **20 DSP48E1**, **774 CARRY4** and
+**34.5 BRAM36 equivalents**. This leaves **1,628 LUTs** below the Basys 3
+limit. The exact same controller, complete-top source, control ROM and oracle
+are reused; only the compiler register handling changes. All 219 generated HDL
+files and mapping scripts match recorded hashes. Structural checks report zero
+problems, all primitives are accounted for and the measured resources fit the
+device limits. These totals exclude a board adapter and physical implementation.
+
+Corrected Verilator RTL replay passes all public output bits for five programs:
+addition (26,391 clocks), function application (10,703), structure creation and
+access (123,863), signed-boundary addition (26,391), and `(EVEN? -2)` (44,742).
+The total is **232,090 clocks**, each compared against a concrete-checked native
+trace. Independent Icarus simulation also passes all 26,391 addition clocks.
+The original byte-identical source finishes all 527 complete-top boundary
+witnesses and reset, private/queued lifecycle and five-bank accepted metadata
+checks; the separate 152 mandatory corner witnesses and 14,792 typed comparisons
+also pass. The compiler regression passes all 31 native/GHDL rows.
+
+This is the first resource-fit candidate with passing RTL program replay.
+Production source adoption, board integration and routed timing remain open.
+The previously recorded list-equality execution gap remains open; the tested
+programs and observed boundary witnesses do not prove exhaustive RED2 semantics.
+The compiler correction is pinned project-wide and pushed in fpgatool.

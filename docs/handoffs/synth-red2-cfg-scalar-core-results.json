@@ -1,7 +1,9 @@
 {
-  "recorded_at_utc": "2026-10-12T11:26:55.247197+00:00",
+  "recorded_at_utc": "2026-10-12T11:51:21.626287+00:00",
   "scope": "Dedicated source-derived RED2 core continuations, retaining the complete arithmetic fallback in legacy hardware",
-  "production_changed": false,
+  "production_source_changed": false,
+  "default_compiler_pin_changed": true,
+  "experimental_top_adopted_as_production": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
   "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
   "variants": {
@@ -2348,16 +2350,17 @@
           "log_sha256": "33f2d792b8f2cf99a0575d85c662d44fb327836203ff841143b3033df36eac0f"
         },
         "full boundary": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 425 88 359",
-            "INTEGRATED_BOUNDARY_PASS 426 78 261",
-            "INTEGRATED_BOUNDARY_PASS 427 79 313",
-            "INTEGRATED_BOUNDARY_PASS 428 79 295",
-            "INTEGRATED_BOUNDARY_PASS 429 80 254",
-            "INTEGRATED_BOUNDARY_PASS 430 81 276",
-            "INTEGRATED_BOUNDARY_PASS 431 81 270"
-          ]
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "eba3ca282fa4f645e5ee89bb58d28a1bcd3dcb332b43701eda9d52b6fc29d633"
         },
         "integer corner standalone": {
           "completed_pass": true,
@@ -3415,9 +3418,109 @@
             "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 123863 admitted 201 max_latency 1669 seconds 1086.772"
           ],
           "log_sha256": "917cef933ba6b20f8e18b2bd4f55cc97242b4c8eb8e55d0ad8e1f0b4bcf677bb"
+        },
+        "RTL public port signed-add": {
+          "completed_pass": false,
+          "cycles": 26391,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "213318ea0e43b48dd933a83fc1bb919e2cfed376f6333747e6341db55e72b6f1",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "67bdf5397a565739e3dae18a993f3dbfa424e7efc3f30ccc77f9168b2f37303e",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program signed-add": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 25 17580 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (+ -9223372036854775808 1)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 26391 admitted 36 max_latency 1669 seconds 297.923"
+          ],
+          "log_sha256": "779f1e5827aaad6fe6b870693b0af53160f9460dc598dd1577bae0922aea7e05"
+        },
+        "RTL public port even-negative": {
+          "completed_pass": false,
+          "cycles": 44742,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "41b514fea31056e2350a289e4bee52d4b9a7e4ffa574bdd1b7d579975442688c",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "52c3a140b04dfd7fd4601e49eb105f46ce2d19f32584faec51f636df35657dd3",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program even-negative": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 50 26857 max_latency 1669",
+            "INTEGRATED_PROGRESS 75 38255 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (EVEN? -2)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 44742 admitted 84 max_latency 1669 seconds 413.029"
+          ],
+          "log_sha256": "27f4c4394da4391d93d7282cef6523e846de655ad3f2fa77b9388d38f7a1b3ec"
+        },
+        "Verilator public port add": {
+          "completed_pass": true,
+          "log_sha256": "39b53533bc629a890200c584f576e05ae40edabfa1b4b53c28f4d92ead071777",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 24000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 25000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 26000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 26391"
+          ]
+        },
+        "Verilator public port application": {
+          "completed_pass": true,
+          "log_sha256": "3e68905ac2cb131c55b7097bb65ed3c19cc24c70bae4deb9e5c5ab10facfd365",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 8000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 9000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 10000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 10703"
+          ]
+        },
+        "Verilator public port structure": {
+          "completed_pass": true,
+          "log_sha256": "7a2ad0db476c5961f59f4ba313fa609bebb611bfbf8160be7117af3ce83f7e8f",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 121000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 122000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 123000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 123863"
+          ]
+        },
+        "Verilator public port signed-add": {
+          "completed_pass": true,
+          "log_sha256": "39b53533bc629a890200c584f576e05ae40edabfa1b4b53c28f4d92ead071777",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 24000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 25000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 26000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 26391"
+          ]
+        },
+        "Verilator public port even-negative": {
+          "completed_pass": true,
+          "log_sha256": "d54ac6f9c114fc3325eba6d34c93bce2fe17b2b9e2ccc0bfabcd096bfbdc70f4",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 42000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 43000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 44000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 44742"
+          ]
+        },
+        "Icarus independent addition replay": {
+          "completed_pass": true,
+          "log_sha256": "9467c9a97de6f7df649fc7a1fbf949ae6822669ebaf04a1141db851a096dac3d",
+          "tail": [
+            "INTEGRATED_ICARUS_PROGRESS       26000",
+            "INTEGRATED_ICARUS_PASS       26391",
+            "/experiment/integrated-stream/rtl-netlist/replay-iverilog.sv:22: $finish called at 263910 (1s)"
+          ]
         }
       },
-      "mapping_status": "pending",
+      "mapping_status": "complete",
       "artifacts": {
         "/tmp/asgard-area-next/cfg-integer-joins-regfix/control-unmapped.json": "2dfdb64fe0a43d84edb7fa643a17f8528b5cb614829f202810764f529ea8bfc3",
         "/tmp/asgard-area-next/cfg-integer-joins-regfix/control.json": "1445064ec8efd14da4a41af3beb7e55f743bc6bdff54e01900ce25c3019f62e2",
@@ -3427,7 +3530,10 @@
         "/tmp/asgard-area-next/cfg-integer-joins-regfix/native-cases.json": "dbd7a72e8791ba7ef242f0d5f7246588a4d1039589645d07ed691a7fdefdd563",
         "/tmp/asgard-area-next/cfg-integer-joins-regfix/native-coverage.json": "67460d5345ddfd10d4f8a42372e47b7162f2434c057933a24eaa3deb9751ea48",
         "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/machine.py": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
-        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/integration.json": "3c478fa1e91b096e58d8e7693d32514597db4c8454b612f573654f630bdde00d"
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/integration.json": "3c478fa1e91b096e58d8e7693d32514597db4c8454b612f573654f630bdde00d",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/resources.json": "3f2c7641c4b220a69bdc97aa0165959263ace4d09e2f3cbf1eaece12a66a8d2b",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/baseline-area.json": "e164427730ae27154146a6179831f5dab3c4c8c60d8dcddf53a1636614d34a48",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/baseline-area.log": "906ff7b491cf990fb2a4881fdfbecf17c835a1cde7bd2eb61d5108b6e8593790"
       },
       "literal_metadata": {
         "read_only": true,
@@ -3952,7 +4058,155 @@
           "red2_float64_from_bits": "4a85a64ea9b672d16bc60e3d646b3ae58a13eb59320a367651ff1dcb36436024",
           "red2_float64_supported": "0a19c413ac3fcf057478a4451d83b7dfaca9eb59a81074dfcb394055668b7875"
         }
-      }
+      },
+      "hdl_files_verified_unchanged": 219,
+      "provenance_sha256": "f3693f5ec94a32960b97b56d6750ba9663ef3e20f3a278b84da2daf587d9db43",
+      "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+      "compiler_changed_fingerprints": [
+        "src/PY_TO_LOGIC.py"
+      ],
+      "resources": {
+        "top": "top",
+        "lut": 18846,
+        "lut_memory": 326,
+        "lut_total": 19172,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8095,
+        "bram18": 21,
+        "bram36": 24,
+        "bram36_equivalent": 34.5,
+        "dsp48": 20,
+        "carry4": 774,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 774,
+          "DSP48E1": 20,
+          "FDRE": 8095,
+          "INV": 883,
+          "LUT2": 2684,
+          "LUT3": 3127,
+          "LUT4": 2826,
+          "LUT5": 3847,
+          "LUT6": 6362,
+          "RAM256X1S": 50,
+          "RAM64X1S": 126,
+          "RAMB18E1": 21,
+          "RAMB36E1": 24
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "verilator_netlist_provenance": {
+        "coarse_json_sha256": "05fe8c7eff0aa4d0d28af198b23fca831a4b0f7fe7997479ed3e6816977366a1",
+        "coarse_verilog_sha256": "ab19a4394cc5833c1d2c692f0bd12f75f74724fb528029d473c6549b13dd742b",
+        "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+        "replay_cpp_sha256": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
+        "wrapper_sha256": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+        "conversion_passes": "read_json; rename -hide; opt_clean -purge; memory_unpack; write_verilog -noattr",
+        "input_width": 722,
+        "output_width": 626,
+        "scope": "Optimized GHDL/Yosys area-map frontend RTL before technology mapping"
+      },
+      "inherited_native_validation": {
+        "source_variant": "cfg-integer-joins",
+        "reason": "Byte-identical source, control, oracle and witnesses; compiler fingerprints change only PY_TO_LOGIC, leaving the native runtime identical",
+        "checks": {
+          "full standalone": {
+            "completed_pass": true,
+            "tail": [
+              "CFG_PHYSICAL_CONTROLLER_PASS 523 1 1361",
+              "CFG_PHYSICAL_CONTROLLER_PASS 524 1 1314",
+              "CFG_PHYSICAL_CONTROLLER_PASS 525 1 1304",
+              "CFG_PHYSICAL_CONTROLLER_PASS 526 1 1269",
+              "CFG_PHYSICAL_CONTROLLER_ALL_PASS 527",
+              "CFG_RESET_CANCEL_PASS",
+              "CFG_CONSTANT_PROTECTION_PASS"
+            ],
+            "log_sha256": "f11c38afb97e387c49d7ee7e1c2f69cecbbfbe1d300852b40a474ae79a39b1f2"
+          },
+          "typed": {
+            "completed_pass": true,
+            "tail": [
+              "CFG_TYPED_REFERENCE_PASS 126",
+              "CFG_TYPED_REFERENCE_PASS 127",
+              "CFG_TYPED_REFERENCE_PASS 1",
+              "CFG_TYPED_REFERENCE_ALL_PASS 14640",
+              "STEP integrate.py",
+              "CFG_TABLE 122 entries 20146 rows 8445 scratch words",
+              "OWNED_INTEGRATED_TOP /private/tmp/asgard-area-next/cfg-integer-joins/integrated-stream 192 private words 156 shared words"
+            ],
+            "log_sha256": "33f2d792b8f2cf99a0575d85c662d44fb327836203ff841143b3033df36eac0f"
+          },
+          "full boundary": {
+            "completed_pass": true,
+            "tail": [
+              "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+              "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+            ],
+            "log_sha256": "eba3ca282fa4f645e5ee89bb58d28a1bcd3dcb332b43701eda9d52b6fc29d633"
+          },
+          "integer corner standalone": {
+            "completed_pass": true,
+            "tail": [
+              "CFG_PHYSICAL_CONTROLLER_PASS 148 40 833",
+              "CFG_PHYSICAL_CONTROLLER_PASS 149 40 834",
+              "CFG_PHYSICAL_CONTROLLER_PASS 150 40 836",
+              "CFG_PHYSICAL_CONTROLLER_PASS 151 40 765",
+              "CFG_PHYSICAL_CONTROLLER_ALL_PASS 152",
+              "CFG_RESET_CANCEL_PASS",
+              "CFG_CONSTANT_PROTECTION_PASS"
+            ],
+            "log_sha256": "0f05ec677849d359bbae6e84862b8518eb989c617167b59c3ab61f090a9d8349"
+          },
+          "integer corner boundary": {
+            "completed_pass": true,
+            "tail": [
+              "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+              "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+              "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+            ],
+            "log_sha256": "0d21aeb3f265b634713acf934818b5a1c331ed365ac78093d8b3a5335b3a0c12"
+          },
+          "strong typed": {
+            "completed_pass": true,
+            "tail": [
+              "CFG_TYPED_REFERENCE_PASS 117",
+              "CFG_TYPED_REFERENCE_PASS 5",
+              "CFG_TYPED_REFERENCE_PASS 126",
+              "CFG_TYPED_REFERENCE_PASS 127",
+              "CFG_TYPED_REFERENCE_PASS 1",
+              "CFG_TYPED_REFERENCE_ALL_PASS 14792",
+              "CORE_COVERAGE_HARDWARE_BYTE_IDENTICAL_PASS"
+            ],
+            "log_sha256": "b57f68bbb4d38881f756754b6ad5c2c1b6d2cca1d7920cc104d0ddfea1a34ba4"
+          }
+        },
+        "stronger_coverage": {
+          "hardware_and_oracle_byte_identical": true,
+          "native_witness_count": 666,
+          "cases_sha256": "45b25557dd7c1efb3babc5c4a6e68ef03b6176416e10558d02a6aeb6da2a264a",
+          "coverage_sha256": "cea0179d1dae69081a780323e2399ce819dcd68752d9f62eb0ae7cc3911c410d"
+        }
+      },
+      "RTL_replayed_clock_count": 232090,
+      "core_program_RTL_parity_pass": true,
+      "usable_fit_candidate": true,
+      "limitations": [
+        "No board adapter or routed timing result",
+        "Observed supported programs and source-typed witnesses, not exhaustive ISA parity"
+      ]
     }
   },
   "rejected_fixture": {
@@ -4033,7 +4287,7 @@
     "scripts/experiments/red2_cfg_pilot/paths.py": "a3383fbbdca41619207e18de41cdcc3d831349b7087b36b7ea9a4074a02b2e4c",
     "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
-    "scripts/experiments/red2_cfg_pilot/prepare_verilator.py": "66cc8031168cb0afc22d28b1a89c1f7316d0006c73a01fb6c93f6e3b76ec7096",
+    "scripts/experiments/red2_cfg_pilot/prepare_verilator.py": "e3136b02efe0b0d68a31f01fa7b4a4aa97a07b6085fee2c315278c5224d8369b",
     "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
     "scripts/experiments/red2_cfg_pilot/publication_launches.py": "6e8d6b836b40ba4b3e037ef77a25489e53d2550f060681a0060578ab2254e6d3",
     "scripts/experiments/red2_cfg_pilot/publication_reads.py": "8818c82a83386a1d72cb7b5b6a00b13182cd596c4630b5f8ce7a930407233c0d",

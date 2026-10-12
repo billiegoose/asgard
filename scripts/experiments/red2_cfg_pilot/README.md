@@ -368,8 +368,9 @@ original enable and payload. Unique continuation launch writers carry all their
 source reset-bank effects, including both consumers of the equality event, in
 source order. This is an independent opt-in experiment with its own validation
 and mapping. The complete top maps to **21,057 LUTs**, saving another 2,948 and
-leaving 257 LUTs above the Basys 3 limit. All 14,400 typed comparisons and 507
-standalone physical witnesses pass; complete-top boundary checks continue.
+leaving 257 LUTs above the Basys 3 limit. All 14,400 typed comparisons, 507
+standalone and complete-top physical witnesses, and five-bank lifecycle checks
+pass.
 Results are recorded in the scalar-core results file.
 
 `RED2_CFG_PILOT_CONTROL_COMPACT=1` fuses a single-use temporary calculation with
@@ -379,15 +380,16 @@ packet/state effects and remaps every entry and branch target. Fourteen focused
 checks pass. The metadata candidate shrinks from 17,565 to 13,898 rows, halving
 the index-ROM depth, and passes 14,400 typed comparisons plus all 508 standalone
 physical witnesses. The complete top maps to **20,885 LUTs**, saving 172 and
-leaving 85 LUTs above the board limit. Complete-top boundary checks continue.
+leaving 85 LUTs above the board limit. All 508 complete-top boundary witnesses
+and five-bank lifecycle checks also pass.
 
 `RED2_CFG_PILOT_INTEGER_JOINS=1` additionally connects JOIN_PUBLISH and
 JOIN_EP_RESULT_WRITE under the existing `RED2_SYN_FLOAT=0` profile. Binary64
 unpack/domain helpers inline from the original AST with a checked compiler type
 factory. Raw FLOAT transport, predicates and EVEN? applicability remain intact.
 The typed oracle retains the original helper calls and unspecialized bodies.
-All 14,640 typed comparisons and 30 helper edge cases pass; physical, full-top
-and area checks continue. `check.py --integer-corners` adds mandatory signed
+All 14,640 typed comparisons and 30 helper edge cases pass.
+`check.py --integer-corners` adds mandatory signed
 boundary, overflow, predicate and FLOAT domain witnesses on a separate fixture
 copy of the identical hardware.
 
@@ -395,8 +397,9 @@ The integer JOIN top maps to **19,151 LUTs**, but is **not a usable fit
 candidate**: RTL replay diverges during addition at physical clock 9,817 and
 structure creation/access at 14,210. Verilator and Icarus independently reproduce
 the addition mismatch; function application passes all 10,703 clocks. All 527
-standalone and 152 mandatory native physical witnesses pass, and all 152
-mandatory complete-top witnesses plus accepted-write lifecycle checks pass.
+standalone and complete-top witnesses plus five-bank lifecycle checks pass.
+The separate mandatory corner suite passes all 152 standalone and complete-top
+witnesses plus accepted-write lifecycle checks, and 14,792 typed comparisons.
 This demonstrates why native comparisons alone are insufficient.
 
 The mismatch identifies a compiler register re-annotation bug: the surviving
@@ -406,9 +409,21 @@ of updating the register. The fix lives in fpgatool's
 `pypeline-register-reannotations.patch`, with scalar/struct native/VHDL regression
 coverage. A separate root recompiles byte-identical controller, complete top and
 oracle sources with the corrected compiler and reuses the concrete-checked
-public-port traces. Its RTL validation and exact-source area remeasurement are
-pending. The metadata and compact variants also finish all 507/508 complete-top
-boundary and five-bank lifecycle checks; their RTL parity is not established.
+public-port traces. The corrected top maps to **19,172 LUTs** (18,846 logic and
+326 LUTRAM), **8,095 FF**, **20 DSP48E1** and **34.5 BRAM36 equivalents**.
+That leaves **1,628 LUTs** below the Basys 3 limit. All 219 generated HDL files
+and mapping scripts match their recorded hashes; structural checks report zero
+problems and every mapped primitive is accounted for.
+
+The corrected RTL passes every public-port clock for addition (26,391), function
+application (10,703), structure creation/access (123,863), signed-boundary
+addition (26,391) and `(EVEN? -2)` (44,742): **232,090 clocks** in total.
+Independent Icarus replay also passes all 26,391 addition clocks. The same
+source/oracle/control and unchanged native runtime retain the 527 boundary and
+152 mandatory corner results above. This establishes a measured resource-fit
+candidate for the tested profile; it does not establish exhaustive ISA parity,
+board integration or routed timing. Historical pre-fix area results do not
+establish RTL correctness for those variants.
 
 `RED2_CFG_PILOT_TRACE=/absolute/new/vectors.txt check_integrated.py --program`
 records every public input/output clock for `RED2_CFG_PILOT_PROGRAM`. A complete
@@ -424,5 +439,6 @@ The end-to-end list-equality probe `(EQUAL? (CONS 7 NIL) (CONS 7 NIL))` faults
 at commit 41 (`hw=3`, microstate 3, PC 62) on both the continuation candidate
 and unchanged production hardware. This is an existing unsupported execution
 path, not a passing parity check. Simple addition and scalar equality complete
-before that probe; broad supported-program and RTL parity remain outstanding.
-None of these experiments establishes routed board timing or changes production.
+before that probe; broad supported-program parity remains outstanding.
+The experimental top remains separate from production source. The compiler
+correction is pinned project-wide; routed board timing remains unverified.

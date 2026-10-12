@@ -115,6 +115,7 @@ source = (
 obj = root / "obj"
 (root / "build.sh").write_text(
     "#!/usr/bin/env bash\nset -euo pipefail\n"
+    f"verilator --version > {shlex.quote(str(root / 'simulator-versions.txt'))}\n"
     "verilator --cc --exe -Wno-fatal --top-module replay_top "
     f"--Mdir {shlex.quote(str(obj))} "
     f"{shlex.quote(str(netlist))} {shlex.quote(str(root / 'wrapper.v'))} "
