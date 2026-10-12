@@ -75,3 +75,9 @@ Setup requires Git and Python's standard library. The existing `mise syn-check`
 task supplies the Python frontend dependencies; FPGA mapping still needs the
 external synthesis tools. Setup and `--frontend-only` do not establish FPGA fit
 or timing.
+
+A subsequent graph/control RAM write-data rewrite maps to **41,170 total LUTs**
+(40,852 logic plus 318 RAM), saving another 535 LUTs from the hardware profile.
+Addresses, write enables, all data bits and RED2 behavior are preserved. See
+[the bus measurement record](../../docs/handoffs/synth-red2-bus-area-results.json).
+The design still exceeds Basys 3 capacity; no routing/timing result is claimed.

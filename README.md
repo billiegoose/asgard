@@ -41,7 +41,7 @@ Compiler source requirements, patch fingerprints, and overrides are documented
 in [tools/pipelinec/README.md](tools/pipelinec/README.md).
 
 The hardware top defaults to `RED2_SYN_FLOAT=0`, omitting optional floating-point
-arithmetic. Its measured area is 41,705 LUTs; Basys 3 provides 20,800, so fitting
+arithmetic. Its measured area is 41,170 LUTs; Basys 3 provides 20,800, so fitting
 remains unfinished. Set `RED2_SYN_FLOAT=1` to include the existing floating-point
 module. The native `syn` CLI and full native parity suite retain floating-point
 support by default. The synthesis gate selects the matching profile checks.

@@ -1833,6 +1833,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         memory_req.wr_data = resume_word
         memory_req.wr_en = 1
 
+    # Mutually exclusive entry states select graph/control write data.
+    # Inactive RAM write data is zero; the original write enables and
+    # address selectors retain their exact arbitration.
+    clock_memory_req_data: red2_word_t = red2_word_t(lo=0, hi=0)
+    clock_control_req_data: red2_control_t = red2_control_t(lo=0, hi=0, tag_hi=0)
     if command_is_clock:
         # Keep these entry-microstate request selectors as sibling ifs. They are
         # mutually exclusive snapshots, and a deep elif tree makes PipelineC
@@ -1840,10 +1845,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_fetch:
             memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_execute:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             passive_forward: uint1_t = direction_is_forward and passive_opcode
             sym_forward: uint1_t = direction_is_forward and opcode_is_sym
             prim0_forward: uint1_t = direction_is_forward and opcode_is_prim0
-            prim0_nonhead_forward: uint1_t = prim0_forward and not fetched_head
+            prim0_nonhead_forward: uint1_t = prim0_forward and (not fetched_head)
             prim12_opcode_req: uint1_t = opcode_is_prim1 or opcode_is_prim2
             prim12_forward: uint1_t = direction_is_forward and prim12_opcode_req
             app_forward: uint1_t = direction_is_forward and opcode_is_app
@@ -1859,7 +1868,6 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             destination_before_frontier: uint1_t = frontier_gap_not_wrapped and frontier_gap_nonzero
             graph_layout_ok: uint1_t = fsp_in_range and free_space_in_range
             graph_layout_ok = graph_layout_ok and destination_before_frontier
-
             env_low_range: uint1_t = env[16:GRAPH_ADDR_BITS] == 0
             env_is_end: uint1_t = env == GRAPH_WORDS
             env_in_range: uint1_t = env_low_range or env_is_end
@@ -1867,29 +1875,24 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             control_top_is_end: uint1_t = control_top == CONTROL_WORDS
             control_top_in_range: uint1_t = control_top_low_range or control_top_is_end
             control_has_space: uint1_t = control_top_low_range
-
             can_push_passive: uint1_t = passive_forward and passive_kind_ok
             can_push_passive = can_push_passive and fetched_valid
             can_push_passive = can_push_passive and graph_layout_ok
-
             sym_payload_nonzero_req: uint1_t = fetched_word.lo != 0
             sym_forward_valid: uint1_t = sym_forward and kind_is_literal
             sym_forward_valid = sym_forward_valid and sym_payload_nonzero_req
             sym_forward_valid = sym_forward_valid and fetched_valid
             can_push_sym: uint1_t = sym_forward_valid and graph_layout_ok
-
             prim0_payload_nonzero_req: uint1_t = fetched_word.lo != 0
             prim0_forward_valid: uint1_t = prim0_nonhead_forward and kind_is_literal
             prim0_forward_valid = prim0_forward_valid and prim0_payload_nonzero_req
             prim0_forward_valid = prim0_forward_valid and fetched_valid
             can_push_prim0_nonhead: uint1_t = prim0_forward_valid and graph_layout_ok
-
             prim12_payload_nonzero_req: uint1_t = fetched_word.lo != 0
             prim12_forward_valid: uint1_t = prim12_forward and kind_is_literal
             prim12_forward_valid = prim12_forward_valid and prim12_payload_nonzero_req
             prim12_forward_valid = prim12_forward_valid and fetched_valid
             can_push_prim12: uint1_t = prim12_forward_valid and graph_layout_ok
-
             sym_reverse_req: uint1_t = direction_is_forward == 0
             sym_reverse_req = sym_reverse_req and opcode_is_sym
             sym_definition_req: uint1_t = fetched_word.hi[16]
@@ -1907,13 +1910,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             can_expand_sym: uint1_t = sym_expand_req and sym_pc_nonzero_req
             can_expand_sym = can_expand_sym and sym_control_top_valid_req
             can_expand_sym = can_expand_sym and sym_control_top_low_req
-
             can_push_app: uint1_t = app_forward and fetched_valid
             can_push_app = can_push_app and env_in_range
             can_push_app = can_push_app and control_top_in_range
             can_push_app = can_push_app and control_has_space
             can_push_app = can_push_app and graph_layout_ok
-
             ubv_forward: uint1_t = direction_is_forward and opcode_is_ubv
             can_push_ubv: uint1_t = ubv_forward and fetched_valid
             can_push_ubv = can_push_ubv and kind_is_signed
@@ -1921,35 +1922,44 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             phi_wide: uint64_t = phi
             ubv_payload: uint64_t = phi_wide - fetched_word.lo
             ubv_result: red2_word_t = red2_word_t(lo=ubv_payload, hi=112328704)
-
             write_original_graph_result: uint1_t = can_push_passive or can_push_app
             write_original_graph_result = write_original_graph_result or can_push_sym
             write_original_graph_result = write_original_graph_result or can_push_prim0_nonhead
             write_original_graph_result = write_original_graph_result or can_push_prim12
             if write_original_graph_result:
-                memory_req.addr = destination[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = fetched_word
+                memory_req.addr = destination[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = fetched_word
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
             if can_expand_sym:
                 sym_next_path_req: uint64_t = pc - 1
-                sym_app_hi_req: uint64_t = (fetched_word.hi & 131071) | 70451200
-                memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = red2_word_t(lo=sym_next_path_req, hi=sym_app_hi_req)
+                sym_app_hi_req: uint64_t = fetched_word.hi & 131071 | 70451200
+                memory_req.addr = pc[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = red2_word_t(lo=sym_next_path_req, hi=sym_app_hi_req)
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
             if can_push_ubv:
-                memory_req.addr = destination[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = ubv_result
+                memory_req.addr = destination[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = ubv_result
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
             if can_push_app:
-                control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-                control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=1)
+                control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+                state_control_req_data = red2_control_t(lo=env, hi=0, tag_hi=1)
                 control_req.wr_en = 1
+                state_control_req_enable = 1
             if can_expand_sym:
-                control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-                control_req.wr_data = red2_control_t(
-                    lo=env, hi=0, tag_hi=CONTROL_SAVED_DEFINITION_PATH
-                )
+                control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+                state_control_req_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_SAVED_DEFINITION_PATH)
                 control_req.wr_en = 1
+                state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_rup_validate_rec:
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
@@ -1976,35 +1986,60 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             rup_req_source17: uint17_t = rup_block + rup_req_source_offset
             memory_req.addr = rup_req_source17[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_rup_write_context:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
             rup_req_stride64 = rup_req_stride64 + rup_req_index64
             rup_req_context64: uint64_t = rup_req_env64 + rup_req_stride64 + 1
             rup_req_env_payload: uint64_t = env
-            memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=rup_req_env_payload, hi=67239936)
+            memory_req.addr = rup_req_context64[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=rup_req_env_payload, hi=67239936)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_rup_write_block:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             rup_req_index64: uint64_t = rup_index
             rup_req_env64: uint64_t = env
             rup_req_stride64: uint64_t = rup_req_index64 + rup_req_index64
             rup_req_stride64 = rup_req_stride64 + rup_req_index64
             rup_req_block_slot64: uint64_t = rup_req_env64 + rup_req_stride64 + 2
             rup_req_block_payload: uint64_t = rup_block
-            memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=rup_req_block_payload, hi=67239936)
+            memory_req.addr = rup_req_block_slot64[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=rup_req_block_payload, hi=67239936)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_rup_zero_push:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             rup_req_env_payload: uint64_t = env
-            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=rup_req_env_payload, hi=0, tag_hi=CONTROL_ADDRESS)
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=rup_req_env_payload, hi=0, tag_hi=CONTROL_ADDRESS)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_rup_zero_result:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             rup_req_result_destination: uint17_t = fsp + 1
-            memory_req.addr = rup_req_result_destination[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = fetched_word
+            memory_req.addr = rup_req_result_destination[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = fetched_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_validate_rec:
             memory_req.addr = fetched_word.lo[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_recp_validate_context:
@@ -2014,132 +2049,207 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             recp_block_address_req: uint17_t = fetched_word.lo[16:0] + 2
             memory_req.addr = recp_block_address_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_recp_action:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             recp_action_forward: uint1_t = direction == DIRECTION_FORWARD
             if recp_action_forward:
                 if fetched_word.hi[20]:
                     recp_context_payload_req: uint64_t = recp_context
                     recp_marker_address_req: uint17_t = free_space - 1
-                    memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=recp_context_payload_req, hi=113377280)
+                    memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=recp_context_payload_req, hi=113377280)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 else:
                     recp_result_destination_req: uint17_t = fsp + 1
-                    memory_req.addr = recp_result_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = fetched_word
+                    memory_req.addr = recp_result_destination_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = fetched_word
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
             else:
                 recp_binding_payload_req: uint64_t = recp_binding
-                memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = red2_word_t(lo=recp_binding_payload_req, hi=69337088)
+                memory_req.addr = pc[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = red2_word_t(lo=recp_binding_payload_req, hi=69337088)
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
                 recp_context_payload_req: uint64_t = recp_context
-                control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-                control_req.wr_data = red2_control_t(
-                    lo=recp_context_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
-                )
+                control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+                state_control_req_data = red2_control_t(lo=recp_context_payload_req, hi=0, tag_hi=CONTROL_ADDRESS)
                 control_req.wr_en = 1
+                state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_recp_recon_scan:
             recp_scan_count64_req: uint64_t = recp_count
             recp_scan_address64_req: uint64_t = recp_block + recp_scan_count64_req
             memory_req.addr = recp_scan_address64_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_recp_recon_marker:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_parent_payload_req: uint64_t = recp_parent_environment
             recp_marker_address_req: uint17_t = free_space - 1
-            memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=recp_parent_payload_req, hi=113377280)
+            memory_req.addr = recp_marker_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=recp_parent_payload_req, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_recon_ubv:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_ubv_address_req: uint17_t = free_space - 1
             recp_ubv_payload_req: uint64_t = phi + 1
-            memory_req.addr = recp_ubv_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=recp_ubv_payload_req, hi=109182976)
+            memory_req.addr = recp_ubv_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=recp_ubv_payload_req, hi=109182976)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_recon_copy_read:
             recp_copy_index64_req: uint64_t = recp_index
             recp_copy_source64_req: uint64_t = recp_block + recp_copy_index64_req
             memory_req.addr = recp_copy_source64_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_recp_recon_copy_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_copy_destination_req: uint17_t = fsp + 1
-            memory_req.addr = recp_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = recp_copy_word
+            memory_req.addr = recp_copy_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = recp_copy_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_recon_path:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             recp_replacement_payload_req: uint64_t = recp_replacement
-            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(
-                lo=recp_replacement_payload_req, hi=0, tag_hi=CONTROL_ADDRESS
-            )
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=recp_replacement_payload_req, hi=0, tag_hi=CONTROL_ADDRESS)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_recp_recon_rup_read:
             recp_rup_count64_req: uint64_t = recp_count
             recp_rup_address64_req: uint64_t = recp_block + recp_rup_count64_req
             memory_req.addr = recp_rup_address64_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_recp_recon_rup_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_rup_destination_req: uint17_t = fsp + 1
-            memory_req.addr = recp_rup_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = recp_rup_word
+            memory_req.addr = recp_rup_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = recp_rup_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_recon_var_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_var_destination_req: uint17_t = fsp + 1
             recp_selected_payload_req: uint64_t = recp_selected
-            memory_req.addr = recp_var_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=recp_selected_payload_req, hi=112328704)
+            memory_req.addr = recp_var_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=recp_selected_payload_req, hi=112328704)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_reverse_bridge:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_reverse_parent_wide_req: uint64_t = recp_reverse_parent_env
-            memory_req.addr = recp_reverse_entry_env[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=recp_reverse_parent_wide_req, hi=113377280)
+            memory_req.addr = recp_reverse_entry_env[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=recp_reverse_parent_wide_req, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_recp_reverse_frame:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             recp_reverse_frame_env_wide_req: uint64_t = recp_reverse_entry_env
-            recp_reverse_frame_lo_req: uint64_t = (
-                recp_reverse_frame_env_wide_req | (recp_reverse_frame_env_wide_req << 32)
-            )
+            recp_reverse_frame_lo_req: uint64_t = recp_reverse_frame_env_wide_req | recp_reverse_frame_env_wide_req << 32
             recp_reverse_frame_prim_req: uint64_t = prim_id
             recp_reverse_frame_fire_req: uint64_t = fire
-            recp_reverse_frame_hi_req: uint64_t = (
-                recp_reverse_frame_prim_req | (recp_reverse_frame_fire_req << 32)
-            )
-            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(
-                lo=recp_reverse_frame_lo_req,
-                hi=recp_reverse_frame_hi_req,
-                tag_hi=CONTROL_SUBGRAPH,
-            )
+            recp_reverse_frame_hi_req: uint64_t = recp_reverse_frame_prim_req | recp_reverse_frame_fire_req << 32
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=recp_reverse_frame_lo_req, hi=recp_reverse_frame_hi_req, tag_hi=CONTROL_SUBGRAPH)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_recp_reverse_join:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             recp_reverse_join_address_req: uint17_t = fsp + 1
             recp_reverse_parent_pc_wide_req: uint64_t = pc
             recp_reverse_join_hi_req: uint64_t = 77725696
             if fire != 0:
                 recp_reverse_join_hi_req = 78315521
-            memory_req.addr = recp_reverse_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(
-                lo=recp_reverse_parent_pc_wide_req, hi=recp_reverse_join_hi_req
-            )
+            memory_req.addr = recp_reverse_join_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=recp_reverse_parent_pc_wide_req, hi=recp_reverse_join_hi_req)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_struct_result_read:
             memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
             struct_control_address_req: uint17_t = control_top - 1
             control_req.addr = struct_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_struct_recon_saved_q:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             struct_recon_destination_req: uint17_t = fsp + 1
-            memory_req.addr = struct_recon_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = fetched_word
+            memory_req.addr = struct_recon_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = fetched_word
             memory_req.wr_en = 1
-            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(
-                lo=q, hi=0, tag_hi=CONTROL_SAVED_QUANTUM
-            )
+            state_memory_req_enable = 1
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=q, hi=0, tag_hi=CONTROL_SAVED_QUANTUM)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_struct_reverse_control_read:
             struct_saved_q_address_req: uint17_t = control_top - 1
             control_req.addr = struct_saved_q_address_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_struct_reverse_pop:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             struct_saved_q_pop_address_req: uint17_t = control_top - 1
-            control_req.addr = struct_saved_q_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.addr = struct_saved_q_pop_address_req[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_struct_selector_root_read:
             memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_descriptor_read:
@@ -2152,71 +2262,68 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             selector_copy_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
             memory_req.addr = selector_copy_source_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_copy_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             if struct_cons_active:
                 cons_write_address: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
                 if struct_selector_copy_index == 4:
                     cons_write_address = struct_selector_source
-                memory_req.addr = cons_write_address[GRAPH_ADDR_BITS - 1 : 0]
+                memory_req.addr = cons_write_address[GRAPH_ADDR_BITS - 1:0]
                 if struct_selector_copy_index == 0:
-                    memory_req.wr_data = red2_word_t(
-                        lo=struct_selector_tag_id, hi=98959360
-                    )
+                    state_memory_req_data = red2_word_t(lo=struct_selector_tag_id, hi=98959360)
                 elif struct_selector_copy_index == 1:
                     cons_right_root_req: uint64_t = join_result_address
-                    memory_req.wr_data = red2_word_t(
-                        lo=cons_right_root_req, hi=69337088
-                    )
+                    state_memory_req_data = red2_word_t(lo=cons_right_root_req, hi=69337088)
                 elif struct_selector_copy_index == 2:
                     cons_left_opcode_req: uint5_t = struct_selector_copy_word.hi[25:21]
                     if cons_left_opcode_req == MOP_APP:
-                        memory_req.wr_data = red2_word_t(
-                            lo=struct_selector_copy_word.lo, hi=69337088
-                        )
+                        state_memory_req_data = red2_word_t(lo=struct_selector_copy_word.lo, hi=69337088)
                     elif cons_left_opcode_req == MOP_APP_VAR:
                         cons_left_index_req: uint64_t = struct_selector_copy_word.lo + 1
-                        memory_req.wr_data = red2_word_t(
-                            lo=cons_left_index_req, hi=71434240
-                        )
+                        state_memory_req_data = red2_word_t(lo=cons_left_index_req, hi=71434240)
                     else:
                         cons_left_root_req: uint64_t = struct_selector_source
-                        memory_req.wr_data = red2_word_t(
-                            lo=cons_left_root_req, hi=69337088
-                        )
+                        state_memory_req_data = red2_word_t(lo=cons_left_root_req, hi=69337088)
                 elif struct_selector_copy_index == 3:
-                    memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+                    state_memory_req_data = red2_word_t(lo=0, hi=112328704)
                 else:
-                    cons_left_head_hi_req: uint64_t = (
-                        struct_selector_copy_word.hi & 132644863
-                    ) | 1048576
-                    memory_req.wr_data = red2_word_t(
-                        lo=struct_selector_copy_word.lo, hi=cons_left_head_hi_req
-                    )
+                    cons_left_head_hi_req: uint64_t = struct_selector_copy_word.hi & 132644863 | 1048576
+                    state_memory_req_data = red2_word_t(lo=struct_selector_copy_word.lo, hi=cons_left_head_hi_req)
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
             else:
                 selector_copy_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
-                memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1 : 0]
+                memory_req.addr = selector_copy_destination_req[GRAPH_ADDR_BITS - 1:0]
                 selector_copy_is_last_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
                 if selector_copy_is_last_req:
-                    memory_req.wr_data = red2_word_t(lo=0, hi=112328704)
+                    state_memory_req_data = red2_word_t(lo=0, hi=112328704)
                 else:
-                    memory_req.wr_data = struct_selector_copy_word
+                    state_memory_req_data = struct_selector_copy_word
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_struct_selector_promote_scan:
             memory_req.addr = struct_selector_copy_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_promote_read:
             selector_promote_source_req: uint17_t = struct_selector_source + struct_selector_copy_index
             memory_req.addr = selector_promote_source_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_promote_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             selector_promote_destination_req: uint17_t = struct_selector_copy_destination + struct_selector_copy_index
             selector_promote_at_body_req: uint1_t = struct_selector_copy_index == struct_selector_copy_count - 1
             selector_promote_hi_req: uint64_t = struct_selector_copy_word.hi & 132644863
             if selector_promote_at_body_req:
                 selector_promote_hi_req = selector_promote_hi_req | 1048576
-            memory_req.addr = selector_promote_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(
-                lo=struct_selector_copy_word.lo, hi=selector_promote_hi_req
-            )
+            memory_req.addr = selector_promote_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=struct_selector_copy_word.lo, hi=selector_promote_hi_req)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_struct_selector_promote_generic:
             if promote_task_is_app_scan:
                 memory_req.addr = promote_task_a[GRAPH_ADDR_BITS - 1 : 0]
@@ -2226,10 +2333,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             elif promote_task_is_pointer_done:
                 memory_req.addr = promote_pub_value[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_struct_selector_promote_generic_write:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             promote_publish_destination_req: uint17_t = struct_selector_copy_destination + promote_write_index
-            memory_req.addr = promote_publish_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = promote_write_word
+            memory_req.addr = promote_publish_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = promote_write_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lookup_read:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_lookup_closure_code_read:
@@ -2238,6 +2351,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_lookup_var_ep_chase:
             memory_req.addr = lookup_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_lookup_publish:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             lookup_fsp_in_range: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
             lookup_free_low: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
             lookup_free_end: uint1_t = free_space == GRAPH_WORDS
@@ -2252,74 +2369,135 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             lookup_graph_ok = lookup_graph_ok and lookup_before_frontier
             lookup_control_low: uint1_t = control_top[16:CONTROL_ADDR_BITS] == 0
             if lookup_graph_ok and (not lookup_push_control or lookup_control_low):
-                memory_req.addr = lookup_destination[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = lookup_word
+                memory_req.addr = lookup_destination[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = lookup_word
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
                 if lookup_push_control:
-                    control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
+                    control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_lambda_read:
             memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_lambda_push:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_destination: uint17_t = fsp + 1
-            memory_req.addr = lambda_destination[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = fetched_word
+            memory_req.addr = lambda_destination[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = fetched_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_env_bridge:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_env_parent_wide: uint64_t = env
             lambda_env_bridge_address: uint17_t = free_space - 1
-            memory_req.addr = lambda_env_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=lambda_env_parent_wide, hi=113377280)
+            memory_req.addr = lambda_env_bridge_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=lambda_env_parent_wide, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_env_binding:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_env_needs_bridge_req: uint1_t = free_space != env
             lambda_env_count_req: uint17_t = 1
             if lambda_env_needs_bridge_req:
                 lambda_env_count_req = 2
             lambda_env_base_req: uint17_t = free_space - lambda_env_count_req
             lambda_phi_wide: uint64_t = phi
-            memory_req.addr = lambda_env_base_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=lambda_phi_wide, hi=109182976)
+            memory_req.addr = lambda_env_base_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=lambda_phi_wide, hi=109182976)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_beta_bridge:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_beta_parent_wide: uint64_t = env
             lambda_beta_bridge_address: uint17_t = free_space - 1
-            memory_req.addr = lambda_beta_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=lambda_beta_parent_wide, hi=113377280)
+            memory_req.addr = lambda_beta_bridge_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=lambda_beta_parent_wide, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_beta_binding:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_beta_needs_bridge_req: uint1_t = free_space != env
             lambda_beta_count_req: uint17_t = 1
             if lambda_beta_needs_bridge_req:
                 lambda_beta_count_req = 2
             lambda_beta_base_req: uint17_t = free_space - lambda_beta_count_req
-            memory_req.addr = lambda_beta_base_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = lambda_word
+            memory_req.addr = lambda_beta_base_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = lambda_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_ep_control_read:
             lambda_ep_control_address: uint17_t = control_top - 1
             control_req.addr = lambda_ep_control_address[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_lambda_ep_control_pop:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             lambda_ep_control_pop_address: uint17_t = control_top - 1
-            control_req.addr = lambda_ep_control_pop_address[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.addr = lambda_ep_control_pop_address[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_lambda_app_control_read:
             lambda_app_control_address: uint17_t = control_top - 1
             control_req.addr = lambda_app_control_address[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_lambda_app_control_pop:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             lambda_app_control_pop_address: uint17_t = control_top - 1
-            control_req.addr = lambda_app_control_pop_address[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.addr = lambda_app_control_pop_address[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_lambda_app_bridge:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_app_parent_wide: uint64_t = env
             lambda_app_bridge_address: uint17_t = free_space - 1
-            memory_req.addr = lambda_app_bridge_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=lambda_app_parent_wide, hi=113377280)
+            memory_req.addr = lambda_app_bridge_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=lambda_app_parent_wide, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_app_closure:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_app_needs_bridge_req: uint1_t = free_space != env
             lambda_app_count_req: uint17_t = 2
             if app_rblock_active:
@@ -2327,15 +2505,21 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             if lambda_app_needs_bridge_req:
                 lambda_app_count_req = lambda_app_count_req + 1
             lambda_app_base_req: uint17_t = free_space - lambda_app_count_req
-            memory_req.addr = lambda_app_base_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.addr = lambda_app_base_req[GRAPH_ADDR_BITS - 1:0]
             if app_rblock_active:
                 rblock_binding_plus_one_req: uint64_t = fetched_word.lo + 1
-                memory_req.wr_data = red2_word_t(lo=rblock_binding_plus_one_req, hi=107085824)
+                state_memory_req_data = red2_word_t(lo=rblock_binding_plus_one_req, hi=107085824)
             else:
                 lambda_app_path_wide: uint64_t = lambda_path
-                memory_req.wr_data = red2_word_t(lo=lambda_app_path_wide, hi=73531392)
+                state_memory_req_data = red2_word_t(lo=lambda_app_path_wide, hi=73531392)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_lambda_app_pointer:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             lambda_app_needs_bridge_pointer: uint1_t = free_space != env
             lambda_app_count_pointer: uint17_t = 2
             if app_rblock_active:
@@ -2348,97 +2532,154 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 rblock_second_none_req: uint1_t = lambda_path != 0
                 if rblock_second_none_req:
                     lambda_app_pointer_address = lambda_app_base_pointer + 2
-            memory_req.addr = lambda_app_pointer_address[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.addr = lambda_app_pointer_address[GRAPH_ADDR_BITS - 1:0]
             if app_rblock_active:
-                memory_req.wr_data = red2_word_t(lo=0, hi=67108864)
+                state_memory_req_data = red2_word_t(lo=0, hi=67108864)
             else:
-                memory_req.wr_data = lambda_word
+                state_memory_req_data = lambda_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_app_control_read:
             app_control_address_req: uint17_t = control_top - 1
             control_req.addr = app_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_app_bridge:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             app_parent_env_wide: uint64_t = app_parent_env
-            memory_req.addr = app_entry_env[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=app_parent_env_wide, hi=113377280)
+            memory_req.addr = app_entry_env[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=app_parent_env_wide, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_app_frame:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             app_frame_address_req: uint17_t = control_top - 1
             app_frame_env_wide: uint64_t = app_entry_env
-            app_frame_lo: uint64_t = app_frame_env_wide | (app_frame_env_wide << 32)
+            app_frame_lo: uint64_t = app_frame_env_wide | app_frame_env_wide << 32
             app_frame_prim_wide: uint64_t = prim_id
             app_frame_fire_wide: uint64_t = fire
-            app_frame_hi: uint64_t = app_frame_prim_wide | (app_frame_fire_wide << 32)
-            control_req.addr = app_frame_address_req[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(
-                lo=app_frame_lo,
-                hi=app_frame_hi,
-                tag_hi=CONTROL_SUBGRAPH,
-            )
+            app_frame_hi: uint64_t = app_frame_prim_wide | app_frame_fire_wide << 32
+            control_req.addr = app_frame_address_req[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=app_frame_lo, hi=app_frame_hi, tag_hi=CONTROL_SUBGRAPH)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_app_join:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             app_join_address_req: uint17_t = fsp + 1
             app_parent_pc_wide: uint64_t = app_parent_pc
             app_join_hi: uint64_t = 77725696
             app_saved_fire_active: uint1_t = fire != 0
             if app_saved_fire_active:
-                # Saved-primitive JOIN is encoded solely by definition_valid=1,
-                # definition=1.  closure_slot remains clear, matching Concrete
-                # _enter_subgraph() for both ordinary and selector continuations.
                 app_join_hi = 77791233
-            memory_req.addr = app_join_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=app_parent_pc_wide, hi=app_join_hi)
+            memory_req.addr = app_join_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=app_parent_pc_wide, hi=app_join_hi)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_closure_read:
             closure_code_address_req: uint17_t = pc + 1
             memory_req.addr = closure_code_address_req[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_closure_marker:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             closure_marker_address_req: uint17_t = free_space - 1
-            memory_req.addr = closure_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=fetched_word.lo, hi=113377280)
+            memory_req.addr = closure_marker_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=fetched_word.lo, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_ep_chase:
             memory_req.addr = ep_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_ep_forward_publish:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             ep_destination_req: uint17_t = fsp + 1
-            memory_req.addr = ep_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = fetched_word
+            memory_req.addr = ep_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = fetched_word
             memory_req.wr_en = 1
-            control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
+            state_memory_req_enable = 1
+            control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_ep_reverse_control_read:
             ep_reverse_control_address_req: uint17_t = control_top - 1
             control_req.addr = ep_reverse_control_address_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_ep_reverse_marker:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             ep_reverse_marker_address_req: uint17_t = free_space - 1
             ep_reverse_caller_wide: uint64_t = ep_caller_path
-            memory_req.addr = ep_reverse_marker_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=ep_reverse_caller_wide, hi=113377280)
+            memory_req.addr = ep_reverse_marker_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = red2_word_t(lo=ep_reverse_caller_wide, hi=113377280)
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_ep_reverse_publish:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             if stop_cleanup_active:
                 stop_cleanup_pop_address_req: uint17_t = control_top - 1
-                control_req.addr = stop_cleanup_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
-                control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                control_req.addr = stop_cleanup_pop_address_req[CONTROL_ADDR_BITS - 1:0]
+                state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                 control_req.wr_en = 1
+                state_control_req_enable = 1
             elif app_definition_active:
-                memory_req.addr = app_parent_pc[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = red2_word_t(lo=0, hi=81788928)
+                memory_req.addr = app_parent_pc[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = red2_word_t(lo=0, hi=81788928)
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
                 if app_definition_pop_saved:
                     app_definition_pop_address_req: uint17_t = control_top - 1
-                    control_req.addr = app_definition_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                    control_req.addr = app_definition_pop_address_req[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
             else:
-                memory_req.addr = pc[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = ep_publish_word
+                memory_req.addr = pc[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = ep_publish_word
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
                 ep_reverse_pop_address_req: uint17_t = control_top - 1
-                control_req.addr = ep_reverse_pop_address_req[CONTROL_ADDR_BITS - 1 : 0]
-                control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                control_req.addr = ep_reverse_pop_address_req[CONTROL_ADDR_BITS - 1:0]
+                state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                 control_req.wr_en = 1
+                state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_recp_rblock_scan:
             memory_req.addr = join_recp_rblock_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_recp_rblock_binding_read:
@@ -2454,9 +2695,15 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_join_struct_preflight_ep_chase or micro_is_join_struct_rewrite_ep_chase:
             memory_req.addr = join_struct_ep_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_struct_rewrite_write:
-            memory_req.addr = join_struct_descriptor_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_struct_rewrite_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_struct_descriptor_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_struct_rewrite_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_parent_read:
             memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_target_read:
@@ -2467,142 +2714,164 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_join_tail_read:
             memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_scalar_left_read:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             if equality_continue_active:
                 if equality_continue_phase == 0:
-                    memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = join_result_address[GRAPH_ADDR_BITS - 1:0]
                 elif equality_continue_phase == 1:
                     equality_continue_eq_frame_req: uint17_t = join_frame_index - 1
-                    control_req.addr = equality_continue_eq_frame_req[CONTROL_ADDR_BITS - 1 : 0]
+                    control_req.addr = equality_continue_eq_frame_req[CONTROL_ADDR_BITS - 1:0]
                 elif equality_continue_phase == 2:
                     equality_continue_saved_q_req: uint17_t = join_frame_index - 2
-                    control_req.addr = equality_continue_saved_q_req[CONTROL_ADDR_BITS - 1 : 0]
+                    control_req.addr = equality_continue_saved_q_req[CONTROL_ADDR_BITS - 1:0]
                 elif equality_continue_phase == 3:
-                    memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_continue_child_id, hi=90570752)
+                    memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_continue_child_id, hi=90570752)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 elif equality_continue_phase == 4:
-                    memory_req.addr = equality_continue_result_pc[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_continue_child_id, hi=91619328)
+                    memory_req.addr = equality_continue_result_pc[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_continue_child_id, hi=91619328)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 elif equality_continue_phase == 5:
-                    control_req.addr = join_frame_index[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                    control_req.addr = join_frame_index[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
                 elif equality_continue_phase == 6:
                     equality_continue_eq_clear_req: uint17_t = join_frame_index - 1
-                    control_req.addr = equality_continue_eq_clear_req[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                    control_req.addr = equality_continue_eq_clear_req[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
                 elif equality_continue_phase == 7:
                     equality_continue_q_clear_req: uint17_t = join_frame_index - 2
-                    control_req.addr = equality_continue_q_clear_req[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                    control_req.addr = equality_continue_q_clear_req[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
             elif equality_child_active:
                 if equality_child_phase == 0:
-                    memory_req.addr = equality_child_task_root[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_task_root[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 1:
                     equality_child_right_field_req: uint17_t = equality_child_task_root + 1
-                    memory_req.addr = equality_child_right_field_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_right_field_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 2:
                     equality_child_lambda_field_req: uint17_t = equality_child_task_root + 2
-                    memory_req.addr = equality_child_lambda_field_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_lambda_field_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 3:
                     equality_child_descriptor_field_req: uint17_t = equality_child_task_root + 3
-                    memory_req.addr = equality_child_descriptor_field_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_descriptor_field_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 4:
-                    memory_req.addr = equality_child_join_address[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_join_address[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 5:
-                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 6:
-                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 7:
-                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 8:
-                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 10:
                     equality_child_result_addr_req: uint17_t = equality_child_join_address + 1
-                    memory_req.addr = equality_child_result_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = join_publish_word
+                    memory_req.addr = equality_child_result_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = join_publish_word
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 11:
                     equality_child_left_code_addr_req: uint17_t = equality_child_left + 1
-                    memory_req.addr = equality_child_left_code_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_left_code_addr_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 12:
                     equality_child_right_code_addr_req: uint17_t = equality_child_right + 1
-                    memory_req.addr = equality_child_right_code_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_right_code_addr_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 13:
-                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_left[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 14:
-                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_right[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 15:
-                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_left, hi=84017152)
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_left, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 16:
                     equality_child_build_addr16: uint17_t = equality_child_build_cursor + 1
-                    memory_req.addr = equality_child_build_addr16[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_right, hi=84017152)
+                    memory_req.addr = equality_child_build_addr16[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_right, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 17:
                     equality_child_build_addr17: uint17_t = equality_child_build_cursor + 2
-                    memory_req.addr = equality_child_build_addr17[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_lambdas, hi=84017152)
+                    memory_req.addr = equality_child_build_addr17[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_lambdas, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 18:
                     equality_child_build_addr18: uint17_t = equality_child_build_cursor + 3
-                    memory_req.addr = equality_child_build_addr18[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_build_descriptor, hi=84017152)
+                    memory_req.addr = equality_child_build_addr18[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_build_descriptor, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 19:
                     equality_child_build_addr19: uint17_t = equality_child_build_cursor + 4
-                    memory_req.addr = equality_child_build_addr19[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=join_equal_star_literal_id, hi=93716480)
+                    memory_req.addr = equality_child_build_addr19[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=join_equal_star_literal_id, hi=93716480)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 20:
-                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=join_true_literal_id, hi=91619328)
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=join_true_literal_id, hi=91619328)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 21:
                     equality_child_build_addr21: uint17_t = equality_child_build_cursor + 1
-                    memory_req.addr = equality_child_build_addr21[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=join_false_literal_id, hi=91619328)
+                    memory_req.addr = equality_child_build_addr21[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=join_false_literal_id, hi=91619328)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 22:
-                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_build_false_root, hi=69337088)
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_build_false_root, hi=69337088)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 23:
                     equality_child_build_addr23: uint17_t = equality_child_build_cursor + 1
-                    memory_req.addr = equality_child_build_addr23[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_build_root, hi=69337088)
+                    memory_req.addr = equality_child_build_addr23[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_build_root, hi=69337088)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 24:
                     equality_child_build_addr24: uint17_t = equality_child_build_cursor + 2
-                    memory_req.addr = equality_child_build_addr24[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_child_build_if_child_root, hi=69337088)
+                    memory_req.addr = equality_child_build_addr24[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_child_build_if_child_root, hi=69337088)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 25:
                     equality_child_build_addr25: uint17_t = equality_child_build_cursor + 3
-                    memory_req.addr = equality_child_build_addr25[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=join_equal_if_literal_id, hi=93716480)
+                    memory_req.addr = equality_child_build_addr25[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=join_equal_if_literal_id, hi=93716480)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 26:
-                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = equality_child_build_join_word
+                    memory_req.addr = equality_child_build_cursor[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = equality_child_build_join_word
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_child_phase == 27:
                     equality_child_struct_left_cursor_req: uint64_t = equality_child_struct_left_base + equality_child_struct_left_count
-                    memory_req.addr = equality_child_struct_left_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_struct_left_cursor_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 28:
                     equality_child_struct_right_cursor_req: uint64_t = equality_child_struct_right_base + equality_child_struct_right_count
-                    memory_req.addr = equality_child_struct_right_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_struct_right_cursor_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 30:
                     equality_child_app_left_cursor_req: uint64_t = equality_child_struct_left_base + equality_child_struct_left_count
-                    memory_req.addr = equality_child_app_left_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_app_left_cursor_req[GRAPH_ADDR_BITS - 1:0]
                 if equality_child_phase == 31:
                     equality_child_app_right_cursor_req: uint64_t = equality_child_struct_right_base + equality_child_struct_right_count
-                    memory_req.addr = equality_child_app_right_cursor_req[GRAPH_ADDR_BITS - 1 : 0]
+                    memory_req.addr = equality_child_app_right_cursor_req[GRAPH_ADDR_BITS - 1:0]
             elif equality_launch_active:
                 equality_launch_control_limit_req: uint17_t = join_frame_index + 3
                 equality_launch_live17_req: uint17_t = equality_launch_live_fsp
@@ -2611,125 +2880,142 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 if equality_launch_phase == 0:
                     if equality_launch_clear_remaining != 0:
                         equality_launch_clear_address_req: uint17_t = equality_launch_clear_index - 1
-                        control_req.addr = equality_launch_clear_address_req[CONTROL_ADDR_BITS - 1 : 0]
-                        control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                        control_req.addr = equality_launch_clear_address_req[CONTROL_ADDR_BITS - 1:0]
+                        state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
                         control_req.wr_en = 1
+                        state_control_req_enable = 1
                 if equality_launch_phase == 1:
                     equality_launch_saved_q_req: uint64_t = q - 1
-                    control_req.addr = join_frame_index[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(
-                        lo=equality_launch_saved_q_req, hi=0, tag_hi=CONTROL_SAVED_QUANTUM
-                    )
+                    control_req.addr = join_frame_index[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=equality_launch_saved_q_req, hi=0, tag_hi=CONTROL_SAVED_QUANTUM)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
                 if equality_launch_phase == 2:
                     equality_launch_result_wide_req: uint64_t = join_parent_address
                     equality_launch_live_wide_req: uint64_t = equality_launch_live_fsp
-                    equality_launch_frame_lo_req: uint64_t = (
-                        equality_launch_result_wide_req | (equality_launch_live_wide_req << 32)
-                    )
+                    equality_launch_frame_lo_req: uint64_t = equality_launch_result_wide_req | equality_launch_live_wide_req << 32
                     equality_launch_eq_frame_addr_req: uint17_t = join_frame_index + 1
-                    control_req.addr = equality_launch_eq_frame_addr_req[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(
-                        lo=equality_launch_frame_lo_req, hi=0, tag_hi=CONTROL_EQUALITY
-                    )
+                    control_req.addr = equality_launch_eq_frame_addr_req[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=equality_launch_frame_lo_req, hi=0, tag_hi=CONTROL_EQUALITY)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
                 if equality_launch_phase == 3:
                     equality_launch_env_wide_req: uint64_t = equality_launch_normalized_env
-                    equality_launch_subgraph_lo_req: uint64_t = (
-                        equality_launch_env_wide_req | (equality_launch_env_wide_req << 32)
-                    )
+                    equality_launch_subgraph_lo_req: uint64_t = equality_launch_env_wide_req | equality_launch_env_wide_req << 32
                     equality_launch_cont_wide_req: uint64_t = join_equality_continue_literal_id
-                    equality_launch_subgraph_hi_req: uint64_t = (
-                        equality_launch_cont_wide_req | (1 << 32)
-                    )
+                    equality_launch_subgraph_hi_req: uint64_t = equality_launch_cont_wide_req | 1 << 32
                     equality_launch_subgraph_addr_req: uint17_t = join_frame_index + 2
-                    control_req.addr = equality_launch_subgraph_addr_req[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(
-                        lo=equality_launch_subgraph_lo_req,
-                        hi=equality_launch_subgraph_hi_req,
-                        tag_hi=CONTROL_SUBGRAPH,
-                    )
+                    control_req.addr = equality_launch_subgraph_addr_req[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=equality_launch_subgraph_lo_req, hi=equality_launch_subgraph_hi_req, tag_hi=CONTROL_SUBGRAPH)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
                 if equality_launch_phase == 4:
-                    memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = join_publish_word
+                    memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = join_publish_word
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 5:
                     equality_launch_left_payload_req: uint64_t = join_parent_address + 1
-                    memory_req.addr = equality_launch_task_root[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_left_payload_req, hi=84017152)
+                    memory_req.addr = equality_launch_task_root[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_left_payload_req, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 6:
                     equality_launch_right_addr_req: uint17_t = equality_launch_task_root + 1
                     equality_launch_right_payload_req: uint64_t = join_parent_address
-                    memory_req.addr = equality_launch_right_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_right_payload_req, hi=84017152)
+                    memory_req.addr = equality_launch_right_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_right_payload_req, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 7:
                     equality_launch_lambda_addr_req: uint17_t = equality_launch_task_root + 2
-                    memory_req.addr = equality_launch_lambda_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=0, hi=84017152)
+                    memory_req.addr = equality_launch_lambda_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=0, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 8:
                     equality_launch_descriptor_addr_req: uint17_t = equality_launch_task_root + 3
-                    memory_req.addr = equality_launch_descriptor_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=1, hi=84017152)
+                    memory_req.addr = equality_launch_descriptor_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=1, hi=84017152)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 9:
                     equality_launch_primitive_addr_req: uint17_t = equality_launch_task_root + 4
                     equality_launch_star_wide_req: uint64_t = join_equal_star_literal_id
-                    memory_req.addr = equality_launch_primitive_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_star_wide_req, hi=93716480)
+                    memory_req.addr = equality_launch_primitive_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_star_wide_req, hi=93716480)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 10:
                     equality_launch_parent_addr_req: uint17_t = equality_launch_task_root + 5
                     equality_launch_task_wide_req: uint64_t = equality_launch_task_root
-                    memory_req.addr = equality_launch_parent_addr_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_task_wide_req, hi=69337088)
+                    memory_req.addr = equality_launch_parent_addr_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_task_wide_req, hi=69337088)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 11:
                     equality_launch_join_parent_wide_req: uint64_t = equality_launch_parent_req
-                    memory_req.addr = equality_launch_join_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_join_parent_wide_req, hi=77791233)
+                    memory_req.addr = equality_launch_join_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_join_parent_wide_req, hi=77791233)
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
                 if equality_launch_phase == 12:
                     equality_launch_bridge_parent_req: uint64_t = join_frame_env
-                    memory_req.addr = equality_launch_normalized_env[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = red2_word_t(lo=equality_launch_bridge_parent_req, hi=113377280)
+                    memory_req.addr = equality_launch_normalized_env[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = red2_word_t(lo=equality_launch_bridge_parent_req, hi=113377280)
                     memory_req.wr_en = equality_launch_needs_bridge
+                    state_memory_req_enable = equality_launch_needs_bridge
             elif prim0_y_active:
-                memory_req.addr = prim0_y_argument_address[GRAPH_ADDR_BITS - 1 : 0]
+                memory_req.addr = prim0_y_argument_address[GRAPH_ADDR_BITS - 1:0]
             else:
                 join_scalar_left_address_req: uint17_t = join_parent_address + 1
-                memory_req.addr = join_scalar_left_address_req[GRAPH_ADDR_BITS - 1 : 0]
+                memory_req.addr = join_scalar_left_address_req[GRAPH_ADDR_BITS - 1:0]
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_publish:
-            memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_publish_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_parent_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_publish_word
             if join_parent_is_recp:
                 join_recp_root_wide_req: uint64_t = join_published_root
-                memory_req.wr_data = red2_word_t(lo=join_recp_root_wide_req, hi=69337088)
+                state_memory_req_data = red2_word_t(lo=join_recp_root_wide_req, hi=69337088)
             elif join_parent_is_rblock:
                 join_rblock_root_wide_req: uint64_t = join_published_root
                 join_rblock_parent_meta_req: uint64_t = join_parent_word.hi & 1179647
                 join_rblock_hi_req: uint64_t = 100794368 | join_rblock_parent_meta_req
-                memory_req.wr_data = red2_word_t(lo=join_rblock_root_wide_req, hi=join_rblock_hi_req)
+                state_memory_req_data = red2_word_t(lo=join_rblock_root_wide_req, hi=join_rblock_hi_req)
             join_publish_preflight_ready: uint1_t = join_scalar_preflight_done or not join_scalar_active
             join_rblock_phi_gate_req: uint1_t = join_parent_is_rblock and q == 0
-            join_rblock_phi_gate_req = join_rblock_phi_gate_req and not join_rblock_phi_done
+            join_rblock_phi_gate_req = join_rblock_phi_gate_req and (not join_rblock_phi_done)
             if join_rblock_phi_gate_req:
                 join_publish_preflight_ready = 0
-            # Reverse-EP fire==1 borrows the JOIN scalar evaluator only for
-            # transactional preflight.  Its parent write is serialized later by
-            # MICRO_EP_REVERSE_PUBLISH together with the caller-path pop.
             if ep_scalar_active or pub_patch_commit_pending:
                 memory_req.wr_en = 0
+                state_memory_req_enable = 0
             else:
                 memory_req.wr_en = join_publish_preflight_ready
+                state_memory_req_enable = join_publish_preflight_ready
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_control_clear:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             join_clear_address_req: uint17_t = join_control_clear_index - 1
-            control_req.addr = join_clear_address_req[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.addr = join_clear_address_req[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_io_cont_read:
             join_io_cont_addr_req: uint17_t = join_parent_address - 1
             memory_req.addr = join_io_cont_addr_req[GRAPH_ADDR_BITS - 1 : 0]
@@ -2737,29 +3023,36 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_io_path_addr_req: uint17_t = join_frame_index - 1
             control_req.addr = join_io_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_join_io_commit:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             join_io_commit_cont_addr_req: uint17_t = join_parent_address - 1
             join_io_commit_path_addr_req: uint17_t = join_frame_index - 1
             join_io_headless_hi_req: uint64_t = join_publish_word.hi & 133169151
             join_io_bind_headless_hi_req: uint64_t = join_io_bind_word.hi & 133169151
             join_io_commit_bind_ep_req: uint1_t = join_io_bind_ep
-            memory_req.addr = join_io_commit_cont_addr_req[GRAPH_ADDR_BITS - 1 : 0]
+            memory_req.addr = join_io_commit_cont_addr_req[GRAPH_ADDR_BITS - 1:0]
             if join_io_commit_bind_ep_req:
-                memory_req.wr_data = red2_word_t(
-                    lo=join_io_bind_word.lo, hi=join_io_bind_headless_hi_req
-                )
+                state_memory_req_data = red2_word_t(lo=join_io_bind_word.lo, hi=join_io_bind_headless_hi_req)
             else:
-                memory_req.wr_data = red2_word_t(
-                    lo=join_publish_word.lo, hi=join_io_headless_hi_req
-                )
+                state_memory_req_data = red2_word_t(lo=join_publish_word.lo, hi=join_io_headless_hi_req)
             memory_req.wr_en = not join_io_then
-            control_req.addr = join_io_commit_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
+            state_memory_req_enable = not join_io_then
+            control_req.addr = join_io_commit_path_addr_req[CONTROL_ADDR_BITS - 1:0]
             if join_io_commit_bind_ep_req:
-                control_req.wr_data = red2_control_t(
-                    lo=join_frame_env, hi=0, tag_hi=CONTROL_ADDRESS
-                )
+                state_control_req_data = red2_control_t(lo=join_frame_env, hi=0, tag_hi=CONTROL_ADDRESS)
             else:
-                control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+                state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_if_false_read:
             join_if_false_addr_req: uint17_t = join_parent_address - 2
             memory_req.addr = join_if_false_addr_req[GRAPH_ADDR_BITS - 1 : 0]
@@ -2770,23 +3063,42 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_if_path_addr_req: uint17_t = join_if_path_cursor - 1
             control_req.addr = join_if_path_addr_req[CONTROL_ADDR_BITS - 1 : 0]
         if micro_is_join_if_path_clear:
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             join_if_clear_addr_req: uint17_t = join_control_clear_index - 1
-            control_req.addr = join_if_clear_addr_req[CONTROL_ADDR_BITS - 1 : 0]
-            control_req.wr_data = red2_control_t(lo=0, hi=0, tag_hi=0)
+            control_req.addr = join_if_clear_addr_req[CONTROL_ADDR_BITS - 1:0]
+            state_control_req_data = red2_control_t(lo=0, hi=0, tag_hi=0)
             control_req.wr_en = 1
+            state_control_req_enable = 1
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_ep_cache:
-            memory_req.addr = join_ep_target[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_cache_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_ep_target[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_cache_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_if_ep_chase:
             memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_chase:
             memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_result_write:
-            memory_req.addr = join_ep_descriptor_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_ep_publish_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_ep_descriptor_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_ep_publish_word
             join_ep_write_preflight_ready: uint1_t = join_scalar_preflight_done or not join_scalar_active
             memory_req.wr_en = join_ep_write_preflight_ready
+            state_memory_req_enable = join_ep_write_preflight_ready
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_app_scan:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_pub_exec:
@@ -2819,23 +3131,41 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_join_multi_target_chase:
             memory_req.addr = join_app_preflight_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_multi_target_write_first:
-            memory_req.addr = join_app_shared_target[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_app_first_write_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_app_shared_target[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_app_first_write_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_multi_target_write_second:
-            memory_req.addr = join_app_second_target[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_app_second_write_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_app_second_target[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_app_second_write_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_special_meta_done:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            state_control_req_data: red2_control_t = command.control
+            state_control_req_enable: uint1_t = 0
             if prim0_y_active:
                 prim0_y_recursive_payload_req: uint64_t = prim0_y_argument_address
-                memory_req.addr = fsp[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = red2_word_t(lo=prim0_y_recursive_payload_req, hi=69337088)
+                memory_req.addr = fsp[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = red2_word_t(lo=prim0_y_recursive_payload_req, hi=69337088)
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
                 if prim0_y_needs_scratch:
-                    control_req.addr = control_top[CONTROL_ADDR_BITS - 1 : 0]
-                    control_req.wr_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
+                    control_req.addr = control_top[CONTROL_ADDR_BITS - 1:0]
+                    state_control_req_data = red2_control_t(lo=env, hi=0, tag_hi=CONTROL_ADDRESS)
                     control_req.wr_en = 1
+                    state_control_req_enable = 1
             elif prim0_meta_active:
                 prim0_meta_fsp_ok_req: uint1_t = fsp[15:GRAPH_ADDR_BITS] == 0
                 prim0_meta_free_low_req: uint1_t = free_space[16:GRAPH_ADDR_BITS] == 0
@@ -2850,15 +3180,29 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 prim0_meta_can_push_req: uint1_t = prim0_meta_fsp_ok_req and prim0_meta_free_valid_req
                 prim0_meta_can_push_req = prim0_meta_can_push_req and prim0_meta_gap_ok_req
                 if prim0_meta_can_push_req:
-                    memory_req.addr = prim0_meta_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-                    memory_req.wr_data = fetched_word
+                    memory_req.addr = prim0_meta_destination_req[GRAPH_ADDR_BITS - 1:0]
+                    state_memory_req_data = fetched_word
                     memory_req.wr_en = 1
+                    state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+            if state_control_req_enable:
+                clock_control_req_data.lo = clock_control_req_data.lo | state_control_req_data.lo
+                clock_control_req_data.hi = clock_control_req_data.hi | state_control_req_data.hi
+                clock_control_req_data.tag_hi = clock_control_req_data.tag_hi | state_control_req_data.tag_hi
         if micro_is_join_special_meta_scan:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             if prim0_y_active:
                 prim0_y_scratch_address_req: uint17_t = fsp + 1
-                memory_req.addr = prim0_y_scratch_address_req[GRAPH_ADDR_BITS - 1 : 0]
-                memory_req.wr_data = prim0_y_scratch_word
+                memory_req.addr = prim0_y_scratch_address_req[GRAPH_ADDR_BITS - 1:0]
+                state_memory_req_data = prim0_y_scratch_word
                 memory_req.wr_en = 1
+                state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_flat_scan:
             memory_req.addr = join_flat_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_closure_code_read:
@@ -2873,30 +3217,60 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         if micro_is_join_closure_write_lambda:
             memory_req.addr = join_closure_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_closure_write_lambda_commit:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             join_closure_lambda_destination_req: uint17_t = join_closure_destination + join_closure_write_index
-            memory_req.addr = join_closure_lambda_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_closure_lambda_word
+            memory_req.addr = join_closure_lambda_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_closure_lambda_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_closure_write_body:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             join_closure_body_destination_req: uint17_t = join_closure_destination + join_closure_lambda_count
-            memory_req.addr = join_closure_body_destination_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_closure_body_word
+            memory_req.addr = join_closure_body_destination_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_closure_body_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_app_rewrite_read:
             memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_app_rewrite_write:
-            memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = join_app_rewrite_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = join_app_cursor[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = join_app_rewrite_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_pub_stack and pub_stack_phase == PUB_STACK_COMMIT_GRAPH:
-            memory_req.addr = pub_patch_commit_address[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = pub_patch_commit_word
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
+            memory_req.addr = pub_patch_commit_address[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = pub_patch_commit_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_pub_stack and pub_stack_phase == PUB_STACK_COMMIT_MAT_GRAPH:
+            state_memory_req_data: red2_word_t = command.word
+            state_memory_req_enable: uint1_t = 0
             pub_mat_commit_address_req: uint17_t = pub_destination + pub_mat_commit_index
-            memory_req.addr = pub_mat_commit_address_req[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = pub_mat_stage_word
+            memory_req.addr = pub_mat_commit_address_req[GRAPH_ADDR_BITS - 1:0]
+            state_memory_req_data = pub_mat_stage_word
             memory_req.wr_en = 1
+            state_memory_req_enable = 1
+            if state_memory_req_enable:
+                clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+                clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
 
     if command_is_clock:
         if micro_is_pub_exec:
@@ -2962,6 +3336,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         literal_meta_req.addr = join_special_meta_cursor[LITERAL_META_ADDR_BITS - 1 : 0]
     elif micro_is_struct_selector_result_meta_scan:
         literal_meta_req.addr = struct_selector_result_meta_cursor[LITERAL_META_ADDR_BITS - 1 : 0]
+
+    if command_is_clock:
+        memory_req.wr_data = clock_memory_req_data
+        control_req.wr_data = clock_control_req_data
 
     memory_out = graph_ram(memory_req)
     control_out = control_ram(control_req)

@@ -1,0 +1,161 @@
+{
+  "measured_at_utc": "2026-10-12T01:52:41.507473+00:00",
+  "target": "Basys 3 xc7a35tcpg236-1",
+  "architecture": "Dedicated RED2 hardware; function application, graph creation/access and architectural protocol retained. No CPU or firmware interpreter.",
+  "source": "src/machines/synthesizable_red2_machine/machine.py",
+  "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "baseline_commit": "970a3f9",
+  "baseline_source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+  "baseline_report": "docs/handoffs/synth-red2-area-next-results.json",
+  "baseline_lut_total": 41705,
+  "compiler": {
+    "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+    "manifest": {
+      "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+      "patches": [
+        {
+          "file": "pypeline-boolop-instance-names.patch",
+          "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+        },
+        {
+          "file": "pypeline-red2-enhancements.patch",
+          "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+        }
+      ],
+      "files": {
+        "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+        "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+        "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+        "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+        "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+        "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+        "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+        "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+        "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+      }
+    },
+    "manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+    "default_root": "build/pipelinec-enhanced-db7cdf7c79dd",
+    "fpgatool_revision": "8356f4c8ba329dc77e4ab9d475891e30f1d1f44f"
+  },
+  "backend": {
+    "versions": [
+      "Yosys 0.67+post (git sha1 v0.67, Release, GNU /nix/store/vdaz6sk455r8sbpi7wzaf9vlz5i9yyvx-gcc-wrapper-15.2.0/bin/g++ 15.2.0)",
+      "GHDL 6.0.0 (tarball) [Dunoon edition]",
+      " Compiled with GNAT Version: 15.2.0",
+      " static elaboration, mcode JIT code generator"
+    ],
+    "yosys_store": "/nix/store/8xp00x56zj0nxqk3h334176g2d25jmvd-yosys-0.67",
+    "ghdl_store": "/nix/store/4gcl6ba0jcmvq2py06cz57fimap9xjvm-ghdl-mcode-6.0.0",
+    "ghdl_plugin_store": "/nix/store/c01zl2b0iqg31j0lpc904cf8jj6f1djv-yosys-ghdl-0-unstable-2025-05-23",
+    "container_image_digest": "sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+    "same_yosys_and_ghdl_plugin_as_baseline": true
+  },
+  "mapping": {
+    "same_yosys_ghdl_plugin_and_area_recipe_as_baseline": true,
+    "frontend_commands": [
+      "ghdl --std=08 <candidate-specific file paths from hdl/vhdl_files.txt> -e top",
+      "hierarchy -check -top top",
+      "write_rtlil /experiment/frontend.il",
+      "flatten",
+      "opt -full",
+      "opt_muxtree",
+      "opt -full",
+      "write_json /experiment/coarse.json",
+      "stat -width"
+    ],
+    "area_script": [
+      "read_json /experiment/coarse.json",
+      "synth_xilinx -arch xc7 -noiopad -top top -run begin:map_luts",
+      "write_rtlil /experiment/baseline-preabc.il",
+      "abc -lut 6 -script /experiment/area.abc",
+      "clean",
+      "techmap -map +/xilinx/ff_map.v",
+      "techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6",
+      "xilinx_dffopt",
+      "opt_lut_ins -tech xilinx",
+      "synth_xilinx -arch xc7 -noiopad -top top -run finalize:edif",
+      "write_json /experiment/baseline-area.json"
+    ],
+    "abc_script": [
+      "strash",
+      "dc2",
+      "if -a"
+    ],
+    "board_wrapper_included": false,
+    "io_pads_included": false
+  },
+  "effective_configuration": {
+    "RED2_SYN_FLOAT": 0,
+    "RED2_SYN_GRAPH_WORDS": 256
+  },
+  "change": "Combine graph/control RAM write data from disjoint incoming microstate handlers. Preserve addresses, write enables, intra-handler priority, non-clock loader/resume writes, and every graph/control data bit. Disabled write data becomes zero. No added latency or semantic operation omission.",
+  "resources": {
+    "top": "top",
+    "lut": 40852,
+    "lut_memory": 318,
+    "lut_total": 41170,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 8676,
+    "bram18": 17,
+    "bram36": 7,
+    "bram36_equivalent": 15.5,
+    "dsp48": 20,
+    "carry4": 3185,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 1,
+      "CARRY4": 3185,
+      "DSP48E1": 20,
+      "FDRE": 8676,
+      "INV": 2842,
+      "LUT2": 6280,
+      "LUT3": 8261,
+      "LUT4": 7394,
+      "LUT5": 7713,
+      "LUT6": 11204,
+      "RAM256X1S": 50,
+      "RAM64X1S": 118,
+      "RAMB18E1": 17,
+      "RAMB36E1": 7
+    },
+    "basys3_over_budget": {
+      "lut_total": {
+        "used": 41170,
+        "available": 20800
+      }
+    },
+    "within_basys3_resource_limits": false
+  },
+  "lut_saved": 535,
+  "lut_saved_percent": 1.2828198057786837,
+  "lut_over_basys3_capacity": 20370,
+  "fit_verified": false,
+  "timing_or_routing_verified": false,
+  "validation": {
+    "native_integer_profile": "PASS: 15 lockstep programs, five failure-atomic unsupported programs, RECP, shared-APP selector, publication journal, closure materialization, Fibonacci",
+    "native_full_arithmetic_parity": "PASS: complete monolithic PipelineC native RED2 first-slice parity suite, RED2_SYN_FLOAT=1",
+    "targeted_repository_tests": "48 passed: static synthesis contract, profile selection, primitive resource accounting, ABI vectors",
+    "ast_reconstruction": "Complete original processor body restored exactly after reversing only write-data selection changes. Every clock write-enable belongs to a transformed data group.",
+    "disjointness": "55 request groups; exhaustively checked all 256 microstates and 16 publication phases independently for both RAM ports (8,192 cases).",
+    "structural_synthesis": "zero problems",
+    "independent_primitive_count": {
+      "logic_lut": 40852,
+      "lut_ram": 318,
+      "lut_total": 41170
+    },
+    "hdl_sha256_unchanged_after_mapping": true,
+    "production_source_matches_measured_candidate": true
+  },
+  "artifacts": {
+    "root": "/tmp/asgard-area-next/onehot-ram-write",
+    "provenance_sha256": "1e41785975431fbca33a8e9b0981f503f012994fc31ef251ddc31a56d5c6baae",
+    "candidate_patch_sha256": "3712974ad494640590bdce5e904bb38c07e653975ef5751364c434afa1196791",
+    "transformation_script_sha256": "0256d60f957dab108b04eed151914273501311dbdbc8f574040ed6fff6bcdd44",
+    "structural_check_script_sha256": "5b283f6da491a6a4cfc544059b4318af8cca1bf91f9b252f31ffb2078fc17d5f",
+    "mapped_netlist_sha256": "bdbc421927fe0dafbb4d3d54c91a2fe99e14e9b69e53324c83f7848a0bc73013",
+    "vhdl_file_count": 212
+  }
+}

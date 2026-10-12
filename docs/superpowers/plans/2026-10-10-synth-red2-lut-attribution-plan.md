@@ -517,3 +517,40 @@ candidate. This remains a dedicated RED2 hardware engine, without a separate CPU
 Resources, compiler/source hashes, build flags, production HDL comparison and
 validation records are in `docs/handoffs/synth-red2-area-next-results.json`.
 Experiment netlists, scripts and snapshots are in `/tmp/asgard-area-next/`.
+
+
+### Graph/control RAM write-data selection (2026-10-12)
+
+The next accepted change combines enabled graph/control write-data contributions
+from mutually exclusive incoming microstates. Address selection, write enables,
+intra-handler priority and non-clock loader/resume writes retain their original
+arbitration. Disabled RAM write data becomes zero. Every graph/control data bit,
+including reserved upper bits, is retained; no arithmetic operation or RED2 rule
+is removed, and no latency is added.
+
+The same flattened backend maps this source to **41,170 total LUTs** (40,852 logic
+plus 318 RAM), saving **535 LUTs (1.28%)** from the 41,705-LUT hardware default.
+FF remain 8,676, DSP 20, CARRY4 3,185, and BRAM36-equivalent 15.5. Only LUT capacity
+is exceeded: the core remains 20,370 LUTs above Basys 3 capacity. This is a
+synthesis estimate, without a board wrapper or routing/timing verification.
+
+Validation passed the complete floating-enabled native parity suite, the complete
+integer-profile gate (15 lockstep programs, five failure-atomic unsupported
+programs, RECP, shared-APP selector, publication journal, closure materialization
+and Fibonacci), and 48 targeted repository tests. Reversing only the write-data
+transform restores the entire original processor AST exactly. All 55 request
+groups are disjoint for every microstate and publication phase: 8,192 cases over
+the two ports. Every clock write-enable belongs to a checked group. All 212 HDL
+file hashes match the mapped inputs, and production source matches the candidate.
+Independent primitive counts agree with the resource counter; synthesis reports
+zero structural problems.
+
+The record is `docs/handoffs/synth-red2-bus-area-results.json`; raw artifacts,
+transformation/proof scripts and the patch are in
+`/tmp/asgard-area-next/onehot-ram-write/`. Further isolated experiments test
+entry-state register snapshots and bounded SAT-based sharing of 17/18-bit address
+operators. Most automatic sharing candidates form combinational loops and roll
+back; this is evidence of false dependencies between inactive state handlers,
+not evidence of an area saving. The snapshot trial targets those dependencies
+while preserving the original independent handler guards and bodies. Its
+integer-profile gate passes; mapping the combined candidate is underway.

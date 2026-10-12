@@ -4,7 +4,7 @@
     "lut_total_limit": 20800
   },
   "required_architecture": "Dedicated RED2 application and graph engine; optional arithmetic/device hardware modules; latency may increase; no softcore firmware interpreter.",
-  "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+  "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
   "compiler": {
     "root": "/tmp/asgard-fourway/compilers/patched_control",
     "files": {
@@ -587,18 +587,19 @@
     }
   },
   "current_source_area": {
-    "report": "docs/handoffs/synth-red2-area-next-results.json",
-    "artifact_root": "/tmp/asgard-area-next/integer-profile",
-    "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+    "report": "docs/handoffs/synth-red2-bus-area-results.json",
+    "artifact_root": "/tmp/asgard-area-next/onehot-ram-write",
+    "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
     "elaboration_environment": {
-      "RED2_SYN_FLOAT": "0"
+      "RED2_SYN_FLOAT": "0",
+      "RED2_SYN_GRAPH_WORDS": "256"
     },
     "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
     "resources": {
       "top": "top",
-      "lut": 41387,
+      "lut": 40852,
       "lut_memory": 318,
-      "lut_total": 41705,
+      "lut_total": 41170,
       "unknown_memory_primitives": [],
       "unaccounted_primitives": [],
       "flipflops": 8676,
@@ -614,12 +615,12 @@
         "CARRY4": 3185,
         "DSP48E1": 20,
         "FDRE": 8676,
-        "INV": 2804,
-        "LUT2": 6402,
-        "LUT3": 8178,
-        "LUT4": 7688,
-        "LUT5": 7323,
-        "LUT6": 11796,
+        "INV": 2842,
+        "LUT2": 6280,
+        "LUT3": 8261,
+        "LUT4": 7394,
+        "LUT5": 7713,
+        "LUT6": 11204,
         "RAM256X1S": 50,
         "RAM64X1S": 118,
         "RAMB18E1": 17,
@@ -627,14 +628,13 @@
       },
       "basys3_over_budget": {
         "lut_total": {
-          "used": 41705,
+          "used": 41170,
           "available": 20800
         }
       },
       "within_basys3_resource_limits": false
     },
-    "lut_total_delta_vs_full_arithmetic_baseline": -8648,
-    "routed": false,
+    "lut_over_basys3_capacity": 20370,
     "fit_verified": false
   },
   "full_arithmetic_source_area": {
@@ -773,5 +773,56 @@
     "fit_verified": false,
     "routed": false,
     "timing_verified": false
+  },
+  "previous_hardware_source_area": {
+    "report": "docs/handoffs/synth-red2-area-next-results.json",
+    "artifact_root": "/tmp/asgard-area-next/integer-profile",
+    "source_sha256": "fee40c39fad9c73c2c6b4defc6a2715a28f414c05c47a20711d45912d75525e5",
+    "elaboration_environment": {
+      "RED2_SYN_FLOAT": "0"
+    },
+    "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+    "resources": {
+      "top": "top",
+      "lut": 41387,
+      "lut_memory": 318,
+      "lut_total": 41705,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 8676,
+      "bram18": 17,
+      "bram36": 7,
+      "bram36_equivalent": 15.5,
+      "dsp48": 20,
+      "carry4": 3185,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 3185,
+        "DSP48E1": 20,
+        "FDRE": 8676,
+        "INV": 2804,
+        "LUT2": 6402,
+        "LUT3": 8178,
+        "LUT4": 7688,
+        "LUT5": 7323,
+        "LUT6": 11796,
+        "RAM256X1S": 50,
+        "RAM64X1S": 118,
+        "RAMB18E1": 17,
+        "RAMB36E1": 7
+      },
+      "basys3_over_budget": {
+        "lut_total": {
+          "used": 41705,
+          "available": 20800
+        }
+      },
+      "within_basys3_resource_limits": false
+    },
+    "lut_total_delta_vs_full_arithmetic_baseline": -8648,
+    "routed": false,
+    "fit_verified": false
   }
 }
