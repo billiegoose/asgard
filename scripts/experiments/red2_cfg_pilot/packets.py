@@ -15,6 +15,8 @@ BASE_RESPONSE = ["graph_lo", "graph_hi", "control_lo", "control_hi", "control_ta
 
 
 def request_fields(m):
+    if m.get("publication_reads", {}).get("read_only") is False:
+        return BASE_REQUEST + [f["name"] for f in m["publication_reads"]["requests"]]
     return BASE_REQUEST + [
         name + "_addr" for name, _ in m.get("publication_reads", {}).get("banks", [])
     ]

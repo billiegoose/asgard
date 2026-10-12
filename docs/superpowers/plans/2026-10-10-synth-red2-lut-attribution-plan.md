@@ -837,3 +837,47 @@ The next useful boundary is the connected publication stack and its state:
 Use a distinct opt-in configuration and source-derived typed oracle. Metadata
 writes need exact request/payload and read-first RAM checks, accepted-write
 lifecycle tests, and full native publication parity before adoption.
+
+### Publication stack and source-derived RAM packets
+
+The opt-in transaction adapter now includes PUB_STACK and all five original
+metadata RAM packets. It retains phase-qualified graph writes and applies the
+unique completion bank inside the stack transition; lifecycle arbitration and
+external JOIN preflight stay in the original top. The 110-entry prototype proves
+84 private words (2,696 bits), up from 60, and transfers 191 shared words. Typed
+zero struct initializers require the original exact field set and zero constants.
+All 13,200 typed comparisons and 391 standalone physical witnesses pass. All 57
+publication full-top witnesses, nonzero lifecycle masks and queued invalid START
+after accepted writes to each of the five metadata RAMs pass. The initial empty
+request-parent AST was rejected by PipelineC, archived, and fixed by dropping the
+empty parent; it was never counted as working hardware.
+
+Serializing unused metadata ports on every entry inflated the control table to
+22,416 rows. Sparse packets retain the full original packet and zero defaults,
+clear metadata fields only on accepted start, and serialize referenced banks.
+They pass the same 13,200 typed comparisons at 14,048 rows. A separately enabled
+backward liveness pass removes 1,542 dead temporary writes, retaining every state
+write, branch, request and halt. It passes all 13,200 typed comparisons at 12,506
+rows. Its targeted complete-top checks confirm actual read-first capture and
+queued lifecycle behavior for all five metadata writes. Complete boundary,
+application/publication program parity and dense/compact area maps are ongoing.
+No new LUT saving is claimed until the complete exact-source maps finish.
+
+The read-sidecar default regenerates byte-identically with the new options off.
+Results, configurations, observed coverage, pending checks and source hashes are
+recorded in `docs/handoffs/synth-red2-cfg-publication-transactions-results.json`.
+
+The dense transaction variant completes at **32,705 LUTs**, 10,453 FF, 20 DSP,
+1,611 CARRY4 and 38.5 BRAM36 equivalents. This saves 594 LUTs against the
+read-only publication top, with zero structural problems and all primitives
+accounted for. The compact variant passes all 391 standalone physical witnesses,
+read-first/accepted-write lifecycle checks for all five metadata banks, and
+application/list parity (65,596 physical clocks). Its area map, complete boundary
+and publication program runs remain pending. Production stays unchanged.
+
+A read-only ownership probe removes the five remaining publication-launch
+handlers from the AST. At the existing 275-word state scope, it exposes 47 more
+private words (1,230 bits), before introducing those handlers' additional state.
+This is an ownership opportunity, not a LUT estimate or validated hardware.
+JOIN_TAIL_READ also launches selector-copy and promotion reset banks; their
+source-ordered effects must be explicitly lowered when that handler moves.

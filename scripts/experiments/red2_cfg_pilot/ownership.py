@@ -39,6 +39,23 @@ def prove_private(fn, m):
     and nonselected shared launch/completion banks.
     """
     roots = set(m["state_ownership"])
+
+    def is_zero(value):
+        if "lifecycle_structs" not in m:
+            return zero(value)
+        if isinstance(value, ast.Name):
+            return value.id in m["lifecycle_zero_constants"]
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+            fields = m["lifecycle_structs"].get(value.func.id)
+            return (
+                fields is not None
+                and not value.args
+                and len(value.keywords) == len(fields)
+                and {k.arg for k in value.keywords} == set(fields)
+                and all(is_zero(k.value) for k in value.keywords)
+            )
+        return isinstance(value, ast.Constant) and value.value == 0
+
     allowed = {}
     for statement in fn.body:
         if isinstance(statement, ast.If) and ast.unparse(statement.test) in LIFECYCLE:
@@ -49,7 +66,7 @@ def prove_private(fn, m):
                     if (
                         name in roots
                         and isinstance(target, ast.Name)
-                        and zero(assignment.value)
+                        and is_zero(assignment.value)
                     ):
                         allowed[id(assignment)] = (
                             name,
@@ -79,8 +96,10 @@ def prove_private(fn, m):
     inspect(fn)
     private = set(initializers) - blocked
     assert private, "no proven private fields"
-    # Multiple lifecycle assignments could have order-dependent initializers.
-    assert all(len(initializers[k]) == 1 for k in private)
+    # Typed-zero proofs admit duplicate initializers: all values are identical,
+    # and START clears their union. Legacy configurations retain the old guard.
+    if "lifecycle_structs" not in m:
+        assert all(len(initializers[k]) == 1 for k in private)
     result = copy.deepcopy(fn)
 
     class RemovePrivate(ast.NodeTransformer):
@@ -92,7 +111,7 @@ def prove_private(fn, m):
 
         def visit_Assign(self, node):
             if any(root_name(t) in private for t in node.targets):
-                assert len(node.targets) == 1 and zero(node.value)
+                assert len(node.targets) == 1 and is_zero(node.value)
                 return None
             return self.generic_visit(node)
 
@@ -111,7 +130,9 @@ def prove_private(fn, m):
         "private_roots": sorted(private),
         "private_fields": leaves,
         "private_bits": sum(m["widths"][k] for k in leaves),
-        "initialize_on_start": [k for k in leaves if initializers[k.split(".")[0]][0]],
+        "initialize_on_start": [
+            k for k in leaves if any(initializers[k.split(".")[0]])
+        ],
         "proof": (
             "No remaining legacy AST reference after lifecycle-zero writes "
             "and Reg declarations removed"
@@ -154,7 +175,7 @@ def schedules(m, private):
             op = row["op"]
             uses = set()
             if op not in {ops[n] for n in ("jump", "response", "halt")} and not (
-                op == ops["request"] and row["d"] == 15
+                op == ops["request"] and row["d"] == m.get("request_sentinel", 15)
             ):
                 uses.add(row["a"])
             if op in binary:

@@ -72,7 +72,7 @@ def model(values, state, response):
             pc = r["yes"]
             continue
         if op == ops["request"]:
-            if r["d"] == 15:
+            if r["d"] == m.get("request_sentinel", 15):
                 requests += 1
             else:
                 request[r["d"]] = a
@@ -200,6 +200,11 @@ for state in m["entry_pc"]:
                 for j, f in enumerate(m["publication_reads"]["responses"], 5):
                     if f["suffix"] == ".generation":
                         response[j] = values["pub_generation"]
+        if (
+            m.get("publication_reads", {}).get("read_only") is False
+            and int(state) == ref.MICRO_PUB_STACK
+        ):
+            values["pub_stack_phase"] = trial % 16
         original = sim_call(
             getattr(
                 ref,
@@ -235,7 +240,13 @@ for state in m["entry_pc"]:
         )
     covered = set()
     witnesses = []
-    publication = "publication_reads" in m and int(state) == ref.MICRO_PUB_EXEC
+    publication = "publication_reads" in m and (
+        int(state) == ref.MICRO_PUB_EXEC
+        or (
+            m["publication_reads"].get("read_only") is False
+            and int(state) == ref.MICRO_PUB_STACK
+        )
+    )
     for _ in range(120 if publication else 6):
         best = max(candidates, key=lambda c: len(c["trace"] - covered))
         if best["trace"] <= covered:
@@ -244,7 +255,7 @@ for state in m["entry_pc"]:
         selected = best.copy()
         selected.pop("trace")
         witnesses.append(selected)
-    if publication:
+    if publication and int(state) == ref.MICRO_PUB_EXEC:
         for kind in sorted({c["values"]["pub_current_task.kind"] for c in candidates}):
             if any(c["values"]["pub_current_task.kind"] == kind for c in witnesses):
                 continue

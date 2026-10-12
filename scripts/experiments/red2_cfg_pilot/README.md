@@ -267,3 +267,44 @@ witness set includes 31 publication cases covering all 1,048 source-CFG rows
 observed in the typed publication trials and every sampled task kind. The
 complete-top mapping source and stronger validation source are byte-identical;
 records are in `docs/handoffs/synth-red2-cfg-publication-read-results.json`.
+
+The read-sidecar complete top measures **33,299 LUTs and 27.5 BRAM36
+equivalents**, saving only 302 LUTs against the indexed-store baseline. All 370
+boundary witnesses pass; the longer publication program parity run is pending.
+Its 60 private words and 205 shared words identify state ownership as the next
+boundary, rather than isolated computation.
+
+`RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS=1` replaces the read-only option and
+adds MICRO_PUB_STACK. Five source-typed metadata RAM packets join graph/control
+in one accepted synchronous transaction. Factory types, depths and latency are
+checked against the original source; compound graph-write request arms retain
+their incoming phase guards. The original publication completion bank is
+appended to its unique triggering handler, while its lifecycle predicates stay
+in legacy arbitration. External JOIN preflight still authorizes commit phases.
+The request sentinel is 63, distinct from every payload field. Instruction
+semantics and publication RAM banks come from the existing RED2 top.
+
+Use persistent ownership, short-list bridging and
+`RED2_CFG_PILOT_PRUNE_ALIASES=1` for this variant. Typed struct-zero initializers
+are accepted only with the exact field set and proven zero constants; duplicate
+zero initializers combine their START masks. No surviving legacy use is allowed
+for private state. This configuration has 110 entries, 84 private words (2,696
+bits), 191 shared words and 493 allocated scratch words. It passes 13,200 typed
+comparisons and 391 standalone physical witnesses. Full-top area and program
+validation are still pending.
+
+`RED2_CFG_PILOT_SPARSE_PUBLICATION=1` retains the full packet interface and
+original zero defaults. It clears metadata packet fields on accepted start and
+serializes only banks referenced by that entry, reducing 22,416 rows to 14,048.
+The typed oracle still constructs every original packet field. Separately,
+`RED2_CFG_PILOT_DEAD_TEMPS=1` removes dead temporary writes before scratch
+allocation, preserving all state writes, branches, requests and halts. At this
+scope it removes another 1,542 rows. Both options default off; use separate
+artifact directories and validate the final emitted controller. The prior
+read-sidecar source regenerates byte-identically with these options disabled.
+
+`check_boundary.py --metadata-writes` selects a write to each metadata RAM and
+checks captured read-first data as well as final contents. Boundary checks also
+queue invalid START after each bank's accepted write, finish that transition,
+and verify preserved RAM and state before the lifecycle fault. These are native
+physical-clock checks, not RTL simulation or board implementation results.

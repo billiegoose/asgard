@@ -218,6 +218,10 @@ for n in fn.body:
                 continue
     new_body.append(n)
 fn.body = new_body
+if m.get("publication_reads", {}).get("read_only") is False:
+    from publication_transactions import remove_legacy
+
+    remove_legacy(fn)
 assert set(removed_handlers) == selected_names
 
 # This adapter issues requests before consuming the read response. Dependent
@@ -246,6 +250,11 @@ unsupported_banks = {
     for name in selected_names
     if name in external_bank_effects
 }
+if m.get("publication_reads", {}).get("read_only") is False:
+    covered = {name + "_req" for name, _ in m["publication_reads"]["banks"]}
+    for name in ("MICRO_PUB_EXEC", "MICRO_PUB_STACK"):
+        assert set(unsupported_banks.get(name, [])) <= covered
+        unsupported_banks.pop(name, None)
 assert not unsupported_banks, ("unsupported external RAM requests", unsupported_banks)
 
 # Selected handlers may not drop same-cycle events consumed by legacy reset

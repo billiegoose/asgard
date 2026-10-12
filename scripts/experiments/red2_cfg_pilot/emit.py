@@ -29,6 +29,13 @@ for r in rows:
     if r["op"] not in [ops[n] for n in ("branch", "jump", "request", "halt")]:
         r["d"] = remap[r["d"]]
 compact = os.environ.get("RED2_CFG_PILOT_COMPACT", "0") == "1"
+if os.environ.get("RED2_CFG_PILOT_DEAD_TEMPS", "0") == "1":
+    assert compact
+    from dead_temporaries import eliminate
+
+    eliminate(m)
+    control_bits = max(1, (len(rows) - 1).bit_length())
+    m["control_words"] = 1 << control_bits
 if compact:
     from allocate import allocate
 

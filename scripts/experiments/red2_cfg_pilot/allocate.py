@@ -47,7 +47,7 @@ def allocate(m):
         after = set().union(*(live[s] for s in successors))
         uses = set()
         if op not in {ops[n] for n in ("jump", "response", "halt")} and not (
-            op == ops["request"] and r["d"] == 15
+            op == ops["request"] and r["d"] == m.get("request_sentinel", 15)
         ):
             uses.add(r["a"])
         if op in binary:

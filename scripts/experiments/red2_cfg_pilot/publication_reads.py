@@ -10,6 +10,10 @@ BANKS = (
 
 
 def extend_oracle(text, spec):
+    if spec.get("read_only") is False:
+        from publication_transactions import extend_oracle as full
+
+        return full(text, spec)
     marker = "    control_write: uint1_t\n"
     assert text.count(marker) == 1
     text = text.replace(
@@ -104,6 +108,10 @@ def configure(tree, fn, types, structs):
 
 
 def extend_emitter(text, m):
+    if m["publication_reads"].get("read_only") is False:
+        from publication_transactions import extend_emitter as full
+
+        return full(text, m)
     spec = m["publication_reads"]
     response_fields = spec["responses"]
     declarations = "".join(f"    {f['name']}: {f['type']}\n" for f in response_fields)
@@ -158,6 +166,10 @@ def bridge(text, m, part):
     spec = m.get("publication_reads")
     if not spec:
         return text
+    if spec.get("read_only") is False:
+        from publication_transactions import bridge as full
+
+        return full(text, m, part)
     fields = spec["responses"]
     if part == "admit":
         marker = "cfg_read_control_tag: Reg[uint4_t]\n"

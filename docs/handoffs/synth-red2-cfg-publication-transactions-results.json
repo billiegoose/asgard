@@ -1,0 +1,1837 @@
+{
+  "recorded_at_utc": "2026-10-12T08:48:53.499114+00:00",
+  "scope": "Dedicated RED2: source-derived publication EXEC/STACK, five typed synchronous metadata packets, unchanged external JOIN commit preflight",
+  "production_changed": false,
+  "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "frontend_environment": {
+    "RED2_SYN_FLOAT": "0",
+    "RED2_SYN_GRAPH_WORDS": "256"
+  },
+  "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+  "disabled_default_byte_identical": true,
+  "variants": {
+    "cfg-publication-transactions": {
+      "configuration": {
+        "RED2_CFG_PILOT_OUT": "/tmp/asgard-area-next/cfg-publication-transactions",
+        "RED2_CFG_PILOT_GRAPH": "1",
+        "RED2_CFG_PILOT_LOOKUP": "1",
+        "RED2_CFG_PILOT_COMPACT": "1",
+        "RED2_CFG_PILOT_OWNED": "1",
+        "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream-v2",
+        "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN",
+        "RED2_CFG_PILOT_DICTIONARY": "1",
+        "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+        "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+        "RED2_CFG_PILOT_PRUNE_ALIASES": "1"
+      },
+      "logical_entries": 110,
+      "control_rows": 22416,
+      "control_dictionary": {
+        "method": "Immutable instruction index ROM and deduplicated word ROM",
+        "logical_rows": 22416,
+        "unique_words": 4290,
+        "index_bits": 13,
+        "dictionary_depth": 8192,
+        "reconstruction_exact": true,
+        "extra_fetch_cycles": 1
+      },
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 5635,
+        "allocated_words": 493,
+        "persistent_words": 275,
+        "temporary_colors": 82,
+        "constant_words": 136,
+        "all_live_sets_disjoint": true
+      },
+      "private_fields": [
+        "lambda_word.lo",
+        "lambda_word.hi",
+        "struct_saved_q",
+        "app_definition_pop_saved",
+        "ep_hops",
+        "join_ep_target",
+        "join_frame_fire",
+        "join_struct_descriptor_address",
+        "join_struct_descriptor_hi",
+        "join_struct_ep_hops",
+        "join_struct_ep_embedded",
+        "join_struct_rewrite_word.lo",
+        "join_struct_rewrite_word.hi",
+        "join_closure_address",
+        "join_closure_env",
+        "join_closure_code",
+        "join_closure_cursor",
+        "join_closure_lambda_count",
+        "join_closure_destination",
+        "join_closure_body_word.lo",
+        "join_closure_body_word.hi",
+        "join_closure_env_remaining",
+        "join_closure_env_cursor",
+        "join_closure_env_hops",
+        "join_closure_write_index",
+        "join_closure_lambda_word.lo",
+        "join_closure_lambda_word.hi",
+        "join_app_rewrite_word.lo",
+        "join_app_rewrite_word.hi",
+        "join_app_second_write_word.lo",
+        "join_app_second_write_word.hi",
+        "join_app_first_write_word.lo",
+        "join_app_first_write_word.hi",
+        "closure_target",
+        "rup_index",
+        "rup_count",
+        "rup_block",
+        "rup_rec_binding",
+        "rup_rec_payload_bad",
+        "recp_binding",
+        "recp_context",
+        "recp_block",
+        "recp_index",
+        "recp_replacement",
+        "recp_parent_environment",
+        "recp_copy_word.lo",
+        "recp_copy_word.hi",
+        "recp_rup_word.lo",
+        "recp_rup_word.hi",
+        "recp_reverse_zero",
+        "recp_reverse_needs_bridge",
+        "recp_reverse_parent_env",
+        "recp_reverse_entry_env",
+        "lookup_address",
+        "lookup_remaining",
+        "lookup_hops",
+        "lookup_origin_address",
+        "lookup_word.lo",
+        "lookup_word.hi",
+        "lookup_push_control",
+        "pub_pending0.kind",
+        "pub_pending0.a",
+        "pub_pending0.b",
+        "pub_pending0.c",
+        "pub_pending0.d",
+        "pub_pending0.e",
+        "pub_pending0.f",
+        "pub_pending0.flags",
+        "pub_pending1.kind",
+        "pub_pending1.a",
+        "pub_pending1.b",
+        "pub_pending1.c",
+        "pub_pending1.d",
+        "pub_pending1.e",
+        "pub_pending1.f",
+        "pub_pending1.flags",
+        "pub_pending2.kind",
+        "pub_pending2.a",
+        "pub_pending2.b",
+        "pub_pending2.c",
+        "pub_pending2.d",
+        "pub_pending2.e",
+        "pub_pending2.f",
+        "pub_pending2.flags"
+      ],
+      "private_bits": 2696,
+      "shared_bridge_words": 191,
+      "publication_packets": {
+        "banks": [
+          [
+            "pub_task",
+            "red2_pub_task_t"
+          ],
+          [
+            "pub_root",
+            "red2_pub_root_t"
+          ],
+          [
+            "pub_patch",
+            "red2_pub_patch_t"
+          ],
+          [
+            "pub_patch_addr",
+            "uint17_t"
+          ],
+          [
+            "pub_mat",
+            "red2_pub_mat_t"
+          ]
+        ],
+        "requests": [
+          {
+            "name": "pub_task_addr",
+            "key": "pub_task_req.addr",
+            "type": "uint10_t",
+            "width": 10,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_kind",
+            "key": "pub_task_req.wr_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_a",
+            "key": "pub_task_req.wr_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_b",
+            "key": "pub_task_req.wr_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_c",
+            "key": "pub_task_req.wr_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_d",
+            "key": "pub_task_req.wr_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_e",
+            "key": "pub_task_req.wr_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_f",
+            "key": "pub_task_req.wr_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_flags",
+            "key": "pub_task_req.wr_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_enable",
+            "key": "pub_task_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_root_addr",
+            "key": "pub_root_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_generation",
+            "key": "pub_root_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_state",
+            "key": "pub_root_req.wr_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_result",
+            "key": "pub_root_req.wr_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_aux",
+            "key": "pub_root_req.wr_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_enable",
+            "key": "pub_root_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_patch_addr",
+            "key": "pub_patch_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_generation",
+            "key": "pub_patch_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_lo",
+            "key": "pub_patch_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_hi",
+            "key": "pub_patch_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_enable",
+            "key": "pub_patch_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_addr_addr",
+            "key": "pub_patch_addr_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write",
+            "key": "pub_patch_addr_req.wr_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write_enable",
+            "key": "pub_patch_addr_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_mat_addr",
+            "key": "pub_mat_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_lo",
+            "key": "pub_mat_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_hi",
+            "key": "pub_mat_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_generation",
+            "key": "pub_mat_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_enable",
+            "key": "pub_mat_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_mat"
+          }
+        ],
+        "responses": [
+          {
+            "name": "pub_task_read_kind",
+            "key": "pub_task_out.p0.rd_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task",
+            "suffix": ".kind"
+          },
+          {
+            "name": "pub_task_read_a",
+            "key": "pub_task_out.p0.rd_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".a"
+          },
+          {
+            "name": "pub_task_read_b",
+            "key": "pub_task_out.p0.rd_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".b"
+          },
+          {
+            "name": "pub_task_read_c",
+            "key": "pub_task_out.p0.rd_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".c"
+          },
+          {
+            "name": "pub_task_read_d",
+            "key": "pub_task_out.p0.rd_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".d"
+          },
+          {
+            "name": "pub_task_read_e",
+            "key": "pub_task_out.p0.rd_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".e"
+          },
+          {
+            "name": "pub_task_read_f",
+            "key": "pub_task_out.p0.rd_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".f"
+          },
+          {
+            "name": "pub_task_read_flags",
+            "key": "pub_task_out.p0.rd_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task",
+            "suffix": ".flags"
+          },
+          {
+            "name": "pub_root_read_generation",
+            "key": "pub_root_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_root_read_state",
+            "key": "pub_root_out.p0.rd_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root",
+            "suffix": ".state"
+          },
+          {
+            "name": "pub_root_read_result",
+            "key": "pub_root_out.p0.rd_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".result"
+          },
+          {
+            "name": "pub_root_read_aux",
+            "key": "pub_root_out.p0.rd_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".aux"
+          },
+          {
+            "name": "pub_patch_read_generation",
+            "key": "pub_patch_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_patch_read_word_lo",
+            "key": "pub_patch_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_patch_read_word_hi",
+            "key": "pub_patch_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_patch_addr_read",
+            "key": "pub_patch_addr_out.p0.rd_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr",
+            "suffix": ""
+          },
+          {
+            "name": "pub_mat_read_word_lo",
+            "key": "pub_mat_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_mat_read_word_hi",
+            "key": "pub_mat_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_mat_read_generation",
+            "key": "pub_mat_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat",
+            "suffix": ".generation"
+          }
+        ],
+        "read_only": false
+      },
+      "native_witness_count": 391,
+      "coverage": {
+        "126": {
+          "observed_rows": 1252,
+          "hardware_witness_rows": 1252,
+          "hardware_witnesses": 36,
+          "all_task_kinds_witnessed": true
+        },
+        "127": {
+          "observed_rows": 448,
+          "hardware_witness_rows": 448,
+          "hardware_witnesses": 21,
+          "all_task_kinds_witnessed": true
+        }
+      },
+      "validation": {
+        "typed": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_TYPED_REFERENCE_PASS 127",
+            "CFG_TYPED_REFERENCE_PASS 1",
+            "CFG_TYPED_REFERENCE_ALL_PASS 13200",
+            "STEP integrate.py",
+            "CFG_TABLE 110 entries 22416 rows 5635 scratch words",
+            "OWNED_INTEGRATED_TOP /private/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream 84 private words 191 shared words"
+          ],
+          "log_sha256": "7135847f1aea493a72b9e7f5a74715aa84d814a2c67dc1ab660f18d696d4f704"
+        },
+        "standalone": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_PHYSICAL_CONTROLLER_PASS 388 1 2531",
+            "CFG_PHYSICAL_CONTROLLER_PASS 389 1 2514",
+            "CFG_PHYSICAL_CONTROLLER_PASS 390 1 2486",
+            "CFG_PHYSICAL_CONTROLLER_ALL_PASS 391",
+            "CFG_RESET_CANCEL_PASS",
+            "CFG_CONSTANT_PROTECTION_PASS"
+          ],
+          "log_sha256": "30efd1aca0048b443e1dd8667c7a63a18148d0bc912e0f3c9b5bb41a07fc9376"
+        },
+        "publication boundary": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "2fb581eedb365c85cecbdbd644ab85dc535c9a853923c990a52fcd43ae9682d3"
+        }
+      },
+      "artifacts": {
+        "/tmp/asgard-area-next/cfg-publication-transactions/control.json": "6401c44f5ba0fbbd2ba020d5e2cadca38583e2511f7c02ea79a985aeb235f282",
+        "/tmp/asgard-area-next/cfg-publication-transactions/control-unmapped.json": "4734478e037e6c502c773554e8218a5256ed230dbf592446ef134629d8c7602d",
+        "/tmp/asgard-area-next/cfg-publication-transactions/machine.py": "dadf76bb6932b9e9f75ec5ac4065bf39a4fa503ad80f1cef6127f1f1beee9ad2",
+        "/tmp/asgard-area-next/cfg-publication-transactions/reference.py": "521dc00ccbb4fd667e392e2da4c2362379c7e56f9b19352aee40409d97071453",
+        "/tmp/asgard-area-next/cfg-publication-transactions/reference-regs.json": "d57e620755b5dd5cd5fd583a6dbf9faedcf8ec5c7fcad90fe79be20413b897bc",
+        "/tmp/asgard-area-next/cfg-publication-transactions/native-cases.json": "7bb125d681e26fc65cc7d2c0b4ede36a1e54bb89cf359e8768c9b115deb4579d",
+        "/tmp/asgard-area-next/cfg-publication-transactions/native-coverage.json": "35244148c83f1d6fe4b7fd1534d6c2d420784c9e84843998ff9d95330c5e1d28",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/machine.py": "f5103a8947e4fc858417abcd442f50ad9b36948fbe115851200d19841d71243a",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/integration.json": "b68e27d9369f6ca361ae98a6be9da79c23244f404096ec64a0f2a809f6d73ca0",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/provenance.json": "7f86c3f2e8ff1292f84754b862bb127c457b86deb652203adcb19b21b4020d92",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/resources.json": "45c944f659e5ed314524f6d0391b165669334666f2b8441c8def2e954fcc6235",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/baseline-area.json": "0e56e575cf35599b9932477deeed8fa09620b0cb6bc3b015c7fd3725c5703e35",
+        "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream-v2/baseline-area.log": "8797cc4dd0d20fd4aafe4479c1f90370ad01ebb5e95e52d003d2cceadecb2e29"
+      },
+      "mapping_status": "complete",
+      "hdl_files_verified_unchanged": 238,
+      "resources": {
+        "top": "top",
+        "lut": 32387,
+        "lut_memory": 318,
+        "lut_total": 32705,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 10453,
+        "bram18": 35,
+        "bram36": 21,
+        "bram36_equivalent": 38.5,
+        "dsp48": 20,
+        "carry4": 1611,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 1611,
+          "DSP48E1": 20,
+          "FDRE": 10453,
+          "INV": 1523,
+          "LUT1": 1,
+          "LUT2": 4241,
+          "LUT3": 6506,
+          "LUT4": 5193,
+          "LUT5": 5924,
+          "LUT6": 10522,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 35,
+          "RAMB36E1": 21
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 32705,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      }
+    },
+    "cfg-publication-sparse": {
+      "configuration": {
+        "RED2_CFG_PILOT_OUT": "/tmp/asgard-area-next/cfg-publication-sparse",
+        "RED2_CFG_PILOT_GRAPH": "1",
+        "RED2_CFG_PILOT_LOOKUP": "1",
+        "RED2_CFG_PILOT_COMPACT": "1",
+        "RED2_CFG_PILOT_OWNED": "1",
+        "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+        "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN",
+        "RED2_CFG_PILOT_DICTIONARY": "1",
+        "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+        "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+        "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+        "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1"
+      },
+      "logical_entries": 110,
+      "control_rows": 14048,
+      "control_dictionary": {
+        "method": "Immutable instruction index ROM and deduplicated word ROM",
+        "logical_rows": 14048,
+        "unique_words": 4280,
+        "index_bits": 13,
+        "dictionary_depth": 8192,
+        "reconstruction_exact": true,
+        "extra_fetch_cycles": 1
+      },
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 5635,
+        "allocated_words": 493,
+        "persistent_words": 275,
+        "temporary_colors": 82,
+        "constant_words": 136,
+        "all_live_sets_disjoint": true
+      },
+      "private_fields": [
+        "lambda_word.lo",
+        "lambda_word.hi",
+        "struct_saved_q",
+        "app_definition_pop_saved",
+        "ep_hops",
+        "join_ep_target",
+        "join_frame_fire",
+        "join_struct_descriptor_address",
+        "join_struct_descriptor_hi",
+        "join_struct_ep_hops",
+        "join_struct_ep_embedded",
+        "join_struct_rewrite_word.lo",
+        "join_struct_rewrite_word.hi",
+        "join_closure_address",
+        "join_closure_env",
+        "join_closure_code",
+        "join_closure_cursor",
+        "join_closure_lambda_count",
+        "join_closure_destination",
+        "join_closure_body_word.lo",
+        "join_closure_body_word.hi",
+        "join_closure_env_remaining",
+        "join_closure_env_cursor",
+        "join_closure_env_hops",
+        "join_closure_write_index",
+        "join_closure_lambda_word.lo",
+        "join_closure_lambda_word.hi",
+        "join_app_rewrite_word.lo",
+        "join_app_rewrite_word.hi",
+        "join_app_second_write_word.lo",
+        "join_app_second_write_word.hi",
+        "join_app_first_write_word.lo",
+        "join_app_first_write_word.hi",
+        "closure_target",
+        "rup_index",
+        "rup_count",
+        "rup_block",
+        "rup_rec_binding",
+        "rup_rec_payload_bad",
+        "recp_binding",
+        "recp_context",
+        "recp_block",
+        "recp_index",
+        "recp_replacement",
+        "recp_parent_environment",
+        "recp_copy_word.lo",
+        "recp_copy_word.hi",
+        "recp_rup_word.lo",
+        "recp_rup_word.hi",
+        "recp_reverse_zero",
+        "recp_reverse_needs_bridge",
+        "recp_reverse_parent_env",
+        "recp_reverse_entry_env",
+        "lookup_address",
+        "lookup_remaining",
+        "lookup_hops",
+        "lookup_origin_address",
+        "lookup_word.lo",
+        "lookup_word.hi",
+        "lookup_push_control",
+        "pub_pending0.kind",
+        "pub_pending0.a",
+        "pub_pending0.b",
+        "pub_pending0.c",
+        "pub_pending0.d",
+        "pub_pending0.e",
+        "pub_pending0.f",
+        "pub_pending0.flags",
+        "pub_pending1.kind",
+        "pub_pending1.a",
+        "pub_pending1.b",
+        "pub_pending1.c",
+        "pub_pending1.d",
+        "pub_pending1.e",
+        "pub_pending1.f",
+        "pub_pending1.flags",
+        "pub_pending2.kind",
+        "pub_pending2.a",
+        "pub_pending2.b",
+        "pub_pending2.c",
+        "pub_pending2.d",
+        "pub_pending2.e",
+        "pub_pending2.f",
+        "pub_pending2.flags"
+      ],
+      "private_bits": 2696,
+      "shared_bridge_words": 191,
+      "publication_packets": {
+        "banks": [
+          [
+            "pub_task",
+            "red2_pub_task_t"
+          ],
+          [
+            "pub_root",
+            "red2_pub_root_t"
+          ],
+          [
+            "pub_patch",
+            "red2_pub_patch_t"
+          ],
+          [
+            "pub_patch_addr",
+            "uint17_t"
+          ],
+          [
+            "pub_mat",
+            "red2_pub_mat_t"
+          ]
+        ],
+        "requests": [
+          {
+            "name": "pub_task_addr",
+            "key": "pub_task_req.addr",
+            "type": "uint10_t",
+            "width": 10,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_kind",
+            "key": "pub_task_req.wr_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_a",
+            "key": "pub_task_req.wr_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_b",
+            "key": "pub_task_req.wr_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_c",
+            "key": "pub_task_req.wr_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_d",
+            "key": "pub_task_req.wr_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_e",
+            "key": "pub_task_req.wr_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_f",
+            "key": "pub_task_req.wr_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_flags",
+            "key": "pub_task_req.wr_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_enable",
+            "key": "pub_task_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_root_addr",
+            "key": "pub_root_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_generation",
+            "key": "pub_root_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_state",
+            "key": "pub_root_req.wr_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_result",
+            "key": "pub_root_req.wr_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_aux",
+            "key": "pub_root_req.wr_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_enable",
+            "key": "pub_root_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_patch_addr",
+            "key": "pub_patch_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_generation",
+            "key": "pub_patch_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_lo",
+            "key": "pub_patch_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_hi",
+            "key": "pub_patch_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_enable",
+            "key": "pub_patch_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_addr_addr",
+            "key": "pub_patch_addr_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write",
+            "key": "pub_patch_addr_req.wr_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write_enable",
+            "key": "pub_patch_addr_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_mat_addr",
+            "key": "pub_mat_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_lo",
+            "key": "pub_mat_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_hi",
+            "key": "pub_mat_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_generation",
+            "key": "pub_mat_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_enable",
+            "key": "pub_mat_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_mat"
+          }
+        ],
+        "responses": [
+          {
+            "name": "pub_task_read_kind",
+            "key": "pub_task_out.p0.rd_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task",
+            "suffix": ".kind"
+          },
+          {
+            "name": "pub_task_read_a",
+            "key": "pub_task_out.p0.rd_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".a"
+          },
+          {
+            "name": "pub_task_read_b",
+            "key": "pub_task_out.p0.rd_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".b"
+          },
+          {
+            "name": "pub_task_read_c",
+            "key": "pub_task_out.p0.rd_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".c"
+          },
+          {
+            "name": "pub_task_read_d",
+            "key": "pub_task_out.p0.rd_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".d"
+          },
+          {
+            "name": "pub_task_read_e",
+            "key": "pub_task_out.p0.rd_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".e"
+          },
+          {
+            "name": "pub_task_read_f",
+            "key": "pub_task_out.p0.rd_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".f"
+          },
+          {
+            "name": "pub_task_read_flags",
+            "key": "pub_task_out.p0.rd_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task",
+            "suffix": ".flags"
+          },
+          {
+            "name": "pub_root_read_generation",
+            "key": "pub_root_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_root_read_state",
+            "key": "pub_root_out.p0.rd_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root",
+            "suffix": ".state"
+          },
+          {
+            "name": "pub_root_read_result",
+            "key": "pub_root_out.p0.rd_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".result"
+          },
+          {
+            "name": "pub_root_read_aux",
+            "key": "pub_root_out.p0.rd_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".aux"
+          },
+          {
+            "name": "pub_patch_read_generation",
+            "key": "pub_patch_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_patch_read_word_lo",
+            "key": "pub_patch_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_patch_read_word_hi",
+            "key": "pub_patch_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_patch_addr_read",
+            "key": "pub_patch_addr_out.p0.rd_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr",
+            "suffix": ""
+          },
+          {
+            "name": "pub_mat_read_word_lo",
+            "key": "pub_mat_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_mat_read_word_hi",
+            "key": "pub_mat_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_mat_read_generation",
+            "key": "pub_mat_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat",
+            "suffix": ".generation"
+          }
+        ],
+        "read_only": false
+      },
+      "native_witness_count": 391,
+      "coverage": {
+        "126": {
+          "observed_rows": 1204,
+          "hardware_witness_rows": 1204,
+          "hardware_witnesses": 36,
+          "all_task_kinds_witnessed": true
+        },
+        "127": {
+          "observed_rows": 444,
+          "hardware_witness_rows": 444,
+          "hardware_witnesses": 21,
+          "all_task_kinds_witnessed": true
+        }
+      },
+      "validation": {
+        "typed": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_TYPED_REFERENCE_PASS 127",
+            "CFG_TYPED_REFERENCE_PASS 1",
+            "CFG_TYPED_REFERENCE_ALL_PASS 13200",
+            "STEP integrate.py",
+            "CFG_TABLE 110 entries 14048 rows 5635 scratch words",
+            "OWNED_INTEGRATED_TOP /private/tmp/asgard-area-next/cfg-publication-sparse/integrated-stream 84 private words 191 shared words"
+          ],
+          "log_sha256": "dcd33b6c34ad26e0b2a548278b83127fd6b7ab50072aa7f5730a213e39351282"
+        }
+      },
+      "artifacts": {
+        "/tmp/asgard-area-next/cfg-publication-sparse/control.json": "0bb7a47d88950f88470c385aad28e078eaef7cbce95c4f19e883ce4d399d41b6",
+        "/tmp/asgard-area-next/cfg-publication-sparse/control-unmapped.json": "e9a8f72ae37c0438e4260a1adfc80b91789f14da2b88213b2f210ee3e7a7da68",
+        "/tmp/asgard-area-next/cfg-publication-sparse/machine.py": "7632da3705cba6361179bd2c5c4c9c49d303d8f69526aeee6b6a144daab126a8",
+        "/tmp/asgard-area-next/cfg-publication-sparse/reference.py": "521dc00ccbb4fd667e392e2da4c2362379c7e56f9b19352aee40409d97071453",
+        "/tmp/asgard-area-next/cfg-publication-sparse/reference-regs.json": "d57e620755b5dd5cd5fd583a6dbf9faedcf8ec5c7fcad90fe79be20413b897bc",
+        "/tmp/asgard-area-next/cfg-publication-sparse/native-cases.json": "ff1c2cba0873dc3aaf46d8c43efc3c9d04ba161f7cceaf0d7dd38cd90df00996",
+        "/tmp/asgard-area-next/cfg-publication-sparse/native-coverage.json": "a00bf6f1cd37f644a1a3557b673331c7c00e54aac85e01f458bea721a213e9fc",
+        "/tmp/asgard-area-next/cfg-publication-sparse/integrated-stream/machine.py": "ccd779ec5ea2615b974f6522227d67d4d0ba0658750893a54b7327b4402c6779",
+        "/tmp/asgard-area-next/cfg-publication-sparse/integrated-stream/integration.json": "b68e27d9369f6ca361ae98a6be9da79c23244f404096ec64a0f2a809f6d73ca0"
+      },
+      "mapping_status": "pending",
+      "sparse_publication": "Original zero-default metadata packet, cleared on accepted start; only referenced banks serialized per entry"
+    },
+    "cfg-publication-sparse-dce": {
+      "configuration": {
+        "RED2_CFG_PILOT_OUT": "/tmp/asgard-area-next/cfg-publication-sparse-dce",
+        "RED2_CFG_PILOT_GRAPH": "1",
+        "RED2_CFG_PILOT_LOOKUP": "1",
+        "RED2_CFG_PILOT_COMPACT": "1",
+        "RED2_CFG_PILOT_OWNED": "1",
+        "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+        "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN",
+        "RED2_CFG_PILOT_DICTIONARY": "1",
+        "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+        "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+        "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+        "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+        "RED2_CFG_PILOT_DEAD_TEMPS": "1"
+      },
+      "logical_entries": 110,
+      "control_rows": 12506,
+      "control_dictionary": {
+        "method": "Immutable instruction index ROM and deduplicated word ROM",
+        "logical_rows": 12506,
+        "unique_words": 4292,
+        "index_bits": 13,
+        "dictionary_depth": 8192,
+        "reconstruction_exact": true,
+        "extra_fetch_cycles": 1
+      },
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 5635,
+        "allocated_words": 493,
+        "persistent_words": 275,
+        "temporary_colors": 82,
+        "constant_words": 136,
+        "all_live_sets_disjoint": true
+      },
+      "private_fields": [
+        "lambda_word.lo",
+        "lambda_word.hi",
+        "struct_saved_q",
+        "app_definition_pop_saved",
+        "ep_hops",
+        "join_ep_target",
+        "join_frame_fire",
+        "join_struct_descriptor_address",
+        "join_struct_descriptor_hi",
+        "join_struct_ep_hops",
+        "join_struct_ep_embedded",
+        "join_struct_rewrite_word.lo",
+        "join_struct_rewrite_word.hi",
+        "join_closure_address",
+        "join_closure_env",
+        "join_closure_code",
+        "join_closure_cursor",
+        "join_closure_lambda_count",
+        "join_closure_destination",
+        "join_closure_body_word.lo",
+        "join_closure_body_word.hi",
+        "join_closure_env_remaining",
+        "join_closure_env_cursor",
+        "join_closure_env_hops",
+        "join_closure_write_index",
+        "join_closure_lambda_word.lo",
+        "join_closure_lambda_word.hi",
+        "join_app_rewrite_word.lo",
+        "join_app_rewrite_word.hi",
+        "join_app_second_write_word.lo",
+        "join_app_second_write_word.hi",
+        "join_app_first_write_word.lo",
+        "join_app_first_write_word.hi",
+        "closure_target",
+        "rup_index",
+        "rup_count",
+        "rup_block",
+        "rup_rec_binding",
+        "rup_rec_payload_bad",
+        "recp_binding",
+        "recp_context",
+        "recp_block",
+        "recp_index",
+        "recp_replacement",
+        "recp_parent_environment",
+        "recp_copy_word.lo",
+        "recp_copy_word.hi",
+        "recp_rup_word.lo",
+        "recp_rup_word.hi",
+        "recp_reverse_zero",
+        "recp_reverse_needs_bridge",
+        "recp_reverse_parent_env",
+        "recp_reverse_entry_env",
+        "lookup_address",
+        "lookup_remaining",
+        "lookup_hops",
+        "lookup_origin_address",
+        "lookup_word.lo",
+        "lookup_word.hi",
+        "lookup_push_control",
+        "pub_pending0.kind",
+        "pub_pending0.a",
+        "pub_pending0.b",
+        "pub_pending0.c",
+        "pub_pending0.d",
+        "pub_pending0.e",
+        "pub_pending0.f",
+        "pub_pending0.flags",
+        "pub_pending1.kind",
+        "pub_pending1.a",
+        "pub_pending1.b",
+        "pub_pending1.c",
+        "pub_pending1.d",
+        "pub_pending1.e",
+        "pub_pending1.f",
+        "pub_pending1.flags",
+        "pub_pending2.kind",
+        "pub_pending2.a",
+        "pub_pending2.b",
+        "pub_pending2.c",
+        "pub_pending2.d",
+        "pub_pending2.e",
+        "pub_pending2.f",
+        "pub_pending2.flags"
+      ],
+      "private_bits": 2696,
+      "shared_bridge_words": 191,
+      "publication_packets": {
+        "banks": [
+          [
+            "pub_task",
+            "red2_pub_task_t"
+          ],
+          [
+            "pub_root",
+            "red2_pub_root_t"
+          ],
+          [
+            "pub_patch",
+            "red2_pub_patch_t"
+          ],
+          [
+            "pub_patch_addr",
+            "uint17_t"
+          ],
+          [
+            "pub_mat",
+            "red2_pub_mat_t"
+          ]
+        ],
+        "requests": [
+          {
+            "name": "pub_task_addr",
+            "key": "pub_task_req.addr",
+            "type": "uint10_t",
+            "width": 10,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_kind",
+            "key": "pub_task_req.wr_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_a",
+            "key": "pub_task_req.wr_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_b",
+            "key": "pub_task_req.wr_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_c",
+            "key": "pub_task_req.wr_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_d",
+            "key": "pub_task_req.wr_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_e",
+            "key": "pub_task_req.wr_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_f",
+            "key": "pub_task_req.wr_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_flags",
+            "key": "pub_task_req.wr_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_enable",
+            "key": "pub_task_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_root_addr",
+            "key": "pub_root_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_generation",
+            "key": "pub_root_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_state",
+            "key": "pub_root_req.wr_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_result",
+            "key": "pub_root_req.wr_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_aux",
+            "key": "pub_root_req.wr_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_enable",
+            "key": "pub_root_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_patch_addr",
+            "key": "pub_patch_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_generation",
+            "key": "pub_patch_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_lo",
+            "key": "pub_patch_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_hi",
+            "key": "pub_patch_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_enable",
+            "key": "pub_patch_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_addr_addr",
+            "key": "pub_patch_addr_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write",
+            "key": "pub_patch_addr_req.wr_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write_enable",
+            "key": "pub_patch_addr_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_mat_addr",
+            "key": "pub_mat_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_lo",
+            "key": "pub_mat_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_hi",
+            "key": "pub_mat_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_generation",
+            "key": "pub_mat_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_enable",
+            "key": "pub_mat_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_mat"
+          }
+        ],
+        "responses": [
+          {
+            "name": "pub_task_read_kind",
+            "key": "pub_task_out.p0.rd_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task",
+            "suffix": ".kind"
+          },
+          {
+            "name": "pub_task_read_a",
+            "key": "pub_task_out.p0.rd_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".a"
+          },
+          {
+            "name": "pub_task_read_b",
+            "key": "pub_task_out.p0.rd_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".b"
+          },
+          {
+            "name": "pub_task_read_c",
+            "key": "pub_task_out.p0.rd_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".c"
+          },
+          {
+            "name": "pub_task_read_d",
+            "key": "pub_task_out.p0.rd_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".d"
+          },
+          {
+            "name": "pub_task_read_e",
+            "key": "pub_task_out.p0.rd_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".e"
+          },
+          {
+            "name": "pub_task_read_f",
+            "key": "pub_task_out.p0.rd_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".f"
+          },
+          {
+            "name": "pub_task_read_flags",
+            "key": "pub_task_out.p0.rd_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task",
+            "suffix": ".flags"
+          },
+          {
+            "name": "pub_root_read_generation",
+            "key": "pub_root_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_root_read_state",
+            "key": "pub_root_out.p0.rd_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root",
+            "suffix": ".state"
+          },
+          {
+            "name": "pub_root_read_result",
+            "key": "pub_root_out.p0.rd_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".result"
+          },
+          {
+            "name": "pub_root_read_aux",
+            "key": "pub_root_out.p0.rd_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".aux"
+          },
+          {
+            "name": "pub_patch_read_generation",
+            "key": "pub_patch_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_patch_read_word_lo",
+            "key": "pub_patch_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_patch_read_word_hi",
+            "key": "pub_patch_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_patch_addr_read",
+            "key": "pub_patch_addr_out.p0.rd_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr",
+            "suffix": ""
+          },
+          {
+            "name": "pub_mat_read_word_lo",
+            "key": "pub_mat_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_mat_read_word_hi",
+            "key": "pub_mat_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_mat_read_generation",
+            "key": "pub_mat_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat",
+            "suffix": ".generation"
+          }
+        ],
+        "read_only": false
+      },
+      "native_witness_count": 391,
+      "coverage": {
+        "126": {
+          "observed_rows": 1192,
+          "hardware_witness_rows": 1192,
+          "hardware_witnesses": 36,
+          "all_task_kinds_witnessed": true
+        },
+        "127": {
+          "observed_rows": 424,
+          "hardware_witness_rows": 424,
+          "hardware_witnesses": 21,
+          "all_task_kinds_witnessed": true
+        }
+      },
+      "validation": {
+        "typed": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_TYPED_REFERENCE_PASS 127",
+            "CFG_TYPED_REFERENCE_PASS 1",
+            "CFG_TYPED_REFERENCE_ALL_PASS 13200",
+            "STEP integrate.py",
+            "CFG_TABLE 110 entries 14048 rows 5635 scratch words",
+            "OWNED_INTEGRATED_TOP /private/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream 84 private words 191 shared words"
+          ],
+          "log_sha256": "b7dec318dcdb72ab68637f469d55b77c9692e58124a23eb77e18d0d47dd55954"
+        },
+        "standalone": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_PHYSICAL_CONTROLLER_PASS 388 1 1997",
+            "CFG_PHYSICAL_CONTROLLER_PASS 389 1 1980",
+            "CFG_PHYSICAL_CONTROLLER_PASS 390 1 1952",
+            "CFG_PHYSICAL_CONTROLLER_ALL_PASS 391",
+            "CFG_RESET_CANCEL_PASS",
+            "CFG_CONSTANT_PROTECTION_PASS"
+          ],
+          "log_sha256": "1034717c3514e4804a8aec9adda1b45465d8dc23b7f47c87b045522d6283121b"
+        },
+        "full boundary": {
+          "completed_pass": false,
+          "tail": [
+            "INTEGRATED_BOUNDARY_PASS 184 120 595",
+            "INTEGRATED_BOUNDARY_PASS 185 121 447",
+            "INTEGRATED_BOUNDARY_PASS 186 121 393",
+            "INTEGRATED_BOUNDARY_PASS 187 121 417",
+            "INTEGRATED_BOUNDARY_PASS 188 121 405",
+            "INTEGRATED_BOUNDARY_PASS 189 122 396"
+          ]
+        },
+        "metadata read-first and lifecycle": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "fefdf7c88f96e861f5244be6f8770c6a129a19ef3a2bda37dd5215dd02313a2a"
+        },
+        "application": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
+            "INTEGRATED_PROGRESS 25 29814 max_latency 2515",
+            "INTEGRATED_PROGRESS 50 53270 max_latency 2515",
+            "INTEGRATED_PROGRAM_PASS (CAR (CONS 7 (CONS 8 NIL)))",
+            "INTEGRATED_NATIVE_PARITY_PASS --application physical_clocks 65596 admitted 68 max_latency 2515 seconds 430.483"
+          ],
+          "log_sha256": "24fe19ca32a58314f91a700e23053514837b9b8a457e6c327897565d86bcd93a"
+        },
+        "publication program": {
+          "completed_pass": false,
+          "tail": [
+            "INTEGRATED_PROGRESS 25 41318 max_latency 3073"
+          ]
+        }
+      },
+      "artifacts": {
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/control.json": "24800d1e6010f77644f6454f33444bae2ca26cf418ca8284daca54088a20c4fc",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/control-unmapped.json": "e9a8f72ae37c0438e4260a1adfc80b91789f14da2b88213b2f210ee3e7a7da68",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/machine.py": "67d067420cf49ad45150f55addc52dfcf79ba7a43e1dd59bb192d38b331417b7",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/reference.py": "521dc00ccbb4fd667e392e2da4c2362379c7e56f9b19352aee40409d97071453",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/reference-regs.json": "d57e620755b5dd5cd5fd583a6dbf9faedcf8ec5c7fcad90fe79be20413b897bc",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/native-cases.json": "e70e6f3b978a3c95d8bfb328836880d6fbd98460b53020252c1e2b006636e3e0",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/native-coverage.json": "ff376e2ebbf5255e6c8950b6c4adb9b51bc2488e089f915dd5d511b71325af18",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/machine.py": "5d44cdf457ddcccb2698f6ae44133624d925825619643a5fea9d84af5b790ef6",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/integration.json": "d7b526281fe44d9a69d688358beb26be51f537abbb394fbccad395961d7696d2",
+        "/tmp/asgard-area-next/cfg-publication-sparse-dce/integrated-stream/provenance.json": "fbe99c81cc08c8e045e25061b4b26a9d930c70e8dd2706024cb4bab14f338dcb"
+      },
+      "mapping_status": "pending",
+      "dead_temporaries": {
+        "removed_rows": 1542,
+        "original_rows": 14048,
+        "remaining_rows": 12506,
+        "rule": "Preserve all state writes, requests, branches and halts; remove only dead temporary writes and their dead operand chains"
+      },
+      "sparse_publication": "Original zero-default metadata packet, cleared on accepted start; only referenced banks serialized per entry",
+      "hdl_files_verified_unchanged": 238
+    }
+  },
+  "rejected_generation": {
+    "root": "/tmp/asgard-area-next/cfg-publication-transactions/integrated-stream",
+    "reason": "Removing all metadata request arms left an empty block containing ast.Pass, rejected by enhanced PipelineC; corrected integration drops the empty parent",
+    "hardware_execution_pass": false
+  },
+  "limitations": [
+    "Experimental complete tops; no production adoption, RTL simulation or routed board result",
+    "Full supported-program parity remains outstanding",
+    "Observed source-CFG coverage is not exhaustive over all possible inputs",
+    "Sparse packets and dead temporary removal are distinct opt-in configurations; no additive LUT estimate is claimed"
+  ],
+  "generator_scripts_sha256": {
+    "scripts/experiments/red2_cfg_pilot/allocate.py": "cfa9ab79e0c0b91fb28756ccd37148064186939ea2df8dace9ab8a3213de1f1c",
+    "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
+    "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
+    "scripts/experiments/red2_cfg_pilot/build.py": "789cba3579dab1fe7e23d90476a582b654da63e7db33be8c0db8829caa4c9d74",
+    "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
+    "scripts/experiments/red2_cfg_pilot/check.py": "cd370503b8643a655afffedc47db9264ed4563464803a72428a60b1f630de591",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "2bb61289996dd231af5099a6305e856655e2ec0af4a3d5ec3e37ed7f10699c93",
+    "scripts/experiments/red2_cfg_pilot/check_dead_temporaries.py": "1f7420da2bc298dbb20dbeab3e15226ed5294c514ed6173692c9132b3358158c",
+    "scripts/experiments/red2_cfg_pilot/check_events.py": "f4adfe456f6cc83c67def85eedcc03a0737133cb7c7b0aa529c65dc9124cf312",
+    "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
+    "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
+    "scripts/experiments/red2_cfg_pilot/check_ownership_initializers.py": "1a61873fb2b41bb4837447183b803d8d463858bb5e85537a9eac41d49a67216a",
+    "scripts/experiments/red2_cfg_pilot/check_prune_aliases.py": "896f4c299cb1e829f394aa4fc75bfb80ae76f3212818f07798f50ffee112a8b2",
+    "scripts/experiments/red2_cfg_pilot/dead_temporaries.py": "de491879f208e651b8ac26b62da1b353fed2a58d446f2a4186c9f0545915a627",
+    "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "a00cfea47a21a4da0575ace76d40a00bbae70fb38ff89e778b57032d12ad1bc8",
+    "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
+    "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
+    "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "b5b7d5b0a434dd87f67b282f1e6a152fe9d5c0cb34bb91f43ae1a28565d13fe3",
+    "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
+    "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
+    "scripts/experiments/red2_cfg_pilot/owned.py": "13ab539a1b17db0478d82f2787889416eb9b44d1db66d6844812bd51ef616e18",
+    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
+    "scripts/experiments/red2_cfg_pilot/ownership.py": "725a426cd907164a1005890ccb307a7fad196664907d7fd96b61f736739c653a",
+    "scripts/experiments/red2_cfg_pilot/packets.py": "6bd1d2e70ad3b6028c7977d108a180ac809a7c6f3ccc1b82c95f7b670c37fe45",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "cdd65d8d130bc46ca4c47689dba626e28e01045889c4ddeed23c6bba7e61a95e",
+    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
+    "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
+    "scripts/experiments/red2_cfg_pilot/publication_reads.py": "8818c82a83386a1d72cb7b5b6a00b13182cd596c4630b5f8ce7a930407233c0d",
+    "scripts/experiments/red2_cfg_pilot/publication_transactions.py": "2a27ad58cfa2b0209ffc1b1977692fb2be52d10f2baa2853ffa052882d5a59ec"
+  }
+}

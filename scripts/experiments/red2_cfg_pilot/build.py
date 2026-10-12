@@ -12,7 +12,9 @@ from paths import (
     INCLUDE_LOOKUP,
     OUT,
     PUBLICATION_READS,
+    PUBLICATION_TRANSACTIONS,
     ROOT,
+    SPARSE_PUBLICATION,
 )
 
 SOURCE = ROOT / "src/machines/synthesizable_red2_machine/machine.py"
@@ -110,11 +112,20 @@ def leaves(name):
 
 publication_reads = None
 publication_requests = []
+publication_defaults = []
 if PUBLICATION_READS:
     from publication_reads import configure
 
     publication_reads, publication_requests = configure(tree, fn, types, structs)
     constants["PUB_TASK_WORDS"] = constants["GRAPH_WORDS"] * 4
+if PUBLICATION_TRANSACTIONS:
+    from publication_transactions import completion_bank, configure
+
+    publication_reads, transaction_requests, publication_defaults = configure(
+        tree, fn, types, structs
+    )
+    constants["PUB_TASK_WORDS"] = constants["GRAPH_WORDS"] * 4
+    constants["PUB_TASK_ADDR_BITS"] = 10
 
 selected = {}
 for x in fn.body:
@@ -125,6 +136,7 @@ for x in fn.body:
         if (
             "MICRO_" + name.upper() in EXTRA_STATES
             or (PUBLICATION_READS and name == "pub_exec")
+            or (PUBLICATION_TRANSACTIONS and name in {"pub_exec", "pub_stack"})
             or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
@@ -154,6 +166,8 @@ requests = {
 }
 if PUBLICATION_READS:
     requests["pub_exec"] += publication_requests
+if PUBLICATION_TRANSACTIONS:
+    requests.update(transaction_requests)
 execute = next(
     x
     for x in fn.body
@@ -199,6 +213,12 @@ family = {
     name: (requests.get(name.removeprefix("MICRO_").lower(), []), node.body)
     for name, (node, _) in selected.items()
 }
+if PUBLICATION_TRANSACTIONS:
+    req, body = family["MICRO_PUB_STACK"]
+    family["MICRO_PUB_STACK"] = (
+        req,
+        [*body, ast.fix_missing_locations(completion_bank(fn))],
+    )
 family["MICRO_EXECUTE"] = (requests["execute"], entry_setup + entry)
 
 OP_NAMES = [
@@ -415,6 +435,11 @@ RESPONSE_KEYS = [
 if PUBLICATION_READS:
     REQUEST_KEYS += [name + "_req.addr" for name, _ in publication_reads["banks"]]
     RESPONSE_KEYS += [f["key"] for f in publication_reads["responses"]]
+REQUEST_SENTINEL = 63 if PUBLICATION_TRANSACTIONS else 15
+if PUBLICATION_TRANSACTIONS:
+    REQUEST_KEYS += [f["key"] for f in publication_reads["requests"]]
+    RESPONSE_KEYS += [f["key"] for f in publication_reads["responses"]]
+assert len(REQUEST_KEYS) <= REQUEST_SENTINEL
 # Constant rows are not writable from the setup/debug port.
 emit("halt")
 for name, (req, body) in family.items():
@@ -456,16 +481,46 @@ clock_control_req_data: red2_control_t = red2_control_t(lo=0,hi=0,tag_hi=0)
 """).body
     if PUBLICATION_READS:
         defaults += ast.parse("pub_root_req.addr = 0\npub_patch_req.addr = 0").body
+    defaults += publication_defaults
     finish_req = ast.parse("""memory_req.wr_data = clock_memory_req_data
 control_req.wr_data = clock_control_req_data
 """).body
     entry_pc[constants[name]] = len(rows)
-    statements(defaults + setup + req + finish_req)
+    request_roots = None
+    response_roots = None
+    ir_defaults = defaults
+    if SPARSE_PUBLICATION:
+        used = {
+            n.id
+            for s in setup + req + body
+            for n in ast.walk(s)
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
+        }
+        # Request assignments have Store only on the field, while the bundle
+        # itself is loaded. Include both reads and writes without guessing paths.
+        request_roots = used & {n + "_req" for n, _ in publication_reads["banks"]}
+        response_roots = used & {n + "_out" for n, _ in publication_reads["banks"]}
+        ir_defaults = [
+            n
+            for n in defaults
+            if not (
+                isinstance(n, ast.Assign)
+                and any(
+                    key(t).split(".")[0]
+                    in {b + "_req" for b, _ in publication_reads["banks"]}
+                    - request_roots
+                    for t in n.targets
+                )
+            )
+        ]
+    statements(ir_defaults + setup + req + finish_req)
     for j, k in enumerate(REQUEST_KEYS):
-        emit("request", expr(ast.parse(k, mode="eval").body), d=j)
-    emit("request", d=15)
+        if j < 9 or request_roots is None or k.split(".")[0] in request_roots:
+            emit("request", expr(ast.parse(k, mode="eval").body), d=j)
+    emit("request", d=REQUEST_SENTINEL)
     for j, k in enumerate(RESPONSE_KEYS):
-        emit("response", d=slot(k, leaves(k)[0][1]), b=j, width=leaves(k)[0][1])
+        if j < 5 or response_roots is None or k.split(".")[0] in response_roots:
+            emit("response", d=slot(k, leaves(k)[0][1]), b=j, width=leaves(k)[0][1])
     statements(body)
     emit("halt")
     programs[name] = {
@@ -499,8 +554,17 @@ manifest = {
         "outside this pilot."
     ),
 }
-if PUBLICATION_READS:
+if publication_reads:
     manifest["publication_reads"] = publication_reads
+if PUBLICATION_TRANSACTIONS:
+    manifest["request_sentinel"] = REQUEST_SENTINEL
+    manifest["lifecycle_structs"] = structs
+    manifest["lifecycle_zero_constants"] = [k for k, v in constants.items() if v == 0]
+if SPARSE_PUBLICATION:
+    manifest["sparse_publication"] = (
+        "Original zero-default metadata packet, cleared on accepted start; "
+        "only referenced banks serialized per entry"
+    )
 # The source CFG is acyclic within one admitted logical transition. Prove that
 # every semantic operand is initialized on every path, rather than treating
 # zeroed simulation scratch as a substitute for an assignment.
@@ -520,7 +584,7 @@ for start, end in zip(starts, [*starts[1:], len(rows)], strict=True):
         op = r["op"]
         reads = []
         if op not in {OP[n] for n in ("jump", "response", "halt")} and not (
-            op == OP["request"] and r["d"] == 15
+            op == OP["request"] and r["d"] == REQUEST_SENTINEL
         ):
             reads.append(r["a"])
         if op in {

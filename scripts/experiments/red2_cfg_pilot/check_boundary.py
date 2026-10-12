@@ -16,7 +16,7 @@ import run_syn  # noqa: F401 -- verified compiler/runtime bootstrap
 import pypeline as py
 
 from native_runtime import cache_scalar_types
-from packets import construct, sidecars
+from packets import construct, request_fields, response_fields, sidecars
 
 cache_scalar_types(py)
 spec = importlib.util.spec_from_file_location(
@@ -115,11 +115,38 @@ def sidecar_models(dtype):
     return models[0]
 
 
+def check_metadata(case, before):
+    spec = m.get("publication_reads", {})
+    if spec.get("read_only") is not False:
+        assert all(sidecar_models(dtype).mem == old for dtype, old in before.items()), (
+            "read sidecar modified metadata"
+        )
+        return
+    request = dict(zip(request_fields(m), case["request"], strict=True))
+    for name, dtype in spec["banks"]:
+        wanted = before[dtype].copy()
+        if request[name + "_write_enable"]:
+            values = {
+                f["key"].replace("_req.wr_data", ""): request[f["name"]]
+                for f in spec["requests"]
+                if f["bank"] == name and "_req.wr_data" in f["key"]
+            }
+            wanted[request[name + "_addr"]] = construct(
+                getattr(hw, dtype), name, values
+            )
+        assert sidecar_models(dtype).mem == wanted, (
+            "metadata RAM result",
+            case["state"],
+            name,
+        )
+
+
 def fixture(case):
     py.sim_reset()
     drain(call(empty._replace(op=hw.CMD_RESET)))
     call(empty)
     req, response = case["request"], case["response"]
+    request = dict(zip(request_fields(m), req, strict=True))
     call(
         empty._replace(
             op=hw.CMD_LOAD_MEMORY,
@@ -127,13 +154,12 @@ def fixture(case):
             word=hw.red2_word_t(lo=response[0], hi=response[1]),
         )
     )
-    for (_name, dtype), data, address in zip(
+    for (name, dtype), data in zip(
         m.get("publication_reads", {}).get("banks", []),
         sidecars(hw, m, response),
-        req[9:],
         strict=True,
     ):
-        sidecar_models(dtype).mem[address] = data
+        sidecar_models(dtype).mem[request[name + "_addr"]] = data
     call(
         empty._replace(
             op=hw.CMD_LOAD_CONTROL,
@@ -163,7 +189,14 @@ if "--quick" in sys.argv:
     chosen = [cases[0], next(c for c in cases if c["state"] == hw.MICRO_EXECUTE)]
 elif "--publication-only" in sys.argv:
     assert "publication_reads" in m
-    chosen = [c for c in cases if c["state"] == hw.MICRO_PUB_EXEC]
+    chosen = [c for c in cases if c["state"] in {hw.MICRO_PUB_EXEC, hw.MICRO_PUB_STACK}]
+elif "--metadata-writes" in sys.argv:
+    assert m.get("publication_reads", {}).get("read_only") is False
+    fields = request_fields(m)
+    chosen = [
+        next(c for c in cases if c["request"][fields.index(name + "_write_enable")])
+        for name, _ in m["publication_reads"]["banks"]
+    ]
 elif "--entries" in sys.argv:
     chosen = list({c["state"]: c for c in reversed(cases)}.values())
 for index, case in enumerate(chosen):
@@ -200,6 +233,14 @@ for index, case in enumerate(chosen):
                 assert all(leaf(regs, k) == v for k, v in values.items())
         out = call(clock)
         after = int(regs["cfg_mem_phase"])
+        if after == 2:
+            captured = [int(regs["cfg_read_" + name]) for name in response_fields(m)]
+            assert captured == case["response"], (
+                "read-first packet",
+                index,
+                captured,
+                case["response"],
+            )
         issues += before == 0 and after == 1
         if not int(out.busy):
             break
@@ -211,9 +252,7 @@ for index, case in enumerate(chosen):
     else:
         raise AssertionError(("no completion", index))
     assert issues == 1, ("RAM issue count", index, issues)
-    assert all(
-        sidecar_models(dtype).mem == before for dtype, before in sidecar_before.items()
-    ), "read sidecar modified metadata"
+    check_metadata(case, sidecar_before)
     for name, wanted in case["expected"].items():
         assert leaf(regs, name) == wanted, (
             index,
@@ -328,3 +367,32 @@ if private:
                 wanted,
             )
     print("INTEGRATED_QUEUED_LIFECYCLE_PASS", flush=True)
+
+if m.get("publication_reads", {}).get("read_only") is False:
+    fields = request_fields(m)
+    for name, _dtype in m["publication_reads"]["banks"]:
+        witness = next(
+            c for c in cases if c["request"][fields.index(name + "_write_enable")]
+        )
+        regs = fixture(witness)
+        before = {
+            dtype: sidecar_models(dtype).mem.copy()
+            for _, dtype in m["publication_reads"]["banks"]
+        }
+        out = call(clock)
+        for _ in range(20000):
+            if int(regs["cfg_mem_phase"]) == 1:
+                break
+            assert int(out.busy)
+            out = call(clock)
+        else:
+            raise AssertionError("metadata write phase unreachable")
+        out = call(empty._replace(op=hw.CMD_START, address=256))
+        assert int(out.busy), "invalid START interrupted accepted metadata write"
+        drain(out)
+        check_metadata(witness, before)
+        for k, wanted in witness["expected"].items():
+            if k == "hw_fault":
+                wanted = hw.HW_FAULT_ADDRESS_RANGE
+            assert leaf(regs, k) == wanted, ("queued metadata write", name, k)
+        print("INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS", name, flush=True)
