@@ -114,9 +114,46 @@ rng = random.Random(203708309)
 state_keys = [k for k in slots if k.split(".")[0] in regs]
 cases = []
 coverage = {}
+typed_comparisons = 0
+integer_corners = []
+if "--integer-corners" in sys.argv:
+    assert "integer_joins" in m
+    for op in ("DEC", "INC", "NEGATE", "ABS", "FLOOR", "CEILING"):
+        for payload in (0, 1, 2, (1 << 63) - 1, 1 << 63, (1 << 63) + 1, mask64):
+            integer_corners.append(
+                (getattr(ref, "SCALAR_OP_" + op), ref.MOP_INT, ref.DATA_SIGNED, payload)
+            )
+    for payload in (0, 1, 1 << 63, mask64):
+        integer_corners.append(
+            (ref.SCALAR_OP_EVEN, ref.MOP_INT, ref.DATA_SIGNED, payload)
+        )
+    for sign in (0, 1):
+        for exponent, mantissa in ((0, 0), (0, 1), (1023, 0), (2047, 0), (2047, 1)):
+            integer_corners.append(
+                (
+                    ref.SCALAR_OP_EVEN,
+                    ref.MOP_FLOAT,
+                    ref.DATA_FLOAT64,
+                    (sign << 63) | (exponent << 52) | mantissa,
+                )
+            )
+    for op in ("INTEGER_P", "FLOAT_P", "CHAR_P", "SYMBOL_P"):
+        for opcode, kind in (
+            (ref.MOP_INT, ref.DATA_SIGNED),
+            (ref.MOP_FLOAT, ref.DATA_FLOAT64),
+            (ref.MOP_CHAR, ref.DATA_SIGNED),
+            (ref.MOP_SYM, ref.DATA_LITERAL_ID),
+            (ref.MOP_APP, ref.DATA_SIGNED),
+        ):
+            integer_corners.append((getattr(ref, "SCALAR_OP_" + op), opcode, kind, 7))
 for state in m["entry_pc"]:
     candidates = []
-    for trial in range(120):
+    corners = (
+        integer_corners
+        if int(state) in {ref.MICRO_JOIN_PUBLISH, ref.MICRO_JOIN_EP_RESULT_WRITE}
+        else []
+    )
+    for trial in range(120 + len(corners)):
         values = {}
         for key in state_keys:
             w = widths[key]
@@ -206,6 +243,73 @@ for state in m["entry_pc"]:
         ):
             values["pub_stack_phase"] = trial % 16
         launch_witness = None
+        metadata_launch_witness = None
+        integer_corner_witness = None
+        if trial >= 120:
+            op, opcode, kind, payload = corners[trial - 120]
+            values = {k: 0 for k in state_keys}
+            values.update(
+                microstate=int(state),
+                fsp=64,
+                pc=32,
+                env=256,
+                free_space=256,
+                control_top=1,
+                join_parent_address=10,
+                join_result_address=12,
+                join_scalar_active=1,
+                join_prim_scalar_op=op,
+                join_true_literal_id=8,
+                join_false_literal_id=9,
+            )
+            values["join_publish_word.lo"] = payload
+            values["join_publish_word.hi"] = (1 << 26) | (opcode << 21) | (kind << 17)
+            integer_corner_witness = trial - 120
+        if "literal_metadata" in m:
+            for j, field in enumerate(m["publication_reads"]["responses"], 5):
+                if field["bank"] != "literal_meta":
+                    continue
+                if field["suffix"] == ".literal_id" and trial % 3:
+                    response[j] = values.get("join_frame_prim_id", 0)
+                elif field["suffix"] == ".special_flags" and trial % 3:
+                    response[j] = 1 << (trial % 16)
+            if trial == 0 and int(state) in {
+                ref.MICRO_JOIN_PRIM_META_SCAN,
+                ref.MICRO_STRUCT_SELECTOR_VALUE_READ,
+            }:
+                values = {k: (1 << widths[k]) - 1 for k in state_keys}
+                values.update(microstate=int(state), red2_fault=0, hw_fault=0)
+                if int(state) == ref.MICRO_JOIN_PRIM_META_SCAN:
+                    values.update(
+                        prim0_meta_active=0,
+                        direct_scalar_active=0,
+                        ep_scalar_active=0,
+                        q=1,
+                    )
+                    for j, field in enumerate(m["publication_reads"]["responses"], 5):
+                        if field["bank"] == "literal_meta":
+                            response[j] = {
+                                ".valid": 1,
+                                ".literal_id": values["join_frame_prim_id"],
+                                ".special_flags": 1 << 6,
+                            }.get(field["suffix"], 0)
+                else:
+                    response[0] = 7
+                    response[1] = (1 << 26) | (ref.MOP_STRUCT << 21) | (1 << 20)
+                metadata_launch_witness = int(state)
+        if "scalar_core" in m and int(state) == ref.MICRO_JOIN_SCALAR_LEFT_READ:
+            flags = m["scalar_core"]["priority"]
+            selected = trial // 32
+            # Each selected arm also sees lower-priority flags, exercising the
+            # source priority when a continuation clears its own active bit.
+            for j, flag in enumerate(flags):
+                values[flag] = int(j >= selected)
+            for phase in (
+                "equality_continue_phase",
+                "equality_child_phase",
+                "equality_launch_phase",
+            ):
+                values[phase] = (trial % 32) & ((1 << widths[phase]) - 1)
         if (
             "publication_launch_events" in m
             and int(state) == ref.MICRO_JOIN_TAIL_READ
@@ -267,6 +371,11 @@ for state in m["entry_pc"]:
         )
         if launch_witness is not None:
             candidates[-1]["launch_witness"] = launch_witness
+        if metadata_launch_witness is not None:
+            candidates[-1]["metadata_launch_witness"] = metadata_launch_witness
+        if integer_corner_witness is not None:
+            candidates[-1]["integer_corner_witness"] = integer_corner_witness
+        typed_comparisons += 1
     covered = set()
     witnesses = []
     publication = "publication_reads" in m and (
@@ -276,7 +385,8 @@ for state in m["entry_pc"]:
             and int(state) == ref.MICRO_PUB_STACK
         )
     )
-    for _ in range(120 if publication else 6):
+    core = "scalar_core" in m and int(state) == ref.MICRO_JOIN_SCALAR_LEFT_READ
+    for _ in range(120 if publication or core else 6):
         best = max(candidates, key=lambda c: len(c["trace"] - covered))
         if best["trace"] <= covered:
             break
@@ -296,9 +406,42 @@ for state in m["entry_pc"]:
             selected = best.copy()
             selected.pop("trace")
             witnesses.append(selected)
+    if publication and m["publication_reads"].get("read_only") is False:
+        # Branch coverage alone can choose a zero enable for an unconditional
+        # packet assignment. Retain a positive witness for every observed bank
+        # write, so read-first/lifecycle checks cannot silently lose that case.
+        fields = request_fields(m)
+        for bank, _ in m["publication_reads"]["banks"]:
+            field = bank + "_write_enable"
+            if field not in fields:
+                continue
+            index = fields.index(field)
+            writes = [c for c in candidates if c["request"][index]]
+            if writes and not any(w["request"][index] for w in witnesses):
+                best = max(writes, key=lambda c: len(c["trace"]))
+                covered |= best["trace"]
+                selected = best.copy()
+                selected.pop("trace")
+                witnesses.append(selected)
     for candidate in candidates:
+        if "integer_corner_witness" in candidate and not any(
+            w.get("integer_corner_witness") == candidate["integer_corner_witness"]
+            for w in witnesses
+        ):
+            covered |= candidate["trace"]
+            selected = candidate.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
         if "launch_witness" in candidate and not any(
             w.get("launch_witness") == candidate["launch_witness"] for w in witnesses
+        ):
+            covered |= candidate["trace"]
+            selected = candidate.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
+        if "metadata_launch_witness" in candidate and not any(
+            w.get("metadata_launch_witness") == candidate["metadata_launch_witness"]
+            for w in witnesses
         ):
             covered |= candidate["trace"]
             selected = candidate.copy()
@@ -312,6 +455,12 @@ for state in m["entry_pc"]:
         "all_task_kinds_witnessed": publication,
     }
     print("CFG_TYPED_REFERENCE_PASS", state, flush=True)
+if m.get("publication_reads", {}).get("read_only") is False:
+    fields = request_fields(m)
+    for bank, _ in m["publication_reads"]["banks"]:
+        field = bank + "_write_enable"
+        if field in fields:
+            assert any(c["request"][fields.index(field)] for c in cases), field
 (P / "native-cases.json").write_text(json.dumps(cases))
 (P / "native-coverage.json").write_text(json.dumps(coverage, indent=2) + "\n")
-print("CFG_TYPED_REFERENCE_ALL_PASS", len(m["entry_pc"]) * 120, flush=True)
+print("CFG_TYPED_REFERENCE_ALL_PASS", typed_comparisons, flush=True)

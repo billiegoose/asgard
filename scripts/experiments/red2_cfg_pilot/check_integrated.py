@@ -25,6 +25,20 @@ hw = importlib.util.module_from_spec(spec)
 sys.modules[name] = hw
 spec.loader.exec_module(hw)
 raw = pypeline.sim_call
+trace = None
+if os.environ.get("RED2_CFG_PILOT_TRACE"):
+    from rtl_trace import Trace
+
+    trace = Trace(INTEGRATED, os.environ["RED2_CFG_PILOT_TRACE"])
+    native_raw = raw
+
+    def raw(fn, command):
+        out = native_raw(fn, command)
+        if fn is hw.SynthesizableRED2Machine:
+            trace.append(command, out)
+        return out
+
+
 physical_clocks = 0
 admitted = 0
 max_latency = 0
@@ -76,6 +90,26 @@ def application_smoke():
         print("INTEGRATED_PROGRAM_PASS", source, flush=True)
 
 
+def scalar_core_smoke():
+    for source in (
+        "(+ 7 8)",
+        "(EQUAL? 7 7)",
+        "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+        "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "((Y (LAMBDA (self) (LAMBDA (x) x))) 7)",
+    ):
+        _, commits = suite._run_program_lockstep(source)
+        assert commits > 0
+        print("INTEGRATED_PROGRAM_PASS", source, flush=True)
+
+
+def single_program():
+    source = os.environ["RED2_CFG_PILOT_PROGRAM"]
+    _, commits = suite._run_program_lockstep(source)
+    assert commits > 0
+    print("INTEGRATED_PROGRAM_PASS", source, flush=True)
+
+
 checks = {
     "--application": application_smoke,
     "--full": suite.check,
@@ -84,11 +118,15 @@ checks = {
     "--selector": suite.check_selector_shared_app_promotion,
     "--publication": suite.check_generic_ep_patch_journal,
     "--closure": suite.check_generic_closure_materialization,
+    "--scalar-core": scalar_core_smoke,
+    "--program": single_program,
 }
 choice = sys.argv[1] if len(sys.argv) > 1 else "--full"
 assert choice in checks
 started = time.monotonic()
 checks[choice]()
+if trace is not None:
+    trace.close()
 print(
     "INTEGRATED_NATIVE_PARITY_PASS",
     choice,

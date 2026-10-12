@@ -19,6 +19,14 @@ cache_scalar_types(pypeline)
 
 m = json.loads((P / "control.json").read_text())
 cases = json.loads((P / "native-cases.json").read_text())
+if "--integer-corners-only" in sys.argv:
+    cases = [c for c in cases if "integer_corner_witness" in c]
+    assert len(cases) == 152
+if "--scalar-core-only" in sys.argv:
+    cases = [c for c in cases if c["state"] == m["scalar_core"]["value"]]
+if "--metadata-core-only" in sys.argv:
+    cases = [c for c in cases if "metadata_launch_witness" in c]
+    assert len(cases) == 2
 if "--launch-only" in sys.argv:
     cases = [c for c in cases if "launch_witness" in c]
     assert len(cases) == 6

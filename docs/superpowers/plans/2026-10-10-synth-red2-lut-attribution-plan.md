@@ -914,3 +914,65 @@ compact stack core and leaves an 8,424-LUT gap to the board limit. Keep the
 publication program and stronger full boundary runs independent and pending.
 A separate scalar-entry fault diagnostic measures whole-handler attribution;
 it is explicitly not an equivalent candidate or a proposed feature removal.
+
+The one-hot import bridge completes at **28,785 LUTs**, saving 439 LUTs with the
+same 34 BRAM36 equivalents. Exhaustive mux checks, six mandatory complete-top
+launch/lifecycle fixtures and selector program parity pass. The original launch
+top completes all 418 boundary witnesses plus lifecycle checks.
+
+Whole scalar-entry attribution maps to 21,159 LUTs, an 8,065-LUT delta against
+the matching 29,224-LUT launch top. This diagnostic faults at the entire entry,
+including core equality/continuation behavior, and is not an equivalent fit
+candidate or an isolated arithmetic-unit estimate.
+
+The new conditional continuation lowering retains the original four-arm
+priority and the complete legacy arithmetic fallback. Original continuation
+request packets move with their handler bodies; the fallback keeps its original
+read gate. The disabled option regenerates byte-identically to the one-hot launch
+top. It passes 13,920 typed comparisons and 61 standalone witnesses. An initial
+manual fixture exceeded a source UInt phase width; after masking both reference
+and scratch inputs, the same controller passes. Complete-top checks and mapping
+continue. Connecting literal metadata scans and their launch writers is the next
+measured experiment; their response is synchronous and their packet cannot write
+metadata. Host loading remains in legacy arbitration. No further LUT saving is
+claimed before an exact complete-top map finishes.
+
+The conditional continuation top completes at **24,005 LUTs**, saving 4,780
+against the 28,785-LUT one-hot launch top. It retains all 20 DSPs and the legacy
+arithmetic fallback; this is a reduction in continuation/control hardware rather
+than removal of arithmetic. All 61 complete-top continuation witnesses pass.
+A greedy branch fixture initially omitted a positive PUB_MAT write; stronger
+fixtures preserve positive writes to every metadata bank and pass all accepted
+write/lifecycle checks on byte-identical hardware.
+
+Connecting literal metadata completes at **21,057 LUTs** (20,739 logic plus 318
+LUTRAM), 8,237 FF, 20 DSP, 886 CARRY4 and 40.5 BRAM36 equivalents. All 224 HDL
+files match the recorded hashes, structural checks report zero problems and all
+primitives are accounted for. It saves 2,948 LUTs and leaves **257 LUTs above**
+the Basys 3 limit. All 14,400 typed comparisons and 507 standalone physical
+witnesses pass; complete-top boundary checks continue independently.
+
+Control compaction fuses 3,313 adjacent single-use calculation/copy pairs and
+removes 354 fallthrough jumps before scratch allocation. It reduces 17,565 rows
+to 13,898 and halves index ROM depth. Fourteen guard/remapping checks, 14,400
+typed comparisons and all 508 standalone physical witnesses pass. Mapping and
+complete-top checks are pending; this is not yet a measured LUT improvement.
+
+The next complete top connects JOIN_PUBLISH and JOIN_EP_RESULT_WRITE, retaining
+the current integer arithmetic profile and FLOAT bit-level applicability checks.
+Pure helper ASTs and the enhanced compiler's binary64 type factory are checked
+before inlining. The source oracle retains original helper calls and unmodified
+handler bodies. All 14,640 typed comparisons and 30 helper edge cases pass;
+mandatory signed-boundary/predicate/FLOAT-domain fixtures, physical checks and
+area mapping follow on frozen candidate sources.
+
+An end-to-end list-equality probe faults at commit 41 (`red2=0 hw=3 micro=3
+pc=62`) on both unchanged production and the continuation candidate. Record this
+existing unsupported path explicitly; it is not a passing program check. Simple
+addition and scalar equality pass before it. Full supported-program and RTL
+parity, production adoption, board integration and routed timing remain open.
+
+The compact control top completes at **20,885 LUTs**, saving 172 against the
+21,057-LUT metadata top and leaving 85 LUTs above the board limit. Source and
+HDL hashes match, structural checks report zero problems and all primitives
+are accounted for. Complete-top boundary checks continue.

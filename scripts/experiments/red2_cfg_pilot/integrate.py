@@ -136,6 +136,15 @@ assert selected_sync >= {
     "MICRO_LOOKUP_VAR_EP_CHASE",
 }
 selected_expr = " or ".join(f"microstate == {v}" for v in selected_values)
+if "scalar_core" in m:
+    from scalar_core import STATE
+
+    selected_expr = " or ".join(
+        f"(microstate == {v} and ({m['scalar_core']['predicate']}))"
+        if v == c.constants[STATE]
+        else f"microstate == {v}"
+        for v in selected_values
+    )
 sync_expr = " or ".join(f"microstate == {n}" for n in sorted(selected_sync))
 entry_opcodes = m.get(
     "entry_opcodes", ["MOP_APP", "MOP_LAMBDA", "MOP_VAR", "MOP_APP_VAR"]
@@ -218,6 +227,12 @@ for n in fn.body:
                 continue
     new_body.append(n)
 fn.body = new_body
+if "scalar_core" in m:
+    from scalar_core import legacy_request, retain_legacy, retain_sync_fallback
+
+    parent = retain_legacy(fn, m["scalar_core"], c.selected[STATE][0])
+    legacy_request(parent, c.scalar_core_request, m["scalar_core"])
+    retain_sync_fallback(fn)
 if m.get("publication_reads", {}).get("read_only") is False:
     from publication_transactions import remove_legacy
 
@@ -227,6 +242,11 @@ if "publication_launch_events" in m:
 
     assert m["publication_launch_events"] == c.launch_events
     remove_launch_banks(fn, m["publication_launch_events"])
+if "literal_metadata" in m:
+    from literal_metadata import remove_legacy as remove_metadata
+
+    assert m["literal_metadata"]["source_launch_banks"] == c.metadata_events
+    remove_metadata(fn, c.metadata_events)
 assert set(removed_handlers) == selected_names
 
 # This adapter issues requests before consuming the read response. Dependent

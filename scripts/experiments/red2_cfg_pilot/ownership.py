@@ -118,7 +118,11 @@ def prove_private(fn, m):
         def visit_If(self, node):
             self.generic_visit(node)
             if not node.body:
-                node.body = [ast.Pass()]
+                # Every removed write was proved to be an exact lifecycle-zero
+                # initializer. Once its whole bank is private, BRAM lifecycle
+                # initialization owns it and the empty pure guard can disappear.
+                assert not node.orelse and ast.unparse(node.test) in LIFECYCLE
+                return None
             return node
 
     result = RemovePrivate().visit(result)

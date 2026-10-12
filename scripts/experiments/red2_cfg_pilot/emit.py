@@ -36,6 +36,13 @@ if os.environ.get("RED2_CFG_PILOT_DEAD_TEMPS", "0") == "1":
     eliminate(m)
     control_bits = max(1, (len(rows) - 1).bit_length())
     m["control_words"] = 1 << control_bits
+if os.environ.get("RED2_CFG_PILOT_CONTROL_COMPACT", "0") == "1":
+    assert compact
+    from control_compact import compact as compact_control
+
+    compact_control(m)
+    control_bits = max(1, (len(rows) - 1).bit_length())
+    m["control_words"] = 1 << control_bits
 if compact:
     from allocate import allocate
 

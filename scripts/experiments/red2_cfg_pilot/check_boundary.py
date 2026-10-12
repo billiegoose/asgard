@@ -124,8 +124,10 @@ def check_metadata(case, before):
         return
     request = dict(zip(request_fields(m), case["request"], strict=True))
     for name, dtype in spec["banks"]:
+        if name + "_write_enable" not in request:
+            assert name in spec["read_only_banks"]
         wanted = before[dtype].copy()
-        if request[name + "_write_enable"]:
+        if request.get(name + "_write_enable", 0):
             values = {
                 f["key"].replace("_req.wr_data", ""): request[f["name"]]
                 for f in spec["requests"]
@@ -196,10 +198,23 @@ elif "--metadata-writes" in sys.argv:
     chosen = [
         next(c for c in cases if c["request"][fields.index(name + "_write_enable")])
         for name, _ in m["publication_reads"]["banks"]
+        if name + "_write_enable" in fields
     ]
 elif "--launch-only" in sys.argv:
     chosen = [c for c in cases if "launch_witness" in c]
     assert len(chosen) == 6
+elif "--scalar-core-only" in sys.argv:
+    assert "scalar_core" in m
+    chosen = [c for c in cases if c["state"] == hw.MICRO_JOIN_SCALAR_LEFT_READ]
+elif "--integer-corners-only" in sys.argv:
+    chosen = [c for c in cases if "integer_corner_witness" in c]
+    assert len(chosen) == 152
+elif "--metadata-core-only" in sys.argv:
+    assert "literal_metadata" in m
+    states = {
+        getattr(hw, "MICRO_" + s.upper()) for s in m["literal_metadata"]["states"]
+    }
+    chosen = [c for c in cases if c["state"] in states]
 elif "--entries" in sys.argv:
     chosen = list({c["state"]: c for c in reversed(cases)}.values())
 for index, case in enumerate(chosen):
@@ -374,6 +389,9 @@ if private:
 if m.get("publication_reads", {}).get("read_only") is False:
     fields = request_fields(m)
     for name, _dtype in m["publication_reads"]["banks"]:
+        if name + "_write_enable" not in fields:
+            assert name in m["publication_reads"]["read_only_banks"]
+            continue
         witness = next(
             c for c in cases if c["request"][fields.index(name + "_write_enable")]
         )

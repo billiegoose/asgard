@@ -10,11 +10,14 @@ from paths import (
     EXTRA_STATES,
     INCLUDE_GRAPH,
     INCLUDE_LOOKUP,
+    INTEGER_JOINS,
+    LITERAL_METADATA,
     OUT,
     PUBLICATION_LAUNCHES,
     PUBLICATION_READS,
     PUBLICATION_TRANSACTIONS,
     ROOT,
+    SCALAR_CORE,
     SPARSE_PUBLICATION,
 )
 
@@ -135,6 +138,34 @@ if PUBLICATION_TRANSACTIONS:
     )
     constants["PUB_TASK_WORDS"] = constants["GRAPH_WORDS"] * 4
     constants["PUB_TASK_ADDR_BITS"] = 10
+metadata_states = set()
+metadata_events = []
+metadata_tails = {}
+metadata_requests = {}
+integer_states = set()
+integer_helpers = {}
+integer_joins = None
+original_oracle_bodies = {}
+if INTEGER_JOINS:
+    import pipelinec_toolchain as tc
+    from integer_joins import STATES
+    from integer_joins import configure as configure_integer_joins
+
+    integer_states = STATES
+    integer_helpers, integer_joins = configure_integer_joins(
+        tree,
+        structs,
+        (tc.configured_root() / "include/pypeline/floating_point.py").read_text(),
+    )
+if LITERAL_METADATA:
+    from literal_metadata import STATES
+    from literal_metadata import configure as configure_metadata
+
+    metadata_states = STATES
+    publication_reads, metadata_requests, defaults, metadata_events, metadata_tails = (
+        configure_metadata(tree, fn, types, structs, publication_reads)
+    )
+    publication_defaults += defaults
 
 selected = {}
 for x in fn.body:
@@ -147,6 +178,9 @@ for x in fn.body:
             or (PUBLICATION_READS and name == "pub_exec")
             or (PUBLICATION_TRANSACTIONS and name in {"pub_exec", "pub_stack"})
             or name in launch_states
+            or name in metadata_states
+            or name in integer_states
+            or (SCALAR_CORE and name == "join_scalar_left_read")
             or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
@@ -178,6 +212,8 @@ if PUBLICATION_READS:
     requests["pub_exec"] += publication_requests
 if PUBLICATION_TRANSACTIONS:
     requests.update(transaction_requests)
+for state, packet in metadata_requests.items():
+    requests[state] = [*requests.get(state, []), *packet]
 execute = next(
     x
     for x in fn.body
@@ -223,6 +259,22 @@ family = {
     name: (requests.get(name.removeprefix("MICRO_").lower(), []), node.body)
     for name, (node, _) in selected.items()
 }
+if INTEGER_JOINS:
+    from integer_joins import specialize
+
+    for state in integer_states:
+        name = "MICRO_" + state.upper()
+        req, body = family[name]
+        original_oracle_bodies[name] = copy.deepcopy(body)
+        family[name] = (req, specialize(body, integer_helpers))
+scalar_core = None
+if SCALAR_CORE:
+    from scalar_core import STATE, describe
+
+    scalar_core_request = copy.deepcopy(requests["join_scalar_left_read"])
+    scalar_core, req, body = describe(selected[STATE][0], scalar_core_request)
+    scalar_core["value"] = constants[STATE]
+    family[STATE] = (req, body)
 if PUBLICATION_TRANSACTIONS:
     req, body = family["MICRO_PUB_STACK"]
     family["MICRO_PUB_STACK"] = (
@@ -232,6 +284,10 @@ if PUBLICATION_TRANSACTIONS:
 if PUBLICATION_LAUNCHES:
     req, body = family["MICRO_JOIN_TAIL_READ"]
     family["MICRO_JOIN_TAIL_READ"] = (req, [*body, *launch_banks])
+for state, tails in metadata_tails.items():
+    name = "MICRO_" + state.upper()
+    req, body = family[name]
+    family[name] = (req, [*body, *tails])
 family["MICRO_EXECUTE"] = (requests["execute"], entry_setup + entry)
 
 OP_NAMES = [
@@ -368,6 +424,21 @@ def expr(x, cap=None):
         emit(op, a, b, d, width)
         return d
     if isinstance(x, ast.Compare) and len(x.ops) == 1:
+        if isinstance(x.ops[0], (ast.Gt, ast.Lt, ast.GtE, ast.LtE)):
+            assert INCLUDE_GRAPH
+            a, b = expr(x.left), expr(x.comparators[0])
+            # Strict comparisons negate the opposite non-strict comparison.
+            if isinstance(x.ops[0], (ast.Lt, ast.GtE)):
+                lhs, rhs = a, b
+            else:
+                lhs, rhs = b, a
+            d = temp()
+            emit("ge", lhs, rhs, d, 1)
+            if isinstance(x.ops[0], (ast.Lt, ast.Gt)):
+                out = temp()
+                emit("not", d, 0, out, 1)
+                return out
+            return d
         op = {ast.Eq: "eq", ast.NotEq: "ne"}[type(x.ops[0])]
         a = expr(x.left)
         b = expr(x.comparators[0])
@@ -540,7 +611,7 @@ control_req.wr_data = clock_control_req_data
         "setup": setup,
         "defaults": defaults,
         "request": req + finish_req,
-        "body": body,
+        "body": original_oracle_bodies.get(name, body),
     }
 manifest = {
     "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
@@ -580,6 +651,16 @@ if SPARSE_PUBLICATION:
     )
 if PUBLICATION_LAUNCHES:
     manifest["publication_launch_events"] = launch_events
+if scalar_core:
+    manifest["scalar_core"] = scalar_core
+if LITERAL_METADATA:
+    manifest["literal_metadata"] = {
+        "read_only": True,
+        "source_launch_banks": metadata_events,
+        "states": sorted(metadata_states),
+    }
+if integer_joins:
+    manifest["integer_joins"] = integer_joins
 # The source CFG is acyclic within one admitted logical transition. Prove that
 # every semantic operand is initialized on every path, rather than treating
 # zeroed simulation scratch as a substitute for an assignment.

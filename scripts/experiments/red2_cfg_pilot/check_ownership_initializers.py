@@ -48,4 +48,14 @@ for value in (
 assert proof("task_t(kind=0, address=0)", "    other = task\n")["private_roots"] == [
     "held"
 ]
-print("OWNERSHIP_TYPED_INITIALIZERS_PASS 9", flush=True)
+fn = ast.parse("""def hardware(command):
+    held: Reg[uint8_t]
+    if command.op == CMD_RESET or command.op == CMD_LOAD_STATE:
+        held = 0
+    return 0
+""").body[0]
+pruned, _ = prove_private(
+    fn, {"state_ownership": {"held": {}}, "slots": {"held": 0}, "widths": {"held": 8}}
+)
+assert not any(isinstance(n, (ast.If, ast.Pass)) for n in ast.walk(pruned))
+print("OWNERSHIP_TYPED_INITIALIZERS_PASS 10", flush=True)

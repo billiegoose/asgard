@@ -328,8 +328,9 @@ control table has 13,861 rows, 4,686 unique 40-bit words, and 524 scratch words 
 pass. Six mandatory STRUCT/APP/LAMBDA selector-continuation fixtures start with
 nonzero bank state and exercise promotion-generation wrap. They pass on the
 physical controller and complete top, including lifecycle checks. Selector
-program parity passes at 7,531 physical clocks. Complete boundary checks and
-publication checks continue; the stronger fixtures use byte-identical hardware.
+program parity passes at 7,531 physical clocks. All 418 boundary witnesses and
+lifecycle checks pass; focused publication program checks continue. The
+stronger fixtures use byte-identical hardware.
 The complete top maps to **29,224 LUTs and 34 BRAM36 equivalents**, saving
 4,052 LUTs against the matching compact stack top. This remains 8,424 LUTs
 over the Basys 3 limit. Production stays unchanged.
@@ -339,10 +340,60 @@ mux to independently gated typed fields and a balanced OR tree. Selector codes
 must be unique. Exhaustive selector tests cover 5,120 codes across varied field
 counts and widths; the prior source regenerates byte-identically with the option
 off. The opt-in complete top passes the six mandatory launch/lifecycle fixtures;
-its area map is separate and pending. This is an implementation choice with the
+its complete top maps to **28,785 LUTs**, saving 439 LUTs. The selector program
+also passes at 7,531 physical clocks. This is an implementation choice with the
 same latency and state-transfer contract.
 
 `diagnose_scalar.py` creates a separately labelled attribution top that faults
 at the legacy scalar entry. It deliberately changes semantics and cannot be a
 fit candidate. Its whole-top delta includes scalar control and preflight as well
 as arithmetic, and is not an additive standalone arithmetic-unit estimate.
+
+`RED2_CFG_PILOT_SCALAR_CORE=1` splits the four priority branches at the shared
+scalar entry: equality continuation, equality child, equality launch and Y
+continuation. The active flags come from incoming state; clearing one cannot
+activate a later arm in the same transition. Their original request and response
+packets move together. The arithmetic fallback retains its original hardware,
+request and synchronous read gate. Generation with the option disabled is byte
+identical to the mapped one-hot launch top. All 13,920 typed comparisons and 61
+standalone and complete-top continuation witnesses pass. Stronger fixtures on
+byte-identical hardware retain positive write enables for all five metadata
+banks and pass accepted-write lifecycle checks. The complete top maps to
+**24,005 LUTs**, saving 4,780 against the one-hot launch top.
+
+`RED2_CFG_PILOT_LITERAL_METADATA=1` additionally connects the three literal
+metadata scan handlers and selector value read. It adds only a read address and
+the source-typed synchronous response fields; host metadata loading keeps its
+original enable and payload. Unique continuation launch writers carry all their
+source reset-bank effects, including both consumers of the equality event, in
+source order. This is an independent opt-in experiment with its own validation
+and mapping. The complete top maps to **21,057 LUTs**, saving another 2,948 and
+leaving 257 LUTs above the Basys 3 limit. All 14,400 typed comparisons and 507
+standalone physical witnesses pass; complete-top boundary checks continue.
+Results are recorded in the scalar-core results file.
+
+`RED2_CFG_PILOT_CONTROL_COMPACT=1` fuses a single-use temporary calculation with
+its adjacent same-width copy, when the copy has only that predecessor, and
+removes jumps to the following row. It runs before scratch allocation, preserves
+packet/state effects and remaps every entry and branch target. Fourteen focused
+checks pass. The metadata candidate shrinks from 17,565 to 13,898 rows, halving
+the index-ROM depth, and passes 14,400 typed comparisons plus all 508 standalone
+physical witnesses. The complete top maps to **20,885 LUTs**, saving 172 and
+leaving 85 LUTs above the board limit. Complete-top boundary checks continue.
+
+`RED2_CFG_PILOT_INTEGER_JOINS=1` additionally connects JOIN_PUBLISH and
+JOIN_EP_RESULT_WRITE under the existing `RED2_SYN_FLOAT=0` profile. Binary64
+unpack/domain helpers inline from the original AST with a checked compiler type
+factory. Raw FLOAT transport, predicates and EVEN? applicability remain intact.
+The typed oracle retains the original helper calls and unspecialized bodies.
+All 14,640 typed comparisons and 30 helper edge cases pass; physical, full-top
+and area checks continue. `check.py --integer-corners` adds mandatory signed
+boundary, overflow, predicate and FLOAT domain witnesses on a separate fixture
+copy of the identical hardware.
+
+The end-to-end list-equality probe `(EQUAL? (CONS 7 NIL) (CONS 7 NIL))` faults
+at commit 41 (`hw=3`, microstate 3, PC 62) on both the continuation candidate
+and unchanged production hardware. This is an existing unsupported execution
+path, not a passing parity check. Simple addition and scalar equality complete
+before that probe; broad supported-program and RTL parity remain outstanding.
+None of these experiments establishes routed board timing or changes production.
