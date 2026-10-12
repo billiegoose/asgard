@@ -976,3 +976,29 @@ The compact control top completes at **20,885 LUTs**, saving 172 against the
 21,057-LUT metadata top and leaving 85 LUTs above the board limit. Source and
 HDL hashes match, structural checks report zero problems and all primitives
 are accounted for. Complete-top boundary checks continue.
+
+The integer JOIN top maps to **19,151 LUTs** (18,825 logic plus 326 LUTRAM),
+8,094 FF, 20 DSP, 758 CARRY4 and 34.5 BRAM36 equivalents. It is 1,649 LUTs
+below the nominal board limit, with zero structural problems and all primitives
+accounted for. All 527 standalone witnesses and 152 mandatory signed-boundary,
+overflow, predicate and FLOAT-domain physical witnesses pass. All 152 mandatory
+complete-top transitions and five-bank accepted-write lifecycle checks pass.
+Metadata/compact roots finish all 507/508 complete-top boundary/lifecycle checks.
+
+**Do not adopt that mapped top.** Public-port replay against the exact optimized
+GHDL/Yosys frontend netlist passes function application (10,703 clocks), but
+addition diverges at clock 9,817 in both Verilator and Icarus; structure creation
+and access diverges at 14,210. The source/native/concrete program runs pass.
+At JOIN_CONTROL_CLEAR, RTL clears a saved primitive countdown that native RED2
+preserves, finishing the transition 12 physical clocks early.
+
+The surviving EXECUTE JOIN decoder re-annotates `join_saved_primitive` as
+`uint1_t` after declaring it `Reg[uint1_t]`. PipelineC incorrectly redeclared a
+zero-driven local. The compiler fix preserves the register and checks matching
+types. It lives in fpgatool commit `f8b237d`; the new manifest installs separately
+as `build/pipelinec-enhanced-9834e480170b`. The scalar/struct regression fails on
+the old compiler at cycle 3 and passes all 31 native/GHDL trace rows on the fix,
+with both simulations explicitly reaching `sim_finish`. The native runtime is
+byte-identical. Recompile the frozen candidate under the corrected pin, replay
+its same concrete-checked public inputs and outputs, and remeasure before
+claiming a usable fit. Production source remains unchanged.

@@ -14,7 +14,7 @@ older `PipelineC-pypeline-red2-pinned` checkout is rejected. The explicit hardwa
 gate also requires this verified compiler rather than an arbitrary executable
 on PATH.
 
-The base is upstream `2fe880d19852b8df0df1aae00f469c8be6fe8ce1`. The patch pair retains
+The base is upstream `2fe880d19852b8df0df1aae00f469c8be6fe8ce1`. The patches retain
 the RED2 enhancements used by the LUT experiments, including priority-preserving elif
 branch merging, generated-instance disambiguation, and software comparison
 operator lowering. Fingerprints identify the actual files, including patches,
@@ -22,6 +22,15 @@ rather than relying on the base revision alone. The shared BoolOp patch is
 applied first, followed by `pypeline-red2-enhancements.patch`. The port drops old
 name-resolution compatibility hunks whose resulting lookup order is already in
 upstream, preserving upstream's injected design parameter support.
+
+`pypeline-register-reannotations.patch` then preserves an existing `Reg[T]`
+when a later assignment repeats its ordinary type annotation. Without it,
+RED2's saved primitive flag compiled as a zero-driven local and lost its write.
+The expanded scalar/struct register regression fails at cycle 3 with the old
+compiler; this pin passes all 31 native/GHDL trace rows and reaches `sim_finish`.
+Historical area measurements below predate this correction. The complete CFG
+candidate is being recompiled and remeasured with this pin; native checks alone
+did not expose the problem.
 
 Each manifest has its own installation directory, so updating a pin preserves
 the previous compiler. Explicit `PIPELINEC_ROOT` overrides still require the

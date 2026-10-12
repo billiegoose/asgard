@@ -8,10 +8,14 @@
     {
       "file": "pypeline-red2-enhancements.patch",
       "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+    },
+    {
+      "file": "pypeline-register-reannotations.patch",
+      "sha256": "b563f502ab12af31eb08b29de137500d29a2ef4660c6b44e309dc4ef4cd39f79"
     }
   ],
   "files": {
-    "src/PY_TO_LOGIC.py": "29fd0c6c00d8fbcd79608f5536841c3130fb9a8c0d8bd2eb3988a0c9a25a73e1",
+    "src/PY_TO_LOGIC.py": "09ce61a3d5b90c6bb906cc26ef07deeeda0e9d8874ca6b6014d30ff1f3d19a5b",
     "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
     "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
     "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",

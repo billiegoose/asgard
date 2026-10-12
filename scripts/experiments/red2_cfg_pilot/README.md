@@ -391,6 +391,35 @@ and area checks continue. `check.py --integer-corners` adds mandatory signed
 boundary, overflow, predicate and FLOAT domain witnesses on a separate fixture
 copy of the identical hardware.
 
+The integer JOIN top maps to **19,151 LUTs**, but is **not a usable fit
+candidate**: RTL replay diverges during addition at physical clock 9,817 and
+structure creation/access at 14,210. Verilator and Icarus independently reproduce
+the addition mismatch; function application passes all 10,703 clocks. All 527
+standalone and 152 mandatory native physical witnesses pass, and all 152
+mandatory complete-top witnesses plus accepted-write lifecycle checks pass.
+This demonstrates why native comparisons alone are insufficient.
+
+The mismatch identifies a compiler register re-annotation bug: the surviving
+EXECUTE JOIN decoder assigns `join_saved_primitive: uint1_t = ...` after its
+`Reg[uint1_t]` declaration. The compiler redeclared a zero-driven local instead
+of updating the register. The fix lives in fpgatool's
+`pypeline-register-reannotations.patch`, with scalar/struct native/VHDL regression
+coverage. A separate root recompiles byte-identical controller, complete top and
+oracle sources with the corrected compiler and reuses the concrete-checked
+public-port traces. Its RTL validation and exact-source area remeasurement are
+pending. The metadata and compact variants also finish all 507/508 complete-top
+boundary and five-bank lifecycle checks; their RTL parity is not established.
+
+`RED2_CFG_PILOT_TRACE=/absolute/new/vectors.txt check_integrated.py --program`
+records every public input/output clock for `RED2_CFG_PILOT_PROGRAM`. A complete
+native/concrete pass writes the trace metadata and source hash. `prepare_rtl.py`
+prepares direct GHDL replay; the large complete top makes that backend slow.
+`prepare_verilator.py --conversion-only` prepares conversion of the area map's
+`coarse.json`; after running that Yosys script, `prepare_verilator.py` emits a
+packed-port wrapper, replay driver and build script. It checks all 626 output
+bits on each clock. Register/memory initialization comes from the generated RTL;
+the replay driver does not inject internal state.
+
 The end-to-end list-equality probe `(EQUAL? (CONS 7 NIL) (CONS 7 NIL))` faults
 at commit 41 (`hw=3`, microstate 3, PC 62) on both the continuation candidate
 and unchanged production hardware. This is an existing unsupported execution

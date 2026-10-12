@@ -64,6 +64,9 @@ begin
       wait for 5 ns;
       clk <= '0';
       cycle := cycle + 1;
+      if cycle mod 1000 = 0 then
+        report "INTEGRATED_RTL_REPLAY_PROGRESS " & integer'image(cycle);
+      end if;
     end loop;
     assert cycle = {data["cycles"]} severity failure;
     report "INTEGRATED_RTL_REPLAY_PASS " & integer'image(cycle);
@@ -78,10 +81,10 @@ args = " ".join(
 )
 work = shlex.quote(container_root + "/work")
 (root / "run.sh").write_text(
-    "#!/usr/bin/env bash\nset -euo pipefail\n"
+    "#!/usr/bin/env bash\nset -euo pipefail\nulimit -s unlimited\n"
     f"mkdir -p {work}\n"
-    f"{ghdl} -a --std=08 --workdir={work} {args} {container_root}/replay.vhd\n"
-    f"{ghdl} -e --std=08 --workdir={work} red2_replay\n"
+    f"{ghdl} -i --std=08 --workdir={work} {args} {container_root}/replay.vhd\n"
+    f"{ghdl} -m --std=08 --workdir={work} red2_replay\n"
     f"{ghdl} -r --std=08 --workdir={work} red2_replay "
     "--assert-level=error --ieee-asserts=disable-at-0\n"
 )

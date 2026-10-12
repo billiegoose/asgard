@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T10:48:21.729137+00:00",
+  "recorded_at_utc": "2026-10-12T11:26:55.247197+00:00",
   "scope": "Dedicated source-derived RED2 core continuations, retaining the complete arithmetic fallback in legacy hardware",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
@@ -626,16 +626,17 @@
           "log_sha256": "a87bc1762fe31db881e2142c8aea95681f789cf6e8665aa30ecd24ab0d38021f"
         },
         "strong full boundary": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 333 51 719",
-            "INTEGRATED_BOUNDARY_PASS 334 51 743",
-            "INTEGRATED_BOUNDARY_PASS 335 51 761",
-            "INTEGRATED_BOUNDARY_PASS 336 54 1013",
-            "INTEGRATED_BOUNDARY_PASS 337 54 749",
-            "INTEGRATED_BOUNDARY_PASS 338 54 701",
-            "INTEGRATED_BOUNDARY_PASS 339 54 683"
-          ]
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "67e28a2733c6db705a97b4d5d9406712d645fd1d6055bed565f8389b82667cc6"
         },
         "strong standalone": {
           "completed_pass": true,
@@ -1488,16 +1489,17 @@
           "log_sha256": "923f3be0c893bb995410a1115743c4cf3ef4b5fefec073e49aba8a536f97c902"
         },
         "full boundary": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 262 63 755",
-            "INTEGRATED_BOUNDARY_PASS 263 63 1763",
-            "INTEGRATED_BOUNDARY_PASS 264 63 1763",
-            "INTEGRATED_BOUNDARY_PASS 265 63 1763",
-            "INTEGRATED_BOUNDARY_PASS 266 63 1763",
-            "INTEGRATED_BOUNDARY_PASS 267 63 1763",
-            "INTEGRATED_BOUNDARY_PASS 268 63 1763"
-          ]
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "cc002849194a685e227ac4681fd44fa0a3fcdf8f52c0b7cf6087e5635e30beb7"
         }
       },
       "mapping_status": "complete",
@@ -2320,16 +2322,17 @@
       "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
       "validation": {
         "full standalone": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "CFG_PHYSICAL_CONTROLLER_PASS 210 128 302",
-            "CFG_PHYSICAL_CONTROLLER_PASS 211 129 309",
-            "CFG_PHYSICAL_CONTROLLER_PASS 212 129 298",
-            "CFG_PHYSICAL_CONTROLLER_PASS 213 129 287",
-            "CFG_PHYSICAL_CONTROLLER_PASS 214 129 306",
-            "CFG_PHYSICAL_CONTROLLER_PASS 215 130 416",
-            "CFG_PHYSICAL_CONTROLLER_PASS 216 130 393"
-          ]
+            "CFG_PHYSICAL_CONTROLLER_PASS 523 1 1361",
+            "CFG_PHYSICAL_CONTROLLER_PASS 524 1 1314",
+            "CFG_PHYSICAL_CONTROLLER_PASS 525 1 1304",
+            "CFG_PHYSICAL_CONTROLLER_PASS 526 1 1269",
+            "CFG_PHYSICAL_CONTROLLER_ALL_PASS 527",
+            "CFG_RESET_CANCEL_PASS",
+            "CFG_CONSTANT_PROTECTION_PASS"
+          ],
+          "log_sha256": "f11c38afb97e387c49d7ee7e1c2f69cecbbfbe1d300852b40a474ae79a39b1f2"
         },
         "typed": {
           "completed_pass": true,
@@ -2347,29 +2350,40 @@
         "full boundary": {
           "completed_pass": false,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 65 19 338",
-            "INTEGRATED_BOUNDARY_PASS 66 9 413",
-            "INTEGRATED_BOUNDARY_PASS 67 9 365",
-            "INTEGRATED_BOUNDARY_PASS 68 9 389",
-            "INTEGRATED_BOUNDARY_PASS 69 9 401",
-            "INTEGRATED_BOUNDARY_PASS 70 9 413",
-            "INTEGRATED_BOUNDARY_PASS 71 9 401"
+            "INTEGRATED_BOUNDARY_PASS 425 88 359",
+            "INTEGRATED_BOUNDARY_PASS 426 78 261",
+            "INTEGRATED_BOUNDARY_PASS 427 79 313",
+            "INTEGRATED_BOUNDARY_PASS 428 79 295",
+            "INTEGRATED_BOUNDARY_PASS 429 80 254",
+            "INTEGRATED_BOUNDARY_PASS 430 81 276",
+            "INTEGRATED_BOUNDARY_PASS 431 81 270"
           ]
         },
         "integer corner standalone": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "CFG_PHYSICAL_CONTROLLER_PASS 0 37 932",
-            "CFG_PHYSICAL_CONTROLLER_PASS 1 37 903",
-            "CFG_PHYSICAL_CONTROLLER_PASS 2 37 904",
-            "CFG_PHYSICAL_CONTROLLER_PASS 3 37 887",
-            "CFG_PHYSICAL_CONTROLLER_PASS 4 37 888",
-            "CFG_PHYSICAL_CONTROLLER_PASS 5 37 884"
-          ]
+            "CFG_PHYSICAL_CONTROLLER_PASS 148 40 833",
+            "CFG_PHYSICAL_CONTROLLER_PASS 149 40 834",
+            "CFG_PHYSICAL_CONTROLLER_PASS 150 40 836",
+            "CFG_PHYSICAL_CONTROLLER_PASS 151 40 765",
+            "CFG_PHYSICAL_CONTROLLER_ALL_PASS 152",
+            "CFG_RESET_CANCEL_PASS",
+            "CFG_CONSTANT_PROTECTION_PASS"
+          ],
+          "log_sha256": "0f05ec677849d359bbae6e84862b8518eb989c617167b59c3ab61f090a9d8349"
         },
         "integer corner boundary": {
-          "completed_pass": false,
-          "tail": []
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_task",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_root",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_patch_addr",
+            "INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS pub_mat"
+          ],
+          "log_sha256": "0d21aeb3f265b634713acf934818b5a1c331ed365ac78093d8b3a5335b3a0c12"
         },
         "strong typed": {
           "completed_pass": true,
@@ -2383,9 +2397,108 @@
             "CORE_COVERAGE_HARDWARE_BYTE_IDENTICAL_PASS"
           ],
           "log_sha256": "b57f68bbb4d38881f756754b6ad5c2c1b6d2cca1d7920cc104d0ddfea1a34ba4"
+        },
+        "RTL public port add": {
+          "completed_pass": false,
+          "cycles": 26391,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "2bbbb9a76c8ce08c4a1953499cd55f5b89c09f31ca389e3db4785f1958eb6ce1",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "62bb3b254119d0b9e575b384e5e5e72c5b8b12f8eaddcb442eacb5897df40329",
+          "bench_sha256": "5f8a4efc3816d5e0631eb63a11439dad4abde03cf6d80598a4bb414ca750a5b3",
+          "run_script_sha256": "cf848001b5a770282151cf4d8f696bf8d2010ab0e3fc6ae24745b20889f67137"
+        },
+        "native program add": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 25 17580 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (+ 7 8)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 26391 admitted 36 max_latency 1669 seconds 273.374"
+          ],
+          "log_sha256": "91302b10db9203a5a2596024c516f737ff5bf4ada8765b195ce5a5c2a7104e22"
+        },
+        "RTL public port application": {
+          "completed_pass": false,
+          "cycles": 10703,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "40107305705bf48de1044f885b408229b2fa5678ade66abcdd5519d02b287f3c",
+          "bench_sha256": "1ba13ecfc53d87e5cf13d676c7353ea83dbee5199080a76c6f7db2e27e84cc0a",
+          "run_script_sha256": "4c1e0a9fddfb2a54df887645036742cbb7304b0e52b05a931f21e3c61ad098e3"
+        },
+        "native program application": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 10703 admitted 13 max_latency 1669 seconds 127.461"
+          ],
+          "log_sha256": "0663289c0de53726eb8b64abe0788cddc7f87a0a271041c250b93ac47dad1a73"
+        },
+        "RTL public port structure": {
+          "completed_pass": false,
+          "cycles": 123863,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "0f0dcd09716cbf3e4271bef019bf06a1fe9201f5a8d43da78ef6798d6f94108b",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "48d855d249df7152d140172e819d6555c1121564e92ed383bc8f7d2ffb9ecb78",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program structure": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 175 107813 max_latency 1669",
+            "INTEGRATED_PROGRESS 200 122277 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (CAR (CONS 7 (CONS 8 NIL)))",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 123863 admitted 201 max_latency 1669 seconds 1086.772"
+          ],
+          "log_sha256": "917cef933ba6b20f8e18b2bd4f55cc97242b4c8eb8e55d0ad8e1f0b4bcf677bb"
+        },
+        "Verilator public port add": {
+          "completed_pass": false,
+          "log_sha256": "84769ba9ea2f2518794b35ca0a206e4f48a062fc1b00dc568287a5dee651158c",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 7000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 8000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 9000",
+            "RTL mismatch cycle 9817 output word 0 actual 180400 expected 247600"
+          ]
+        },
+        "Verilator public port application": {
+          "completed_pass": true,
+          "log_sha256": "3e68905ac2cb131c55b7097bb65ed3c19cc24c70bae4deb9e5c5ab10facfd365",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 8000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 9000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 10000",
+            "INTEGRATED_VERILATOR_REPLAY_PASS 10703"
+          ]
+        },
+        "Verilator public port structure": {
+          "completed_pass": false,
+          "log_sha256": "fc08c3a0cb3c409d07d10015150de8fb968bf35b492a27d5e29ca7928daa304f",
+          "tail": [
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 12000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 13000",
+            "INTEGRATED_VERILATOR_REPLAY_PROGRESS 14000",
+            "RTL mismatch cycle 14210 output word 0 actual 3c0400 expected 487600"
+          ]
+        },
+        "Icarus independent addition replay": {
+          "completed_pass": false,
+          "log_sha256": "8ced49eab5165e2ff473df1c5d1c464b3b480eb6e872b88866c692a7b281d946",
+          "tail": [
+            "INTEGRATED_ICARUS_PROGRESS        9000",
+            "FATAL: /experiment/integrated-stream/rtl-netlist/replay-iverilog.sv:15: RTL mismatch cycle        9817 actual 01000000000000000000000000000000f7000000000422000000000000000000030000000000000000000000002c00000000000000000000000801ee0000000000000fa10000803dc002000180400 expected 21000000000000000000000000000000f7000000000422000000000000000000030000000000000000000000002c00000000000000000000000801ee0000000000000fa10001003dc002000247600",
+            "       Time: 98175  Scope: replay_tb"
+          ]
         }
       },
-      "mapping_status": "pending",
+      "mapping_status": "complete",
       "artifacts": {
         "/tmp/asgard-area-next/cfg-integer-joins/control-unmapped.json": "2dfdb64fe0a43d84edb7fa643a17f8528b5cb614829f202810764f529ea8bfc3",
         "/tmp/asgard-area-next/cfg-integer-joins/control.json": "1445064ec8efd14da4a41af3beb7e55f743bc6bdff54e01900ce25c3019f62e2",
@@ -2395,7 +2508,10 @@
         "/tmp/asgard-area-next/cfg-integer-joins/native-cases.json": "dbd7a72e8791ba7ef242f0d5f7246588a4d1039589645d07ed691a7fdefdd563",
         "/tmp/asgard-area-next/cfg-integer-joins/native-coverage.json": "67460d5345ddfd10d4f8a42372e47b7162f2434c057933a24eaa3deb9751ea48",
         "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/machine.py": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
-        "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/integration.json": "3c478fa1e91b096e58d8e7693d32514597db4c8454b612f573654f630bdde00d"
+        "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/integration.json": "3c478fa1e91b096e58d8e7693d32514597db4c8454b612f573654f630bdde00d",
+        "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/resources.json": "bb7039ac0c9dba2e64cbf43da6da8140e355681f05cc55da452d2ab82b34a413",
+        "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/baseline-area.json": "a83388eb1cee4cf2a562cee925d68c9d5a2a449d860374d37a7a8676373da6d3",
+        "/tmp/asgard-area-next/cfg-integer-joins/integrated-stream/baseline-area.log": "9b394f1186915f7a7e0ced1b705701563349587ff059eac5f415e7c38a89b8fb"
       },
       "literal_metadata": {
         "read_only": true,
@@ -2923,7 +3039,920 @@
       },
       "hdl_files_verified_unchanged": 219,
       "provenance_sha256": "2599f097dba4fa4568d5f81dd52d3072937154e1467cd12596ad4bf84e1cca84",
-      "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe"
+      "compiler_manifest_sha256": "db7cdf7c79dd465fbe99587db89697141124224bdb25e688bdd2446dd719a3fe",
+      "resources": {
+        "top": "top",
+        "lut": 18825,
+        "lut_memory": 326,
+        "lut_total": 19151,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 8094,
+        "bram18": 21,
+        "bram36": 24,
+        "bram36_equivalent": 34.5,
+        "dsp48": 20,
+        "carry4": 758,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 758,
+          "DSP48E1": 20,
+          "FDRE": 8094,
+          "INV": 883,
+          "LUT2": 2649,
+          "LUT3": 2996,
+          "LUT4": 2974,
+          "LUT5": 4197,
+          "LUT6": 6009,
+          "RAM256X1S": 50,
+          "RAM64X1S": 126,
+          "RAMB18E1": 21,
+          "RAMB36E1": 24
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "verilator_netlist_provenance": {
+        "coarse_json_sha256": "85e8e6d078c2c8728dd0e7dd773a4527f6381778ef15d7483b5aecfc298c0969",
+        "coarse_verilog_sha256": "af737962d3d8244e49445d7df051ec5fec4ff9bc389764374788cb02b4af6978",
+        "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+        "replay_cpp_sha256": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
+        "wrapper_sha256": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+        "conversion_passes": "read_json; rename -hide; opt_clean -purge; memory_unpack; write_verilog -noattr",
+        "input_width": 722,
+        "output_width": 626,
+        "scope": "Optimized GHDL/Yosys area-map frontend RTL before technology mapping"
+      },
+      "usable_fit_candidate": false,
+      "RTL_regression": "Addition diverges at physical cycle 9817 in two independent RTL simulators; structure program also diverges at 14210. Native checks pass. Investigate before adoption; mapped area is not sufficient validation."
+    },
+    "cfg-integer-joins-regfix": {
+      "configuration": {
+        "RED2_CFG_PILOT_OUT": "/tmp/asgard-area-next/cfg-integer-joins-regfix",
+        "RED2_CFG_PILOT_GRAPH": "1",
+        "RED2_CFG_PILOT_LOOKUP": "1",
+        "RED2_CFG_PILOT_COMPACT": "1",
+        "RED2_CFG_PILOT_OWNED": "1",
+        "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+        "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN",
+        "RED2_CFG_PILOT_DICTIONARY": "1",
+        "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+        "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+        "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+        "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+        "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+        "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+        "RED2_CFG_PILOT_SCALAR_CORE": "1",
+        "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+        "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+        "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+        "RED2_CFG_PILOT_INTEGER_JOINS": "1"
+      },
+      "logical_entries": 122,
+      "scalar_core": {
+        "state": "MICRO_JOIN_SCALAR_LEFT_READ",
+        "predicate": "equality_continue_active or equality_child_active or equality_launch_active or prim0_y_active",
+        "priority": [
+          "equality_continue_active",
+          "equality_child_active",
+          "equality_launch_active",
+          "prim0_y_active"
+        ],
+        "handler_sha256": "8842379799460684e5b0b2105031762fb8bb5082126a6d12851da44b9176fdae",
+        "request_sha256": "16f2ef028e26001df323bbb7dd727abe1016c844905b4656b7fdbf967cbfce93",
+        "value": 63
+      },
+      "control_rows": 14550,
+      "control_dictionary": {
+        "method": "Immutable instruction index ROM and deduplicated word ROM",
+        "logical_rows": 14550,
+        "unique_words": 5663,
+        "index_bits": 13,
+        "dictionary_depth": 8192,
+        "reconstruction_exact": true,
+        "extra_fetch_cycles": 1
+      },
+      "scratch_allocation": {
+        "method": "CFG liveness, distinct persistent state and immutable constants",
+        "original_words": 8445,
+        "allocated_words": 594,
+        "persistent_words": 348,
+        "temporary_colors": 82,
+        "constant_words": 164,
+        "all_live_sets_disjoint": true
+      },
+      "private_fields": [
+        "struct_selector_tag_id",
+        "struct_selector_offset",
+        "struct_selector_descriptor",
+        "struct_selector_source",
+        "struct_selector_result_meta_cursor",
+        "struct_selector_result_id",
+        "struct_selector_launch_active",
+        "struct_selector_copy_cursor",
+        "struct_selector_copy_old_fsp",
+        "struct_cons_active",
+        "struct_selector_result_active",
+        "lambda_word.lo",
+        "lambda_word.hi",
+        "struct_saved_q",
+        "app_definition_pop_saved",
+        "ep_hops",
+        "join_host_active",
+        "join_host_op",
+        "join_ep_target",
+        "join_frame_fire",
+        "join_struct_descriptor_address",
+        "join_struct_descriptor_hi",
+        "join_struct_ep_hops",
+        "join_struct_ep_embedded",
+        "join_struct_rewrite_word.lo",
+        "join_struct_rewrite_word.hi",
+        "equality_child_phase",
+        "equality_child_task_root",
+        "equality_child_join_address",
+        "equality_child_left",
+        "equality_child_right",
+        "equality_child_lambdas",
+        "equality_child_descriptor",
+        "equality_child_left_word.lo",
+        "equality_child_left_word.hi",
+        "equality_child_right_word.lo",
+        "equality_child_right_word.hi",
+        "equality_child_left_code_word.lo",
+        "equality_child_left_code_word.hi",
+        "equality_child_build_join_word.lo",
+        "equality_child_build_join_word.hi",
+        "equality_child_build_root",
+        "equality_child_build_descriptor",
+        "equality_child_build_app_mode",
+        "equality_child_build_count",
+        "equality_child_build_index",
+        "equality_child_build_cursor",
+        "equality_child_build_false_root",
+        "equality_child_build_if_child_root",
+        "equality_child_struct_left_base",
+        "equality_child_struct_right_base",
+        "equality_child_struct_left_count",
+        "equality_child_struct_right_count",
+        "join_special_meta_cursor",
+        "prim0_y_needs_scratch",
+        "prim0_y_argument_address",
+        "equality_continue_phase",
+        "equality_continue_result_pc",
+        "equality_continue_live_fsp",
+        "equality_continue_saved_q",
+        "equality_continue_child_id",
+        "prim0_y_scratch_word.lo",
+        "prim0_y_scratch_word.hi",
+        "prim0_y_target",
+        "join_ep_general_root",
+        "join_ep_embedded",
+        "pub_sp",
+        "pub_value",
+        "pub_launch_root",
+        "pub_interval_start",
+        "pub_interval_stop",
+        "pub_phi",
+        "pub_resume_kind",
+        "pub_current_valid",
+        "pub_pending_count",
+        "pub_stack_index",
+        "pub_stack_base",
+        "pub_memo_write_pending",
+        "pub_memo_write_address",
+        "pub_memo_write_data.generation",
+        "pub_memo_write_data.state",
+        "pub_memo_write_data.result",
+        "pub_memo_write_data.aux",
+        "pub_patch_count",
+        "pub_patch_commit_index",
+        "pub_patch_stage_pending",
+        "pub_patch_stage_append",
+        "pub_patch_stage_address",
+        "pub_patch_stage_word.lo",
+        "pub_patch_stage_word.hi",
+        "pub_patch_commit_address",
+        "pub_patch_commit_word.lo",
+        "pub_patch_commit_word.hi",
+        "pub_patch_commit_pending",
+        "pub_mat_count",
+        "pub_destination",
+        "pub_mat_stage_pending",
+        "pub_mat_stage_index",
+        "pub_mat_stage_word.lo",
+        "pub_mat_stage_word.hi",
+        "pub_mat_validate_index",
+        "pub_mat_commit_index",
+        "join_app_shared_target",
+        "join_app_second_target",
+        "join_app_has_second_target",
+        "join_app_first_write_needed",
+        "join_app_second_write_needed",
+        "join_app_cursor",
+        "join_ep_descriptor_hi",
+        "join_ep_descriptor_address",
+        "join_flat_cursor",
+        "join_cache_word.lo",
+        "join_cache_word.hi",
+        "join_ep_publish_word.lo",
+        "join_ep_publish_word.hi",
+        "join_closure_address",
+        "join_closure_env",
+        "join_closure_code",
+        "join_closure_cursor",
+        "join_closure_lambda_count",
+        "join_closure_destination",
+        "join_closure_body_word.lo",
+        "join_closure_body_word.hi",
+        "join_closure_env_remaining",
+        "join_closure_env_cursor",
+        "join_closure_env_hops",
+        "join_closure_write_index",
+        "join_closure_lambda_word.lo",
+        "join_closure_lambda_word.hi",
+        "join_app_rewrite_word.lo",
+        "join_app_rewrite_word.hi",
+        "join_app_operator_address",
+        "join_app_preflight_slot",
+        "join_app_preflight_root",
+        "join_app_preflight_descriptor_hi",
+        "join_app_preflight_chase_target",
+        "join_app_preflight_hops",
+        "join_app_second_write_word.lo",
+        "join_app_second_write_word.hi",
+        "join_app_first_write_word.lo",
+        "join_app_first_write_word.hi",
+        "closure_target",
+        "rup_index",
+        "rup_count",
+        "rup_block",
+        "rup_rec_binding",
+        "rup_rec_payload_bad",
+        "recp_binding",
+        "recp_context",
+        "recp_block",
+        "recp_index",
+        "recp_replacement",
+        "recp_parent_environment",
+        "recp_copy_word.lo",
+        "recp_copy_word.hi",
+        "recp_rup_word.lo",
+        "recp_rup_word.hi",
+        "recp_reverse_zero",
+        "recp_reverse_needs_bridge",
+        "recp_reverse_parent_env",
+        "recp_reverse_entry_env",
+        "lookup_address",
+        "lookup_remaining",
+        "lookup_hops",
+        "lookup_origin_address",
+        "lookup_word.lo",
+        "lookup_word.hi",
+        "lookup_push_control",
+        "pub_pending0.kind",
+        "pub_pending0.a",
+        "pub_pending0.b",
+        "pub_pending0.c",
+        "pub_pending0.d",
+        "pub_pending0.e",
+        "pub_pending0.f",
+        "pub_pending0.flags",
+        "pub_pending1.kind",
+        "pub_pending1.a",
+        "pub_pending1.b",
+        "pub_pending1.c",
+        "pub_pending1.d",
+        "pub_pending1.e",
+        "pub_pending1.f",
+        "pub_pending1.flags",
+        "pub_pending2.kind",
+        "pub_pending2.a",
+        "pub_pending2.b",
+        "pub_pending2.c",
+        "pub_pending2.d",
+        "pub_pending2.e",
+        "pub_pending2.f",
+        "pub_pending2.flags"
+      ],
+      "private_bits": 5683,
+      "shared_bridge_words": 156,
+      "native_witness_count": 527,
+      "core_witness_count": 63,
+      "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+      "validation": {
+        "typed": {
+          "completed_pass": true,
+          "tail": [
+            "CFG_TYPED_REFERENCE_PASS 126",
+            "CFG_TYPED_REFERENCE_PASS 127",
+            "CFG_TYPED_REFERENCE_PASS 1",
+            "CFG_TYPED_REFERENCE_ALL_PASS 14640",
+            "STEP integrate.py",
+            "CFG_TABLE 122 entries 20146 rows 8445 scratch words",
+            "OWNED_INTEGRATED_TOP /private/tmp/asgard-area-next/cfg-integer-joins/integrated-stream 192 private words 156 shared words"
+          ],
+          "log_sha256": "33f2d792b8f2cf99a0575d85c662d44fb327836203ff841143b3033df36eac0f"
+        },
+        "RTL public port add": {
+          "completed_pass": false,
+          "cycles": 26391,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "2bbbb9a76c8ce08c4a1953499cd55f5b89c09f31ca389e3db4785f1958eb6ce1",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "62bb3b254119d0b9e575b384e5e5e72c5b8b12f8eaddcb442eacb5897df40329",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program add": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 25 17580 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (+ 7 8)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 26391 admitted 36 max_latency 1669 seconds 273.374"
+          ],
+          "log_sha256": "91302b10db9203a5a2596024c516f737ff5bf4ada8765b195ce5a5c2a7104e22"
+        },
+        "RTL public port application": {
+          "completed_pass": false,
+          "cycles": 10703,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "40107305705bf48de1044f885b408229b2fa5678ade66abcdd5519d02b287f3c",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program application": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 10703 admitted 13 max_latency 1669 seconds 127.461"
+          ],
+          "log_sha256": "0663289c0de53726eb8b64abe0788cddc7f87a0a271041c250b93ac47dad1a73"
+        },
+        "RTL public port structure": {
+          "completed_pass": false,
+          "cycles": 123863,
+          "candidate_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+          "vectors_sha256": "0f0dcd09716cbf3e4271bef019bf06a1fe9201f5a8d43da78ef6798d6f94108b",
+          "input_width": 722,
+          "output_width": 626,
+          "metadata_sha256": "48d855d249df7152d140172e819d6555c1121564e92ed383bc8f7d2ffb9ecb78",
+          "bench_sha256": null,
+          "run_script_sha256": null
+        },
+        "native program structure": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 175 107813 max_latency 1669",
+            "INTEGRATED_PROGRESS 200 122277 max_latency 1669",
+            "INTEGRATED_PROGRAM_PASS (CAR (CONS 7 (CONS 8 NIL)))",
+            "INTEGRATED_NATIVE_PARITY_PASS --program physical_clocks 123863 admitted 201 max_latency 1669 seconds 1086.772"
+          ],
+          "log_sha256": "917cef933ba6b20f8e18b2bd4f55cc97242b4c8eb8e55d0ad8e1f0b4bcf677bb"
+        }
+      },
+      "mapping_status": "pending",
+      "artifacts": {
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/control-unmapped.json": "2dfdb64fe0a43d84edb7fa643a17f8528b5cb614829f202810764f529ea8bfc3",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/control.json": "1445064ec8efd14da4a41af3beb7e55f743bc6bdff54e01900ce25c3019f62e2",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/machine.py": "ef9c253efc2259a3b1b73e11b449e05bb9e4e78b9da27010384da3a006314e1b",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/reference.py": "200053cabaa4b9cc75cad94d329453368638d2782a3c530520d86f182c7c9e1e",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/reference-regs.json": "8e7ffd4d03b24d688529a94b5f4e46d6eee6e054389fb844e7e044f8ee65aee1",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/native-cases.json": "dbd7a72e8791ba7ef242f0d5f7246588a4d1039589645d07ed691a7fdefdd563",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/native-coverage.json": "67460d5345ddfd10d4f8a42372e47b7162f2434c057933a24eaa3deb9751ea48",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/machine.py": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+        "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/integration.json": "3c478fa1e91b096e58d8e7693d32514597db4c8454b612f573654f630bdde00d"
+      },
+      "literal_metadata": {
+        "read_only": true,
+        "source_launch_banks": [
+          {
+            "event": "selector_copy_value_init_launch",
+            "writer_state": "struct_selector_value_read",
+            "consumer_line": 14280,
+            "body_sha256": "9959037e5d7e88e83ae001614d47f1fe7545ccf0834b9dd3dcb73f8989d3e99e"
+          },
+          {
+            "event": "equality_shared_init_launch",
+            "writer_state": "join_prim_meta_scan",
+            "consumer_line": 14286,
+            "body_sha256": "6bfbac1a0f5d81660cec22a619b8a0021e195e66bd1d89914d9bae63bbd31263"
+          },
+          {
+            "event": "equality_shared_init_launch",
+            "writer_state": "join_prim_meta_scan",
+            "consumer_line": 14357,
+            "body_sha256": "dd26ac065a94f04bbe593f340c91b8b0cd57555b2367ef11a184e3a99e4bed3f"
+          }
+        ],
+        "states": [
+          "join_prim_meta_scan",
+          "join_special_meta_scan",
+          "struct_selector_result_meta_scan",
+          "struct_selector_value_read"
+        ]
+      },
+      "packets": {
+        "banks": [
+          [
+            "pub_task",
+            "red2_pub_task_t"
+          ],
+          [
+            "pub_root",
+            "red2_pub_root_t"
+          ],
+          [
+            "pub_patch",
+            "red2_pub_patch_t"
+          ],
+          [
+            "pub_patch_addr",
+            "uint17_t"
+          ],
+          [
+            "pub_mat",
+            "red2_pub_mat_t"
+          ],
+          [
+            "literal_meta",
+            "red2_literal_meta_t"
+          ]
+        ],
+        "requests": [
+          {
+            "name": "pub_task_addr",
+            "key": "pub_task_req.addr",
+            "type": "uint10_t",
+            "width": 10,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_kind",
+            "key": "pub_task_req.wr_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_a",
+            "key": "pub_task_req.wr_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_b",
+            "key": "pub_task_req.wr_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_c",
+            "key": "pub_task_req.wr_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_d",
+            "key": "pub_task_req.wr_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_e",
+            "key": "pub_task_req.wr_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_f",
+            "key": "pub_task_req.wr_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_flags",
+            "key": "pub_task_req.wr_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_task_write_enable",
+            "key": "pub_task_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_task"
+          },
+          {
+            "name": "pub_root_addr",
+            "key": "pub_root_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_generation",
+            "key": "pub_root_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_state",
+            "key": "pub_root_req.wr_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_result",
+            "key": "pub_root_req.wr_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_aux",
+            "key": "pub_root_req.wr_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_root_write_enable",
+            "key": "pub_root_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_root"
+          },
+          {
+            "name": "pub_patch_addr",
+            "key": "pub_patch_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_generation",
+            "key": "pub_patch_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_lo",
+            "key": "pub_patch_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_word_hi",
+            "key": "pub_patch_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_write_enable",
+            "key": "pub_patch_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch"
+          },
+          {
+            "name": "pub_patch_addr_addr",
+            "key": "pub_patch_addr_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write",
+            "key": "pub_patch_addr_req.wr_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_patch_addr_write_enable",
+            "key": "pub_patch_addr_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_patch_addr"
+          },
+          {
+            "name": "pub_mat_addr",
+            "key": "pub_mat_req.addr",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_lo",
+            "key": "pub_mat_req.wr_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_word_hi",
+            "key": "pub_mat_req.wr_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_generation",
+            "key": "pub_mat_req.wr_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "pub_mat_write_enable",
+            "key": "pub_mat_req.wr_en",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "pub_mat"
+          },
+          {
+            "name": "literal_meta_addr",
+            "key": "literal_meta_req.addr",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "literal_meta"
+          }
+        ],
+        "responses": [
+          {
+            "name": "pub_task_read_kind",
+            "key": "pub_task_out.p0.rd_data.kind",
+            "type": "uint6_t",
+            "width": 6,
+            "bank": "pub_task",
+            "suffix": ".kind"
+          },
+          {
+            "name": "pub_task_read_a",
+            "key": "pub_task_out.p0.rd_data.a",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".a"
+          },
+          {
+            "name": "pub_task_read_b",
+            "key": "pub_task_out.p0.rd_data.b",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".b"
+          },
+          {
+            "name": "pub_task_read_c",
+            "key": "pub_task_out.p0.rd_data.c",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".c"
+          },
+          {
+            "name": "pub_task_read_d",
+            "key": "pub_task_out.p0.rd_data.d",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".d"
+          },
+          {
+            "name": "pub_task_read_e",
+            "key": "pub_task_out.p0.rd_data.e",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".e"
+          },
+          {
+            "name": "pub_task_read_f",
+            "key": "pub_task_out.p0.rd_data.f",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_task",
+            "suffix": ".f"
+          },
+          {
+            "name": "pub_task_read_flags",
+            "key": "pub_task_out.p0.rd_data.flags",
+            "type": "uint8_t",
+            "width": 8,
+            "bank": "pub_task",
+            "suffix": ".flags"
+          },
+          {
+            "name": "pub_root_read_generation",
+            "key": "pub_root_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_root",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_root_read_state",
+            "key": "pub_root_out.p0.rd_data.state",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "pub_root",
+            "suffix": ".state"
+          },
+          {
+            "name": "pub_root_read_result",
+            "key": "pub_root_out.p0.rd_data.result",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".result"
+          },
+          {
+            "name": "pub_root_read_aux",
+            "key": "pub_root_out.p0.rd_data.aux",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_root",
+            "suffix": ".aux"
+          },
+          {
+            "name": "pub_patch_read_generation",
+            "key": "pub_patch_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_patch",
+            "suffix": ".generation"
+          },
+          {
+            "name": "pub_patch_read_word_lo",
+            "key": "pub_patch_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_patch_read_word_hi",
+            "key": "pub_patch_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_patch",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_patch_addr_read",
+            "key": "pub_patch_addr_out.p0.rd_data",
+            "type": "uint17_t",
+            "width": 17,
+            "bank": "pub_patch_addr",
+            "suffix": ""
+          },
+          {
+            "name": "pub_mat_read_word_lo",
+            "key": "pub_mat_out.p0.rd_data.word.lo",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.lo"
+          },
+          {
+            "name": "pub_mat_read_word_hi",
+            "key": "pub_mat_out.p0.rd_data.word.hi",
+            "type": "uint64_t",
+            "width": 64,
+            "bank": "pub_mat",
+            "suffix": ".word.hi"
+          },
+          {
+            "name": "pub_mat_read_generation",
+            "key": "pub_mat_out.p0.rd_data.generation",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "pub_mat",
+            "suffix": ".generation"
+          },
+          {
+            "name": "literal_meta_read_literal_id",
+            "key": "literal_meta_out.p0.rd_data.literal_id",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "literal_meta",
+            "suffix": ".literal_id"
+          },
+          {
+            "name": "literal_meta_read_scalar_op",
+            "key": "literal_meta_out.p0.rd_data.scalar_op",
+            "type": "uint5_t",
+            "width": 5,
+            "bank": "literal_meta",
+            "suffix": ".scalar_op"
+          },
+          {
+            "name": "literal_meta_read_prim0_role",
+            "key": "literal_meta_out.p0.rd_data.prim0_role",
+            "type": "uint3_t",
+            "width": 3,
+            "bank": "literal_meta",
+            "suffix": ".prim0_role"
+          },
+          {
+            "name": "literal_meta_read_host_op",
+            "key": "literal_meta_out.p0.rd_data.host_op",
+            "type": "uint3_t",
+            "width": 3,
+            "bank": "literal_meta",
+            "suffix": ".host_op"
+          },
+          {
+            "name": "literal_meta_read_special_flags",
+            "key": "literal_meta_out.p0.rd_data.special_flags",
+            "type": "uint16_t",
+            "width": 16,
+            "bank": "literal_meta",
+            "suffix": ".special_flags"
+          },
+          {
+            "name": "literal_meta_read_struct_role",
+            "key": "literal_meta_out.p0.rd_data.struct_role",
+            "type": "uint2_t",
+            "width": 2,
+            "bank": "literal_meta",
+            "suffix": ".struct_role"
+          },
+          {
+            "name": "literal_meta_read_struct_tag_id",
+            "key": "literal_meta_out.p0.rd_data.struct_tag_id",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "literal_meta",
+            "suffix": ".struct_tag_id"
+          },
+          {
+            "name": "literal_meta_read_struct_offset",
+            "key": "literal_meta_out.p0.rd_data.struct_offset",
+            "type": "uint32_t",
+            "width": 32,
+            "bank": "literal_meta",
+            "suffix": ".struct_offset"
+          },
+          {
+            "name": "literal_meta_read_valid",
+            "key": "literal_meta_out.p0.rd_data.valid",
+            "type": "uint1_t",
+            "width": 1,
+            "bank": "literal_meta",
+            "suffix": ".valid"
+          }
+        ],
+        "read_only": false,
+        "read_only_banks": [
+          "literal_meta"
+        ]
+      },
+      "source_reuse": {
+        "source_and_control_byte_identical_to": "/tmp/asgard-area-next/cfg-integer-joins",
+        "native_runtime_unchanged": true,
+        "scope": "Recompile exactly the same candidate and replay its existing concrete-checked public-port traces; only PY_TO_LOGIC compiler register reannotation handling changes"
+      },
+      "source_reuse_sha256": "813b0f4d3ce88fd3b449045e0de2f5ec9065c5940b327ca709486d0b45b7af76",
+      "control_compaction": {
+        "rows_before": 18447,
+        "rows_after": 14550,
+        "fused_copies": 3521,
+        "removed_fallthrough_jumps": 376,
+        "proof": "Same-width pure expression, unique temporary definition/use, sole copy predecessor; all packet/response effects retained"
+      },
+      "integer_joins": {
+        "RED2_SYN_FLOAT": 0,
+        "states": [
+          "join_ep_result_write",
+          "join_publish"
+        ],
+        "floating_type_source_sha256": "014525af55094bfe3d89771293d3f3fccbf1609a707995c5a83267453a32e129",
+        "source_helpers_sha256": {
+          "red2_float64_from_bits": "4a85a64ea9b672d16bc60e3d646b3ae58a13eb59320a367651ff1dcb36436024",
+          "red2_float64_supported": "0a19c413ac3fcf057478a4451d83b7dfaca9eb59a81074dfcb394055668b7875"
+        }
+      }
     }
   },
   "rejected_fixture": {
@@ -2952,6 +3981,15 @@
       "AssertionError: hardware faulted before program commit 41: red2=0 hw=3 micro=3 pc=62"
     ],
     "status": "Not a passing program check; pre-existing unsupported execution path. Broad supported-program parity remains outstanding."
+  },
+  "compiler_register_reannotation_fix": {
+    "fpgatool_commit": "f8b237d",
+    "current_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "old_compiler_negative_regression_reproduces": true,
+    "fixed_31_native_vhdl_rows_pass": true,
+    "old_vhdl_log_sha256": "a3105932d11a29e7c8fa342b7fbacc7ad1efe6b9254d0e58172ed2a7f3b2d09f",
+    "fixed_vhdl_log_sha256": "c09dad7952002b9ea947b4e571d199ecdf5340a0dee6949bf2478e2e63f51354",
+    "patch_sha256": "b563f502ab12af31eb08b29de137500d29a2ef4660c6b44e309dc4ef4cd39f79"
   },
   "current_generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/allocate.py": "cfa9ab79e0c0b91fb28756ccd37148064186939ea2df8dace9ab8a3213de1f1c",
@@ -2994,7 +4032,8 @@
     "scripts/experiments/red2_cfg_pilot/packets.py": "6bd1d2e70ad3b6028c7977d108a180ac809a7c6f3ccc1b82c95f7b670c37fe45",
     "scripts/experiments/red2_cfg_pilot/paths.py": "a3383fbbdca41619207e18de41cdcc3d831349b7087b36b7ea9a4074a02b2e4c",
     "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
-    "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "565e2eb2d5853805b4559c5f0d552df811b712844f609af0620e65f849962175",
+    "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
+    "scripts/experiments/red2_cfg_pilot/prepare_verilator.py": "66cc8031168cb0afc22d28b1a89c1f7316d0006c73a01fb6c93f6e3b76ec7096",
     "scripts/experiments/red2_cfg_pilot/prune_aliases.py": "c4dc4354e83bf41f094143c03cbbf761c282e587c69b51caf6afd94b10c26eec",
     "scripts/experiments/red2_cfg_pilot/publication_launches.py": "6e8d6b836b40ba4b3e037ef77a25489e53d2550f060681a0060578ab2254e6d3",
     "scripts/experiments/red2_cfg_pilot/publication_reads.py": "8818c82a83386a1d72cb7b5b6a00b13182cd596c4630b5f8ce7a930407233c0d",
