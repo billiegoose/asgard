@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T14:32:50.776510+00:00",
+  "recorded_at_utc": "2026-10-12T16:52:28.145380+00:00",
   "scope": "Basys 3 dedicated RED2 core with UART monitor; complete board resource mapping and local digital simulation passed; JTAG detection passed; routing pending",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Spread placement completed: 20,228 physical LUT sites, both placement timing estimates pass 10 MHz; bounded routing active. No routed timing or physical replay yet.",
+  "board_build_status": "Verified saved-placement delay-model regression and fixed backend in fpgatool f5d6dba. Corrected routing active with measured delays restored. No bitstream or physical replay yet.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -223,7 +223,7 @@
     "finish_script_sha256": "348059a52c3e81d2bded89b2e87c37f14d42dd5beea28ec821fb3dfb5e2c37f3",
     "active_prepared_scripts_unchanged": true
   },
-  "active_routing_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/board-route-package.log",
+  "active_routing_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-resume-fixed/route.log",
   "unbounded_route_attempt": {
     "stopped": true,
     "reason": "overuse fell near 100 then rose across subsequent passes, matching the unbounded-expansion divergence described in the pinned router source",
@@ -270,15 +270,59 @@
   "routed_physical_lut_site_audit_pending": true,
   "autonomous_bringup_runner": {
     "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.py",
-    "script_sha256": "e8c5aed16e338729d92b1be6b2a08d2c5ee777c8df500dfe4f5644c09de22d72",
+    "script_sha256": "24e046ba3ad2dc6eb90ad38f3f1757d93fc288cd9be1bde9865d365ac1e82b00",
     "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.log",
-    "exec_session": 49887,
-    "scope": "wait for bounded route, gate final physical LUT fit and routed clocks, bit generation, SRAM load, physical application replay; stop on failure; no automatic source commits"
+    "exec_session": 38392,
+    "scope": "wait for bounded route, gate final physical LUT fit and routed clocks, bit generation, SRAM load, physical application replay; stop on failure; no automatic source commits",
+    "status": "rearmed for corrected backend route; waiting for completion"
   },
   "sa_fallback": {
     "passed": false,
     "reason": "failed to place relative chain during final legalisation",
     "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-sa/route.log",
     "log_sha256": "3b33996951de4b515f31300f9977075b56802429ca2bfd9454f05a058d136211"
-  }
+  },
+  "active_backend": {
+    "nextpnr_executable": "/nix/store/7anbqfygsd5dx69naa368sln2430nhsn-nextpnr-1.0.0/bin/nextpnr-himbaechel",
+    "nextpnr_sha256": "df4a16a9a3a6341a0cb61c842f4d976207243cffed8dd3b21f72656107625a59",
+    "chipdb": "/nix/store/v2764cclyfrslx741fg1b906rfnnpmix-fpgatool-basys3-himbaechel-chipdb-1.0.0/xc7a35tcpg236.bin",
+    "chipdb_sha256": "ec876fe0eb87f977a4d5781c5ae9dc03fadc3072f83bd89d31346485b78bc760",
+    "resume_patch_sha256": "2505f527f3ac866f6784c7b4fae19aff3133949dea3ed03de410fe5214e69dc6",
+    "placement_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
+    "placement_and_circuit_unchanged": true,
+    "regression_driver_sha256": "a1af15141a649013bafb2792e9e0eebe3122e5fe34c6a970cd2d187127541039",
+    "regression_new_log_sha256": "9d9c2ca92bc479d67d97462b1219a2a88e020357e7531a581389d02fe56300bf",
+    "fpgatool_commit": "f5d6dba"
+  },
+  "placed_physical_lut_site_audits": {
+    "route-bounded": {
+      "placed_netlist_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
+      "unique_physical_lut_sites": 19984,
+      "basys3_lut_limit": 20800,
+      "within_basys3_physical_lut_limit": true
+    },
+    "route-spread": {
+      "placed_netlist_sha256": "06a24b81b7dcab66cd8204b89b8d95bf864b8efa32e7dac3c831906f53f8efc5",
+      "lut_half_cells": 25704,
+      "unique_physical_lut_sites": 20228,
+      "basys3_lut_limit": 20800,
+      "within_basys3_physical_lut_limit": true,
+      "normalization": "merge A5LUT/A6LUT (and B/C/D) only within the identical tile and slice"
+    }
+  },
+  "backend_resume_regression": {
+    "old_backend_missing_model_reproduced": true,
+    "patched_tests_passed": 2,
+    "model_enabled_and_explicit_disable_checked": true,
+    "fpgatool_commit": "f5d6dba",
+    "logs_sha256": {
+      "resume-regression-driver.log": "a1af15141a649013bafb2792e9e0eebe3122e5fe34c6a970cd2d187127541039",
+      "resume-regression-old.log": "c3f19d97f31fe58ce73c31aa4d95c6382db124960ce61da11779c3f22b9d5968",
+      "resume-regression-new.log": "9d9c2ca92bc479d67d97462b1219a2a88e020357e7531a581389d02fe56300bf",
+      "resume-regression-toolchains.sha256": "0031898d26f808d1f5ab6c11651afe328b540c9deb2efebab33bba3716339848"
+    },
+    "patch_sha256": "2505f527f3ac866f6784c7b4fae19aff3133949dea3ed03de410fe5214e69dc6",
+    "test_sha256": "0c9f5323822ba81102eca61a4a9b9c75eb43ec8f3cbbd18617e7be333fe1dc0b"
+  },
+  "old_bounded_attempts_stopped": true
 }

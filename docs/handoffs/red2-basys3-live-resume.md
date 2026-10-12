@@ -1,91 +1,107 @@
 # Live Basys 3 bring-up checkpoint
 
-**An autonomous runner is active:** `build/red2-basys3/complete-bringup.py`
-(exec session 49887; log `build/red2-basys3/complete-bringup.log`). It waits for
-a completed bounded route, independently verifies routed physical LUT fit and
-both clocks, generates the bitstream, loads SRAM on the explicit board serial,
-and runs the 10,703-clock application replay. It stops on failure. Check its
-state and logs before manual steps below; do not load/replay concurrently.
-It does not update source/docs or commit physical results automatically.
+User authorization: load dedicated RED2 hardware into volatile SRAM on this Mac,
+run physical replay, commit and push. No CPU emulation, no flash write.
+Permissions work. Board serial `210183735787`, JTAG ID `0x0362d093`, UART
+`/dev/cu.usbserial-2101837357871`. **No bitstream has been loaded yet.**
 
-The user authorized loading the dedicated RED2 hardware into volatile SRAM on
-this Mac, replaying it, and committing/pushing results. Permissions now work.
-The board is Digilent serial `210183735787`, JTAG ID `0x0362d093`, UART
-`/dev/cu.usbserial-2101837357871`. No bitstream has been loaded yet.
+## Current attempt
 
-Spread placement now passed its physical-site audit: **20,228 LUT sites**,
-572 spare; 12.17/12.32 MHz placement estimates. Routing is active.
-`finish-selected.sh` now independently audits the final routed physical sites
-before bit generation, and records that audit in the build hashes.
+`red2-basys3-route-resume-fixed` is running. Host launcher:
+`build/red2-basys3/route-resume-fixed/route.sh`; exec session 25279.
+It routes the unchanged saved default-density placement with the patched backend,
+using bounded expansion 12 and congestion increment 1.2. The actual log confirms
+that 1,421 wire-delay offsets were measured before routing.
 
-The prepared, hash-verified build is `build/red2-basys3/`. Its complete mapped
-board is 20,050 LUTs including LUT RAM. **Also check physical LUT-site occupancy
-from saved placement before claiming final fit or programming.** nextpnr adds
-carry helper LUT1 cells and counts O5/O6 half-sites separately. The nominal
-Basys 3 limit is 20,800 physical LUT sites. The shared 50T database's larger
-capacity is not the nominal Basys 3 budget.
+The autonomous runner `build/red2-basys3/complete-bringup.py` was re-armed as
+exec session 38392. Its log is `build/red2-basys3/complete-bringup.log`.
+It waits for the corrected route to complete, then runs `finish-selected.sh`,
+checks final physical LUT sites and both routed 10 MHz clocks, generates the
+bitstream, verifies build hashes, loads SRAM using `program.py`, and replays the
+application trace. It stops on any failure. Do not run a second load/replay
+concurrently. It does not automatically update docs, source, or Git results.
 
-Live Podman containers (independent output directories):
+The prepared root `build/red2-basys3/` preserves all original mapped inputs and
+hashes. Its mapped board uses 20,050 LUTs including LUT RAM. Actual placement
+uses **19,984 physical LUT sites**, leaving 816 spare. The alternate spread
+placement uses 20,228 sites, leaving 572 spare. These count distinct physical
+LUTs after merging O5/O6 halves within the same tile/slice/letter. The final
+routed design is audited again before bit generation, including any new buffers.
+The shared 50T database's larger capacity is not the nominal Basys 3 budget.
 
-- `red2-basys3-route-spread`: most promising; alpha 1.0, beta 0.7,
-  parallel refinement with 4 threads; analytical placement finished in 612s.
-- `red2-basys3-route-bounded`: default-density placement, parallel refinement.
-- The SA fallback failed relative-chain placement; its log is retained.
+## Diagnosed backend issues and verified fix
 
-Both new attempts save `board-placed.json` before routing, then use
-`--no-pack --no-place --router2-bb-expand-max 12 --router2-cong-mult 1.2`.
-Their drivers and logs are under `route-spread/` and `route-bounded/` inside the
-prepared build. Their exact scripts are `route.sh`; do not mutate active inputs.
-Saved placement supports further router-only retries if needed.
+- Preserve the package-bearing `xc7a35tcpg236.bin` alias; resolving its symlink
+  selected a die without the package and asserted before placement.
+- nextpnr aligns shorter clock names with whitespace; timing parsing needs
+  `clock\s+`, and must require both final clock results.
+- Imported JSON settings overwrite matching CLI settings. A saved
+  `router=default` silently overrides `--router router1`. Router-only retries
+  must deliberately set/remove that saved setting if changing algorithms.
+- **Important:** the Xilinx backend builds its measured delay model in
+  `prePlace()` only. A saved-placement `--no-pack --no-place` retry skipped it,
+  falling back to a different delay formula and badly regressing congestion.
+  fpgatool commit **f5d6dba** restores the model/options in the resumed
+  `preRoute()` path. The old counter regression fails for exactly this missing
+  model; the patched backend passes both model-on and explicit-off cases.
 
-The first heap attempt was stopped after unbounded router divergence: overuse
-fell near 100 then rose to 349 at iteration 136. Its preserved log is
-`board-route-package.log`. Placement timing estimates passed at 12.07/12.19 MHz,
-but **these are not routed timing**. The initial earlier package assertion was
-fixed by preserving the `xc7a35tcpg236.bin` symlink name instead of resolving it.
-The timing parser also needs `clock\s+` because nextpnr aligns shorter names.
-The maintained `implement.sh` has both fixes.
+The backend fix and tests are pushed on fpgatool's existing
+`codex/pypeline-register-reannotations` branch. PipelineC lowering and the RED2
+circuit were not changed by this backend fix.
 
-After one bounded/spread route succeeds:
+Patched executable:
+`/nix/store/7anbqfygsd5dx69naa368sln2430nhsn-nextpnr-1.0.0/bin/nextpnr-himbaechel`
+SHA-256: `df4a16a9a3a6341a0cb61c842f4d976207243cffed8dd3b21f72656107625a59`.
+Reuse the existing DB at
+`/nix/store/v2764cclyfrslx741fg1b906rfnnpmix-fpgatool-basys3-himbaechel-chipdb-1.0.0/xc7a35tcpg236.bin`.
+Its format/data are unchanged. Build used only `#nextpnr-patched`, avoiding DB
+regeneration. `original-fpgatool/toolchain/` inside the prepared root is an
+export of f8b237d, used for the unchanged bit-generation tools and Yosys tests.
+**Use that frozen shell for finishing; developing the updated full flake would
+regenerate the chip database and needs more disk space.**
 
-1. Inspect saved physical placement and gate unique physical LUT-site count.
-   Parse actual BEL names before normalizing O5/O6 aliases; do not count every
-   SLICE_LUTX half-site as a separate 6-input LUT.
-2. Require final routed timing PASS for **both** `clock` and `core_clock` at
-   10 MHz, zero routing overuse, and normal backend completion. If routing
-   fails, retain evidence and retry from `board-placed.json` with separate outputs.
-3. `finish-selected.sh route-spread` (or `route-bounded`) in the pinned fpgatool
-   Nix environment verifies original inputs and legal routed result, checks
-   both clocks, produces canonical `red2_basys3.bit`, and hashes artifacts into
-   `build-result.json`. This helper is in the prepared build directory; it also
-   audits final routed physical LUT sites against the 20,800-site limit.
-   Use the same Podman image/volume/mounts as `resume-package-host.sh`, mount the
-   prepared root read-write as `/design`, and invoke the finishing helper there.
-4. On the Mac, `python3 build/red2-basys3/program.py` verifies the build hashes
-   and loads SRAM using the explicit serial. It writes exclusive `load.log` and
-   `load-result.json`. No flash write. Do not rerun with occupied result paths.
-5. Physical replay (input trace snapshot already validated and preserved):
+Regression logs: `resume-regression-driver.log`, `resume-regression-old.log`,
+`resume-regression-new.log`, `resume-regression-toolchains.sha256` in the
+prepared root. Old failure reproduced; new 2 tests pass. Ruff passes.
 
-   ```sh
-   /usr/local/bin/python3 -u scripts/boards/red2_basys3/host.py \
-     --port /dev/cu.usbserial-2101837357871 \
-     --prepared build/red2-basys3 \
-     --log build/red2-basys3/application-board-result.json \
-     build/red2-basys3/application-vectors.txt \
-     > build/red2-basys3/application-board-replay.log 2>&1
-   ```
+Stopped attempts are preserved: original unbounded route diverged after
+bottoming near 100 conflicts; both model-less bounded retries plateaued around
+10,000+ conflicts. SA failed relative-chain placement. The correctly selected
+router1 trial was stopped without its measured model. An initialization-only
+fixed-BEL workaround rebuilt the matrix but failed partial carry placement;
+it never produced a bitstream. No functional RED2 failure is established by
+these backend attempts. The previous runner stopped when its jobs were halted;
+its log is `complete-bringup-before-resume-fix.log`.
 
-   Require `BOARD_REPLAY_PASS 10703` and completed_pass=true. This checks all
-   626 output bits on every clock for `((LAMBDA (x) x) 7)`. If command delivery
-   is uncertain, reload before retrying and use fresh result paths.
-6. Stop redundant jobs after success. Update the handoff JSON and READMEs with
-   actual routed/loaded/replayed results and hashes; commit and push. If a new
-   routing configuration wins, put its reproducible settings and placement
-   checkpoint stage into maintained `implement.sh` before the final commit.
+## Completion and validation
 
-Local validation already passed: 7 focused pytest cases; actual UART digital
-simulation including CRC/padding/framing/timeout/sequence checks; 10,703-clock
-real optimized RED2 monitor RTL replay. Earlier corrected core validation passed
-232,090 clocks across five programs. Existing list-equality gap remains open.
-This board interface is a dedicated hardware processor monitor, not an
-interactive THOR host adapter. No CPU emulation is involved.
+Require the corrected route's normal completion marker, zero router overuse,
+final timing PASS at 10 MHz for both `clock` and `core_clock`, and final
+physical LUT count <= 20,800. `finish-selected.sh route-resume-fixed` additionally
+checks that original cells retain their saved BEL locations, then records
+artifact hashes in `build-result.json`. Use the frozen original-fpgatool shell.
+`program.py` verifies those hashes and writes exclusive `load.log` and
+`load-result.json`.
+
+The runner then executes:
+
+```sh
+/usr/local/bin/python3 -u scripts/boards/red2_basys3/host.py \
+  --port /dev/cu.usbserial-2101837357871 --prepared build/red2-basys3 \
+  --log build/red2-basys3/application-board-result.json \
+  build/red2-basys3/application-vectors.txt \
+  > build/red2-basys3/application-board-replay.log 2>&1
+```
+
+Require `BOARD_REPLAY_PASS 10703` and completed_pass=true. This compares all 626
+output bits each clock for `((LAMBDA (x) x) 7)`. If delivery is uncertain, reload
+before a retry and use fresh result paths. After success, update the handoff
+JSON and READMEs with actual timing/load/replay results and hashes. Put the
+successful reproducible two-stage placement/routing flow into maintained
+`implement.sh`, then commit and push Asgard. Stop any redundant jobs.
+
+Earlier validation: 7 focused pytest cases, UART digital simulation including
+CRC/padding/framing/timeout/sequence checks, and 10,703-clock real optimized RED2
+monitor RTL replay. Core validation previously passed 232,090 clocks across
+five programs. Existing list-equality gap remains open. This is a dedicated
+hardware processor monitor; an interactive THOR host adapter remains future work.
