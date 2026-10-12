@@ -7,19 +7,38 @@ Permissions work. Board serial `210183735787`, JTAG ID `0x0362d093`, UART
 
 ## Current attempt
 
-`red2-basys3-route-resume-fixed` is running. Host launcher:
-`build/red2-basys3/route-resume-fixed/route.sh`; exec session 25279.
+`red2-basys3-route-timing-10mhz` is running. Host launcher:
+`build/red2-basys3/route-timing-10mhz/route.sh`; exec session 74508.
 It routes the unchanged saved default-density placement with the patched backend,
-using bounded expansion 12 and congestion increment 1.2. The actual log confirms
-that 1,421 wire-delay offsets were measured before routing.
+bounded expansion 12 and congestion increment 1.2, and explicit `--sdc board.sdc`.
+Outputs are written inside the container then copied as completed files to avoid
+hundreds of thousands of tiny writes across the Mac/VM filesystem boundary.
 
-The autonomous runner `build/red2-basys3/complete-bringup.py` was re-armed as
-exec session 38392. Its log is `build/red2-basys3/complete-bringup.log`.
-It waits for the corrected route to complete, then runs `finish-selected.sh`,
-checks final physical LUT sites and both routed 10 MHz clocks, generates the
-bitstream, verifies build hashes, loads SRAM using `program.py`, and replays the
-application trace. It stops on any failure. Do not run a second load/replay
-concurrently. It does not automatically update docs, source, or Git results.
+The earlier corrected route completed legally and preserved all 37,015 cell
+placements, using 19,984 physical LUT sites. It reported 10.39 MHz core and
+10.35 MHz monitor fmax, but FAIL at the unintended 12 MHz default: native XDC
+clock constraints are lost across saved JSON import. The new attempt reloads
+SDC after import to check the intended 10 MHz constraint directly. Original
+logs/FASM/routed JSON remain in `route-resume-fixed`. A probe importing final
+routed JSON crashed because its normalized site names are not round-trip safe;
+use the original placed JSON. Do not load the earlier route on inferred timing.
+
+The autonomous runner `build/red2-basys3/complete-bringup.py` is exec session
+82044. Its log is `build/red2-basys3/complete-bringup.log`. It waits for the
+explicitly constrained route, then runs `finish-selected.sh`, checks physical
+fit/preserved placements and both routed 10 MHz clocks, generates the bitstream,
+verifies build hashes, loads SRAM using `program.py`, and replays the application.
+It stops on any failure. Do not run a second load/replay concurrently. It does
+not automatically update docs, source, or Git results. Earlier runner failures
+are preserved in `complete-bringup-before-*.log`.
+
+The physical audit now uses `audit.py` plus the exact `tilegrid.json` to translate
+generic tile-relative BELs to exported Xilinx site/BEL names, including typed
+RAM/IOB BEL suffixes. It passed against the full completed route; focused tests
+also exercise shared LUT halves, relative site coordinates and moved-cell
+rejection. Maintained `implement.sh` now has two-stage placement/routing, SDC
+reload and the corrected final audit. Prepared original source snapshots remain
+unchanged; finishing records hashes of its new helper and scripts separately.
 
 The prepared root `build/red2-basys3/` preserves all original mapped inputs and
 hashes. Its mapped board uses 20,050 LUTs including LUT RAM. Actual placement

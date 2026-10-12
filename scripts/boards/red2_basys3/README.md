@@ -10,6 +10,8 @@ synchronous RAM reads and would not reproduce the same trace.
 The complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
 the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5
 BRAM36 equivalents. Routed timing and physical replay are still pending.
+The [resource overview](../../../docs/handoffs/red2-basys3-resource-overview.md)
+details memory, register and arithmetic ownership and further sharing options.
 
 This is a processor monitor for bring-up. It does not execute RED2 in host
 software, and it does not yet provide an interactive THOR CLI on the board.
@@ -38,6 +40,12 @@ resources, places/routes the pin-constrained design and requires passing routed
 timing for both 10 MHz clock domains before generating a bitstream. Mapping and
 routing are necessary: the measured 19,172 LUTs cover the core, not this wrapper.
 `build-result.json` records the final artifact hashes after a successful build.
+
+Placement is saved separately, then routing resumes with measured delays from
+the patched nextpnr backend. Clock constraints are explicitly reloaded from
+SDC after importing the saved placement; native XDC constraints are not retained
+in that JSON. The final audit checks physical LUT sites and unchanged cell
+locations, accounting for nextpnr's different placed/routed BEL name formats.
 
 The prepared `core.json` is a snapshot; the generated build no longer depends
 on the original `/tmp` netlist. Preserve the prepared directory if restarting

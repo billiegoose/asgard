@@ -1,0 +1,82 @@
+{
+  "source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+  "mapped_core_sha256": "65a9303c8a1d88cb750a6a7b085d98d0a3caa70a509dbe77900267b5ce005b70",
+  "module": "red2_core",
+  "method": "Match declared Reg variable net aliases to mapped flip-flop Q bits; group RAM and DSP primitives by preserved instance names.",
+  "limitation": "Register ownership is not a functional LUT budget. ABC flattened and shared combinational logic; source-function LUT totals cannot be recovered from these names.",
+  "declared_register_variables": {
+    "root": 228,
+    "microengine": 39
+  },
+  "flipflops_by_named_register_owner": {
+    "integer_arithmetic": 532,
+    "microengine": 1960,
+    "remaining_core_state": 3426,
+    "transfer_bridge": 2010,
+    "unattributed": 167
+  },
+  "memories_by_instance": {
+    "cfg_control_index_rom": {
+      "RAMB36E1": 6
+    },
+    "cfg_control_rom": {
+      "RAMB36E1": 9
+    },
+    "cfg_plan_rom": {
+      "RAMB18E1": 3
+    },
+    "cfg_scratch_ram": {
+      "RAMB36E1": 2
+    },
+    "control_ram": {
+      "RAMB36E1": 2
+    },
+    "graph_ram": {
+      "RAMB36E1": 2
+    },
+    "literal_meta_ram": {
+      "RAM64X1S": 126
+    },
+    "promote_forward_ram": {
+      "RAM256X1S": 50
+    },
+    "promote_mat_ram": {
+      "RAMB36E1": 2
+    },
+    "pub_mat_ram": {
+      "RAMB18E1": 5
+    },
+    "pub_patch_addr_ram": {
+      "RAMB18E1": 1
+    },
+    "pub_patch_ram": {
+      "RAMB18E1": 5
+    },
+    "pub_root_ram": {
+      "RAMB36E1": 1
+    },
+    "pub_task_ram": {
+      "RAMB18E1": 7
+    }
+  },
+  "dsp48_by_multiplier_instance": {
+    "bin_op_inferred_mult_machine_py_l5338_c50_ec79": 10,
+    "bin_op_inferred_mult_machine_py_l5418_c53_ec109": 10
+  },
+  "primitives": {
+    "$scopeinfo": 7861,
+    "CARRY4": 774,
+    "DSP48E1": 20,
+    "FDRE": 8095,
+    "INV": 883,
+    "LUT2": 2684,
+    "LUT3": 3127,
+    "LUT4": 2826,
+    "LUT5": 3847,
+    "LUT6": 6362,
+    "RAM256X1S": 50,
+    "RAM64X1S": 126,
+    "RAMB18E1": 21,
+    "RAMB36E1": 24
+  }
+}

@@ -70,7 +70,7 @@ def main():
     packed = packed.replace("module replay_top(", "module red2_packed_core(", 1)
     packed = packed.replace("top dut(", "red2_core dut(", 1)
     (output / "packed.v").write_text(packed)
-    for name in ("uart.v", "monitor.v", "board.v", "implement.sh"):
+    for name in ("uart.v", "monitor.v", "board.v", "implement.sh", "audit.py"):
         shutil.copy2(HERE / name, output / name)
     pins = {"clk_100p0": "W5", "RsRx": "B18", "RsTx": "A18"}
     pins.update(
@@ -90,6 +90,13 @@ def main():
     xdc += "create_clock -period 100 [get_nets clock]\n"
     xdc += "create_clock -period 100 [get_nets core_clock]\n"
     (output / "board.xdc").write_text(xdc)
+    # Saved placement JSON does not preserve native XDC clock constraints.
+    # Generic SDC is loaded after JSON import, including a route-only resume.
+    (output / "board.sdc").write_text(
+        "create_clock -period 10 [get_ports clk_100p0]\n"
+        "create_clock -period 100 [get_nets clock]\n"
+        "create_clock -period 100 [get_nets core_clock]\n"
+    )
     (output / "area.abc").write_text("strash\ndc2\nif -a\n")
     (output / "board.ys").write_text(
         "read_json core.json\n"

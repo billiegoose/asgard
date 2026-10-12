@@ -29,12 +29,25 @@ print('BOARD_MAPPING_PASS', resources['lut_total'], flush=True)
 PY
 nextpnr-xilinx \
     --chipdb "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin" \
-    --xdc board.xdc --json board.json --fasm board.fasm --seed 1 \
+    --xdc board.xdc --freq 10 --json board.json --seed 1 \
+    --parallel-refine --threads 4 --no-route --write board-placed.json \
+    > board-place.log 2>&1
+nextpnr-xilinx \
+    --chipdb "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin" \
+    --sdc board.sdc --json board-placed.json --no-pack --no-place --seed 1 \
+    --router2-bb-expand-max 12 --router2-cong-mult 1.2 \
+    --fasm board.fasm --report board-route-report.json --write board-routed.json \
     > board-route.log 2>&1
+python3 audit.py board-placed.json board-routed.json \
+    "$PRJXRAY_DB_DIR/artix7/xc7a50t/tilegrid.json" > board-physical-lut-sites.json
 python3 - <<'PY'
 import json, re
 from pathlib import Path
 log = Path('board-route.log').read_text()
+assert 'Program finished normally.' in log
+assert re.search(r'overused=0 overuse=0 (?:resources=.*? )?archfail=0', log)
+audit = json.loads(Path('board-physical-lut-sites.json').read_text())
+print('BOARD_PHYSICAL_LUT_FIT_PASS', audit['unique_physical_lut_sites'], flush=True)
 clocks = {}
 for name, achieved, status, required in re.findall(
     r"Max frequency for clock\s+'([^']+)': ([0-9.]+) MHz \((PASS|FAIL) at ([0-9.]+) MHz\)", log
@@ -60,7 +73,11 @@ python3 - <<'PY'
 import hashlib, json
 from pathlib import Path
 record = {'built': True, 'loaded_on_board': False, 'files_sha256': {}}
-for name in ['red2_basys3.bit', 'board.json', 'board.xdc', 'board-map.log', 'board-route.log', 'board-resources.json', 'board-timing.json', 'backend-versions.txt', 'provenance.json']:
+for name in ['red2_basys3.bit', 'board.json', 'board.xdc', 'board.sdc',
+    'board-map.log', 'board-place.log', 'board-placed.json', 'board-route.log',
+    'board-routed.json', 'board-route-report.json', 'board-physical-lut-sites.json',
+    'board-resources.json', 'board-timing.json', 'backend-versions.txt', 'provenance.json',
+    'audit.py']:
     record['files_sha256'][name] = hashlib.sha256(Path(name).read_bytes()).hexdigest()
 Path('build-result.json').write_text(json.dumps(record, indent=2) + '\n')
 PY

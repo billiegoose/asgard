@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T16:52:28.145380+00:00",
+  "recorded_at_utc": "2026-10-12T17:16:35.958930+00:00",
   "scope": "Basys 3 dedicated RED2 core with UART monitor; complete board resource mapping and local digital simulation passed; JTAG detection passed; routing pending",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
@@ -70,7 +70,7 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Verified saved-placement delay-model regression and fixed backend in fpgatool f5d6dba. Corrected routing active with measured delays restored. No bitstream or physical replay yet.",
+  "board_build_status": "Corrected backend completed legal routing: 19,984 physical LUT sites; measured fmax core 10.39 MHz, monitor 10.35 MHz, but saved placement had lost XDC clocks and checked the 12 MHz default. New route from unchanged placement explicitly reloads 10 MHz SDC constraints. No bitstream loaded yet.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
@@ -115,26 +115,28 @@
     },
     "pytest": {
       "passed": true,
-      "count": 7,
+      "count": 9,
       "tests": [
+        "tests/test_red2_basys3_audit.py",
         "tests/test_red2_basys3_transport.py",
         "tests/test_yosys_resources.py"
       ],
-      "command": "PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_red2_basys3_transport.py tests/test_yosys_resources.py"
+      "command": "PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_red2_basys3_audit.py tests/test_red2_basys3_transport.py tests/test_yosys_resources.py"
     },
     "ruff_and_shell_syntax": {
       "passed": true
     }
   },
   "current_sources_sha256": {
-    "scripts/boards/red2_basys3/README.md": "67cce430291467e3ffbfd4fb2a62538f4e45e6ca3d53bdc99a86c59f00fc409e",
+    "scripts/boards/red2_basys3/README.md": "6ac06c4e3157d521897789a37c7d9636efe43c6131ea507468c20cf066744d46",
     "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
     "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
     "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
-    "scripts/boards/red2_basys3/implement.sh": "649c5f2b98c29a5305eeb6d16cff2673673e78a816c672dbf44c59d7af8ed2c4",
+    "scripts/boards/red2_basys3/implement.sh": "d16b9e0dbf2fabdc286c0980e6a81b06c5bb3845539e74a875c70bb4f2ffc0f1",
     "scripts/boards/red2_basys3/monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
-    "scripts/boards/red2_basys3/prepare.py": "2f97796b32adfe7a2994cb2c6d79cf6c8b63db25125dbeef4ddd6c6a6ca131ba",
-    "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89"
+    "scripts/boards/red2_basys3/prepare.py": "c72b94fa3c091d0086a4246db40b9ff4e15fecc8eefbe40222a6e6fdc98a1336",
+    "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89",
+    "scripts/boards/red2_basys3/audit.py": "6bb0689ae6dfb55b144f2709f49f16a2ff4c22b21f7ba1afa8918321f2bb13d3"
   },
   "limitations": [
     "Mapped board fits nominal resources; routed timing still pending",
@@ -223,7 +225,7 @@
     "finish_script_sha256": "348059a52c3e81d2bded89b2e87c37f14d42dd5beea28ec821fb3dfb5e2c37f3",
     "active_prepared_scripts_unchanged": true
   },
-  "active_routing_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-resume-fixed/route.log",
+  "active_routing_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/route-timing-10mhz/route.log",
   "unbounded_route_attempt": {
     "stopped": true,
     "reason": "overuse fell near 100 then rose across subsequent passes, matching the unbounded-expansion divergence described in the pinned router source",
@@ -270,11 +272,11 @@
   "routed_physical_lut_site_audit_pending": true,
   "autonomous_bringup_runner": {
     "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.py",
-    "script_sha256": "24e046ba3ad2dc6eb90ad38f3f1757d93fc288cd9be1bde9865d365ac1e82b00",
+    "script_sha256": "0aa180cfe4d876c9086f40e6fecb9ae9845e7c7f893346c4adb70e495bb7dfca",
     "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.log",
-    "exec_session": 38392,
+    "exec_session": 82044,
     "scope": "wait for bounded route, gate final physical LUT fit and routed clocks, bit generation, SRAM load, physical application replay; stop on failure; no automatic source commits",
-    "status": "rearmed for corrected backend route; waiting for completion"
+    "status": "waiting for route-timing-10mhz; original corrected route preserved; resume imports explicit SDC clocks"
   },
   "sa_fallback": {
     "passed": false,
@@ -324,5 +326,29 @@
     "patch_sha256": "2505f527f3ac866f6784c7b4fae19aff3133949dea3ed03de410fe5214e69dc6",
     "test_sha256": "0c9f5323822ba81102eca61a4a9b9c75eb43ec8f3cbbd18617e7be333fe1dc0b"
   },
-  "old_bounded_attempts_stopped": true
+  "old_bounded_attempts_stopped": true,
+  "saved_placement_clock_constraint_loss": {
+    "original_placement_target_mhz": 10,
+    "resumed_default_target_mhz": 12,
+    "correction": "Generic SDC loaded after JSON import",
+    "original_route_log_sha256": "d27ede889ff98ea83315d2edf757c24eeac5e9e1fdb66c2cadc629dd60327475",
+    "original_route_fmax_mhz": {
+      "core_clock": 10.39,
+      "clock": 10.35
+    },
+    "original_route_physical_audit": {
+      "placed_netlist_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
+      "routed_netlist_sha256": "a1d215c00ea399ee54b7cdd1679e07066498cd4011dadfbfb5a8f195dadd20c4",
+      "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+      "preserved_cell_placements": 37015,
+      "lut_half_cells": 25704,
+      "unique_physical_lut_sites": 19984,
+      "basys3_lut_limit": 20800,
+      "within_basys3_physical_lut_limit": true,
+      "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+    },
+    "timing_verified_at_intended_constraint": false
+  },
+  "resource_overview": "docs/handoffs/red2-basys3-resource-overview.md",
+  "resource_attribution": "docs/handoffs/red2-basys3-resource-attribution.json"
 }
