@@ -1,0 +1,175 @@
+"""Replay concrete-checked public-port vectors over the Basys 3 USB UART."""
+
+import argparse
+import binascii
+import contextlib
+import hashlib
+import json
+import os
+import select
+import termios
+import time
+import tty
+from pathlib import Path
+
+INPUT_BITS = 722
+OUTPUT_BITS = 626
+INPUT_BYTES = (INPUT_BITS + 7) // 8
+OUTPUT_BYTES = (OUTPUT_BITS + 7) // 8
+RESPONSE_BYTES = 2 + 1 + OUTPUT_BYTES + 2
+
+
+def request_frame(command: int, sequence: int) -> bytes:
+    if not 0 <= command < 1 << INPUT_BITS:
+        raise ValueError("command exceeds the hardware input width")
+    if not 0 <= sequence < 256:
+        raise ValueError("sequence exceeds one byte")
+    body = bytes([sequence]) + command.to_bytes(INPUT_BYTES, "little")
+    return b"\xa5\x5a" + body + binascii.crc_hqx(body, 0xFFFF).to_bytes(2, "little")
+
+
+def response_value(frame: bytes, sequence: int) -> int:
+    if len(frame) != RESPONSE_BYTES or frame[:2] != b"\x5a\xa5":
+        raise ValueError("invalid response framing; check the loaded bitstream")
+    if frame[2] != sequence:
+        raise ValueError("response sequence mismatch; aborting without retry")
+    if binascii.crc_hqx(frame[2:-2], 0xFFFF) != int.from_bytes(frame[-2:], "little"):
+        raise ValueError("response CRC mismatch; aborting without retry")
+    value = int.from_bytes(frame[3:-2], "little")
+    if value >= 1 << OUTPUT_BITS:
+        raise ValueError("response padding is nonzero")
+    return value
+
+
+class SerialLink:
+    """POSIX serial, with no optional Python dependencies and no implicit retry."""
+
+    def __init__(self, port: str, timeout: float = 3):
+        self.fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        self.original = termios.tcgetattr(self.fd)
+        self.timeout = timeout
+        try:
+            tty.setraw(self.fd)
+            attrs = termios.tcgetattr(self.fd)
+            attrs[4] = attrs[5] = termios.B115200
+            attrs[2] |= termios.CLOCAL | termios.CREAD
+            if hasattr(termios, "CRTSCTS"):
+                attrs[2] &= ~termios.CRTSCTS
+            termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+            termios.tcflush(self.fd, termios.TCIOFLUSH)
+        except BaseException:
+            os.close(self.fd)
+            raise
+
+    def close(self):
+        try:
+            termios.tcsetattr(self.fd, termios.TCSANOW, self.original)
+        finally:
+            os.close(self.fd)
+
+    def exchange(self, command: int, sequence: int) -> int:
+        packet = memoryview(request_frame(command, sequence))
+        deadline = time.monotonic() + self.timeout
+        while packet:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([], [self.fd], [], remaining)[1]:
+                raise TimeoutError("UART write timed out; no command retry was sent")
+            try:
+                packet = packet[os.write(self.fd, packet) :]
+            except BlockingIOError:
+                continue
+        response = bytearray()
+        while len(response) < RESPONSE_BYTES:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([self.fd], [], [], remaining)[0]:
+                raise TimeoutError("UART response timed out; no command retry was sent")
+            try:
+                chunk = os.read(self.fd, RESPONSE_BYTES - len(response))
+            except BlockingIOError:
+                continue
+            if not chunk:
+                raise ConnectionError("UART disconnected")
+            response.extend(chunk)
+        return response_value(bytes(response), sequence)
+
+
+def verify_vectors(path: Path, candidate_sha: str) -> dict:
+    metadata = json.loads(path.with_suffix(".json").read_text())
+    if (metadata["input_width"], metadata["output_width"]) != (
+        INPUT_BITS,
+        OUTPUT_BITS,
+    ):
+        raise ValueError("trace port layout differs from the board interface")
+    if metadata["candidate_sha256"] != candidate_sha:
+        raise ValueError("trace source differs from the prepared board candidate")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != metadata["vectors_sha256"]:
+        raise ValueError("trace hash differs from its completed validation record")
+    # Validate all rows before the first hardware command is sent.
+    count = 0
+    with path.open() as rows:
+        for row in rows:
+            incoming, expected = (int(token, 16) for token in row.split())
+            if not 0 <= incoming < 1 << INPUT_BITS:
+                raise ValueError("trace command exceeds input width")
+            if not 0 <= expected < 1 << OUTPUT_BITS:
+                raise ValueError("trace expectation exceeds output width")
+            count += 1
+    if count != metadata["cycles"] or not count:
+        raise ValueError("trace row count differs from its completed validation record")
+    return metadata
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", required=True, help="USB-UART channel, usually *1")
+    parser.add_argument("--prepared", type=Path, default=Path("build/red2-basys3"))
+    parser.add_argument("--timeout", type=float, default=3)
+    parser.add_argument("vectors", type=Path)
+    parser.add_argument("--log", type=Path, required=True, help="new result JSON path")
+    args = parser.parse_args()
+    preparation = json.loads((args.prepared / "provenance.json").read_text())
+    metadata = verify_vectors(args.vectors, preparation["candidate_source_sha256"])
+    if args.timeout <= 0:
+        parser.error("timeout must be positive")
+    started = time.monotonic()
+    record = {
+        "port": args.port,
+        "candidate_source_sha256": preparation["candidate_source_sha256"],
+        "prepared_provenance_sha256": hashlib.sha256(
+            (args.prepared / "provenance.json").read_bytes()
+        ).hexdigest(),
+        "vectors_sha256": metadata["vectors_sha256"],
+        "expected_clocks": metadata["cycles"],
+        "completed_pass": False,
+        "compared_clocks": 0,
+    }
+    # Reserve the result file before touching hardware; never erase earlier evidence.
+    with args.log.open("x") as log:
+        try:
+            with contextlib.closing(SerialLink(args.port, args.timeout)) as link:
+                with args.vectors.open() as rows:
+                    for index, row in enumerate(rows):
+                        incoming, expected = (int(token, 16) for token in row.split())
+                        actual = link.exchange(incoming, index % 256)
+                        if actual != expected:
+                            record.update(
+                                mismatch_clock=index,
+                                actual=f"{actual:X}",
+                                expected=f"{expected:X}",
+                            )
+                            raise ValueError(f"FPGA output mismatch at clock {index}")
+                        record["compared_clocks"] = index + 1
+                        if (index + 1) % 100 == 0:
+                            print("BOARD_REPLAY_PROGRESS", index + 1, flush=True)
+            record["completed_pass"] = True
+            print("BOARD_REPLAY_PASS", metadata["cycles"], flush=True)
+        except BaseException as exc:
+            record["error"] = str(exc)
+            raise
+        finally:
+            record["elapsed_seconds"] = round(time.monotonic() - started, 3)
+            log.write(json.dumps(record, indent=2) + "\n")
+
+
+if __name__ == "__main__":
+    main()

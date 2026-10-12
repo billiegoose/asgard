@@ -1,0 +1,148 @@
+{
+  "recorded_at_utc": "2026-10-12T12:59:38.008290+00:00",
+  "scope": "Basys 3 dedicated RED2 core with UART processor monitor; preparation and local digital simulation only",
+  "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
+  "preparation": {
+    "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "validation_report_sha256": "29a8ca0076ae0f1cf15a40802c3cbc41bf3794a5502bc992eaba9d392eccea3e",
+    "mapped_core_sha256": "e164427730ae27154146a6179831f5dab3c4c8c60d8dcddf53a1636614d34a48",
+    "mapped_core_path": "/tmp/asgard-area-next/cfg-integer-joins-regfix/integrated-stream/baseline-area.json",
+    "original_core_resources": {
+      "top": "top",
+      "lut": 18846,
+      "lut_memory": 326,
+      "lut_total": 19172,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 8095,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 20,
+      "carry4": 774,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 774,
+        "DSP48E1": 20,
+        "FDRE": 8095,
+        "INV": 883,
+        "LUT2": 2684,
+        "LUT3": 3127,
+        "LUT4": 2826,
+        "LUT5": 3847,
+        "LUT6": 6362,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "core_transform": {
+      "removed_cell": "$auto$clkbufmap.cc:261:execute$193446",
+      "removed_type": "BUFG",
+      "clock_connections_rebound": 8333,
+      "replacement": "board BUFGCE; no logic or memory cell changes"
+    },
+    "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+    "fpgatool_commit": "f8b237d",
+    "core_clock_mhz": 10,
+    "uart_baud": 115200,
+    "input_width": 722,
+    "output_width": 626,
+    "files_sha256": {
+      "area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+      "board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
+      "board.xdc": "58c29c117a3a6f28ed535f8928f598116ed126fd86b1a2546026b160b10f8b1e",
+      "board.ys": "1192c9fe53ee7f5ef372a04db8879443e762199251076951bff6019deac00e0d",
+      "build.sh": "0fc9d546c2b331c6c3525c312164f1b795bd467442cb40deacffeb14578b930d",
+      "core.json": "65a9303c8a1d88cb750a6a7b085d98d0a3caa70a509dbe77900267b5ce005b70",
+      "implement.sh": "86a3429886d65108977e8d89d498416cda0ff480f0ee9aa4b0217b8e56fb997d",
+      "monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
+      "packed.v": "fe33c6a2552f9ce06200c540151df94713b92a93aa83ef55ccfaf79d4a3313ce",
+      "uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89",
+      "yosys_resources.py": "ff02bfcef29c0af75bfd96ac98f356024b28bf3127a3480c8b3baedab1f30a71"
+    },
+    "status": "prepared; no board mapping, routing or programming result yet"
+  },
+  "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+  "board_build_status": "running: permissions restored, Podman and Digilent USB detected; board mapping and routing pending",
+  "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
+  "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
+  "board_mapping_completed": false,
+  "routed_timing_verified": false,
+  "bitstream_built": false,
+  "loaded_on_board": false,
+  "validation": {
+    "physical_UART_simulation": {
+      "passed": true,
+      "checks": [
+        "start/data/stop bits",
+        "CRC rejection",
+        "nonzero request padding rejection",
+        "abandoned frame recovery",
+        "framing error",
+        "sequence wrap",
+        "full-width data",
+        "exactly one core clock edge per accepted command"
+      ],
+      "log_sha256": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+      "bench_sha256": "74185b718a6b6f0d2102f98bbb59fd99bad87b2f18c5f49ab52dda9095afd6b6",
+      "log": "/tmp/red2-board-check-3/uart.log"
+    },
+    "actual_RED2_monitor_trace": {
+      "passed": true,
+      "clocks": 10703,
+      "program": "((LAMBDA (x) x) 7)",
+      "output_bits_compared_per_clock": 626,
+      "scope": "real optimized frontend RTL with byte-level monitor and falling-edge clock-enable latch model",
+      "log_sha256": "730c0c31f8e6352a7cf1c67671dd61ce6c4dbbba61d3b71f1cc209c18032dbd6",
+      "bench_sha256": "e518cd78f2da9b3e441117eef41e04729c2674cd4234f4b2eec32cdd19d15f12",
+      "log": "/tmp/red2-board-check-2/core.log",
+      "clean_verilog_sha256": "ab19a4394cc5833c1d2c692f0bd12f75f74724fb528029d473c6549b13dd742b",
+      "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b"
+    },
+    "mapped_core_transform_audit": {
+      "passed": true,
+      "preserved_logic_and_memory_cells": 36700,
+      "rebound_clock_input_connections": 8333,
+      "only_removed_cell_type": "BUFG",
+      "replacement_clock_primitive": "BUFGCE"
+    },
+    "pytest": {
+      "passed": true,
+      "count": 7,
+      "tests": [
+        "tests/test_red2_basys3_transport.py",
+        "tests/test_yosys_resources.py"
+      ],
+      "command": "PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_red2_basys3_transport.py tests/test_yosys_resources.py"
+    },
+    "ruff_and_shell_syntax": {
+      "passed": true
+    }
+  },
+  "current_sources_sha256": {
+    "scripts/boards/red2_basys3/README.md": "a9fe9f8f5509d2592781dfdb3cf0a028f2c30f9a4a98e9d903b8aa06107c16dc",
+    "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
+    "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
+    "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
+    "scripts/boards/red2_basys3/implement.sh": "86a3429886d65108977e8d89d498416cda0ff480f0ee9aa4b0217b8e56fb997d",
+    "scripts/boards/red2_basys3/monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
+    "scripts/boards/red2_basys3/prepare.py": "2f97796b32adfe7a2994cb2c6d79cf6c8b63db25125dbeef4ddd6c6a6ca131ba",
+    "scripts/boards/red2_basys3/uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89"
+  },
+  "limitations": [
+    "Board wrapper area and physical timing are unmeasured",
+    "MMCM and BUFGCE analog/physical behavior not verified by local simulation",
+    "No physical board replay yet",
+    "Processor monitor, not an interactive THOR host adapter",
+    "Existing list-equality execution gap remains open"
+  ],
+  "previous_permission_failure": "blocked before container start: Podman local socket connect operation not permitted",
+  "active_build_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver-live.log"
+}

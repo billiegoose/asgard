@@ -10,6 +10,8 @@ def test_counts_hierarchy_multiplicity_and_ignores_blackbox_simulation_cells():
                     "a": {"type": "worker"},
                     "b": {"type": "worker"},
                     "metadata": {"type": "$scopeinfo"},
+                    "clock": {"type": "MMCME2_ADV"},
+                    "clock_gate": {"type": "BUFGCE"},
                 },
             },
             "worker": {
@@ -30,6 +32,10 @@ def test_counts_hierarchy_multiplicity_and_ignores_blackbox_simulation_cells():
                 "cells": {"simulation": {"type": "LUT6"}},
             },
             "DSP48E1": {"attributes": {"blackbox": "0001"}, "cells": {}},
+            "MMCME2_ADV": {
+                "attributes": {"blackbox": "0001"},
+                "cells": {"simulation": {"type": "$mul"}},
+            },
         }
     }
     resources = count_resources(netlist)
@@ -39,6 +45,9 @@ def test_counts_hierarchy_multiplicity_and_ignores_blackbox_simulation_cells():
     assert resources["dsp48"] == 2
     assert "$mux" not in resources["primitives"]
     assert "$scopeinfo" not in resources["primitives"]
+    assert "$mul" not in resources["primitives"]
+    assert resources["primitives"]["MMCME2_ADV"] == 1
+    assert resources["primitives"]["BUFGCE"] == 1
     assert resources["within_basys3_resource_limits"]
 
 

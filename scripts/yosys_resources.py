@@ -80,7 +80,8 @@ def count_resources(netlist, top=None):
     known_primitive = re.compile(
         r"(?:LUT[1-6](?:_2)?|(?:FD|LD)[A-Z0-9_]*|RAM[A-Z0-9_]*|"
         r"SRL[A-Z0-9_]*|DSP48[A-Z0-9_]*|CARRY4|MUXF[5-9]|"
-        r"(?:I|O|IO)BUF[A-Z0-9_]*|BUF[A-Z0-9_]*|INV|GND|VCC)"
+        r"(?:I|O|IO)BUF[A-Z0-9_]*|BUF[A-Z0-9_]*|"
+        r"MMCME2_(?:ADV|BASE)|PLLE2_(?:ADV|BASE)|INV|GND|VCC)"
     )
     unaccounted = [name for name in primitives if not known_primitive.fullmatch(name)]
     resources = {
