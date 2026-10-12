@@ -3,42 +3,66 @@
 User authorization: load dedicated RED2 hardware into volatile SRAM on this Mac,
 run physical replay, commit and push. No CPU emulation, no flash write.
 Permissions work. Board serial `210183735787`, JTAG ID `0x0362d093`, UART
-`/dev/cu.usbserial-2101837357871`. **No bitstream has been loaded yet.**
+`/dev/cu.usbserial-2101837357871`. **SRAM loading works; the full application has not passed on hardware yet.**
 
 ## Current attempt
 
-`red2-basys3-route-timing-10mhz` is running. Host launcher:
-`build/red2-basys3/route-timing-10mhz/route.sh`; exec session 74508.
-It routes the unchanged saved default-density placement with the patched backend,
-bounded expansion 12 and congestion increment 1.2, and explicit `--sdc board.sdc`.
-Outputs are written inside the container then copied as completed files to avoid
-hundreds of thousands of tiny writes across the Mac/VM filesystem boundary.
+Routing completed in `route-timing-10mhz`: core 10.39 MHz and monitor 10.35 MHz,
+both PASS at 10 MHz. It uses 19,984 physical LUT sites and preserves all 37,015
+placements. Base bitstream SHA256:
+`f8a97bd2508b4d7cd959bc4e6785bb01751e8fabe2526d8627c3fe796f869e7f`.
+The base SRAM load succeeded, but replay failed at clock 257 on graph memory.
 
-The earlier corrected route completed legally and preserved all 37,015 cell
-placements, using 19,984 physical LUT sites. It reported 10.39 MHz core and
-10.35 MHz monitor fmax, but FAIL at the unintended 12 MHz default: native XDC
-clock constraints are lost across saved JSON import. The new attempt reloads
-SDC after import to check the intended 10 MHz constraint directly. Original
-logs/FASM/routed JSON remain in `route-resume-fixed`. A probe importing final
-routed JSON crashed because its normalized site names are not round-trip safe;
-use the original placed JSON. Do not load the earlier route on inferred timing.
+A confirmed backend bug omitted WRITE_WIDTH_A_18 on both RAMB18 halves of
+RAMB36E1 WRITE_WIDTH_B=72 / WRITE_WIDTH_A=0. Adding exactly 14 configuration bits
+for seven affected memories changed the 131-word physical graph-memory test
+from 74 failures to zero. The corrected image is
+`build/red2-basys3/bram72-width-fix/red2_basys3.bit`, SHA256
+`160b9d3e1e978c9695589adbd1cf7c54143f73e9de74762b0f39d836f0c9b704`.
+It preserves all routing. The matching source fix and regression are pushed in
+fpgatool `f8da9ea`. Raw rebuilt backend:
+`/nix/store/0apsy55ndakz03k2vzf1snhfwnbr6b0b-nextpnr-1.0.0/bin/nextpnr-himbaechel`,
+SHA256 `e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc`.
+Old backend fails specifically on missing A-width markers; patched width test
+and both saved-placement routing regressions pass.
 
-The autonomous runner `build/red2-basys3/complete-bringup.py` is exec session
-82044. Its log is `build/red2-basys3/complete-bringup.log`. It waits for the
-explicitly constrained route, then runs `finish-selected.sh`, checks physical
-fit/preserved placements and both routed 10 MHz clocks, generates the bitstream,
-verifies build hashes, loads SRAM using `program.py`, and replays the application.
-It stops on any failure. Do not run a second load/replay concurrently. It does
-not automatically update docs, source, or Git results. Earlier runner failures
-are preserved in `complete-bringup-before-*.log`.
+The corrected physical application matches 3,999 clocks, then reports microstate
+5 instead of 13 (only bit 3 differs initially). A reload/followthrough probe
+repeats this failure; subsequent busy/dispatch behavior diverges too. Preserve
+`bram72-width-fix/application-board-result.json` and `followthrough-result.json`.
+The corrected 10 MHz image is still diagnostic, not an application pass.
 
-The physical audit now uses `audit.py` plus the exact `tilegrid.json` to translate
-generic tile-relative BELs to exported Xilinx site/BEL names, including typed
-RAM/IOB BEL suffixes. It passed against the full completed route; focused tests
-also exercise shared LUT halves, relative site coordinates and moved-cell
-rejection. Maintained `implement.sh` now has two-stage placement/routing, SDC
-reload and the corrected final audit. Prepared original source snapshots remain
-unchanged; finishing records hashes of its new helper and scripts separately.
+The exact mapped core **passes all 10,703 clocks** with Yosys logic models and
+Xilinx RAMB18E1/RAMB36E1 models. Sources, a lean gate-level export, simulation
+bench and logs live in `mapped-sim/`; `replay.log` ends MAPPED_REPLAY_PASS 10703.
+The full original export was 299 MB; `rename -hide; clean -purge` reduced names
+and unused aliases to 5.7 MB without changing the circuit. The simulation took
+about three minutes. This separates source/logic mapping from the remaining
+packing/configuration/routing/physical issue.
+
+Current diagnostic: **exec session 49898**, `clock-slow-probe/`. It changes only
+six MMCM configuration bits (CLKOUT0 high/low counts 50 -> 60, divide 100 -> 120),
+yielding 8.333 MHz. Feedback/filter/lock and routing are unchanged. The host uses
+Mac IOSSIOSPEED 96000 to match UART_DIV87. SRAM loading and replay run explicitly;
+inspect `clock-slow-probe/application-board-replay.log` and result JSON. Do not
+start another serial client while it runs. A pass beyond 3999 would implicate
+setup timing; unchanged failure would leave configuration/packing or hold timing
+as candidates. The normal host defaults to 115200 and will not match this slow
+probe. Reload the corrected 10 MHz bitstream before normal host diagnostics.
+
+The initial autonomous runner is stopped after the comparison failure. Its
+`complete-bringup.log` records the initial load and failure. Later probes use
+fresh load/replay paths; no implicit UART retries or flash writes. Build hashes
+are checked before each SRAM load. Original inputs and failures remain intact.
+New maintained builds automatically use the BRAM fix through fpgatool.
+
+Asgard `7c5b290` already contains resource attribution, SDC reload, physical BEL
+normalization, and 9 focused tests. Additional handoff evidence and the fpgatool
+pin are being committed alongside this checkpoint. The native XDC clocks are
+lost across saved JSON import, so the route reloads SDC. A small two-test probe
+confirmed the resumed 10 MHz target with the delay model enabled and disabled.
+Do not import final routed JSON directly: its normalized site names are not
+round-trip safe; use the original saved placement.
 
 The prepared root `build/red2-basys3/` preserves all original mapped inputs and
 hashes. Its mapped board uses 20,050 LUTs including LUT RAM. Actual placement

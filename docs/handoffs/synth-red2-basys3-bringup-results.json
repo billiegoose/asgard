@@ -1,6 +1,6 @@
 {
-  "recorded_at_utc": "2026-10-12T17:16:35.958930+00:00",
-  "scope": "Basys 3 dedicated RED2 core with UART monitor; complete board resource mapping and local digital simulation passed; JTAG detection passed; routing pending",
+  "recorded_at_utc": "2026-10-12T18:06:24.357077+00:00",
+  "scope": "Dedicated RED2 fits and passes routed timing; SRAM loading and physical UART work; wide graph-memory writes fixed and tested; complete physical application replay not yet passing",
   "prepared_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3",
   "preparation": {
     "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
@@ -70,13 +70,13 @@
     "status": "prepared; no board mapping, routing or programming result yet"
   },
   "preparation_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
-  "board_build_status": "Corrected backend completed legal routing: 19,984 physical LUT sites; measured fmax core 10.39 MHz, monitor 10.35 MHz, but saved placement had lost XDC clocks and checked the 12 MHz default. New route from unchanged placement explicitly reloads 10 MHz SDC constraints. No bitstream loaded yet.",
+  "board_build_status": "Base bitstream loaded successfully. First replay failed on graph-memory read at clock 257. Correcting 14 wide-SDP-write bits makes the 131-word memory test pass; application now matches 3999 clocks before a repeatable microstate bit mismatch (actual 5, expected 13). Mapped primitive simulation with Xilinx RAM models passes all 10703 clocks. Further implementation/physical diagnosis in progress.",
   "board_build_attempt_log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/build-driver.log",
   "board_build_attempt_log_sha256": "538de0a400e471dbbc36c074c6e8744b493f649944634de3edacfa6d5ea2a669",
   "board_mapping_completed": true,
-  "routed_timing_verified": false,
-  "bitstream_built": false,
-  "loaded_on_board": false,
+  "routed_timing_verified": true,
+  "bitstream_built": true,
+  "loaded_on_board": true,
   "validation": {
     "physical_UART_simulation": {
       "passed": true,
@@ -125,10 +125,28 @@
     },
     "ruff_and_shell_syntax": {
       "passed": true
+    },
+    "explicit_resumed_sdc_clock_regression": {
+      "passed": true,
+      "count": 2,
+      "target_mhz": 10,
+      "model_enabled_and_disabled": true,
+      "log_sha256": "bf74badd269d73ecabcad1f2a3ba1059c96c10ba8a7e2723ebf243e8bf41cbee"
+    },
+    "mapped_primitive_simulation": {
+      "passed": true,
+      "clocks": 10703,
+      "scope": "Frozen mapped core, Yosys logic primitive models and Xilinx RAMB18E1/RAMB36E1 models; independent clocked vector replay",
+      "log_sha256": "6dd573222e6eb834936045637dfad2e4bef1e1fedb8064fc6748ca9ae864e84a",
+      "mapped_core_sha256": "65a9303c8a1d88cb750a6a7b085d98d0a3caa70a509dbe77900267b5ce005b70",
+      "vendor_models_sha256": {
+        "RAMB18E1.v": "f04b8980e1565e9b622723334d48d687e6dc48b93d08cb99ecb1206a0700848b",
+        "RAMB36E1.v": "b6153b595696f7eebe6840b2b8d518e32df698cb8e8b2730c8838648ceec72fb"
+      }
     }
   },
   "current_sources_sha256": {
-    "scripts/boards/red2_basys3/README.md": "6ac06c4e3157d521897789a37c7d9636efe43c6131ea507468c20cf066744d46",
+    "scripts/boards/red2_basys3/README.md": "c73ed7ee94ebae3c5932b80b701bf3e9dca97daaa97bcbf8703a6edc2b31c800",
     "scripts/boards/red2_basys3/board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
     "scripts/boards/red2_basys3/check.py": "3b37002a81d60ce9cc4c2f748e7cd6141e51d8034204c461f1c8b39cb6f0b74e",
     "scripts/boards/red2_basys3/host.py": "a0e7a2c69fa413b00f72af28aff277cbfe61e4a42e1815a90f1735c7b31426ad",
@@ -139,9 +157,8 @@
     "scripts/boards/red2_basys3/audit.py": "6bb0689ae6dfb55b144f2709f49f16a2ff4c22b21f7ba1afa8918321f2bb13d3"
   },
   "limitations": [
-    "Mapped board fits nominal resources; routed timing still pending",
-    "MMCM and BUFGCE analog/physical behavior not verified by local simulation",
-    "No physical board replay yet",
+    "Full physical application replay currently fails at clock 3999 after the wide-write correction",
+    "Mapped/core simulations do not establish physical execution correctness",
     "Processor monitor, not an interactive THOR host adapter",
     "Existing list-equality execution gap remains open"
   ],
@@ -269,14 +286,14 @@
     "within_basys3_physical_lut_limit": true,
     "normalization": "merge A5LUT/A6LUT (and B/C/D) only within the identical tile and slice"
   },
-  "routed_physical_lut_site_audit_pending": true,
+  "routed_physical_lut_site_audit_pending": false,
   "autonomous_bringup_runner": {
     "script": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.py",
-    "script_sha256": "0aa180cfe4d876c9086f40e6fecb9ae9845e7c7f893346c4adb70e495bb7dfca",
+    "script_sha256": "f0b6bea6d9c9b99828ca38427c46d6db4a1565e6f1f3c66e4641b255ec45e1d3",
     "log": "/Users/billie/code/billiegoose/asgard/build/red2-basys3/complete-bringup.log",
-    "exec_session": 82044,
+    "exec_session": 59206,
     "scope": "wait for bounded route, gate final physical LUT fit and routed clocks, bit generation, SRAM load, physical application replay; stop on failure; no automatic source commits",
-    "status": "waiting for route-timing-10mhz; original corrected route preserved; resume imports explicit SDC clocks"
+    "status": "stopped after expected comparison failure; no automatic retries; physical diagnostics now run explicitly"
   },
   "sa_fallback": {
     "passed": false,
@@ -347,8 +364,136 @@
       "within_basys3_physical_lut_limit": true,
       "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
     },
-    "timing_verified_at_intended_constraint": false
+    "timing_verified_at_intended_constraint": true
   },
   "resource_overview": "docs/handoffs/red2-basys3-resource-overview.md",
-  "resource_attribution": "docs/handoffs/red2-basys3-resource-attribution.json"
+  "resource_attribution": "docs/handoffs/red2-basys3-resource-attribution.json",
+  "routed_timing": {
+    "core_clock": {
+      "achieved_mhz": 10.39,
+      "status": "PASS",
+      "required_mhz": 10.0
+    },
+    "clock": {
+      "achieved_mhz": 10.35,
+      "status": "PASS",
+      "required_mhz": 10.0
+    }
+  },
+  "routed_physical_lut_site_audit": {
+    "placed_netlist_sha256": "253990561c6b7e4daa31e21cd052921d24af3d935d4cc22ebaafacd36d53c25e",
+    "routed_netlist_sha256": "a1d215c00ea399ee54b7cdd1679e07066498cd4011dadfbfb5a8f195dadd20c4",
+    "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+    "preserved_cell_placements": 37015,
+    "lut_half_cells": 25704,
+    "unique_physical_lut_sites": 19984,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+  },
+  "physical_application_passed": false,
+  "base_sram_load": {
+    "started_at_utc": "2026-10-12T17:32:13.587356+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "f8a97bd2508b4d7cd959bc4e6785bb01751e8fabe2526d8627c3fe796f869e7f",
+    "build_result_sha256": "ba1b217bb9a743cc1e59799c0225b23a78a0c8c823bc97301e1bad16591fb4d0",
+    "program_script_sha256": "ce107c707ce4783cae59175a63ba61afba666735ec20912aec89cb6df7dca277",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-12T17:32:16.977869+00:00",
+    "load_log_sha256": "14a9f6fe18456817f8289c5e3597209bc27aa96521773ecec7e21a83d9812c57"
+  },
+  "base_physical_replay": {
+    "port": "/dev/cu.usbserial-2101837357871",
+    "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+    "prepared_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+    "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+    "expected_clocks": 10703,
+    "completed_pass": false,
+    "compared_clocks": 257,
+    "mismatch_clock": 257,
+    "actual": "2000000000000000000000000000000000000000000000000000000007FBFDFEFF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "expected": "2000000000000000000000000000000000000000000422000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "error": "FPGA output mismatch at clock 257",
+    "elapsed_seconds": 5.597
+  },
+  "bram72_write_correction": {
+    "fpgatool_commit": "f8da9ea",
+    "backend": "/nix/store/0apsy55ndakz03k2vzf1snhfwnbr6b0b-nextpnr-1.0.0/bin/nextpnr-himbaechel",
+    "backend_sha256": "e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc",
+    "added_configuration_bits": 14,
+    "removed_configuration_bits": 0,
+    "affected_memories": 7,
+    "graph_memory_test_words": 131,
+    "old_graph_mismatches": 74,
+    "corrected_graph_mismatches": 0,
+    "old_backend_regression_missing_A_markers_reproduced": true,
+    "patched_width_regression_passed": true,
+    "patched_resume_regressions_passed": 2,
+    "corrected_load": {
+      "started_at_utc": "2026-10-12T17:41:10.292411+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3/bram72-width-fix/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "160b9d3e1e978c9695589adbd1cf7c54143f73e9de74762b0f39d836f0c9b704",
+      "build_result_sha256": "a9e1a2f6fc77f49c518a073351acde2f1c11ebb1dc1466cb1d08247c3db3f270",
+      "program_script_sha256": "8cedc74becb158019d8c28580f533de4594f807ee881627d4bb5aa6549451124",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-12T17:41:13.462309+00:00",
+      "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    },
+    "corrected_physical_replay": {
+      "port": "/dev/cu.usbserial-2101837357871",
+      "candidate_source_sha256": "f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68",
+      "prepared_provenance_sha256": "444d86fe64e5f71cd6932bdb8dfe26c60d179df233a83a8c1e8abc230303ba8b",
+      "vectors_sha256": "1d4d8ebee84749bd325b847e899f8d0de81ddc615fb9897d9ef0e857b3d90d2b",
+      "expected_clocks": 10703,
+      "completed_pass": false,
+      "compared_clocks": 3999,
+      "mismatch_clock": 3999,
+      "actual": "1000000000000000000000000000000F7000000000422000000000000000000030000000000000000000000000000000000000000000000000801EE0000000000000FA00000803DC001400040A00",
+      "expected": "1000000000000000000000000000000F7000000000422000000000000000000030000000000000000000000000000000000000000000000000801EE0000000000000FA00000803DC001400041A00",
+      "error": "FPGA output mismatch at clock 3999",
+      "elapsed_seconds": 96.431
+    },
+    "evidence_sha256": {
+      "graph-memory-diagnostic.json": "963b8e64f8d37aabd2cfa726d50afb8b20a34da027ab4a86abef2437f664a06e",
+      "graph-memory-diagnostic-fixed.json": "acbe3af0c03e9272b15d6e84e6920d490ad37bbe31035b49fe9d3a094f8abcbb",
+      "sdp72-old-regression.log": "ddd7aa0c4801b2898b380a6044214391fe3c0463f466b442b6dea9d8044f3664",
+      "sdp72-new-regression.log": "018ec77a33c6a0d69d4747f3a484c94fbf861d6ce6b1fe0b36ae0c40b721c1a1",
+      "sdp72-resume-regression.log": "f1e0ded8308b1c6d43f52bdefc60c2e35cd8d8920e39a17be4119e6a34cbe2f7",
+      "bram72-width-fix/frame-changes.json": "93d68f72c8bdba4f322e985ac1de609caedea46f909397c871c3426255423afa",
+      "bram72-width-fix/build-result.json": "a9e1a2f6fc77f49c518a073351acde2f1c11ebb1dc1466cb1d08247c3db3f270",
+      "bram72-width-fix/followthrough-result.json": "a2cdf1b3d710596e740728da3e2e61c76db76799ba84106cd08a88aa17e3e9cd"
+    }
+  },
+  "current_physical_diagnostic": {
+    "variant": "clock-slow-probe",
+    "exec_session": 49898,
+    "scope": "unchanged route and corrected RAM widths; MMCM divide 100 -> 120 only; UART host 96000; compare original application trace",
+    "status": "running"
+  }
 }

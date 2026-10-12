@@ -19,11 +19,12 @@ LUT utilization is 96.4%; BRAM is 69%, flip-flops 24.7%, and DSPs 22.2%.
 The wrapper delta includes the full-width UART command/status monitor, clock
 generator, clock gate and LEDs. It is not a UART-only estimate.
 
-The selected saved placement occupies **19,984 unique physical LUT sites**,
+The final routed design occupies **19,984 unique physical LUT sites**,
 leaving 816. Mapping totals and physical sites differ because packing can share
 the two outputs of a physical LUT. Counting A5LUT and A6LUT as separate physical
-LUTs would overcount. Final routed fit and timing are recorded separately in
-`synth-red2-basys3-bringup-results.json` as they become available.
+LUTs would overcount. Both clocks meet 10 MHz (core 10.39 MHz, monitor 10.35 MHz).
+Physical application replay remains under investigation; exact fit, timing,
+load and diagnostic evidence is in `synth-red2-basys3-bringup-results.json`.
 
 ## Exact memory attribution
 

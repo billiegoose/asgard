@@ -9,7 +9,12 @@ synchronous RAM reads and would not reproduce the same trace.
 
 The complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
 the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5
-BRAM36 equivalents. Routed timing and physical replay are still pending.
+BRAM36 equivalents. Routing uses **19,984 physical LUT sites**, leaving 816;
+both domains pass the 10 MHz requirement (core 10.39 MHz, monitor 10.35 MHz).
+SRAM loading and physical UART work. A nextpnr wide-write configuration fix
+makes all 131 graph-memory diagnostic words pass. Full application replay
+currently matches 3,999 clocks before a microstate mismatch; diagnosis continues.
+The mapped core also passes all 10,703 clocks with Xilinx RAM simulation models.
 The [resource overview](../../../docs/handoffs/red2-basys3-resource-overview.md)
 details memory, register and arithmetic ownership and further sharing options.
 
@@ -57,10 +62,15 @@ regenerate the original experiment if those temporary artifacts are lost.
 Load into volatile FPGA SRAM after a successful build:
 
 ```sh
-openFPGALoader --board basys3 --bitstream build/red2-basys3/red2_basys3.bit
+openFPGALoader --board basys3 --ftdi-serial 210183735787 --write-sram \
+  --bitstream build/red2-basys3/red2_basys3.bit
 ```
 
-No persistent flash write is involved. Use the USB-UART channel, normally the
+The original prepared bitstream preserves the failing wide-write configuration;
+the corrected diagnostic image is in `build/red2-basys3/bram72-width-fix/`.
+New builds use the fixed fpgatool backend. See the handoff result JSON for exact
+image hashes and the current replay limitation. No persistent flash write is
+involved. Use the USB-UART channel, normally the
 serial device ending in `1`, rather than the JTAG channel ending in `0`. On the
 development Mac the observed UART path is `/dev/cu.usbserial-2101837357871`.
 
