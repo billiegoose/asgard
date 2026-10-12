@@ -88,5 +88,7 @@ record = {
     "extra_states": control.get("extra_states", []),
     "entry_opcodes": control.get("entry_opcodes", []),
 }
+if "publication_reads" in control:
+    record["publication_reads"] = control["publication_reads"]
 (root / "provenance.json").write_text(json.dumps(record, indent=2) + "\n")
 print("PREPARED_FAMILY_MAPPING", root, len(files), "VHDL files")

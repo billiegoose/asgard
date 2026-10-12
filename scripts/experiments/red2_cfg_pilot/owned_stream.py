@@ -4,6 +4,7 @@
 import ast
 
 from owned import publish_owned
+from publication_reads import bridge as publication_bridge
 
 
 def emit_stream(
@@ -85,7 +86,7 @@ if cfg_admit or cfg_initialize:
         for i, n in enumerate(fn.body)
         if isinstance(n, ast.AnnAssign) and ast.unparse(n.target) == "committed"
     )
-    fn.body[position:position] = ast.parse(admit).body
+    fn.body[position:position] = ast.parse(publication_bridge(admit, m, "admit")).body
     bridge = "cfg_setup_addr: cfg_addr_t = cfg_transfer_slot\ncfg_setup_data: uint64_t = 0\ncfg_setup_write: uint1_t = cfg_incoming_stage == 3 and not cfg_transfer_mode\n"
     for k in shared:
         bridge += (
@@ -120,7 +121,7 @@ if cfg_issue:
         for i, n in enumerate(fn.body)
         if isinstance(n, ast.Assign) and ast.unparse(n.targets[0]) == "memory_out"
     )
-    fn.body[position:position] = ast.parse(bridge).body
+    fn.body[position:position] = ast.parse(publication_bridge(bridge, m, "request")).body
     finish = f"""
 if cfg_admit:
     cfg_stage = 7
@@ -204,7 +205,7 @@ cfg_busy: uint1_t = cfg_stage != 0 or cfg_pending
         for i, n in enumerate(fn.body)
         if isinstance(n, ast.AnnAssign) and ast.unparse(n.target) == "status"
     )
-    fn.body[position:position] = ast.parse(finish).body
+    fn.body[position:position] = ast.parse(publication_bridge(finish, m, "finish")).body
     definitions = f"""
 cfg_bridge_index_t = make_uint_t({index_bits})
 cfg_bridge_pc_t = make_uint_t({pc_bits})

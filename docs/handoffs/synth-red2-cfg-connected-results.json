@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-12T06:49:21.360629+00:00",
+  "recorded_at_utc": "2026-10-12T07:37:06.274537+00:00",
   "production_changed": false,
   "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
   "production_lut_total": 41170,
@@ -281,26 +281,29 @@
     "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
     "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
     "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
-    "scripts/experiments/red2_cfg_pilot/build.py": "d03cb5aab3e118d04b93452c528bed0cc7e9d48bc0921e5e85fa98806f3f8797",
+    "scripts/experiments/red2_cfg_pilot/build.py": "5a2131ce7b368bb8a0b3f354b4921d3c28a0b1007cea80aeca1e9db1303837e8",
     "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
-    "scripts/experiments/red2_cfg_pilot/check.py": "93247c6743cd4194cf0bb216e561c9b5442df4426f0aaba5ca8a01150522db87",
-    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "bd98424bbe56a4f002696ef849678546b1669a83149a2a5ef38f402670092938",
+    "scripts/experiments/red2_cfg_pilot/check.py": "873331d08ad4a3df1ea7c130c3556453a46bc029e0f972febc16dac0b3eea139",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "5c5cdaf09481c161ed3efd767ebb322b32e485107712fd6c0b01844506b6083a",
     "scripts/experiments/red2_cfg_pilot/check_events.py": "f4adfe456f6cc83c67def85eedcc03a0737133cb7c7b0aa529c65dc9124cf312",
     "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
-    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "9c1fa4f92bb75594e8c2385892e2869aa83954f824aaa0806a11daff443c971c",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
-    "scripts/experiments/red2_cfg_pilot/emit.py": "70493983221b99a787a2c7b200901dc9ea3deab539b8bed96605f53b6ec535a7",
+    "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "c865cb5d7fb3930cf6158d206979218074166d41233b85b1c5f0073d4f50187f",
     "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
     "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
     "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
-    "scripts/experiments/red2_cfg_pilot/integrate.py": "94b4d8265af722d40d345d5fc919d92202944bafa188dd19ad2571af7e128bd3",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "c377a5d072f7020ba63b78ad74afe8307d4cf21449ac6d8431c37dfd942f4536",
     "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
-    "scripts/experiments/red2_cfg_pilot/oracle.py": "76556364d9307d909be0cf450a140192109969138b5f56fc5af96bc6ca52bab0",
+    "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
     "scripts/experiments/red2_cfg_pilot/owned.py": "d964916f1ec117bce8c7132bc7d627bf9d21106e4dc253430e82e17a4976bff7",
-    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "5ca92ab30f9e103c90cd777e4fa6a6722c63ef5987ab40028581400142a85457",
+    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
     "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
-    "scripts/experiments/red2_cfg_pilot/paths.py": "cf9a1dea07b06e9488c81aacc37912ae254a4a0e22f8dd35c9e924cdfe677b33",
-    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "47082f6df765e3ff1b5df6114d3655cd279718fd389383780cafb4eaa6e8c4cd"
+    "scripts/experiments/red2_cfg_pilot/packets.py": "0a07d0ce0c778f0aa3c2bbc9ca3f9322507621bd97e9ed634cb8af2563a93b73",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "0c7d0d718ac09acdf901b7f0ac544be30a40228f90d475991c019444c9515d0c",
+    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
+    "scripts/experiments/red2_cfg_pilot/publication_reads.py": "5f04c616b574f189d058a40068ed1930b6ca7dd335cf6af726e423b643a3b7f6"
   },
   "variants": {
     "integrated-owned": {
@@ -331,18 +334,66 @@
           "log_sha256": "6d01e8c0acb2dd7f7381e2e73c716f7e7a20c544bdf5b9e3928dbcd70cafab03"
         },
         "recp": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_PROGRESS 25 22643 max_latency 2175",
-            "INTEGRATED_PROGRESS 50 44055 max_latency 2175"
-          ]
+            "INTEGRATED_PROGRESS 50 44055 max_latency 2175",
+            "INTEGRATED_PROGRESS 75 64810 max_latency 2175",
+            "INTEGRATED_PROGRESS 100 84085 max_latency 2175",
+            "INTEGRATED_PROGRESS 125 106844 max_latency 2175",
+            "INTEGRATED_NATIVE_PARITY_PASS --recp physical_clocks 112644 admitted 131 max_latency 2175 seconds 619.469"
+          ],
+          "log_sha256": "c2e675d3c93f7dc999c1097d3558f455e0b7c0165f2daecc97c2573c5df10978"
         }
       },
-      "mapping_status": "pending",
+      "mapping_status": "complete",
       "bridge_words": 144,
       "private_bits": 2348,
       "provenance_sha256": "5f3a4395fe88d1381487b72f909aeef67435c0cbf72bd355f620298d46ea05d4",
-      "hdl_files_verified_unchanged": 239
+      "hdl_files_verified_unchanged": 239,
+      "resources": {
+        "top": "top",
+        "lut": 33865,
+        "lut_memory": 318,
+        "lut_total": 34183,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9272,
+        "bram18": 50,
+        "bram36": 12,
+        "bram36_equivalent": 37.0,
+        "dsp48": 20,
+        "carry4": 1766,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 1766,
+          "DSP48E1": 20,
+          "FDRE": 9272,
+          "INV": 1543,
+          "LUT2": 4028,
+          "LUT3": 7429,
+          "LUT4": 5510,
+          "LUT5": 6701,
+          "LUT6": 10197,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 50,
+          "RAMB36E1": 12
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 34183,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "mapped_artifacts_sha256": {
+        "baseline-area.json": "a3a3a29d266ef891c474ef7207b212967f327afe9392fb62f58abdbfdd39d167",
+        "baseline-area.log": "32c73d4b666dd57865033dbb217c0e892ef9a09f05cbc420f30947d0102d8ec2",
+        "resources.json": "504e64fb526c7a52dc321db5e731340fc377b76f15440e6893e3d119a5d9c35d"
+      }
     },
     "integrated-stream": {
       "bridge_kind": "stream",
@@ -350,14 +401,15 @@
       "integration_sha256": "e7a1c7b90e7e21924eddb564eb399afd3138aef21741fe4dae69fcbf71bb37e0",
       "validation": {
         "boundary": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
-            "INTEGRATED_BOUNDARY_PASS 79 14 642",
-            "INTEGRATED_BOUNDARY_PASS 80 14 622",
-            "INTEGRATED_BOUNDARY_PASS 81 14 602",
-            "INTEGRATED_BOUNDARY_PASS 82 14 642",
-            "INTEGRATED_BOUNDARY_PASS 83 14 632"
-          ]
+            "INTEGRATED_BOUNDARY_PASS 338 1 1796",
+            "INTEGRATED_BOUNDARY_ALL_PASS 339",
+            "INTEGRATED_RESET_BOUNDARY_PASS",
+            "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+            "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+          ],
+          "log_sha256": "405472a3978b6ce913b89be0d1bea4acc852035874b8de61af9d9c5caa4cd1ab"
         },
         "quick boundary": {
           "completed_pass": true,
@@ -371,14 +423,29 @@
           "log_sha256": "641943e87d6bd890e925e39da3828063abc0fc6275e1a9805d16ca9d1eef08d1"
         },
         "application": {
-          "completed_pass": false,
+          "completed_pass": true,
           "tail": [
             "INTEGRATED_PROGRAM_PASS ((LAMBDA (x) x) 7)",
-            "INTEGRATED_PROGRESS 25 27168 max_latency 2176"
-          ]
+            "INTEGRATED_PROGRESS 25 27168 max_latency 2176",
+            "INTEGRATED_PROGRESS 50 48932 max_latency 2176",
+            "INTEGRATED_PROGRAM_PASS (CAR (CONS 7 (CONS 8 NIL)))",
+            "INTEGRATED_NATIVE_PARITY_PASS --application physical_clocks 61168 admitted 68 max_latency 2176 seconds 368.201"
+          ],
+          "log_sha256": "3316a3add0e1a9fbc829b3860b868845d860868bd415f87de49fc463dcc0cf3b"
+        },
+        "recp": {
+          "completed_pass": true,
+          "tail": [
+            "INTEGRATED_PROGRESS 50 26834 max_latency 1856",
+            "INTEGRATED_PROGRESS 75 38143 max_latency 1856",
+            "INTEGRATED_PROGRESS 100 48582 max_latency 1856",
+            "INTEGRATED_PROGRESS 125 63874 max_latency 1856",
+            "INTEGRATED_NATIVE_PARITY_PASS --recp physical_clocks 67781 admitted 131 max_latency 1856 seconds 378.466"
+          ],
+          "log_sha256": "e134e359a919308cf608cc57d4483cbac7050558802cfe838afb1efb40539230"
         }
       },
-      "mapping_status": "pending",
+      "mapping_status": "complete",
       "bridge_words": 144,
       "private_bits": 2348,
       "bridge_stream_words": 1558,
@@ -386,7 +453,56 @@
       "bridge_stream_word_bits": 9,
       "bridge_dispatch_word_bits": 22,
       "provenance_sha256": "4eb0a220c1d130bd58098116af55d68da47a175467fb327f302fcff2140479fc",
-      "hdl_files_verified_unchanged": 242
+      "hdl_files_verified_unchanged": 242,
+      "resources": {
+        "top": "top",
+        "lut": 33131,
+        "lut_memory": 318,
+        "lut_total": 33449,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9062,
+        "bram18": 51,
+        "bram36": 8,
+        "bram36_equivalent": 33.5,
+        "dsp48": 20,
+        "carry4": 1753,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 1753,
+          "DSP48E1": 20,
+          "FDRE": 9062,
+          "INV": 1556,
+          "LUT2": 4021,
+          "LUT3": 7099,
+          "LUT4": 5800,
+          "LUT5": 6194,
+          "LUT6": 10017,
+          "RAM256X1S": 50,
+          "RAM64X1S": 118,
+          "RAMB18E1": 51,
+          "RAMB36E1": 8
+        },
+        "basys3_over_budget": {
+          "lut_total": {
+            "used": 33449,
+            "available": 20800
+          }
+        },
+        "within_basys3_resource_limits": false
+      },
+      "mapped_artifacts_sha256": {
+        "baseline-area.json": "aa65e8e24255c1e9a0ff3185fe236e4f3fd089b449d1c23687ff2bab9cf8c70d",
+        "baseline-area.log": "3d0092980f5437c0af665b89852c5e0ba5023f260006034b6481761ee94691cb",
+        "resources.json": "fdd5ada193e14e5497cf7debcf7eee2d494d7921a9c10a314b3321452627c467"
+      }
     }
-  }
+  },
+  "frontend_environment": {
+    "RED2_SYN_FLOAT": "0",
+    "RED2_SYN_GRAPH_WORDS": "256"
+  },
+  "backend_container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0"
 }

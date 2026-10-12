@@ -13,6 +13,7 @@ EXTRA_STATES = tuple(
     filter(None, os.environ.get("RED2_CFG_PILOT_EXTRA_STATES", "").split(","))
 )
 INCLUDE_GRAPH = os.environ.get("RED2_CFG_PILOT_GRAPH", "0") == "1"
+PUBLICATION_READS = os.environ.get("RED2_CFG_PILOT_PUBLICATION_READS", "0") == "1"
 INTEGRATED = OUT / os.environ.get("RED2_CFG_PILOT_INTEGRATED_NAME", "integrated")
 
 assert int(os.environ.get("RED2_SYN_GRAPH_WORDS", "256")) == 256, (

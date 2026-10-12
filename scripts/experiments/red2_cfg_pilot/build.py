@@ -6,7 +6,14 @@ import hashlib
 import json
 
 from expression_types import ExpressionTypes
-from paths import EXTRA_STATES, INCLUDE_GRAPH, INCLUDE_LOOKUP, OUT, ROOT
+from paths import (
+    EXTRA_STATES,
+    INCLUDE_GRAPH,
+    INCLUDE_LOOKUP,
+    OUT,
+    PUBLICATION_READS,
+    ROOT,
+)
 
 SOURCE = ROOT / "src/machines/synthesizable_red2_machine/machine.py"
 source = SOURCE.read_text()
@@ -101,6 +108,14 @@ def leaves(name):
     return [(name, int(t[4:-2]))]
 
 
+publication_reads = None
+publication_requests = []
+if PUBLICATION_READS:
+    from publication_reads import configure
+
+    publication_reads, publication_requests = configure(tree, fn, types, structs)
+    constants["PUB_TASK_WORDS"] = constants["GRAPH_WORDS"] * 4
+
 selected = {}
 for x in fn.body:
     if isinstance(x, ast.If) and ast.unparse(x.test).startswith(
@@ -109,6 +124,7 @@ for x in fn.body:
         name = ast.unparse(x.test).split("micro_is_", 1)[1]
         if (
             "MICRO_" + name.upper() in EXTRA_STATES
+            or (PUBLICATION_READS and name == "pub_exec")
             or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
@@ -136,6 +152,8 @@ requests = {
     for x in request_parent.body
     if isinstance(x, ast.If)
 }
+if PUBLICATION_READS:
+    requests["pub_exec"] += publication_requests
 execute = next(
     x
     for x in fn.body
@@ -394,6 +412,9 @@ RESPONSE_KEYS = [
     "control_out.p0.rd_data.hi",
     "control_out.p0.rd_data.tag_hi",
 ]
+if PUBLICATION_READS:
+    REQUEST_KEYS += [name + "_req.addr" for name, _ in publication_reads["banks"]]
+    RESPONSE_KEYS += [f["key"] for f in publication_reads["responses"]]
 # Constant rows are not writable from the setup/debug port.
 emit("halt")
 for name, (req, body) in family.items():
@@ -433,6 +454,8 @@ command.control = red2_control_t(lo=0,hi=0,tag_hi=0)
 clock_memory_req_data: red2_word_t = red2_word_t(lo=0,hi=0)
 clock_control_req_data: red2_control_t = red2_control_t(lo=0,hi=0,tag_hi=0)
 """).body
+    if PUBLICATION_READS:
+        defaults += ast.parse("pub_root_req.addr = 0\npub_patch_req.addr = 0").body
     finish_req = ast.parse("""memory_req.wr_data = clock_memory_req_data
 control_req.wr_data = clock_control_req_data
 """).body
@@ -476,6 +499,8 @@ manifest = {
         "outside this pilot."
     ),
 }
+if PUBLICATION_READS:
+    manifest["publication_reads"] = publication_reads
 # The source CFG is acyclic within one admitted logical transition. Prove that
 # every semantic operand is initialized on every path, rather than treating
 # zeroed simulation scratch as a substitute for an assignment.

@@ -40,6 +40,8 @@ rename = {
         "dispatch_rom",
         "scratch_ram",
         "control_word_t",
+        "control_index_t",
+        "control_index_rom",
         "wide_t",
         "red2_app_lambda_cfg",
     )
@@ -204,6 +206,16 @@ for n in fn.body:
                         ).body
                 kept.append(x)
             n.body = kept
+        if "publication_reads" in m and test == "command_is_clock":
+            n.body = [
+                x
+                for x in n.body
+                if not (
+                    isinstance(x, ast.If) and ast.unparse(x.test) == "micro_is_pub_exec"
+                )
+            ]
+            if not n.body:
+                continue
     new_body.append(n)
 fn.body = new_body
 assert set(removed_handlers) == selected_names
@@ -252,6 +264,8 @@ missing_events = unbridged(fn, effect_writes)
 assert not missing_events, ("unbridged legacy events", missing_events)
 
 if os.environ.get("RED2_CFG_PILOT_OWNED", "0") == "1":
+    if "publication_reads" in m:
+        assert os.environ.get("RED2_CFG_PILOT_STREAM_BRIDGE") == "1"
     from owned import emit_owned
 
     emit_owned(

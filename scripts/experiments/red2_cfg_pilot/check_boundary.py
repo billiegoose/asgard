@@ -16,6 +16,7 @@ import run_syn  # noqa: F401 -- verified compiler/runtime bootstrap
 import pypeline as py
 
 from native_runtime import cache_scalar_types
+from packets import construct, sidecars
 
 cache_scalar_types(py)
 spec = importlib.util.spec_from_file_location(
@@ -104,6 +105,16 @@ def leaf(regs, name):
     return int(value)
 
 
+def sidecar_models(dtype):
+    models = [
+        v["__sim_model__"]
+        for path, v in py._sim_reg_state.items()
+        if "__sim_model__" in v and path[-1][0].startswith("ram_" + dtype + "_")
+    ]
+    assert len(models) == 1, ("ambiguous sidecar RAM", dtype)
+    return models[0]
+
+
 def fixture(case):
     py.sim_reset()
     drain(call(empty._replace(op=hw.CMD_RESET)))
@@ -116,6 +127,13 @@ def fixture(case):
             word=hw.red2_word_t(lo=response[0], hi=response[1]),
         )
     )
+    for (_name, dtype), data, address in zip(
+        m.get("publication_reads", {}).get("banks", []),
+        sidecars(hw, m, response),
+        req[9:],
+        strict=True,
+    ):
+        sidecar_models(dtype).mem[address] = data
     call(
         empty._replace(
             op=hw.CMD_LOAD_CONTROL,
@@ -134,9 +152,7 @@ def fixture(case):
     for name in {
         k.split(".")[0] for k in case["values"] if "." in k and k not in private
     }:
-        regs[name] = hw.red2_word_t(
-            lo=case["values"][name + ".lo"], hi=case["values"][name + ".hi"]
-        )
+        regs[name] = construct(type(regs[name]), name, case["values"])
     # The fixture starts at the admitted side of the original read bubble.
     regs["sync_read_pending"] = py._sim_cast(case["state"] in sync_states, hw.uint1_t)
     return regs
@@ -145,10 +161,17 @@ def fixture(case):
 chosen = [] if "--lifecycle" in sys.argv else cases
 if "--quick" in sys.argv:
     chosen = [cases[0], next(c for c in cases if c["state"] == hw.MICRO_EXECUTE)]
+elif "--publication-only" in sys.argv:
+    assert "publication_reads" in m
+    chosen = [c for c in cases if c["state"] == hw.MICRO_PUB_EXEC]
 elif "--entries" in sys.argv:
     chosen = list({c["state"]: c for c in reversed(cases)}.values())
 for index, case in enumerate(chosen):
     regs = fixture(case)
+    sidecar_before = {
+        dtype: sidecar_models(dtype).mem.copy()
+        for _, dtype in m.get("publication_reads", {}).get("banks", [])
+    }
     out = call(clock)
     assert int(out.busy), ("not admitted", index, case["state"])
     visible = {
@@ -188,6 +211,9 @@ for index, case in enumerate(chosen):
     else:
         raise AssertionError(("no completion", index))
     assert issues == 1, ("RAM issue count", index, issues)
+    assert all(
+        sidecar_models(dtype).mem == before for dtype, before in sidecar_before.items()
+    ), "read sidecar modified metadata"
     for name, wanted in case["expected"].items():
         assert leaf(regs, name) == wanted, (
             index,

@@ -352,5 +352,15 @@ for name, value in ops.items():
         .replace("OP_" + name + " ", str(value) + " ")
     )
 assert "OP_" not in text
+if "publication_reads" in m:
+    from publication_reads import extend_emitter
+
+    text = extend_emitter(text, m)
+if os.environ.get("RED2_CFG_PILOT_DICTIONARY", "0") == "1":
+    assert compact, "dictionary encoding requires packed control words"
+    from dictionary import encode
+
+    text = encode(text, m)
+    (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
 (P / "machine.py").write_text(text)
 print("GENERATED_HARDWARE", len(text), "bytes", m["writable_words"], "writable words")

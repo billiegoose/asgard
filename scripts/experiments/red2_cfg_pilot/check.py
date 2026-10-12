@@ -13,6 +13,7 @@ from native_runtime import cache_scalar_types
 
 from pypeline import sim_call
 from paths import OUT as P
+from packets import construct, request_fields, sidecars
 
 cache_scalar_types(pypeline)
 
@@ -37,14 +38,12 @@ def nested_get(obj, name):
 
 
 def typed_state(values):
-    kw = {}
-    for reg in regs:
-        if reg in values:
-            kw[reg] = values[reg]
-        else:
-            t = ref.red2_word_t
-            kw[reg] = t(lo=values[reg + ".lo"], hi=values[reg + ".hi"])
-    return ref.state_t(**kw)
+    return ref.state_t(
+        **{
+            reg: construct(ref.state_t.__annotations__[reg], reg, values)
+            for reg in regs
+        }
+    )
 
 
 def model(values, state, response):
@@ -54,7 +53,7 @@ def model(values, state, response):
     for k, v in values.items():
         mem[slots[k]] = v
     pc = m["entry_pc"][str(state)]
-    request = [0] * 9
+    request = [0] * len(request_fields(m))
     requests = 0
     trace = set()
     for _ in range(20000):
@@ -114,6 +113,7 @@ def model(values, state, response):
 rng = random.Random(203708309)
 state_keys = [k for k in slots if k.split(".")[0] in regs]
 cases = []
+coverage = {}
 for state in m["entry_pc"]:
     candidates = []
     for trial in range(120):
@@ -178,6 +178,28 @@ for state in m["entry_pc"]:
             rng.choice([0, 1, mask64]),
             rng.choice([0, 1, 1, 1, 5, 6, 15]),
         ]
+        for f in m.get("publication_reads", {}).get("responses", []):
+            w = f["width"]
+            response.append(
+                rng.choice([0, 1, 2, 255, 256, (1 << w) - 1, rng.getrandbits(w)])
+                & ((1 << w) - 1)
+            )
+        if "publication_reads" in m and int(state) == ref.MICRO_PUB_EXEC:
+            task_kinds = [
+                value
+                for name, value in vars(ref).items()
+                if name.startswith("PUB_TASK_")
+                and isinstance(value, int)
+                and name not in {"PUB_TASK_WORDS", "PUB_TASK_ADDR_BITS"}
+            ]
+            values["pub_current_task.kind"] = task_kinds[trial % len(task_kinds)]
+            if trial % 3:
+                values["pub_current_valid"] = 1
+                values["pub_sp"] = 1
+                values["pub_current_task.a"] = rng.randrange(1, 64)
+                for j, f in enumerate(m["publication_reads"]["responses"], 5):
+                    if f["suffix"] == ".generation":
+                        response[j] = values["pub_generation"]
         original = sim_call(
             getattr(
                 ref,
@@ -191,26 +213,14 @@ for state in m["entry_pc"]:
             typed_state(values),
             ref.red2_word_t(lo=response[0], hi=response[1]),
             ref.red2_control_t(lo=response[2], hi=response[3], tag_hi=response[4]),
+            *sidecars(ref, m, response),
         )
         mem, request, cycles, trace = model(values, int(state), response)
         for key in state_keys:
             got = mem[slots[key]]
             wanted = nested_get(getattr(original.state, key.split(".")[0]), key)
             assert got == wanted, (state, trial, key, got, wanted)
-        expect = [
-            int(getattr(original, k))
-            for k in [
-                "graph_addr",
-                "graph_lo",
-                "graph_hi",
-                "graph_write",
-                "control_addr",
-                "control_lo",
-                "control_hi",
-                "control_tag",
-                "control_write",
-            ]
-        ]
+        expect = [int(getattr(original, k)) for k in request_fields(m)]
         assert request == expect, (state, trial, "request", request, expect)
         candidates.append(
             {
@@ -224,14 +234,36 @@ for state in m["entry_pc"]:
             }
         )
     covered = set()
-    for _ in range(6):
+    witnesses = []
+    publication = "publication_reads" in m and int(state) == ref.MICRO_PUB_EXEC
+    for _ in range(120 if publication else 6):
         best = max(candidates, key=lambda c: len(c["trace"] - covered))
         if best["trace"] <= covered:
             break
         covered |= best["trace"]
         selected = best.copy()
         selected.pop("trace")
-        cases.append(selected)
+        witnesses.append(selected)
+    if publication:
+        for kind in sorted({c["values"]["pub_current_task.kind"] for c in candidates}):
+            if any(c["values"]["pub_current_task.kind"] == kind for c in witnesses):
+                continue
+            best = max(
+                (c for c in candidates if c["values"]["pub_current_task.kind"] == kind),
+                key=lambda c: (c["expected"]["red2_fault"] == 0, len(c["trace"])),
+            )
+            covered |= best["trace"]
+            selected = best.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
+    cases += witnesses
+    coverage[state] = {
+        "observed_rows": len(set().union(*(c["trace"] for c in candidates))),
+        "hardware_witness_rows": len(covered),
+        "hardware_witnesses": len(witnesses),
+        "all_task_kinds_witnessed": publication,
+    }
     print("CFG_TYPED_REFERENCE_PASS", state, flush=True)
 (P / "native-cases.json").write_text(json.dumps(cases))
+(P / "native-coverage.json").write_text(json.dumps(coverage, indent=2) + "\n")
 print("CFG_TYPED_REFERENCE_ALL_PASS", len(m["entry_pc"]) * 120, flush=True)

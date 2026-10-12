@@ -32,6 +32,10 @@ for name, p in c.programs.items():
         + ",".join(r + "=" + r for r in reg_names)
         + "),graph_addr=memory_req.addr, graph_lo=memory_req.wr_data.lo,graph_hi=memory_req.wr_data.hi,graph_write=memory_req.wr_en,control_addr=control_req.addr,control_lo=control_req.wr_data.lo,control_hi=control_req.wr_data.hi,control_tag=control_req.wr_data.tag_hi,control_write=control_req.wr_en)\n"
     )
+if c.publication_reads:
+    from publication_reads import extend_oracle
+
+    text = extend_oracle(text, c.publication_reads)
 (c.OUT / "reference.py").write_text(text)
 (c.OUT / "reference-regs.json").write_text(__import__("json").dumps(reg_names))
 print("REFERENCE_FUNCTIONS", len(c.programs), "REG_FIELDS", len(reg_names))

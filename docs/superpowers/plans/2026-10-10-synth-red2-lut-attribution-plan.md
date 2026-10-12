@@ -758,3 +758,47 @@ short transfer lists (1,558 nine-bit words) instead of the wide masks. Measure
 both at identical scope. The transfer-list prototype passes initial boundary,
 pause and lifecycle checks; full path/program checks and mapping remain
 pending. Its emitter refactor reproduces the fixed-mask source byte for byte.
+
+The expanded fixed-mask map completes at **34,183 total LUTs**, 9,272 FF, 20 DSP,
+1,766 CARRY4 and 37 BRAM36 equivalents. That is 4,234 LUTs below the old
+56-entry owned experiment and 6,987 below maintained production. All primitives
+are accounted for and structural checks report zero problems. RECP parity
+passes (112,644 physical clocks). Short-list application/list parity passes at
+61,168 physical clocks versus 83,490 for fixed scans; its area map is pending.
+
+Control storage will constrain further extraction: the current ROM has 11,709
+logical rows but only 2,945 distinct packed words. An opt-in immutable index-ROM
+plus word-ROM encoding adds one synchronous fetch cycle. Its reconstruction is
+checked exactly and the physical controller is being revalidated. Measure its
+whole-top BRAM and LUT usage before claiming headroom for publication; the
+existing encoding remains the default and regenerates byte-identically.
+
+The short-list map completes at **33,449 total LUTs**, 9,062 FF, 20 DSP,
+1,753 CARRY4 and 33.5 BRAM36 equivalents. It saves 734 LUTs and 3.5 BRAM36
+equivalents against the same-scope fixed-mask top. All 339 integrated boundary
+witnesses, nonzero lifecycle checks and queued invalid START pass. HDL inputs
+are verified against the recorded hashes; no structural problems or unaccounted
+primitives remain. The gap to board capacity is still 12,649 LUTs. Continue
+with control-store headroom and explicit metadata/publication adapters, rather
+than treating the standalone family saving as an additive full-core estimate.
+
+The indexed control-store full top finishes at **33,601 LUTs**, 9,064 FF,
+20 DSP, 1,769 CARRY4 and 27 BRAM36 equivalents. Its 152-LUT cost frees 6.5
+BRAM36 equivalents for further extraction. All 339 integrated witnesses,
+lifecycle checks and application/list parity pass. Full source/HDL hashes and
+primitive accounting are recorded in the dictionary results file. The direct
+short-list store remains the lowest measured LUT count; retain both experiments.
+
+Next extract only MICRO_PUB_EXEC with two explicit read-only metadata sidecars.
+The legacy publication stack keeps all staged/authorized writes and completion
+banks. This isolates the large pure publication computation without weakening
+prepare/preflight/commit boundaries. The new configuration has 109 entries,
+14,634 rows, 3,901 unique words and 482 allocated scratch words. Typed parity
+passes 13,080 cases. The 370 physical witnesses pass, including 31 publication
+cases covering all 1,048 observed CFG rows and all sampled task kinds. Complete
+integration checks and mapped measurement are now running.
+The earlier indexed scope regenerates byte-identically with sidecars disabled.
+
+Indexed-store RECP parity passes at 79,540 physical clocks. Publication quick
+full-top pause/lifecycle checks pass. Stronger validation and mapping use byte-
+identical complete-top sources, with exact hashes recorded separately.

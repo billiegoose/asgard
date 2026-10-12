@@ -13,6 +13,7 @@ from native_runtime import cache_scalar_types
 
 from pypeline import sim_call, sim_reset
 from paths import OUT as P
+from packets import request_fields, response_fields
 
 cache_scalar_types(pypeline)
 
@@ -38,19 +39,10 @@ empty = hw.input_t(
     control_lo=0,
     control_hi=0,
     control_tag=0,
+    **{f: 0 for f in response_fields(m)[5:]},
 )
 fn = hw.red2_app_lambda_baseline if "--baseline" in sys.argv else hw.red2_app_lambda_cfg
-fields = [
-    "graph_addr",
-    "graph_lo",
-    "graph_hi",
-    "graph_write",
-    "control_addr",
-    "control_lo",
-    "control_hi",
-    "control_tag",
-    "control_write",
-]
+fields = request_fields(m)
 sim_reset()
 for case_index, c in enumerate(cases):
     for name, value in c["values"].items():
@@ -89,6 +81,7 @@ for case_index, c in enumerate(cases):
                     control_lo=response[2],
                     control_hi=response[3],
                     control_tag=response[4],
+                    **dict(zip(response_fields(m)[5:], response[5:], strict=True)),
                 )
                 requests += 1
                 responded = True

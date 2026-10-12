@@ -1,0 +1,294 @@
+{
+  "recorded_at_utc": "2026-10-12T07:37:00.449512+00:00",
+  "scope": "Same dedicated RED2 datapath plus MICRO_PUB_EXEC and two synchronous read-only metadata sidecars; legacy publication stack retains write authorization",
+  "production_changed": false,
+  "production_source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+  "frontend_environment": {
+    "RED2_SYN_FLOAT": "0",
+    "RED2_SYN_GRAPH_WORDS": "256"
+  },
+  "configuration": {
+    "RED2_CFG_PILOT_OUT": "/tmp/asgard-area-next/cfg-publication-read",
+    "RED2_CFG_PILOT_GRAPH": "1",
+    "RED2_CFG_PILOT_LOOKUP": "1",
+    "RED2_CFG_PILOT_COMPACT": "1",
+    "RED2_CFG_PILOT_OWNED": "1",
+    "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+    "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN",
+    "RED2_CFG_PILOT_DICTIONARY": "1",
+    "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+    "RED2_CFG_PILOT_PUBLICATION_READS": "1"
+  },
+  "logical_entries": 109,
+  "control_rows": 14634,
+  "control_dictionary": {
+    "method": "Immutable instruction index ROM and deduplicated word ROM",
+    "logical_rows": 14634,
+    "unique_words": 3901,
+    "index_bits": 12,
+    "dictionary_depth": 4096,
+    "reconstruction_exact": true,
+    "extra_fetch_cycles": 1
+  },
+  "scratch_allocation": {
+    "method": "CFG liveness, distinct persistent state and immutable constants",
+    "original_words": 5394,
+    "allocated_words": 482,
+    "persistent_words": 265,
+    "temporary_colors": 82,
+    "constant_words": 135,
+    "all_live_sets_disjoint": true
+  },
+  "private_fields": [
+    "lambda_word.lo",
+    "lambda_word.hi",
+    "struct_saved_q",
+    "app_definition_pop_saved",
+    "ep_hops",
+    "join_ep_target",
+    "join_frame_fire",
+    "join_struct_descriptor_address",
+    "join_struct_descriptor_hi",
+    "join_struct_ep_hops",
+    "join_struct_ep_embedded",
+    "join_struct_rewrite_word.lo",
+    "join_struct_rewrite_word.hi",
+    "join_closure_address",
+    "join_closure_env",
+    "join_closure_code",
+    "join_closure_cursor",
+    "join_closure_lambda_count",
+    "join_closure_destination",
+    "join_closure_body_word.lo",
+    "join_closure_body_word.hi",
+    "join_closure_env_remaining",
+    "join_closure_env_cursor",
+    "join_closure_env_hops",
+    "join_closure_write_index",
+    "join_closure_lambda_word.lo",
+    "join_closure_lambda_word.hi",
+    "join_app_rewrite_word.lo",
+    "join_app_rewrite_word.hi",
+    "join_app_second_write_word.lo",
+    "join_app_second_write_word.hi",
+    "join_app_first_write_word.lo",
+    "join_app_first_write_word.hi",
+    "closure_target",
+    "rup_index",
+    "rup_count",
+    "rup_block",
+    "rup_rec_binding",
+    "rup_rec_payload_bad",
+    "recp_binding",
+    "recp_context",
+    "recp_block",
+    "recp_index",
+    "recp_replacement",
+    "recp_parent_environment",
+    "recp_copy_word.lo",
+    "recp_copy_word.hi",
+    "recp_rup_word.lo",
+    "recp_rup_word.hi",
+    "recp_reverse_zero",
+    "recp_reverse_needs_bridge",
+    "recp_reverse_parent_env",
+    "recp_reverse_entry_env",
+    "lookup_address",
+    "lookup_remaining",
+    "lookup_hops",
+    "lookup_origin_address",
+    "lookup_word.lo",
+    "lookup_word.hi",
+    "lookup_push_control"
+  ],
+  "private_bits": 2348,
+  "shared_bridge_words": 205,
+  "publication_reads": {
+    "banks": [
+      [
+        "pub_root",
+        "red2_pub_root_t"
+      ],
+      [
+        "pub_patch",
+        "red2_pub_patch_t"
+      ]
+    ],
+    "responses": [
+      {
+        "name": "pub_root_read_generation",
+        "key": "pub_root_out.p0.rd_data.generation",
+        "type": "uint32_t",
+        "width": 32,
+        "bank": "pub_root",
+        "suffix": ".generation"
+      },
+      {
+        "name": "pub_root_read_state",
+        "key": "pub_root_out.p0.rd_data.state",
+        "type": "uint2_t",
+        "width": 2,
+        "bank": "pub_root",
+        "suffix": ".state"
+      },
+      {
+        "name": "pub_root_read_result",
+        "key": "pub_root_out.p0.rd_data.result",
+        "type": "uint17_t",
+        "width": 17,
+        "bank": "pub_root",
+        "suffix": ".result"
+      },
+      {
+        "name": "pub_root_read_aux",
+        "key": "pub_root_out.p0.rd_data.aux",
+        "type": "uint17_t",
+        "width": 17,
+        "bank": "pub_root",
+        "suffix": ".aux"
+      },
+      {
+        "name": "pub_patch_read_generation",
+        "key": "pub_patch_out.p0.rd_data.generation",
+        "type": "uint32_t",
+        "width": 32,
+        "bank": "pub_patch",
+        "suffix": ".generation"
+      },
+      {
+        "name": "pub_patch_read_word_lo",
+        "key": "pub_patch_out.p0.rd_data.word.lo",
+        "type": "uint64_t",
+        "width": 64,
+        "bank": "pub_patch",
+        "suffix": ".word.lo"
+      },
+      {
+        "name": "pub_patch_read_word_hi",
+        "key": "pub_patch_out.p0.rd_data.word.hi",
+        "type": "uint64_t",
+        "width": 64,
+        "bank": "pub_patch",
+        "suffix": ".word.hi"
+      }
+    ]
+  },
+  "publication_source_row_coverage": {
+    "observed_rows": 1048,
+    "hardware_witness_rows": 1048,
+    "hardware_witnesses": 31,
+    "all_task_kinds_witnessed": true
+  },
+  "native_witness_count": 370,
+  "stronger_controller_and_reference_byte_identical": true,
+  "validation": {
+    "smoke standalone": {
+      "completed_pass": true,
+      "tail": [
+        "CFG_PHYSICAL_CONTROLLER_PASS 343 1 2117",
+        "CFG_PHYSICAL_CONTROLLER_PASS 344 1 2094",
+        "CFG_PHYSICAL_CONTROLLER_ALL_PASS 345",
+        "CFG_RESET_CANCEL_PASS",
+        "CFG_CONSTANT_PROTECTION_PASS"
+      ],
+      "log_sha256": "2b8645f1eedab2237d8cbb091a9a78bfac332ffe2070039f10735d6e6aed1a26"
+    },
+    "strong standalone": {
+      "completed_pass": true,
+      "tail": [
+        "CFG_PHYSICAL_CONTROLLER_PASS 368 1 2117",
+        "CFG_PHYSICAL_CONTROLLER_PASS 369 1 2094",
+        "CFG_PHYSICAL_CONTROLLER_ALL_PASS 370",
+        "CFG_RESET_CANCEL_PASS",
+        "CFG_CONSTANT_PROTECTION_PASS"
+      ],
+      "log_sha256": "7f5ad874a6b8461344058e2170fe794a61f547b1a7dadcf20cc3f287af657aa5"
+    },
+    "quick boundary": {
+      "completed_pass": true,
+      "tail": [
+        "INTEGRATED_BOUNDARY_PASS 1 1 2653",
+        "INTEGRATED_BOUNDARY_ALL_PASS 2",
+        "INTEGRATED_RESET_BOUNDARY_PASS",
+        "INTEGRATED_PRIVATE_LIFECYCLE_PASS",
+        "INTEGRATED_QUEUED_LIFECYCLE_PASS"
+      ],
+      "log_sha256": "523b3591c2d99f39722664060132208700c3963c76a8e8f5e9e6489df9071c7d"
+    },
+    "publication boundary": {
+      "completed_pass": false,
+      "tail": [
+        "INTEGRATED_BOUNDARY_PASS 19 126 1681",
+        "INTEGRATED_BOUNDARY_PASS 20 126 1759",
+        "INTEGRATED_BOUNDARY_PASS 21 126 2515",
+        "INTEGRATED_BOUNDARY_PASS 22 126 1759",
+        "INTEGRATED_BOUNDARY_PASS 23 126 1813"
+      ]
+    },
+    "full boundary": {
+      "completed_pass": false,
+      "tail": [
+        "INTEGRATED_BOUNDARY_PASS 1 96 507",
+        "INTEGRATED_BOUNDARY_PASS 2 96 495",
+        "INTEGRATED_BOUNDARY_PASS 3 97 741",
+        "INTEGRATED_BOUNDARY_PASS 4 97 723",
+        "INTEGRATED_BOUNDARY_PASS 5 97 693"
+      ]
+    },
+    "publication parity": {
+      "completed_pass": false,
+      "tail": [
+        "INTEGRATED_PROGRESS 25 53389 max_latency 3181",
+        "INTEGRATED_PROGRESS 50 110333 max_latency 3181"
+      ]
+    }
+  },
+  "artifacts": {
+    "/tmp/asgard-area-next/cfg-publication-read/machine.py": "2ade8a25ac422a81ab33df65bc27d0fe33534ea7e068c9aa7ed3736388d479a1",
+    "/tmp/asgard-area-next/cfg-publication-read/control.json": "b847e26f39e280f50b72479bcdba603fbcc51172c3ec8f1eda56c458d3d08734",
+    "/tmp/asgard-area-next/cfg-publication-read/reference.py": "f44b75ed472cba2dea98710a7aab9898c6dfaba128046d2ca62844233922320b",
+    "/tmp/asgard-area-next/cfg-publication-read/reference-regs.json": "7c8c37dfc266836c6c8f41bd9c97e05ba3f3774191fe3a539a8844baaa36a03e",
+    "/tmp/asgard-area-next/cfg-publication-read-coverage/native-cases.json": "0ab095c7b2e7f3865a1c0671609ea50f4ec5b7f2f780c751998cfe19d35f8d08",
+    "/tmp/asgard-area-next/cfg-publication-read-coverage/native-coverage.json": "35257cc12a75a9eed78cbebcf61b94ce50255a719f335b71081fe0abc02d4cf0",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/machine.py": "7c21c4625bb8a9648719e1128f7f96f156cfbad379200406dfe7da6c9aa9032a",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/integration.json": "2fbf7951fc5fa987666e769bb46ea8392c45296b7472acd159193ce42b2c2033",
+    "/tmp/asgard-area-next/cfg-publication-read/integrated-stream/provenance.json": "c05f911e68df9aa32c6052daa89001b383efad10ceccbc0d929c9ce4a30b4266"
+  },
+  "mapping_status": "pending",
+  "limitations": [
+    "Coverage is all rows observed in the typed trials, not every possible source branch/input",
+    "Full supported-program parity, RTL simulation and board routing/timing remain outstanding",
+    "Publication stack, explicit write authorization and completion banks remain in original legacy logic; no sidecar write interface is exposed",
+    "Unused struct leaves outside the extracted interface are zero in the fixture and retained in legacy hardware"
+  ],
+  "stronger_full_top_byte_identical": true,
+  "hdl_files_verified_unchanged": 239,
+  "source_scripts_sha256": {
+    "scripts/experiments/red2_cfg_pilot/allocate.py": "4bd0d5538b67c9ee42ae0bd3bacc3f89e5d09338d67914ea4e2139dc6462c49d",
+    "scripts/experiments/red2_cfg_pilot/banks.py": "2b153493602ac4d9a2040a6ea8f56584bb76593e0cc0d81b19ee4dabbe33192f",
+    "scripts/experiments/red2_cfg_pilot/baseline.py": "468b413500dd4247977dadc8df41de6647e58fa81f5bcfa2dfe310d1e3fa6e8b",
+    "scripts/experiments/red2_cfg_pilot/build.py": "5a2131ce7b368bb8a0b3f354b4921d3c28a0b1007cea80aeca1e9db1303837e8",
+    "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
+    "scripts/experiments/red2_cfg_pilot/check.py": "873331d08ad4a3df1ea7c130c3556453a46bc029e0f972febc16dac0b3eea139",
+    "scripts/experiments/red2_cfg_pilot/check_boundary.py": "5c5cdaf09481c161ed3efd767ebb322b32e485107712fd6c0b01844506b6083a",
+    "scripts/experiments/red2_cfg_pilot/check_events.py": "f4adfe456f6cc83c67def85eedcc03a0737133cb7c7b0aa529c65dc9124cf312",
+    "scripts/experiments/red2_cfg_pilot/check_expression_types.py": "90f3feca6c305bf058e40906c7566d185af462f2d5d3f2469b3c70728e64fb69",
+    "scripts/experiments/red2_cfg_pilot/check_hardware.py": "2a5bd45eb2df2a108c38f220adf9925ae8ffed12b088d676aef3a348679b979a",
+    "scripts/experiments/red2_cfg_pilot/check_integrated.py": "17075551f2f74e43844718ea3d4946611e0167cce2784b70ce86846b3fb896b0",
+    "scripts/experiments/red2_cfg_pilot/dictionary.py": "b48b41be16d6c0efd00b71c11b2e5087c7807e13c502a0acb49d4a6aecfd3bb7",
+    "scripts/experiments/red2_cfg_pilot/emit.py": "c865cb5d7fb3930cf6158d206979218074166d41233b85b1c5f0073d4f50187f",
+    "scripts/experiments/red2_cfg_pilot/events.py": "00df746763cb4b49d9c0d28781f45eabd7accf17e8265784327f2f417137fe71",
+    "scripts/experiments/red2_cfg_pilot/expression_types.py": "435c61fcb596c0a3aa0a4b66bd948f967e0953f07dfd8e75d467b4633bcfd978",
+    "scripts/experiments/red2_cfg_pilot/frontend.py": "690ab2461bdf933bd5d45e2879c74a4f9d47ef705ae34e921692b0df0b1089b5",
+    "scripts/experiments/red2_cfg_pilot/integrate.py": "c377a5d072f7020ba63b78ad74afe8307d4cf21449ac6d8431c37dfd942f4536",
+    "scripts/experiments/red2_cfg_pilot/native_runtime.py": "20f4474ef4484c3f993d9eb1519d0ff2d5588bf1a7e41c1b5fe55107e2d6f1ab",
+    "scripts/experiments/red2_cfg_pilot/oracle.py": "656fe92703ee70bef4ed9f9359a7043af771d8074560ca5109c6d114d9bfbde3",
+    "scripts/experiments/red2_cfg_pilot/owned.py": "d964916f1ec117bce8c7132bc7d627bf9d21106e4dc253430e82e17a4976bff7",
+    "scripts/experiments/red2_cfg_pilot/owned_stream.py": "029d67bc544aa63df69573e74cb081c21f14a61b59abdbc85ea2d62f2d03c18e",
+    "scripts/experiments/red2_cfg_pilot/ownership.py": "cd46a3e6ca080b0d690ce60697117173e1e1c8f5602ad7be8e4d507f02ffffff",
+    "scripts/experiments/red2_cfg_pilot/packets.py": "0a07d0ce0c778f0aa3c2bbc9ca3f9322507621bd97e9ed634cb8af2563a93b73",
+    "scripts/experiments/red2_cfg_pilot/paths.py": "0c7d0d718ac09acdf901b7f0ac544be30a40228f90d475991c019444c9515d0c",
+    "scripts/experiments/red2_cfg_pilot/prepare_map.py": "1410cb1d97b8e9a6086de9599b5135edf1c7ad01b4d7c78e35e95fb6ef062fae",
+    "scripts/experiments/red2_cfg_pilot/publication_reads.py": "5f04c616b574f189d058a40068ed1930b6ca7dd335cf6af726e423b643a3b7f6"
+  }
+}
