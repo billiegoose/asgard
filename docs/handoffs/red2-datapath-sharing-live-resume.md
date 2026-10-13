@@ -169,3 +169,47 @@ No serial client or build job remains running. Root cause is still unresolved;
 next work is physical data/control delivery diagnosis. Preserve the new mismatch
 logs and the earlier image's clock-7506 failure separately. The older continuation
 instructions above are historical; placement/routing and SRAM load are complete.
+
+
+## Serializer diagnosis — latest continuation
+
+The previous goal turn made progress: fit/timing/SRAM/replay evidence was recorded.
+This turn further narrows the physical mismatch. A clock-only diagnostic changes
+six frame bits (MMCM divide100 ->120), producing 8.333 MHz and 96000 baud. It
+fails identically at clock256. Both bitstreams and every load/result are retained.
+
+After a fresh SRAM load, the 131-word physical graph diagnostic (zero, all ones,
+mixed and 128 walking ones) reports 50 mismatches. Critically, every graph error
+maps to response-byte lanes 1,2,7 after adding the memory_read offset364. Across
+all 393 commands, no returned status bit in these three byte lanes is ever one.
+Framing/sequence/CRC checks pass, including sequence wrap. The all-ones graph
+word comes back as repeated 0x97, exactly the global output-byte missing lanes
+translated through that four-bit field alignment. This strongly points at the
+response serialization paths. It does NOT prove that all RED2 internal execution
+is correct or establish the exact failing cells. Do not treat busy625 and
+memory_read449 as unrelated core faults without further evidence.
+
+Reusable scripts/boards/red2_basys3/diagnose_memory.py reproduces the exact 50
+errors after a separate fresh SRAM reload. Five analysis tests plus transport,
+clock and audit tests pass (15 total), and Ruff passes. It verifies the selected
+image against the successful SRAM-load record and preserves raw status words.
+
+The earlier monitor-capture-move route was explicitly stopped and cancelled.json
+records why. No bitstream came from it. The NEW serializer-byte-move experiment
+moves only the eight final response-byte LUT/FF pairs, keeping all logic and core
+placements unchanged. It is routing in Podman red2-datapath-serializer-move;
+exec session4183, a one-hour watchdog, then physical-fit and 10 MHz timing gates
+before bitstream generation. Inspect actual live state before waiting/restarting.
+Its run.py/progress.json/driver.log and board-route.log are in that root. It does
+not load SRAM automatically. When complete, verify the build manifest, load its
+image with the established SRAM-only program.py helper, then run diagnose_memory
+at115200 baud with the parent prepared root. Full application trace remains the
+same 10683-clock candidate trace, and requires a separate fresh SRAM reload.
+
+The board currently contains the SLOW diagnostic image after the 131-word memory
+test; there is no serial client running. Use baud96000 for this image, and115200
+for the normal10MHz/relocated images. Do not silently reuse the wrong host baud.
+The source/generator/compiler pins are unchanged. Completed pre-ABC IL dumps were
+losslessly gzip-compressed to recover disk space; measurement hashes/artifacts
+are otherwise retained. red2-serializer-diagnosis-results.json records this
+checkpoint and raw evidence hashes.

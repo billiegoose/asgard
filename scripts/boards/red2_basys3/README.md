@@ -163,3 +163,33 @@ before the accepted command's core edge, matching the validated trace format.
 An invalid request does not clock the core and receives no response. The host
 waits for a complete response before sending the next command; there is no
 packet queue or automatic retry.
+
+
+## Physical memory and serializer diagnosis
+
+After a fresh SRAM load into the initial idle state, run the walking-bit probe:
+
+```sh
+python3 scripts/boards/red2_basys3/diagnose_memory.py \
+  --port /dev/cu.usbserial-2101837357871 \
+  --prepared build/red2-basys3-datapath \
+  --image build/red2-basys3-datapath/red2_basys3.bit \
+  --load-result build/red2-basys3-datapath/load-result.json \
+  --log build/red2-basys3-datapath/new-memory-diagnostic.json
+```
+
+This overwrites graph addresses0–130 with zero, all ones, a mixed pattern and128
+walking ones. Two NOP/address commands settle each synchronous read. It records
+every returned status, validates UART framing/sequence/CRC, and reports errors
+both as graph bits and response-byte lanes. The image hash must match the
+successful SRAM-load record, and the result file must be new. Reload SRAM before
+independent application replay. This diagnostic does not prove RED2 reduction.
+
+A clock-only 8.333MHz probe, using `--baud 96000` on macOS, reproduces the new
+image's clock256 application mismatch. Its physical memory probe reveals three
+response-byte lanes (1,2,7) always low across393 responses; all50 mismatching graph
+words map to these lanes. This points to response serialization and changes the
+next investigation from individual core outputs to the shared byte paths. See
+[the diagnosis record](../../../docs/handoffs/red2-serializer-diagnosis-results.json).
+A reroute moving only eight final response-byte LUT/register pairs is in progress;
+core logic and placement are unchanged, and no result is claimed for it yet.
