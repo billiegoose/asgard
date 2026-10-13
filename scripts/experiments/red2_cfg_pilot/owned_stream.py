@@ -92,7 +92,11 @@ if cfg_admit or cfg_initialize:
     from import_mux import emit as emit_import_mux
 
     onehot_import = os.environ.get("RED2_CFG_PILOT_ONEHOT_IMPORT", "0") == "1"
-    bridge += emit_import_mux([(m["slots"][k], k) for k in shared], onehot_import)
+    import_fields = shared
+    if "dirty_writeback" in m:
+        read_initial = set().union(*(set(p["read_before_write"]) for p in plans.values()))
+        import_fields = [k for k in shared if k in read_initial]
+    bridge += emit_import_mux([(m["slots"][k], k) for k in import_fields], onehot_import)
     bridge += (
         "if cfg_incoming_stage == 8:\n    cfg_setup_data = 0\n    cfg_setup_write = 0\n"
     )
@@ -171,7 +175,12 @@ if cfg_incoming_stage != 0:
 """
     for k in shared:
         if any(k in plan["export"] for plan in plans.values()):
-            finish += f"            if cfg_transfer_slot == {m['slots'][k]}:\n                {k} = cfg_o.setup_data\n"
+            data = "cfg_o.setup_data"
+            guard = f"cfg_transfer_slot == {m['slots'][k]}"
+            if "dirty_writeback" in m:
+                guard += " and cfg_o.setup_dirty"
+                data = str(m["dirty_writeback"]["constant_writes"].get(k, data))
+            finish += f"            if {guard}:\n                {k} = {data}\n"
     finish += f"""            cfg_stage = 1
         elif cfg_incoming_stage == 5:
             cfg_stage = 6
@@ -230,6 +239,12 @@ cfg_bridge_dispatch_rom, _ = make_ram(cfg_bridge_dispatch_t, 256, ports=('r',), 
     }
     if onehot_import:
         extra["import_mux"] = "One-hot gated typed fields, balanced bitwise OR"
+    if "dirty_writeback" in m:
+        extra["dirty_writeback"] = {
+            **m["dirty_writeback"],
+            "read_initial_fields": import_fields,
+            "clear_only_import_fields": [k for k in shared if k not in import_fields],
+        }
     publish_owned(
         source,
         fn,

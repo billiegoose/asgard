@@ -43,6 +43,7 @@ rename = {
         "control_index_t",
         "control_index_rom",
         "wide_t",
+        "scratch_word_t",
         "red2_app_lambda_cfg",
     )
 }
@@ -75,6 +76,12 @@ input_type = next(
 input_type.body += ast.parse("enable: uint1_t").body
 engine = next(n for n in controller.body if isinstance(n, ast.FunctionDef))
 engine.decorator_list = [ast.Name(id="hw_func", ctx=ast.Load())]
+if os.environ.get("RED2_CFG_PILOT_SHARED_RESPONSE", "0") == "1":
+    assert os.environ.get("RED2_CFG_PILOT_OWNED") == "1"
+    assert os.environ.get("RED2_CFG_PILOT_STREAM_BRIDGE") == "1"
+    from shared_response import share
+
+    m["shared_response_bank"] = share(engine, m)
 # Pause control/state writes on observational NOP cycles. RAM addresses may
 # continue to settle, but a request is accepted only on an enabled clock.
 for n in ast.walk(engine):
@@ -242,6 +249,11 @@ if "publication_launch_events" in m:
 
     assert m["publication_launch_events"] == c.launch_events
     remove_launch_banks(fn, m["publication_launch_events"])
+if "reverse_control_launch_events" in m:
+    from publication_launches import remove_legacy as remove_reverse_bank
+
+    assert m["reverse_control_launch_events"] == c.reverse_events
+    remove_reverse_bank(fn, m["reverse_control_launch_events"])
 if "literal_metadata" in m:
     from literal_metadata import remove_legacy as remove_metadata
 

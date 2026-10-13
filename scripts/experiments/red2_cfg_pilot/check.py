@@ -22,6 +22,10 @@ ops = m["ops"]
 rows = m["rows"]
 slots = m["slots"]
 widths = m["widths"]
+constant_exports = {
+    slots[name]: value
+    for name, value in m.get("dirty_writeback", {}).get("constant_writes", {}).items()
+}
 spec = importlib.util.spec_from_file_location("cfg_reference", P / "reference.py")
 ref = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = ref
@@ -104,6 +108,13 @@ def model(values, state, response):
                     "ge": operator.ge,
                 }[name](a, b)
         mem[r["d"]] = int(v) & ((1 << r["width"]) - 1)
+        if r["d"] in constant_exports:
+            assert mem[r["d"]] == constant_exports[r["d"]], (
+                "constant-write proof",
+                state,
+                pc - 1,
+                r["d"],
+            )
     else:
         raise AssertionError("control table did not halt")
     assert requests == 1
@@ -243,6 +254,18 @@ for state in m["entry_pc"]:
         ):
             values["pub_stack_phase"] = trial % 16
         launch_witness = None
+        reverse_control_witness = None
+        if (
+            "reverse_control_launch_events" in m
+            and int(state) == ref.MICRO_EP_REVERSE_CONTROL_READ
+        ):
+            from reverse_control import witness
+
+            selected_reverse = witness(ref, widths, state_keys, trial)
+            if selected_reverse is not None:
+                values, response_base = selected_reverse
+                response[:5] = response_base
+                reverse_control_witness = trial
         metadata_launch_witness = None
         integer_corner_witness = None
         if trial >= 120:
@@ -371,6 +394,8 @@ for state in m["entry_pc"]:
         )
         if launch_witness is not None:
             candidates[-1]["launch_witness"] = launch_witness
+        if reverse_control_witness is not None:
+            candidates[-1]["reverse_control_witness"] = reverse_control_witness
         if metadata_launch_witness is not None:
             candidates[-1]["metadata_launch_witness"] = metadata_launch_witness
         if integer_corner_witness is not None:
@@ -424,6 +449,15 @@ for state in m["entry_pc"]:
                 selected.pop("trace")
                 witnesses.append(selected)
     for candidate in candidates:
+        if "reverse_control_witness" in candidate:
+            selected = candidate.copy()
+            selected.pop("trace")
+            if not any(
+                w.get("reverse_control_witness") == selected["reverse_control_witness"]
+                for w in witnesses
+            ):
+                covered |= candidate["trace"]
+                witnesses.append(selected)
         if "integer_corner_witness" in candidate and not any(
             w.get("integer_corner_witness") == candidate["integer_corner_witness"]
             for w in witnesses

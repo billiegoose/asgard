@@ -14,12 +14,12 @@ STATES = {
 EVENTS = {"selector_copy_join_init_launch", "promote_shared_init_launch"}
 
 
-def describe(fn):
+def describe(fn, writer_state="join_tail_read", events=EVENTS):
     handler = next(
         n
         for n in fn.body
         if isinstance(n, ast.If)
-        and ast.unparse(n.test) == "clock_dispatch_enable and micro_is_join_tail_read"
+        and ast.unparse(n.test) == "clock_dispatch_enable and micro_is_" + writer_state
     )
     records, statements = [], []
     for bank in fn.body:
@@ -30,7 +30,7 @@ def describe(fn):
         ):
             continue
         found = [
-            n.id for n in bank.test.values if isinstance(n, ast.Name) and n.id in EVENTS
+            n.id for n in bank.test.values if isinstance(n, ast.Name) and n.id in events
         ]
         if not found:
             continue
@@ -71,7 +71,7 @@ def describe(fn):
         records.append(
             {
                 "event": event,
-                "writer_state": "MICRO_JOIN_TAIL_READ",
+                "writer_state": "MICRO_" + writer_state.upper(),
                 "consumer_line": bank.lineno,
                 "body_sha256": hashlib.sha256(body.encode()).hexdigest(),
                 "proof": (
@@ -90,7 +90,7 @@ def describe(fn):
                 bank,
             )
         )
-    assert {r["event"] for r in records} == EVENTS
+    assert {r["event"] for r in records} == events
     return records, [ast.fix_missing_locations(n) for n in statements]
 
 

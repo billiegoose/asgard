@@ -265,6 +265,15 @@ def publish_owned(
     status_type.body += ast.parse("busy: uint1_t").body
     idx = source.body.index(fn)
     source.body[idx:idx] = ast.parse(global_definitions).body + controller.body
+    if "shared_response_bank" in m:
+        from shared_response import validate_bridge
+
+        validate_bridge(fn, m)
+    if os.environ.get("RED2_CFG_PILOT_COMPACT_PENDING", "0") == "1":
+        assert (extra or {}).get("bridge_kind") == "stream"
+        from compact_pending import compact
+
+        m["compact_pending_command"] = compact(fn)
     ast.fix_missing_locations(source)
     (root / "machine.py").write_text(ast.unparse(source) + "\n")
     record = {
@@ -280,6 +289,10 @@ def publish_owned(
         "scope": "Experimental persistent private BRAM ownership; per-entry shared masks; coherent scalar observation; graph256 only",
     }
     record.update(extra or {})
+    if "shared_response_bank" in m:
+        record["shared_response_bank"] = m["shared_response_bank"]
+    if "compact_pending_command" in m:
+        record["compact_pending_command"] = m["compact_pending_command"]
     if "pruned_pure_aliases" in m:
         record["pruned_pure_aliases"] = m["pruned_pure_aliases"]
     (root / "integration.json").write_text(json.dumps(record, indent=2) + "\n")

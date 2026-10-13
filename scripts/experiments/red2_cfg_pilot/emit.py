@@ -376,5 +376,12 @@ if os.environ.get("RED2_CFG_PILOT_DICTIONARY", "0") == "1":
 
     text = encode(text, m)
     (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
+if os.environ.get("RED2_CFG_PILOT_DIRTY_WRITEBACK", "0") == "1":
+    assert os.environ.get("RED2_CFG_PILOT_OWNED") == "1"
+    assert os.environ.get("RED2_CFG_PILOT_STREAM_BRIDGE") == "1"
+    from dirty_writeback import extend_emitter as add_dirty_tag
+
+    text = add_dirty_tag(text, m)
+    (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
 (P / "machine.py").write_text(text)
 print("GENERATED_HARDWARE", len(text), "bytes", m["writable_words"], "writable words")

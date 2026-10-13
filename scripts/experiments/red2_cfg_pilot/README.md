@@ -442,3 +442,39 @@ path, not a passing parity check. Simple addition and scalar equality complete
 before that probe; broad supported-program parity remains outstanding.
 The experimental top remains separate from production source. The compiler
 correction is pinned project-wide; routed board timing remains unverified.
+
+
+## Datapath sharing
+
+Four optional flags further reduce the dedicated core; all default off:
+`RED2_CFG_PILOT_SHARED_RESPONSE`, `RED2_CFG_PILOT_COMPACT_PENDING`,
+`RED2_CFG_PILOT_REVERSE_CONTROL` and `RED2_CFG_PILOT_DIRTY_WRITEBACK`.
+Set each to `1` alongside the corrected integer JOIN configuration. Shared
+response removes duplicate capture registers; compact pending retains only
+queued lifecycle operands. Reverse control executes on the existing shared
+engine. Dirty writeback tags actual scratch writes, omits overwritten inputs
+from the import data selector and bypasses the export bus for proven constant
+writes. No instruction is removed and the enhanced compiler pin is unchanged.
+
+| Cumulative change | LUTs including LUT RAM | Flip-flops |
+| --- | ---: | ---: |
+| Corrected baseline | 19,172 | 8,095 |
+| Shared response | 19,101 | 7,188 |
+| Compact pending | 18,985 | 6,901 |
+| Shared reverse control | 18,767 | 7,018 |
+| Dirty writeback | **17,266** | **6,345** |
+
+All retain 34.5 BRAM36 equivalents and 20 DSPs. The final candidate saves 1,906
+LUTs and 1,750 flip-flops. Source guards check the storage/launch assumptions;
+constant-write analysis is conservative at control-flow joins and concretely
+asserted during typed execution. Imports clear tags before every possible
+export, including clear-only imports; only executed writes set tags.
+
+All 701 complete-top boundary cases, 14,912 typed comparisons, queued lifecycle
+checks and 69 mutation guards pass. Five native/concrete program traces pass
+230,990 RTL clocks, plus 1,018 public lifecycle clocks. Xilinx primitive mapped
+simulation passes application and lifecycle. Fresh regeneration reproduces both
+the default baseline and candidate exactly. Evidence and artifact hashes are in
+[the results record](../../../docs/handoffs/synth-red2-datapath-sharing-results.json).
+These are core measurements; new physical-board replay is still pending. The
+existing list-equality execution gap remains outside the passing profile.

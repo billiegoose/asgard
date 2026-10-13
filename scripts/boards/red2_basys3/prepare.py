@@ -18,10 +18,16 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "build/red2-basys3")
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=ROOT / "docs/handoffs/synth-red2-cfg-scalar-core-results.json",
+    )
+    parser.add_argument("--variant", default="cfg-integer-joins-regfix")
     args = parser.parse_args()
-    report_path = ROOT / "docs/handoffs/synth-red2-cfg-scalar-core-results.json"
+    report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
-    candidate = report["variants"]["cfg-integer-joins-regfix"]
+    candidate = report["variants"][args.variant]
     if not candidate["usable_fit_candidate"]:
         raise ValueError("the measured candidate has not passed its validation gate")
     source = Path(candidate["configuration"]["RED2_CFG_PILOT_OUT"])
@@ -70,7 +76,14 @@ def main():
     packed = packed.replace("module replay_top(", "module red2_packed_core(", 1)
     packed = packed.replace("top dut(", "red2_core dut(", 1)
     (output / "packed.v").write_text(packed)
-    for name in ("uart.v", "monitor.v", "board.v", "implement.sh", "audit.py"):
+    for name in (
+        "uart.v",
+        "monitor.v",
+        "board.v",
+        "implement.sh",
+        "audit.py",
+        "clocks.py",
+    ):
         shutil.copy2(HERE / name, output / name)
     pins = {"clk_100p0": "W5", "RsRx": "B18", "RsTx": "A18"}
     pins.update(
@@ -150,9 +163,8 @@ def main():
             "replacement": "board BUFGCE; no logic or memory cell changes",
         },
         "container_image": image,
-        "fpgatool_commit": report["compiler_register_reannotation_fix"][
-            "fpgatool_commit"
-        ],
+        "fpgatool_commit": report.get("fpgatool_commit")
+        or report["compiler_register_reannotation_fix"]["fpgatool_commit"],
         "core_clock_mhz": 10,
         "uart_baud": 115200,
         "input_width": 722,

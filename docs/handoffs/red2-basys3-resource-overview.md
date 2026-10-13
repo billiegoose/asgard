@@ -1,6 +1,15 @@
 # RED2 Basys 3 resource overview
 
-Measured candidate: `cfg-integer-joins-regfix`, generated source SHA256
+The latest datapath-sharing candidate maps to **17,266 core LUTs**, **6,345
+flip-flops**, **34.5 BRAM36 equivalents** and **20 DSPs**. This saves 1,906 LUTs
+and 1,750 flip-flops from the baseline below. Shared response/pending storage,
+shared reverse control and dirty/constant writeback account for the reduction.
+New whole-board measurement and physical replay are pending; the attribution
+below describes the previous candidate. See
+[the measured pass](red2-datapath-sharing-live-resume.md) and
+[its evidence](synth-red2-datapath-sharing-results.json).
+
+Previous measured candidate: `cfg-integer-joins-regfix`, generated source SHA256
 `f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68`.
 These are the dedicated RED2 hardware measurements, with floating-point
 arithmetic disabled and integer arithmetic retained.

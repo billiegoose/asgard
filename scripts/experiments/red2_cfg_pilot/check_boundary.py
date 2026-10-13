@@ -58,6 +58,21 @@ empty = hw.red2_command_t(
 clock = empty._replace(op=hw.CMD_CLOCK)
 
 
+def lifecycle_command(op, address=0):
+    command = empty._replace(op=op, address=address)
+    if "--poison-lifecycle" in sys.argv:
+        # These lanes belong to memory/metadata commands, not queued lifecycle
+        # commands. Nonzero values exercise pending-payload narrowing.
+        command = command._replace(
+            word=hw.red2_word_t(lo=0xDEADBEEF12345678, hi=0xFEDCBA9876543210),
+            control=hw.red2_control_t(
+                lo=0x8877665544332211, hi=0x1122334455667788, tag_hi=15
+            ),
+            aux=0xABCD0123456789EF,
+        )
+    return command
+
+
 def call(cmd):
     # NamedTuple._replace bypasses @struct's typed constructor.
     typed = hw.red2_command_t(**cmd._asdict())
@@ -77,7 +92,7 @@ def scratch():
         for k, v in py._sim_reg_state.items()
         if "__sim_model__" in v
         and any(frame[0] == "cfg_red2_app_lambda_cfg" for frame in k)
-        and k[-1][0].startswith("ram_uint64_t_")
+        and k[-1][0].startswith(f"ram_uint{m.get('scratch_word_bits', 64)}_t_")
         and "_rw_" in k[-1][0]
     )
 
@@ -98,7 +113,7 @@ def leaf(regs, name):
         for addr, value, _ in model.pending:
             if addr == address:
                 result = value
-        return int(result)
+        return int(result) & ((1 << 64) - 1)
     value = regs[name.split(".")[0]]
     for field in name.split(".")[1:]:
         value = getattr(value, field)
@@ -189,6 +204,9 @@ def fixture(case):
 chosen = [] if "--lifecycle" in sys.argv else cases
 if "--quick" in sys.argv:
     chosen = [cases[0], next(c for c in cases if c["state"] == hw.MICRO_EXECUTE)]
+elif "--reverse-control-only" in sys.argv:
+    chosen = [c for c in cases if "reverse_control_witness" in c]
+    assert len(chosen) == 30
 elif "--publication-only" in sys.argv:
     assert "publication_reads" in m
     chosen = [c for c in cases if c["state"] in {hw.MICRO_PUB_EXEC, hw.MICRO_PUB_STACK}]
@@ -217,7 +235,14 @@ elif "--metadata-core-only" in sys.argv:
     chosen = [c for c in cases if c["state"] in states]
 elif "--entries" in sys.argv:
     chosen = list({c["state"]: c for c in reversed(cases)}.values())
-for index, case in enumerate(chosen):
+case_offset = 0
+if "--case-range" in sys.argv:
+    position = sys.argv.index("--case-range")
+    begin, end = map(int, sys.argv[position + 1 : position + 3])
+    assert 0 <= begin < end <= len(chosen)
+    chosen = chosen[begin:end]
+    case_offset = begin
+for index, case in enumerate(chosen, start=case_offset):
     regs = fixture(case)
     sidecar_before = {
         dtype: sidecar_models(dtype).mem.copy()
@@ -297,6 +322,8 @@ for index, case in enumerate(chosen):
         assert got == wanted, ("RAM result", index, control, got, wanted)
     print("INTEGRATED_BOUNDARY_PASS", index, case["state"], cycle + 2, flush=True)
 print("INTEGRATED_BOUNDARY_ALL_PASS", len(chosen), flush=True)
+if "--skip-lifecycle" in sys.argv:
+    raise SystemExit(0)
 # Reset must cancel writes and state transfer at different physical phases.
 for offset in (
     () if "--lifecycle" in sys.argv else (0, 1, 20, 42, 43, 44, 45, 80, 200, 500)
@@ -307,7 +334,7 @@ for offset in (
         if not int(out.busy):
             break
         out = call(clock)
-    out = call(empty._replace(op=hw.CMD_RESET))
+    out = call(lifecycle_command(hw.CMD_RESET))
     out = drain(out)
     assert not int(out.busy)
     assert int(out.microstate) == hw.MICRO_FETCH
@@ -333,7 +360,7 @@ if private:
                 (1 << m["widths"][k]) - 1, hw.uint64_t
             )
         before = {k: leaf(top_regs(), k) for k in private}
-        out = drain(call(empty._replace(op=op, address=address)))
+        out = drain(call(lifecycle_command(op, address)))
         on_start = set(integration["initialize_on_start"])
         for k in private:
             clear = op in {hw.CMD_RESET, hw.CMD_LOAD_STATE} or (
@@ -371,7 +398,7 @@ if private:
             out = call(clock)
         else:
             raise AssertionError("cancellation phase unreachable")
-        out = call(empty._replace(op=hw.CMD_START, address=256))
+        out = call(lifecycle_command(hw.CMD_START, 256))
         assert int(out.busy), "invalid START interrupted a logical transition"
         out = drain(out)
         for k, wanted in witness["expected"].items():
@@ -408,7 +435,7 @@ if m.get("publication_reads", {}).get("read_only") is False:
             out = call(clock)
         else:
             raise AssertionError("metadata write phase unreachable")
-        out = call(empty._replace(op=hw.CMD_START, address=256))
+        out = call(lifecycle_command(hw.CMD_START, 256))
         assert int(out.busy), "invalid START interrupted accepted metadata write"
         drain(out)
         check_metadata(witness, before)
@@ -417,3 +444,59 @@ if m.get("publication_reads", {}).get("read_only") is False:
                 wanted = hw.HW_FAULT_ADDRESS_RANGE
             assert leaf(regs, k) == wanted, ("queued metadata write", name, k)
         print("INTEGRATED_ACCEPTED_METADATA_LIFECYCLE_PASS", name, flush=True)
+
+if private and "--poison-lifecycle" in sys.argv:
+    loaded = hw.red2_arch_state_t(
+        **{
+            **zero_state._asdict(),
+            "pc": 7,
+            "fsp": 9,
+            "env": 256,
+            "control_top": 1,
+            "direction": 1,
+            "q": 0x12345678,
+            "phi": 11,
+            "free_space": 240,
+            "argcnt": 2,
+            "prim_id": 5,
+            "fire": 1,
+            "s_a": 17,
+            "s_d": 19,
+            "pending_host_op": 1,
+            "pending_host_argument": 0xABCD9876543210,
+        }
+    )
+    witness = next(c for c in cases if c["request"][3] or c["request"][8])
+    for op in (hw.CMD_LOAD_STATE, hw.CMD_START):
+        regs = fixture(witness)
+        out = call(clock)
+        for _ in range(20000):
+            if int(regs["cfg_mem_phase"]) == 1:
+                break
+            assert int(out.busy)
+            out = call(clock)
+        else:
+            raise AssertionError("accepted-write phase unreachable")
+        command = lifecycle_command(op, 7)._replace(state=loaded, value=0x87654321)
+        out = drain(call(command))
+        if op == hw.CMD_LOAD_STATE:
+            for field in loaded._fields:
+                assert int(getattr(out, field)) == int(getattr(loaded, field)), field
+        else:
+            assert int(out.pc) == 7 and int(out.q) == 0x87654321
+        req = witness["request"]
+        for address, control in [(req[0], False), (req[4], True)]:
+            call(empty._replace(address=address))
+            observed = call(empty._replace(address=address))
+            if control and req[8]:
+                assert [
+                    int(observed.control_read.lo),
+                    int(observed.control_read.hi),
+                    int(observed.control_read.tag_hi),
+                ] == req[5:8]
+            elif not control and req[3]:
+                assert [
+                    int(observed.memory_read.lo),
+                    int(observed.memory_read.hi),
+                ] == req[1:3]
+        print("INTEGRATED_NONZERO_QUEUED_PAYLOAD_PASS", op, flush=True)

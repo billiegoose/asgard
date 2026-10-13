@@ -16,6 +16,7 @@ from paths import (
     PUBLICATION_LAUNCHES,
     PUBLICATION_READS,
     PUBLICATION_TRANSACTIONS,
+    REVERSE_CONTROL,
     ROOT,
     SCALAR_CORE,
     SPARSE_PUBLICATION,
@@ -120,11 +121,18 @@ publication_defaults = []
 launch_events = []
 launch_banks = []
 launch_states = set()
+reverse_events, reverse_banks = [], []
 if PUBLICATION_LAUNCHES:
     from publication_launches import STATES, describe
 
     launch_states = STATES
     launch_events, launch_banks = describe(fn)
+if REVERSE_CONTROL:
+    from publication_launches import describe
+
+    reverse_events, reverse_banks = describe(
+        fn, "ep_reverse_control_read", {"ep_reverse_shared_init_launch"}
+    )
 if PUBLICATION_READS:
     from publication_reads import configure
 
@@ -181,6 +189,7 @@ for x in fn.body:
             or name in metadata_states
             or name in integer_states
             or (SCALAR_CORE and name == "join_scalar_left_read")
+            or (REVERSE_CONTROL and name == "ep_reverse_control_read")
             or name.startswith(("app_", "lambda_"))
             or (INCLUDE_LOOKUP and name.startswith("lookup_"))
             or (
@@ -284,6 +293,9 @@ if PUBLICATION_TRANSACTIONS:
 if PUBLICATION_LAUNCHES:
     req, body = family["MICRO_JOIN_TAIL_READ"]
     family["MICRO_JOIN_TAIL_READ"] = (req, [*body, *launch_banks])
+if REVERSE_CONTROL:
+    req, body = family["MICRO_EP_REVERSE_CONTROL_READ"]
+    family["MICRO_EP_REVERSE_CONTROL_READ"] = (req, [*body, *reverse_banks])
 for state, tails in metadata_tails.items():
     name = "MICRO_" + state.upper()
     req, body = family[name]
@@ -651,6 +663,8 @@ if SPARSE_PUBLICATION:
     )
 if PUBLICATION_LAUNCHES:
     manifest["publication_launch_events"] = launch_events
+if REVERSE_CONTROL:
+    manifest["reverse_control_launch_events"] = reverse_events
 if scalar_core:
     manifest["scalar_core"] = scalar_core
 if LITERAL_METADATA:

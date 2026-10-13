@@ -32,9 +32,10 @@ nextpnr-xilinx \
     --xdc board.xdc --freq 10 --json board.json --seed 1 \
     --parallel-refine --threads 4 --no-route --write board-placed.json \
     > board-place.log 2>&1
+python3 clocks.py board-placed.json --sdc board-route.sdc --report board-clock-names.json
 nextpnr-xilinx \
     --chipdb "$FPGA_TOOL_CHIPDB_DIR/xc7a35tcpg236.bin" \
-    --sdc board.sdc --json board-placed.json --no-pack --no-place --seed 1 \
+    --sdc board-route.sdc --freq 10 --json board-placed.json --no-pack --no-place --seed 1 \
     --router2-bb-expand-max 12 --router2-cong-mult 1.2 \
     --fasm board.fasm --report board-route-report.json --write board-routed.json \
     > board-route.log 2>&1
@@ -55,13 +56,10 @@ for name, achieved, status, required in re.findall(
     clocks[name] = {'achieved_mhz': float(achieved), 'status': status, 'required_mhz': float(required)}
 assert clocks, 'no clock timing result; do not load this design'
 assert all(c['status'] == 'PASS' for c in clocks.values()), clocks
-netnames = json.loads(Path('board.json').read_text())['modules']['red2_basys3']['netnames']
-for wanted in ['clock', 'core_clock']:
-    bits = netnames[wanted]['bits']
-    aliases = {name for name, net in netnames.items() if net['bits'] == bits}
-    matches = [value for name, value in clocks.items() if name in aliases]
-    assert matches, f'no routed timing result for {wanted}; aliases={aliases}'
-    assert all(abs(value['required_mhz'] - 10) < 0.01 for value in matches), matches
+required = json.loads(Path('board-clock-names.json').read_text())
+for wanted in required.values():
+    assert wanted in clocks, f'no routed timing result for {wanted}'
+    assert abs(clocks[wanted]['required_mhz'] - 10) < 0.01, clocks[wanted]
 Path('board-timing.json').write_text(json.dumps(clocks, indent=2) + '\n')
 print('BOARD_ROUTED_TIMING_PASS', clocks, flush=True)
 PY
@@ -74,6 +72,7 @@ import hashlib, json
 from pathlib import Path
 record = {'built': True, 'loaded_on_board': False, 'files_sha256': {}}
 for name in ['red2_basys3.bit', 'board.json', 'board.xdc', 'board.sdc',
+    'board-route.sdc', 'board-clock-names.json', 'clocks.py',
     'board-map.log', 'board-place.log', 'board-placed.json', 'board-route.log',
     'board-routed.json', 'board-route-report.json', 'board-physical-lut-sites.json',
     'board-resources.json', 'board-timing.json', 'backend-versions.txt', 'provenance.json',

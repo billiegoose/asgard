@@ -7,7 +7,11 @@ edge per accepted command. Between packets it receives no edges. This preserves
 the public-port trace contract; continuously issuing CMD_NOP would still clock
 synchronous RAM reads and would not reproduce the same trace.
 
-The complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
+The latest dedicated core maps to **17,266 LUTs**, saving 1,906 from the previous
+candidate. It passes all 701 boundary cases and 230,990 RTL program clocks plus
+1,018 public lifecycle clocks. Its new complete-board build is pending.
+
+The previous candidate's complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
 the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5
 BRAM36 equivalents. The latest normal-monitor route uses **19,991 physical LUT
 sites**, leaving 809; both domains pass the 10 MHz requirement (core 10.57 MHz,
@@ -40,6 +44,14 @@ python3 scripts/boards/red2_basys3/prepare.py
 bash build/red2-basys3/build.sh > build/red2-basys3/build-driver.log 2>&1
 ```
 
+Prepare the new datapath-sharing candidate with:
+
+```sh
+python3 scripts/boards/red2_basys3/prepare.py \
+  --report docs/handoffs/synth-red2-datapath-sharing-results.json \
+  --variant dirty-writeback --output build/red2-basys3-datapath
+```
+
 Use `prepare.py --output build/red2-basys3-attempt2` for another attempt. Output
 directories are not overwritten. The generated build runs the pinned fpgatool
 Nix/OpenXC7 environment through Podman. It maps the wrapper, checks all board
@@ -50,7 +62,8 @@ routing are necessary: the measured 19,172 LUTs cover the core, not this wrapper
 
 Placement is saved separately, then routing resumes with measured delays from
 the patched nextpnr backend. Clock constraints are explicitly reloaded from
-SDC after importing the saved placement; native XDC constraints are not retained
+SDC using the actual packed clock-net names after importing the saved placement;
+native XDC constraints are not retained
 in that JSON. The final audit checks physical LUT sites and unchanged cell
 locations, accounting for nextpnr's different placed/routed BEL name formats.
 
