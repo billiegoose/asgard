@@ -24,10 +24,16 @@ def main():
         default=ROOT / "docs/handoffs/synth-red2-cfg-scalar-core-results.json",
     )
     parser.add_argument("--variant", default="cfg-integer-joins-regfix")
-    parser.add_argument(
+    serializer = parser.add_mutually_exclusive_group()
+    serializer.add_argument(
         "--relocate-response-byte",
         action="store_true",
         help="Move only the final response-byte LUT/FF pairs after placement",
+    )
+    serializer.add_argument(
+        "--snapshot-response",
+        action="store_true",
+        help="Use the experimental immutable status snapshot and indexed bytes",
     )
     args = parser.parse_args()
     report_path = args.report.resolve()
@@ -89,8 +95,14 @@ def main():
         "audit.py",
         "clocks.py",
         "relocate_monitor.py",
+        "snapshot_monitor.py",
     ):
         shutil.copy2(HERE / name, output / name)
+    if args.snapshot_response:
+        from snapshot_monitor import snapshot_response
+
+        monitor = output / "monitor.v"
+        monitor.write_text(snapshot_response(monitor.read_text()))
     pins = {"clk_100p0": "W5", "RsRx": "B18", "RsTx": "A18"}
     pins.update(
         {
@@ -118,7 +130,13 @@ def main():
     )
     (output / "area.abc").write_text("strash\ndc2\nif -a\n")
     (output / "board-placement-options.json").write_text(
-        json.dumps({"relocate_response_byte": args.relocate_response_byte}, indent=2)
+        json.dumps(
+            {
+                "relocate_response_byte": args.relocate_response_byte,
+                "snapshot_response": args.snapshot_response,
+            },
+            indent=2,
+        )
         + "\n"
     )
     (output / "board.ys").write_text(

@@ -183,3 +183,27 @@ next investigation from individual core outputs to the shared byte paths. See
 That reroute now passes all 131 memory patterns and the complete physical
 application and queued lifecycle traces. Its core logic and placement are
 unchanged; the exact underlying backend failure remains unidentified.
+
+
+## Experimental snapshot serializer
+
+`prepare.py --snapshot-response` captures the 626-bit status once per command and
+selects each payload byte by index. It preserves the request/response format,
+CRC, padding and one core edge per accepted command. The legacy monitor source
+and verified `--relocate-response-byte` recipe remain available; the two options
+are mutually exclusive. The snapshot transform checks its ABI, frame bounds and
+response writers before changing the prepared source.
+
+The complete snapshot board maps to **17,786 LUTs**, saving **358 LUTs**, with the
+same 8,525 flip-flops, 34.5 BRAM36 equivalents and 20 DSPs. UART waveform/CRC/
+recovery/sequence-wrap simulation and the full 10,683-clock application monitor
+simulation pass. All 23 focused tests pass. Its placement passes the 10 MHz gate;
+routing and physical replay are pending. This is experimental, not the currently
+verified FPGA image. See [the measured record](../../../docs/handoffs/red2-snapshot-serializer-results.json).
+
+```sh
+python3 scripts/boards/red2_basys3/prepare.py \
+  --report docs/handoffs/synth-red2-datapath-sharing-results.json \
+  --variant dirty-writeback --snapshot-response \
+  --output build/red2-basys3-snapshot-next
+```

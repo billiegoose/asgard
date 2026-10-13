@@ -265,3 +265,60 @@ this suite is running. It is using the normal 10 MHz / 115200-baud working image
 The objective remains active. Broader physical program parity and the existing
 unsupported list-equality path still require work; do not equate one successful
 application with exhaustive architectural correctness.
+
+
+## Snapshot serializer and detached physical runners — latest checkpoint
+
+The previous goal turn made progress: dedicated RED2 application and queued
+lifecycle passed on the FPGA, with source/evidence committed as 5e06454.
+This turn adds a smaller optional UART serializer and preserves/restarts an
+interrupted long physical replay. The objective remains active.
+
+The original physical suite exec94061 ended with exit1; both Python processes
+were absent, the structure result file remained empty and the last positive log
+marker was 30,100 matched clocks. No exception/mismatch/final result was recorded;
+the cause is unknown. All evidence is preserved, and
+serializer-byte-move/original-suite-interruption.json records it. Do not count
+that prefix as a full structure pass or silently resume uncertain UART delivery.
+
+A fresh SRAM retry now runs detached: PID 6443, script
+serializer-byte-move/run-program-suite-retry1.py. Its launch/progress/driver files
+are program-suite-retry1-*. It skips the already passed lifecycle case and runs
+structure, then addition, signed-add and EVEN? -2. Each case gets a fresh SRAM
+load and unique *-retry1 filenames; errors stop the suite with no implicit UART
+retry. It has passed 54,000 structure clocks at this checkpoint. Revalidate PID
+and command identity plus actual log growth; do not infer live state from a
+stale progress JSON. No tool session handle owns this detached process.
+
+The optional --snapshot-response serializer captures status once, selects bytes
+by index and uses the selected byte for CRC. It removes the wide shift update.
+The controlled complete-board map is 17,786 LUTs, saving 358 from 18,144. FF 8,525,
+BRAM 34.5 and DSP 20 are unchanged. Enhanced-compiler/core artifacts are byte
+identical. UART waveform, CRC/padding/recovery/sequence-wrap and full 10,683-clock
+application monitor simulation pass; 23 focused tests and Ruff pass. The strict
+snapshot_monitor.py transform guards ABI, frame bounds and both original response
+writers. Default monitor.v is unchanged; --snapshot-response and the existing
+--relocate-response-byte mode are mutually exclusive. This is an experimental
+opt-in; no snapshot image has been physically replayed yet.
+
+Measured prototype: build/red2-monitor-snapshot. Prepared snapshot build:
+build/red2-basys3-snapshot-prepared. Every design input hash matches the prototype,
+so its completed map was reused via APFS clones. Preparation manifest hashes were
+verified. Detached build PID 10833 runs run-physical.py in the prepared root, with
+physical-launch.json / physical-progress.json / physical-driver.log. Placement
+passed (estimated core 11.71 MHz, monitor 12.14 MHz), and routing is live in Podman
+red2-snapshot-route. The cached backend is still e9fd42e7..., --freq 10, explicit
+clock names, hold-fix=8, router bounds 12/congestion 1.2. Fit/timing gates precede
+bitstream generation. This build NEVER loads SRAM; leave the working image and
+serial suite uninterrupted. Verify actual PID/container state before waiting or
+restarting. Only load the new image after the serial suite has finished or been
+explicitly stopped and its evidence saved.
+
+red2-snapshot-serializer-results.json records area/simulation/preparation and
+completed placement evidence. Routing results and new physical replay remain to
+be recorded. Original program/trace/generator/compiler semantics are unchanged.
+Unused cancelled/reproduced placement copies and an unused simulation export /
+old mapped-sim binary were losslessly gzip-compressed; no active image manifest
+input was changed. VM fstrim reclaimed free backing blocks; host free space was
+about 743 MiB, so avoid needless large copies. Completed/gzipped diagnostics can
+be decompressed if re-running those historical checks.
