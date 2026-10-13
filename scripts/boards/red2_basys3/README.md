@@ -9,7 +9,10 @@ synchronous RAM reads and would not reproduce the same trace.
 
 The latest dedicated core maps to **17,266 LUTs**, saving 1,906 from the previous
 candidate. It passes all 701 boundary cases and 230,990 RTL program clocks plus
-1,018 public lifecycle clocks. Its new complete-board build is pending.
+1,018 public lifecycle clocks. Its complete board maps to **18,144 LUTs**,
+leaving **2,656 spare** (12.8%). It uses 8,525 flip-flops, 34.5 BRAM36 equivalents
+and 20 DSPs. Placement, routing and new physical replay remain pending; see
+[the board mapping record](../../../docs/handoffs/synth-red2-datapath-board-map-results.json).
 
 The previous candidate's complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of
 the Basys 3's 20,800 LUTs spare. It uses 10,275 flip-flops, 20 DSPs and 34.5

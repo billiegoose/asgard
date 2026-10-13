@@ -130,7 +130,14 @@ clocks.py derives the actual packed monitor/core net names before resuming
 routing; a backend probe verified both 10 MHz constraints, including the
 core.clk_25p0 alias. No nextpnr patch was added by this pass.
 
-Whole-board mapping, placement/routing, bitstream and SRAM replay remain to be
-completed. Use the pinned cached tools, a new result log, and the new application
+Whole-board mapping is complete: 18,144 LUTs, 8,525 FFs, 34.5 BRAM36 equivalents,
+20 DSPs. All primitives are accounted for and structural checks report zero
+problems. synth-red2-datapath-board-map-results.json records the hashes.
+The source pass is committed/pushed as 83d4124. run-physical.py in the prepared
+root is running the cached backend: 30-minute placement budget, one-hour routing
+budget, then fit/timing-gated bitstream generation. physical-progress.json and
+physical-driver.log record progress; exec session 32662. This driver does not
+load SRAM automatically. Placement/routing, bitstream and SRAM replay remain.
+ Use the pinned cached tools, a new result log, and the new application
 trace. Do not claim that core fit proves physical operation. Keep the historical
 failed physical images and reports intact.

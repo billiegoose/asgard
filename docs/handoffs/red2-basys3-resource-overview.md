@@ -4,8 +4,9 @@ The latest datapath-sharing candidate maps to **17,266 core LUTs**, **6,345
 flip-flops**, **34.5 BRAM36 equivalents** and **20 DSPs**. This saves 1,906 LUTs
 and 1,750 flip-flops from the baseline below. Shared response/pending storage,
 shared reverse control and dirty/constant writeback account for the reduction.
-New whole-board measurement and physical replay are pending; the attribution
-below describes the previous candidate. See
+The new complete board maps to **18,144 LUTs**, **8,525 flip-flops**, **34.5
+BRAM36 equivalents** and **20 DSPs**, leaving 2,656 LUTs spare. Physical replay
+is pending; the detailed attribution below describes the previous candidate. See
 [the measured pass](red2-datapath-sharing-live-resume.md) and
 [its evidence](synth-red2-datapath-sharing-results.json).
 
