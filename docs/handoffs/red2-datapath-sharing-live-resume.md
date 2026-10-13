@@ -136,7 +136,10 @@ problems. synth-red2-datapath-board-map-results.json records the hashes.
 The source pass is committed/pushed as 83d4124. run-physical.py in the prepared
 root is running the cached backend: 30-minute placement budget, one-hour routing
 budget, then fit/timing-gated bitstream generation. physical-progress.json and
-physical-driver.log record progress; exec session 32662. This driver does not
+physical-driver.log record progress; exec session 97695. The initial raw-backend invocation omitted --device and
+exited before placement; its logs are preserved under initial-missing-device-*.
+The corrected invocation selects xc7a35tcpg236 and uses the established
+-o hold-fix=8 / -o fasm options. This driver does not
 load SRAM automatically. Placement/routing, bitstream and SRAM replay remain.
  Use the pinned cached tools, a new result log, and the new application
 trace. Do not claim that core fit proves physical operation. Keep the historical
