@@ -41,25 +41,27 @@ Compiler source requirements, patch fingerprints, and overrides are documented
 in [tools/pipelinec/README.md](tools/pipelinec/README.md).
 
 The hardware top defaults to `RED2_SYN_FLOAT=0`, omitting optional floating-point
-arithmetic. The maintained top's earlier measurement was 41,170 LUTs. The
-latest dedicated shared-controller candidate maps to **17,266 LUTs**, below Basys
-3's 20,800-LUT limit, and passes 230,990 clocks of RTL program replay plus
-1,018 public lifecycle clocks. Its complete board maps to **18,144 LUTs**,
-leaving **2,656 spare**. Placement/routing succeeds at 10 MHz in both domains,
-using **17,992 physical LUT sites**. SRAM loading works, but the new application
-replay first differs at clock 256; physical correctness remains unresolved. The
-[Basys 3 bring-up target](scripts/boards/red2_basys3/README.md) adds a UART monitor
-and a 10 MHz clock. The previous candidate's complete board maps to **20,050 LUTs** and routes into
-**19,991 physical LUT sites** in the latest routed image, leaving 809 spare. Both clock domains meet the
-10 MHz requirement, and SRAM loading/UART communication work. A corrected
-wide-RAM configuration passes a 131-word physical memory test; full application
-replay now matches 7,506 clocks before a repeatable graph-memory/fault mismatch
-under investigation. The [resource overview](docs/handoffs/red2-basys3-resource-overview.md)
-details storage ownership and further sharing opportunities. The candidate is
-separate from the maintained top. Set
-`RED2_SYN_FLOAT=1` to include the existing floating-point
-module. The native `syn` CLI and full native parity suite retain floating-point
-support by default. The synthesis gate selects the matching profile checks.
+arithmetic. The maintained top's earlier measurement was 41,170 LUTs. The latest
+experimental dedicated shared-controller candidate maps to **17,266 core LUTs**
+and passes 230,990 RTL program clocks plus 1,018 public lifecycle clocks.
+The [Basys 3 target](scripts/boards/red2_basys3/README.md), including its UART
+monitor, maps to **18,144 LUTs**. Its working routed image uses **17,997 physical
+LUT sites**, leaving **2,803 spare**, and both domains pass 10 MHz timing.
+
+The dedicated RED2 engine now passes the complete physical function-application
+trace `((LAMBDA (x) x) 7)`: **10,683 clocks, all 626 output bits**. It also passes
+1,018 clocks of queued public lifecycle checks and all 131 physical graph-memory
+patterns. A placement workaround moves only the final response-byte LUT/register
+pairs; `prepare.py --relocate-response-byte` applies the recorded recipe. Broader
+physical data-structure and arithmetic checks are ongoing. See
+[the working-image evidence](docs/handoffs/synth-red2-basys3-working-application-results.json)
+and [resource overview](docs/handoffs/red2-basys3-resource-overview.md).
+
+The candidate remains separate from the maintained top, and the existing
+list-equality execution gap remains outside the passing profile. Set
+`RED2_SYN_FLOAT=1` to include the existing floating-point module. The native `syn`
+CLI and full native parity suite retain floating-point support by default. The
+synthesis gate selects the matching profile checks.
 
 ## CLI Examples
 

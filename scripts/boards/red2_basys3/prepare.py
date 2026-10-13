@@ -24,6 +24,11 @@ def main():
         default=ROOT / "docs/handoffs/synth-red2-cfg-scalar-core-results.json",
     )
     parser.add_argument("--variant", default="cfg-integer-joins-regfix")
+    parser.add_argument(
+        "--relocate-response-byte",
+        action="store_true",
+        help="Move only the final response-byte LUT/FF pairs after placement",
+    )
     args = parser.parse_args()
     report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
@@ -83,6 +88,7 @@ def main():
         "implement.sh",
         "audit.py",
         "clocks.py",
+        "relocate_monitor.py",
     ):
         shutil.copy2(HERE / name, output / name)
     pins = {"clk_100p0": "W5", "RsRx": "B18", "RsTx": "A18"}
@@ -111,6 +117,10 @@ def main():
         "create_clock -period 100 [get_nets core_clock]\n"
     )
     (output / "area.abc").write_text("strash\ndc2\nif -a\n")
+    (output / "board-placement-options.json").write_text(
+        json.dumps({"relocate_response_byte": args.relocate_response_byte}, indent=2)
+        + "\n"
+    )
     (output / "board.ys").write_text(
         "read_json core.json\n"
         "read_verilog uart.v monitor.v packed.v board.v\n"

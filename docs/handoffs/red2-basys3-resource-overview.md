@@ -4,15 +4,17 @@ The latest datapath-sharing candidate maps to **17,266 core LUTs**, **6,345
 flip-flops**, **34.5 BRAM36 equivalents** and **20 DSPs**. This saves 1,906 LUTs
 and 1,750 flip-flops from the baseline below. Shared response/pending storage,
 shared reverse control and dirty/constant writeback account for the reduction.
-The new complete board maps to **18,144 LUTs**, **8,525 flip-flops**, **34.5
-BRAM36 equivalents** and **20 DSPs**, leaving 2,656 LUTs spare. The routed image
-occupies **17,992 physical LUT sites**, leaving 2,808. Both domains pass 10 MHz
-(core 10.14 MHz, monitor 10.62 MHz). SRAM loads, but application replay diverges
-at clock 256, reproducibly after a fresh reload. See
-[the physical evidence](synth-red2-datapath-board-results.json).
-The detailed attribution below describes the previous candidate. See
-[the measured pass](red2-datapath-sharing-live-resume.md) and
-[its evidence](synth-red2-datapath-sharing-results.json).
+The complete board maps to **18,144 LUTs**, **8,525 flip-flops**, **34.5 BRAM36
+equivalents** and **20 DSPs**, leaving 2,656 mapped LUTs spare. After the final
+response-byte placement workaround, the working image occupies **17,997 physical
+LUT sites**, leaving **2,803 spare**. Both domains pass 10 MHz (core 10.05 MHz,
+monitor 10.51 MHz). The dedicated engine passes all 10,683 function-application
+clocks and 1,018 queued lifecycle clocks on the physical board, plus all 131
+graph-memory patterns. Broader physical program checks continue. See
+[the working-image evidence](synth-red2-basys3-working-application-results.json).
+The detailed attribution below describes the previous candidate. See also
+[the measured sharing pass](red2-datapath-sharing-live-resume.md) and
+[its core evidence](synth-red2-datapath-sharing-results.json).
 
 Previous measured candidate: `cfg-integer-joins-regfix`, generated source SHA256
 `f229a2755c11376093f876e46e9b175148c98727e6e638f179f5e5e53258da68`.

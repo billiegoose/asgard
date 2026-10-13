@@ -213,3 +213,55 @@ The source/generator/compiler pins are unchanged. Completed pre-ABC IL dumps wer
 losslessly gzip-compressed to recover disk space; measurement hashes/artifacts
 are otherwise retained. red2-serializer-diagnosis-results.json records this
 checkpoint and raw evidence hashes.
+
+
+## First physical RED2 application pass — latest checkpoint
+
+The previous goal turn made progress through physical byte-lane diagnosis and a
+reusable checked memory probe. This continuation completed the serializer reroute
+and the first real RED2 application pass. No compiler/core logic was changed.
+
+The monitor-only FPGA fixture (878 LUTs, 2,130 FFs; no RED2 engine) passes all 759
+physical commands: all 626 response walking bits, ignored high input bits,
+random patterns, accepted-edge count and multiple sequence wraps. Its files are
+in build/red2-monitor-selftest. This is a transport diagnostic, not RED2 proof.
+The original full-board packed-origin audit also matches all 135,083 retained
+LUT/FF logical ports before/after packing, with zero unresolved aliases. A
+mapped-monitor simulation export was prepared but NOT simulated; do not claim it.
+
+serializer-byte-move completed normally. The 16 moved monitor cells preserve
+all core logic and core placements. Rerouting uses 17,997 physical LUT sites,
+2,803 spare; core 10.05 MHz and monitor 10.51 MHz pass 10 MHz. Bitstream SHA256:
+dd259c97f70e3edfe084d7e48dd2a541174ae36bd3681c5be26e50853f5f5e37.
+Fresh SRAM loads and the reusable memory probe now pass all 131 patterns.
+
+The complete RED2 function-application trace passes all 10,683 clocks and all 626
+output bits on hardware (239.802 seconds). After another fresh SRAM load, the
+public queued-lifecycle trace also passes all 1,018 clocks (24.114 seconds).
+These are 11,701 complete RED2 physical trace clocks, separate from the fixture
+and partial-field memory diagnostic. synth-red2-basys3-working-application-results.json
+records completed evidence and hashes. Older failures are preserved separately.
+
+The existing relocate_monitor.py CLI with --first-bit 0 --count 8 reproduces the
+selected placement byte-for-byte. prepare.py now accepts --relocate-response-byte;
+implement.sh applies that recipe after placement, retains both placements,
+records the selected path/hash and audits the selected copy. It uses the same
+hold-fix=8 setting as the verified cached route. A flagged fresh preparation has
+been hash-checked, shell syntax/Ruff pass, and all 15 focused tests pass. A fresh
+full build through this flag has NOT yet been physically replayed; exact selected
+placement reproduction is proven, not a universal backend fix.
+
+The remaining physical suite is LIVE: exec session94061, local Python
+serializer-byte-move/run-program-suite.py. It checks the existing application
+pass, then freshly loads SRAM for lifecycle, structure, addition, signed-add and
+EVEN? -2. Lifecycle is complete. Structure (123,200 clocks) is currently running,
+then arithmetic follows. Each trace checks every output bit and source/vector
+hash; every load/result/log is exclusive, and any error stops the suite without
+UART retry. program-suite-progress.json / program-suite-driver.log and the active
+<label>-board-replay.log are authoritative. Recheck the actual process/handle
+before waiting or changing anything. Do NOT start another serial client while
+this suite is running. It is using the normal 10 MHz / 115200-baud working image.
+
+The objective remains active. Broader physical program parity and the existing
+unsupported list-equality path still require work; do not equate one successful
+application with exhaustive architectural correctness.
