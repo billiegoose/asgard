@@ -5,8 +5,12 @@ flip-flops**, **34.5 BRAM36 equivalents** and **20 DSPs**. This saves 1,906 LUTs
 and 1,750 flip-flops from the baseline below. Shared response/pending storage,
 shared reverse control and dirty/constant writeback account for the reduction.
 The new complete board maps to **18,144 LUTs**, **8,525 flip-flops**, **34.5
-BRAM36 equivalents** and **20 DSPs**, leaving 2,656 LUTs spare. Physical replay
-is pending; the detailed attribution below describes the previous candidate. See
+BRAM36 equivalents** and **20 DSPs**, leaving 2,656 LUTs spare. The routed image
+occupies **17,992 physical LUT sites**, leaving 2,808. Both domains pass 10 MHz
+(core 10.14 MHz, monitor 10.62 MHz). SRAM loads, but application replay diverges
+at clock 256, reproducibly after a fresh reload. See
+[the physical evidence](synth-red2-datapath-board-results.json).
+The detailed attribution below describes the previous candidate. See
 [the measured pass](red2-datapath-sharing-live-resume.md) and
 [its evidence](synth-red2-datapath-sharing-results.json).
 

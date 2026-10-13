@@ -45,7 +45,9 @@ arithmetic. The maintained top's earlier measurement was 41,170 LUTs. The
 latest dedicated shared-controller candidate maps to **17,266 LUTs**, below Basys
 3's 20,800-LUT limit, and passes 230,990 clocks of RTL program replay plus
 1,018 public lifecycle clocks. Its complete board maps to **18,144 LUTs**,
-leaving **2,656 spare**; placement, routing and physical replay are pending. The
+leaving **2,656 spare**. Placement/routing succeeds at 10 MHz in both domains,
+using **17,992 physical LUT sites**. SRAM loading works, but the new application
+replay first differs at clock 256; physical correctness remains unresolved. The
 [Basys 3 bring-up target](scripts/boards/red2_basys3/README.md) adds a UART monitor
 and a 10 MHz clock. The previous candidate's complete board maps to **20,050 LUTs** and routes into
 **19,991 physical LUT sites** in the latest routed image, leaving 809 spare. Both clock domains meet the

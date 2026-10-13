@@ -11,7 +11,14 @@ The latest dedicated core maps to **17,266 LUTs**, saving 1,906 from the previou
 candidate. It passes all 701 boundary cases and 230,990 RTL program clocks plus
 1,018 public lifecycle clocks. Its complete board maps to **18,144 LUTs**,
 leaving **2,656 spare** (12.8%). It uses 8,525 flip-flops, 34.5 BRAM36 equivalents
-and 20 DSPs. Placement, routing and new physical replay remain pending; see
+and 20 DSPs. Placement and routing complete in about 15 and 14 minutes.
+The routed design uses **17,992 physical LUT sites**, leaving 2,808, and passes
+10 MHz timing (core 10.14 MHz, monitor 10.62 MHz). The bitstream loads into SRAM,
+but application replay first differs at clock 256 (`busy` expected high, actual
+low); a fresh reload reproduces it. A 300-command diagnostic also sees graph-read
+bit 449 differ. LUT INIT audit passes all 23,246 logic LUTs. Root cause remains
+unresolved; see [the physical result](../../../docs/handoffs/synth-red2-datapath-board-results.json)
+and
 [the board mapping record](../../../docs/handoffs/synth-red2-datapath-board-map-results.json).
 
 The previous candidate's complete board maps to **20,050 LUTs** including LUT RAM, leaving 750 of

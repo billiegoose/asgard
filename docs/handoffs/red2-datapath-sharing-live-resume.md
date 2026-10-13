@@ -144,3 +144,28 @@ load SRAM automatically. Placement/routing, bitstream and SRAM replay remain.
  Use the pinned cached tools, a new result log, and the new application
 trace. Do not claim that core fit proves physical operation. Keep the historical
 failed physical images and reports intact.
+
+
+## Physical result — 2026-10-13
+
+Cached build completed: placement 15m17s, routing 14m15s, bitstream generated.
+17,992 physical LUT sites, 2,808 spare. All 33,095 cell placements preserved;
+core 10.14 MHz and monitor 10.62 MHz pass the 10 MHz requirement. No hold
+violations were reported. Bitstream SHA256:
+297a9589e2f5910523ac8a397c230e3291cfef729bb1ed516a9f7f4365d6f97f.
+
+SRAM load succeeded. Application replay matched clocks 0–255 then failed at 256:
+only busy bit 625 expected one, actual zero. A fresh reload and independent
+300-command prefix diagnostic reproduces it; clocks 257–299 also differ at
+memory_read bit 449. The diagnostic continues after mismatches and is explicitly
+NOT a passing replay. Framing/sequence/CRC checks passed. Do not label it a UART
+sequence-wrap bug without evidence. LUT INIT audit checks all 23,246 logic LUTs
+against emitted FASM and reports zero mismatches. This does not prove routing,
+RAM configuration, or gate timing correct.
+
+synth-red2-datapath-board-results.json records build/load/replay hashes and scope.
+The board currently contains this new SRAM image after the 300-command prefix.
+No serial client or build job remains running. Root cause is still unresolved;
+next work is physical data/control delivery diagnosis. Preserve the new mismatch
+logs and the earlier image's clock-7506 failure separately. The older continuation
+instructions above are historical; placement/routing and SRAM load are complete.
