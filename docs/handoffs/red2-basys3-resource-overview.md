@@ -9,8 +9,9 @@ equivalents** and **20 DSPs**, leaving 2,656 mapped LUTs spare. After the final
 response-byte placement workaround, the working image occupies **17,997 physical
 LUT sites**, leaving **2,803 spare**. Both domains pass 10 MHz (core 10.05 MHz,
 monitor 10.51 MHz). The dedicated engine passes all 10,683 function-application
-clocks and 1,018 queued lifecycle clocks on the physical board, plus all 131
-graph-memory patterns. Broader physical program checks continue. See
+clocks, 123,200 graph construction/access clocks and 1,018 queued lifecycle clocks
+on the physical board, plus all 131 graph-memory patterns. Physical arithmetic
+checks continue. See [the structure evidence](red2-physical-structure-results.json). See
 [the working-image evidence](synth-red2-basys3-working-application-results.json).
 The detailed attribution below describes the previous candidate. See also
 [the measured sharing pass](red2-datapath-sharing-live-resume.md) and

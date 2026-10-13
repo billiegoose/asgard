@@ -13,13 +13,13 @@ The working image uses **17,997 physical LUT sites**, leaving **2,803 spare**.
 Both domains pass the 10 MHz gate: core 10.05 MHz and monitor 10.51 MHz.
 
 The FPGA now passes all **10,683 clocks and 626 output bits** of the dedicated
-RED2 function-application trace `((LAMBDA (x) x) 7)`, plus 1,018 queued public
-lifecycle clocks and 131 graph-memory patterns. A controlled move of the final
+RED2 function-application trace `((LAMBDA (x) x) 7)`, **123,200 clocks** of graph
+construction/access `(CAR (CONS 7 (CONS 8 NIL)))`, plus 1,018 queued lifecycle
+clocks and 131 graph-memory patterns. A controlled move of the final
 eight response-byte LUT/register pairs removes the three missing serializer
 lanes seen in the original placement. All core logic and placements are
 unchanged. The exact backend cause is unresolved; the opt-in build recipe
-reproduces the selected placement byte-for-byte. Broader physical structure and
-arithmetic checks continue. See
+reproduces the selected placement byte-for-byte. Broader physical arithmetic checks continue. See
 [the working-image record](../../../docs/handoffs/synth-red2-basys3-working-application-results.json).
 Earlier failed images and diagnostics remain preserved in their dated reports.
 
@@ -115,7 +115,11 @@ UART on this Mac. The host validates trace identity, hash, widths and row count
 before sending the first command. Every 626-bit response must match. A sequence
 or CRC mismatch, timeout or output mismatch aborts without retrying a command.
 Reload the bitstream before restarting a replay if command delivery was
-uncertain. A new result path is required, preserving earlier evidence.
+uncertain. A new result path is required, preserving earlier evidence. New runs also reserve
+an atomic `.progress.json` sidecar, updated every 100 confirmed clocks and on
+completion/failure. It records trace identity, PID and the last confirmed clock
+count; a mismatch is never counted. After abrupt termination this is a lower
+bound, not a resume token: fresh SRAM is still required for another replay.
 
 LD0 indicates MMCM lock, LD1 monitor readiness, LD2 core busy, LD3 core halted,
 LD4 a hardware/RED2 fault, LD5 a sticky transport error, LD6 an active response,
@@ -207,3 +211,10 @@ python3 scripts/boards/red2_basys3/prepare.py \
   --variant dirty-writeback --snapshot-response \
   --output build/red2-basys3-snapshot-next
 ```
+
+
+The completed physical structure result and unchanged dedicated-core identity
+are recorded in [the structure evidence](../../../docs/handoffs/red2-physical-structure-results.json).
+After bootstrap, its host trace supplies only CLOCK/NOP commands; graph reduction
+and updates occur in the FPGA engine. The earlier interrupted attempt is retained
+separately and is not counted as a complete pass.

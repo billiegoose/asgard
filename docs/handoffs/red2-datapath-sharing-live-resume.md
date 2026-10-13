@@ -322,3 +322,49 @@ old mapped-sim binary were losslessly gzip-compressed; no active image manifest
 input was changed. VM fstrim reclaimed free backing blocks; host free space was
 about 743 MiB, so avoid needless large copies. Completed/gzipped diagnostics can
 be decompressed if re-running those historical checks.
+
+
+## Physical structure pass and atomic checkpoints — latest checkpoint
+
+The previous goal turn made progress: optional snapshot serialization saved 358
+mapped LUTs, tests/simulation passed, and the interrupted physical suite was
+preserved and restarted from fresh SRAM with a detached runner. Commit 8a1bbc0.
+
+The fresh physical structure replay now PASSES all 123,200 clocks and every one
+of 626 public output bits for (CAR (CONS 7 (CONS 8 NIL))). Elapsed 3,069.994 seconds.
+Its result/log are structure-retry1-board-result.json / structure-retry1-board-replay.log
+under serializer-byte-move; load-structure-retry1-result.json records a fresh
+successful SRAM load of dd259c97... first. The older interrupted prefix remains
+separate and is NOT counted. Combined complete application, structure and queued
+lifecycle traces total 134,901 physical clocks. red2-physical-structure-results.json
+records completed evidence/hashes and scope.
+
+Trace-input analysis also verifies that all graph writes are in bootstrap
+(clocks 0–255), the initial state is loaded once at 256, literal metadata ends at
+507, and every later structure input is only CLOCK or observational NOP. Graph
+updates and reduction run in the dedicated FPGA engine, not in host commands.
+The input pattern record is build/red2-basys3-datapath/trace-input-patterns.json.
+
+The detached suite PID 6443 is still LIVE and has advanced to addition; signed
+addition and EVEN? -2 follow. Each has a fresh SRAM load and unique *-retry1 files.
+Do not interrupt or start another serial client. Revalidate the actual PID/command
+and current case log rather than treating this note as proof of liveness.
+
+host.py now creates an exclusive atomic .progress.json sidecar every 100 confirmed
+clocks and at termination. It contains PID, trace identities, elapsed time,
+running/passed/failed state and compared_clocks. Temp-file writes/fsync/rename keep
+the prior valid checkpoint on an interrupted or failed update. It is a lower bound
+and explicitly NOT a UART resume token. A hard-kill test waits for an explicit
+CHECKPOINT_READY marker, then kills the child and verifies its count survives;
+other tests cover exclusive reservation, failed writes and mismatch accounting.
+All 27 focused tests and Ruff pass. Structure started with the older host process;
+the current arithmetic process uses the new host and already publishes valid
+add-retry1-board-result.progress.json checkpoints. FPGA commands/comparisons are
+unchanged. The interrupted old run's empty final record motivated this change.
+
+Snapshot build PID 10833 / Podman red2-snapshot-route is still routing the separate
+17,786-LUT experimental image. Its last recorded iteration 2 has 24,836 overused
+resources; the one-hour route watchdog remains in force. Do not restart merely
+because logs are quiet. Check actual PID/container status; no snapshot bitstream
+has been loaded. Route/timing/physical replay are still unproven for this variant.
+The objective remains active; arithmetic and snapshot physical checks remain.

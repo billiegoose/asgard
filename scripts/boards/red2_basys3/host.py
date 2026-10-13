@@ -3,10 +3,12 @@
 import argparse
 import binascii
 import contextlib
+import datetime
 import hashlib
 import json
 import os
 import select
+import tempfile
 import termios
 import time
 import tty
@@ -17,6 +19,43 @@ OUTPUT_BITS = 626
 INPUT_BYTES = (INPUT_BITS + 7) // 8
 OUTPUT_BYTES = (OUTPUT_BITS + 7) // 8
 RESPONSE_BYTES = 2 + 1 + OUTPUT_BYTES + 2
+
+
+class ReplayProgress:
+    """Atomic matched-clock checkpoints; interrupted UART delivery cannot resume."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        with path.open("x"):
+            pass
+
+    def update(self, record, state, elapsed_seconds):
+        snapshot = {
+            **record,
+            "state": state,
+            "pid": os.getpid(),
+            "updated_at_utc": datetime.datetime.now(datetime.UTC).isoformat(),
+            "elapsed_seconds": round(elapsed_seconds, 3),
+            "resume_supported": False,
+        }
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                dir=self.path.parent,
+                prefix=f".{self.path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as stream:
+                temporary = Path(stream.name)
+                json.dump(snapshot, stream, indent=2)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, self.path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
 
 def request_frame(command: int, sequence: int) -> bytes:
@@ -145,6 +184,8 @@ def main():
     }
     # Reserve the result file before touching hardware; never erase earlier evidence.
     with args.log.open("x") as log:
+        progress = ReplayProgress(args.log.with_suffix(".progress.json"))
+        progress.update(record, "running", time.monotonic() - started)
         try:
             with contextlib.closing(SerialLink(args.port, args.timeout)) as link:
                 with args.vectors.open() as rows:
@@ -160,6 +201,9 @@ def main():
                             raise ValueError(f"FPGA output mismatch at clock {index}")
                         record["compared_clocks"] = index + 1
                         if (index + 1) % 100 == 0:
+                            progress.update(
+                                record, "running", time.monotonic() - started
+                            )
                             print("BOARD_REPLAY_PROGRESS", index + 1, flush=True)
             record["completed_pass"] = True
             print("BOARD_REPLAY_PASS", metadata["cycles"], flush=True)
@@ -169,6 +213,12 @@ def main():
         finally:
             record["elapsed_seconds"] = round(time.monotonic() - started, 3)
             log.write(json.dumps(record, indent=2) + "\n")
+            log.flush()
+            progress.update(
+                record,
+                "passed" if record["completed_pass"] else "failed",
+                record["elapsed_seconds"],
+            )
 
 
 if __name__ == "__main__":

@@ -49,11 +49,12 @@ monitor, maps to **18,144 LUTs**. Its working routed image uses **17,997 physica
 LUT sites**, leaving **2,803 spare**, and both domains pass 10 MHz timing.
 
 The dedicated RED2 engine now passes the complete physical function-application
-trace `((LAMBDA (x) x) 7)`: **10,683 clocks, all 626 output bits**. It also passes
-1,018 clocks of queued public lifecycle checks and all 131 physical graph-memory
-patterns. A placement workaround moves only the final response-byte LUT/register
+trace `((LAMBDA (x) x) 7)`: **10,683 clocks, all 626 output bits**. Graph
+construction/access `(CAR (CONS 7 (CONS 8 NIL)))` also passes **123,200 clocks**,
+with every output bit compared, plus 1,018 queued lifecycle clocks and all 131
+physical graph-memory patterns. A placement workaround moves only the final response-byte LUT/register
 pairs; `prepare.py --relocate-response-byte` applies the recorded recipe. Broader
-physical data-structure and arithmetic checks are ongoing. See
+physical arithmetic checks are ongoing. See
 [the working-image evidence](docs/handoffs/synth-red2-basys3-working-application-results.json)
 and [resource overview](docs/handoffs/red2-basys3-resource-overview.md).
 
