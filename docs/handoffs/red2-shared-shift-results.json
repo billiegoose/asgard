@@ -1,0 +1,188 @@
+{
+  "recorded_at_utc": "2026-10-14T07:31:28.307629+00:00",
+  "scope": "Optional shared bidirectional shifter in the existing dedicated RED2 microengine; disabled by default; isolated RTL equivalence and native witnesses passed; complete-core area measurement independently tracked; no FPGA image change",
+  "enabled_by": "RED2_CFG_PILOT_SHARED_SHIFT=1",
+  "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+  "reference_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+  "baseline_LUTs_including_LUT_RAM": 15803,
+  "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
+  "validation": {
+    "python_expression_cases": 9694,
+    "python_expression_cases_passed": true,
+    "typed_native_shift_cases": {
+      "scope": "Actual enhanced PipelineC native simulation of exactly emitted shared-shift expressions versus independent unsigned integer shift semantics; no RTL or board proof",
+      "passed": true,
+      "comparisons": 3406,
+      "model_source_sha256": "a29e943b6cfb55767138149d7b4079d6768913ee094705927dc1ca4fe5f99bfd",
+      "generator_sha256": "11b828d4f3535139265fb06723f631c6dcf7c0ab015afd73d23d0daa5505d79f"
+    },
+    "isolated_actual_RTL_equivalence": {
+      "scope": "Unbounded combinational SAT equivalence of enhanced PipelineC/GHDL RTL for exactly emitted shared-shift expressions against independent Verilog left/right logical shifts; all 129 input bits unconstrained; isolated datapath only, not complete controller or board proof",
+      "passed": true,
+      "input_bits": 129,
+      "output_bits": 64,
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "red2-shared-shift-proof",
+        "--network",
+        "none",
+        "-v",
+        "fpgatool-nix:/nix",
+        "-v",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal:/experiment",
+        "-w",
+        "/experiment",
+        "--entrypoint",
+        "/nix/store/v8llyqw71lygr2llhmcc8ya5bdlzq45v-bash-5.3p9/bin/bash",
+        "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+        "-c",
+        "export PATH=/nix/store/8xp00x56zj0nxqk3h334176g2d25jmvd-yosys-0.67/bin:/nix/store/4gcl6ba0jcmvq2py06cz57fimap9xjvm-ghdl-mcode-6.0.0/bin:$PATH\nyosys -V\nghdl --version\nyosys -Q -T -m /nix/store/c01zl2b0iqg31j0lpc904cf8jj6f1djv-yosys-ghdl-0-unstable-2025-05-23/share/yosys/plugins/ghdl.so -s /experiment/proof.ys"
+      ],
+      "artifacts_sha256": {
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/machine.py": "b4c22202e44cf60de7928587e800472c359590dbfff26f242486212c7c87b943",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/proof.v": "5692bf12673ea81b726f82ae4cafe2d486cf19cc83056d006a5dddc82399a4e9",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/proof.ys": "48e98f20ade3103b3bf092dbfe743a5e3f56411d8f9c949f81e3ab98cf74f9a0",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/proof.log": "5ddce7f3376f31b5bb4e9d4fe9a8703e23157382c956461618ef846e68d7cbd2",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/coarse.json": "c25ef734d1aaef4b70d386f92015153096d0feeec19e3808e889d15c438e1c41",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/pipelinec_fifo_fwft.vhd": "2dec640ba6051c83feb062f81ab7479c52cdccb0bc946c1a582b3601ee1edf5f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/pipelinec_async_fifo_fwft.vhd": "08c7cedc27d1df17a8c77b20794d9578cab842cf94966be96b9f529ae9be5b30",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/c_structs_pkg.pkg.vhd": "79d890366c2231ad05402267b4700b308c03a235df6502e6234b43a6b108e184",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/top/top.vhd": "e780576a54baa90e2ea9aaac03a61cf1ee19e5b5449f284faf25e2541f2750f5",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/shared_shift/shared_shift_0CLK_fda44fc3.vhd": "8ee570046ba60be45084ae50f1f22d7a52a624677a0ea11373f9077d8cb3bfde",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint63_t/BIN_OP_AND_uint64_t_uint63_t_0CLK_de264c78.vhd": "e99e38d0918875d95276dafd0ea7c25270e8cfea916585c562ad50209db3f61c",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint62_t/BIN_OP_AND_uint64_t_uint62_t_0CLK_de264c78.vhd": "b3a7e2aafb3857997c9a5878a9d6978e315821ebf405cace2bdb2afe455ff297",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint60_t/BIN_OP_AND_uint64_t_uint60_t_0CLK_de264c78.vhd": "ac58120b3655e1d9c833156c4994084019ed1370681710f7945d3294574973e3",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint56_t/BIN_OP_AND_uint64_t_uint56_t_0CLK_de264c78.vhd": "b6cb2e4e559cc38491eb0e317c95b6e4cc7556c3ae0d4a9bfebc6cba329202a5",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint48_t/BIN_OP_AND_uint64_t_uint48_t_0CLK_de264c78.vhd": "4143414b821aa5b22337067351284af547263d3d10acb5ccb47dc45cd58f4414",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_AND_uint64_t_uint32_t/BIN_OP_AND_uint64_t_uint32_t_0CLK_de264c78.vhd": "449ada5e1e853350a7e7ef6011e5fb2fcae8c36213114ded7551af965dad95a6",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_NEQ_uint58_t_uint1_t/BIN_OP_NEQ_uint58_t_uint1_t_0CLK_de264c78.vhd": "eb8d6dd9c493d197054b09f28849c614bb9d1a8fe22a6f9cd11522e83be03439",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/BIN_OP_OR_uint64_t_uint64_t/BIN_OP_OR_uint64_t_uint64_t_0CLK_de264c78.vhd": "7724961e060f9d9970a3e4c6c13390651e80e12a980b275a0bd70e0272317db4",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_16_uint64_t/CONST_SL_16_uint64_t_0CLK_de264c78.vhd": "6f2f29fcf19f0eee8d6d8f122ac22526a4dda99e49677930339c9049bfd6a023",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_1_uint64_t/CONST_SL_1_uint64_t_0CLK_de264c78.vhd": "d6055d3eb843b2eb8b2e9e2059ed312d99b371d962ff46b15b99a7246984fa77",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_2_uint64_t/CONST_SL_2_uint64_t_0CLK_de264c78.vhd": "5c6c32aa591e5ebc857ee317fa4a73860e539b694af5577eecb41e2dddabfb72",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_32_uint64_t/CONST_SL_32_uint64_t_0CLK_de264c78.vhd": "f44591566d540a4b6a4becef96ee7e69189adc7b5fd082bef47023f4a3b7c6c1",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_4_uint64_t/CONST_SL_4_uint64_t_0CLK_de264c78.vhd": "f681ad5ad8d68c673474b8f0b26175fcdb797722f5f2eea5dcb61b4b5d7668e7",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SL_8_uint64_t/CONST_SL_8_uint64_t_0CLK_de264c78.vhd": "4ccf27b1ac9dbb622b55a4d98ff9c3aba83cbcfb9552b8e1df339eefed9f0402",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_16_uint64_t/CONST_SR_16_uint64_t_0CLK_de264c78.vhd": "de9e556e773c73cd169058b915a939ea805316f21231ae3eb8584929b5a2a06b",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_1_uint64_t/CONST_SR_1_uint64_t_0CLK_de264c78.vhd": "33a066073675a321ff1edde2ed2010b1d50ddd1dda63b1fc3d88507a5ed75668",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_2_uint64_t/CONST_SR_2_uint64_t_0CLK_de264c78.vhd": "b8fa458a1b42a9b96e8eafefda3671bb16436f1b7a03c9d50907f14c45a4041f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_32_uint64_t/CONST_SR_32_uint64_t_0CLK_de264c78.vhd": "a5803e6d2a60136ea8d1f9e9e40a8825be91f17486f67d85397237f6b116b18d",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_4_uint64_t/CONST_SR_4_uint64_t_0CLK_de264c78.vhd": "5d5462782f454e03bfe3ec83c54f6776928d1e2266afaf29da6214ceec1ab021",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/CONST_SR_8_uint64_t/CONST_SR_8_uint64_t_0CLK_de264c78.vhd": "8aef01475eb2dc7e7931199139af65b8648d2130dfe51166109ec9ca9e5910e6",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/built_in/MUX_uint64_t/MUX_uint64_t_0CLK_de264c78.vhd": "2dc1545a4f8ed1b31342721a773607fc463458b3acc8b5a6261818b8705e0876",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/hdl/include/pypeline/operators/soft_shift.py/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_False_value_t_uint64_t/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_False_value_t_uint64_t_0CLK_84a8f09b.vhd": "d15aaac9526a2ec51b08625e0575366ffbcc552ffaaf5118ac9652048c6ff376"
+      }
+    },
+    "typed_handler_comparisons": 15504,
+    "selected_emitted_controller_native_witnesses": 123,
+    "native_product_corner_gate": {
+      "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+      "scope": "Typed handler comparisons with integer/product corners followed by actual emitted-controller native product witnesses; not full RTL or physical proof",
+      "passed": true,
+      "checks": [
+        {
+          "label": "typed-product-corners",
+          "pid": 51532,
+          "passed": true,
+          "returncode": 0,
+          "log_sha256": "f99738cd4326c345fe5001b436e756290dfcc5571e9722b5b08d44f30661dff8"
+        },
+        {
+          "label": "native-product-corners",
+          "pid": 52053,
+          "passed": true,
+          "returncode": 0,
+          "log_sha256": "05a3730a35f41008404066a7715eeb78ade6019458493117211a9b393c6aa236"
+        }
+      ]
+    },
+    "default_flag_disabled_byte_identity": {
+      "scope": "Unchanged shared-multiplier controller generation with optional shared-shift flag disabled",
+      "passed": true,
+      "machine_byte_identical": true,
+      "control_byte_identical": true
+    },
+    "focused_pytest_cases_passed": 29,
+    "ruff_passed": true
+  },
+  "complete_core_mapping": {
+    "started_at_utc": "2026-10-14T07:23:54.682980+00:00",
+    "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "scope": "Enhanced PipelineC full core shared-shifter experiment; area result only; no RTL replay or FPGA programming",
+    "stages": [
+      {
+        "label": "frontend",
+        "started_at_utc": "2026-10-14T07:23:54.686600+00:00",
+        "timeout_seconds": 1800,
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/frontend.py",
+          "--integrated"
+        ],
+        "pid": 51135,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:25:57.826602+00:00"
+      },
+      {
+        "label": "prepare",
+        "started_at_utc": "2026-10-14T07:25:57.832088+00:00",
+        "timeout_seconds": 300,
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/prepare_map.py",
+          "--integrated"
+        ],
+        "pid": 51887,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:25:58.184515+00:00"
+      },
+      {
+        "label": "backend",
+        "started_at_utc": "2026-10-14T07:25:58.330543+00:00",
+        "timeout_seconds": 1800,
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "red2-shared-shift-map",
+          "--network",
+          "none",
+          "-v",
+          "fpgatool-nix:/nix",
+          "-v",
+          "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream:/experiment",
+          "-w",
+          "/experiment",
+          "--entrypoint",
+          "/nix/store/v8llyqw71lygr2llhmcc8ya5bdlzq45v-bash-5.3p9/bin/bash",
+          "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+          "run.sh"
+        ],
+        "pid": 51890
+      }
+    ],
+    "mapped": false
+  },
+  "complete_controller_RTL_replay_passed": false,
+  "routed": false,
+  "loaded_on_board": false,
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/native-shift-result.json": "88cdbc772a3c853b3a71c24ad9df8a065dd50be1a12e32e29e6796039a0be132",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/proof-result.json": "d655f816ec9c8e25db5a67726db9171e549343cf7b465bf8147449d8742bb5f5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/prove.py": "d36798e951bcc5609986a2d9082ee9435cc7854d90fa20871a8e395c1a1661fe",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/prove.py.pre-record-port-fix": "726fb3f4b4817cee4ddb1c8205357e863fe21a9dbb1be549c2f7b559e384d354",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/formal/proof.log.pre-record-port-fix": "9805f4e2df22292b013ca40c7f17bdbdd48ffbd5c833abe0a14d0547ef357405",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/default-emitter-check/result.json": "fdafd9706e58ac10688096feeaa5a03d7a27e8e33c15955b032a2d747d211c69",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/progress.json": "4d8d05f3a36601f7c8b1078c5f76101d8ba0fa08f151abb9e3da77a45e60e3d0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/product-corners-progress.json": "016ab485fe7c0d41b95c68a63eaf7418050766d54466cde5cc077e316330c2a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/machine.py": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/configuration.json": "acc6e5c951e0fee26e95db96248faef9a4d2624123e5693cb1878a2ee893fb0b",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/emit.py": "677a548e32cfa0eace5590c1ae4f584aea40331a1581348e8508f1572d1d1209",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/shared_shift.py": "11b828d4f3535139265fb06723f631c6dcf7c0ab015afd73d23d0daa5505d79f",
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_shared_shift.py": "57f12877658dbd863d2aded6861fdae26ca409e2d75b453a86876519064d68f6"
+  }
+}

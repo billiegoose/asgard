@@ -748,3 +748,20 @@ scratch-memory inputs (2,979). The latter includes ALU, result masking/selection
 and write steering; it is not the RAM's own area. Five connectivity regressions
 pass and storage/DSP attribution is unchanged. See
 [the endpoint attribution](../../../docs/handoffs/red2-lut-endpoint-attribution-results.json).
+
+`RED2_CFG_PILOT_SHARED_SHIFT=1` is an optional area experiment for the scratch
+datapath. It implements left and right logical shifts with one right shifter,
+fixed bit reversal and direction multiplexers. Counts of 64 or more still yield
+zero. It adds no controller states or cycles; result-width masking and memory
+request sequencing remain unchanged. The default is off, and the default
+emitted source/control tables match the measured shared-multiplier baseline
+byte for byte.
+
+The emitted expressions pass 9,694 independent arithmetic comparisons and 3,406
+typed native checks. An isolated enhanced PipelineC/GHDL RTL miter passes SAT
+equivalence against independent Verilog shifts for all 129 input bits. The full
+candidate also passes 15,504 typed handler comparisons and 123 selected emitted
+controller native witnesses, reset cancellation and constant protection. Full
+core mapping is tracked in [the shifter experiment](../../../docs/handoffs/red2-shared-shift-results.json);
+this is not complete-controller RTL or physical qualification. The qualified
+shared-multiplier board source and image are unaffected.

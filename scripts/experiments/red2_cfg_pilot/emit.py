@@ -369,6 +369,16 @@ text = text.replace(
 text = text.replace(
     "make_ram(uint64_t,1024,", f"make_ram(uint64_t,{m['scratch_words']},"
 )
+if os.environ.get("RED2_CFG_PILOT_SHARED_SHIFT", "0") == "1":
+    from shared_shift import share as share_shift
+
+    text = share_shift(text)
+    m["shared_shift"] = {
+        "method": "One logical right shifter with fixed bit-reversal wiring "
+        "and direction multiplexers; shifts of 64 or more return zero",
+        "extra_controller_cycles": 0,
+    }
+    (P / "control.json").write_text(json.dumps(m, indent=2) + "\n")
 for name, value in ops.items():
     text = (
         text.replace("OP_" + name + "\n", str(value) + "\n")
