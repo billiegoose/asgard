@@ -109,8 +109,8 @@
   },
   "active_build": {
     "root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-prepared",
-    "driver_pid": 10833,
-    "phase": "routing",
+    "driver_pid": null,
+    "phase": "terminated at route time limit",
     "loads_board_automatically": false
   },
   "working_image_validation": {
@@ -119,10 +119,12 @@
     "original_final_result_missing": true,
     "interruption_cause_unknown": true,
     "original_evidence_preserved": true,
-    "fresh_SRAM_retry_driver_pid": 6443,
+    "fresh_SRAM_retry_driver_pid": null,
     "fresh_SRAM_retry_root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move",
     "new_unique_files_prefix": "structure-retry1",
-    "current_scope": "Structure, then add, signed-add and EVEN? -2; all 626 bits; fresh SRAM per trace; no implicit UART retries"
+    "current_scope": "Completed: application, structure, add, signed-add, EVEN? -2 and queued lifecycle; every 626-bit output; fresh SRAM per trace",
+    "completed_physical_clocks": 232008,
+    "complete_corpus_report": "docs/handoffs/red2-complete-physical-corpus-results.json"
   },
   "limitations": [
     "Snapshot mapping and simulation pass; routed timing and physical replay remain unproven",
@@ -157,6 +159,21 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-prepared/mutual-exclusion-check.log": "74d8b32c1f04ffeb5fc4a7a51b9d91902dc2e5518b4fbe8a00bc8312b9d84ff5",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/original-suite-interruption.json": "5670cd9e730a63c97c884b1a7b4c0a4fbbcc2eb0862ce780d9d8ebd95fd0ce31",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/program-suite-retry1-launch.json": "e5828c209b64ba3b1ce682b4f8606b63da03ca07f2e5e6ebca8584dbab89c8d6",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/run-program-suite-retry1.py": "2cf46ce38d811f2ac7c99b9b2d38b112b9727c1b1fd9c6721d249e78a1ea9306"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/run-program-suite-retry1.py": "2cf46ce38d811f2ac7c99b9b2d38b112b9727c1b1fd9c6721d249e78a1ea9306",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-prepared/physical-progress.json": "43736c42dc0d554b26c5fb91e2803436845994470f32fc9fa0b1317d28c0df33",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-prepared/physical-driver.log": "c2b6fbd5922e3a37a9db3af3bf1195f173906f9dbf9f4baad944ef1c7b0ecc06",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-prepared/board-route.log": "8b007fa23dd3fe4974c6db9463aab41e1223bf4e2341cad4314210a3ec7bd7df"
+  },
+  "updated_at_utc": "2026-10-14T00:06:27.199897+00:00",
+  "routing_attempt": {
+    "timed_out": true,
+    "limit_seconds": 3600,
+    "last_completed_iteration": 7,
+    "overused_wires": 4338,
+    "wire_overuse": 4371,
+    "bitstream_generated": false,
+    "loaded_on_board": false,
+    "finished_at_utc": "2026-10-13T23:07:26.039707+00:00",
+    "decision": "Do not replace the verified image; the 358-LUT map saving does not establish routability."
   }
 }
