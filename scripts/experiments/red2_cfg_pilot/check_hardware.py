@@ -7,7 +7,7 @@ import sys
 from paths import ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
-import run_syn  # noqa: F401 -- compiler bootstrap must precede pypeline
+import run_syn  # compiler bootstrap must precede pypeline
 import pypeline
 from native_runtime import cache_scalar_types
 
@@ -19,6 +19,12 @@ cache_scalar_types(pypeline)
 
 m = json.loads((P / "control.json").read_text())
 cases = json.loads((P / "native-cases.json").read_text())
+if "--if-ep-chase-only" in sys.argv:
+    from if_ep_chase import cases as if_ep_cases
+
+    cases = [case for case in cases if "if_ep_chase_witness" in case]
+    expected_labels = {label for label, _ in if_ep_cases(run_syn._syn_machine)}
+    assert {case["if_ep_chase_witness"] for case in cases} == expected_labels
 if "--integer-corners-only" in sys.argv:
     cases = [c for c in cases if "integer_corner_witness" in c]
     assert len(cases) == 152

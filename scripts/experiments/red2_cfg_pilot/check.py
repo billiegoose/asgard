@@ -407,6 +407,14 @@ for state in m["entry_pc"]:
             values = {key: 0 for key in state_keys}
             values["microstate"] = int(state)
             values.update(products[multiply_corner_witness])
+        if_ep_chase_witness = None
+        if int(state) == ref.MICRO_JOIN_IF_EP_CHASE:
+            from if_ep_chase import witness as if_ep_witness
+
+            targeted = if_ep_witness(ref, widths, state_keys, trial)
+            if targeted is not None:
+                values, graph_response, if_ep_chase_witness = targeted
+                response[:5] = graph_response
         original = sim_call(
             getattr(
                 ref,
@@ -450,6 +458,8 @@ for state in m["entry_pc"]:
             candidates[-1]["integer_corner_witness"] = integer_corner_witness
         if multiply_corner_witness is not None:
             candidates[-1]["multiply_corner_witness"] = multiply_corner_witness
+        if if_ep_chase_witness is not None:
+            candidates[-1]["if_ep_chase_witness"] = if_ep_chase_witness
         typed_comparisons += 1
     covered = set()
     witnesses = []
@@ -499,6 +509,14 @@ for state in m["entry_pc"]:
                 selected.pop("trace")
                 witnesses.append(selected)
     for candidate in candidates:
+        if "if_ep_chase_witness" in candidate and not any(
+            witness.get("if_ep_chase_witness") == candidate["if_ep_chase_witness"]
+            for witness in witnesses
+        ):
+            covered |= candidate["trace"]
+            selected = candidate.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
         if "multiply_corner_witness" in candidate and not any(
             witness.get("multiply_corner_witness")
             == candidate["multiply_corner_witness"]
