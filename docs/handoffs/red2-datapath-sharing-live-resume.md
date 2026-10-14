@@ -58,9 +58,10 @@ Full native/product/lifecycle/metadata/poison qualification runs in exec **90523
 driver PID **3379**, `full-boundary-progress.json`. The same-source RTL replay
 model is built; all **26 saved-IF RTL/Concrete fixtures pass** (exec 70543
 terminal PASS, 1,342,196 simulated clocks / 2,754 admissions). Full same-source
-complete-program RTL/Concrete checks are now live: short corpus exec **59311**,
-driver PID **6684**, `direct-rtl-short-progress.json`; four list programs exec
-**54246**, driver PID **6700**, `direct-rtl-lists-progress.json`. These do not
+complete-program RTL/Concrete checks now pass all **eleven short programs**
+(exec 59311 terminal PASS, `direct-rtl-short-progress.json`). Four list programs
+remain live in exec **54246**, driver PID **6700**,
+`direct-rtl-lists-progress.json`. These do not
 record expected-output vectors. Source `7d...` changes some transition latencies
 (application 10,690 simulated clocks, structure 124,267), so do not relabel or
 replay earlier-source clock-aligned goldens as this source's own observations.

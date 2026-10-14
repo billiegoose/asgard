@@ -133,7 +133,7 @@
   },
   "full_typed_comparisons_passed": 15624,
   "complete_top_native_witnesses_pending": 847,
-  "updated_at_utc": "2026-10-14T10:18:29.249411+00:00",
+  "updated_at_utc": "2026-10-14T10:23:34.648401+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "progress": {
       "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
@@ -165,7 +165,121 @@
     "short": {
       "progress": "build/red2-if-ep-sharing/if-ep-chase/direct-rtl-short-progress.json",
       "driver_pid": 6684,
-      "exec_session": 59311
+      "exec_session": 59311,
+      "completed_result": {
+        "scope": "Actual same-source Verilator RTL compared with independent Concrete RED2 at every architectural commit and all final graph/control RAM; each program must HALT; no recorded expected-output trace or FPGA qualification",
+        "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+        "RTL_model_manifest_sha256": "1fe688f3cf98800a701a794eedc342f213b3de3303ee47d8a77848728aa32787",
+        "RTL_binary_sha256": "f88b8155837ca33deb1a5c237273a273f54d7818befefa3ca484e776ade58d44",
+        "checker_sha256": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
+        "started_at_utc": "2026-10-14T10:15:30.007020+00:00",
+        "group": "short",
+        "programs": [
+          {
+            "label": "application",
+            "program": "((LAMBDA (x) x) 7)",
+            "passed": true,
+            "pid": 6685,
+            "returncode": 0,
+            "simulated_clocks": 10690,
+            "log_sha256": "6c3780308de4c9bba964a9bcb371dc20166a32ea04a86a6f25eeb622cd4dfe8a"
+          },
+          {
+            "label": "structure",
+            "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+            "passed": true,
+            "pid": 6710,
+            "returncode": 0,
+            "simulated_clocks": 124267,
+            "log_sha256": "07c79415e3a0d207d73e27ea2b06679da4faee56f758dadd2b42da999228e2fd"
+          },
+          {
+            "label": "add",
+            "program": "(+ 7 8)",
+            "passed": true,
+            "pid": 6777,
+            "returncode": 0,
+            "simulated_clocks": 26339,
+            "log_sha256": "81c39b0464b51e6d1c7c55de8a8924c92b840628e5c8748e5d3baf4e28c9b8b4"
+          },
+          {
+            "label": "signed-add",
+            "program": "(+ -9223372036854775808 1)",
+            "passed": true,
+            "pid": 6813,
+            "returncode": 0,
+            "simulated_clocks": 26339,
+            "log_sha256": "52936e790a7717b9d13671c58a92049b474fb0427f54bd47188c7f4f8b10cb1a"
+          },
+          {
+            "label": "even-negative",
+            "program": "(EVEN? -2)",
+            "passed": true,
+            "pid": 6842,
+            "returncode": 0,
+            "simulated_clocks": 44733,
+            "log_sha256": "ece3f37155839de0cd410fcde4c25c364716946c19ec71e2608f0f1e650d8eb2"
+          },
+          {
+            "label": "multiply",
+            "program": "(* -7 -3)",
+            "passed": true,
+            "pid": 6879,
+            "returncode": 0,
+            "simulated_clocks": 46829,
+            "log_sha256": "35903bc708dff9f17dae987a0b797264246a366ea7dffa704e2557d98f6ab0d1"
+          },
+          {
+            "label": "divide",
+            "program": "(/ -6 2)",
+            "passed": true,
+            "pid": 8164,
+            "returncode": 0,
+            "simulated_clocks": 47082,
+            "log_sha256": "cf00d6a00f5b7304be06100c6e70e0293d5f7ae6e89c988cd2885d34a440c7b1"
+          },
+          {
+            "label": "modulo",
+            "program": "(MOD -7 3)",
+            "passed": true,
+            "pid": 8205,
+            "returncode": 0,
+            "simulated_clocks": 52215,
+            "log_sha256": "958f8c8f9ff66b38a42ccf64ba163e2faf37498458a889ad1ef3dc88d1671591"
+          },
+          {
+            "label": "exponent",
+            "program": "(EXPT -2 3)",
+            "passed": true,
+            "pid": 8264,
+            "returncode": 0,
+            "simulated_clocks": 51342,
+            "log_sha256": "2e197690b5e6b0fbb0ec1104a251da55dd9d1f92f72640dff0abb25a9480b645"
+          },
+          {
+            "label": "multiply-signed-min",
+            "program": "(* -9223372036854775808 1)",
+            "passed": true,
+            "pid": 8307,
+            "returncode": 0,
+            "simulated_clocks": 46475,
+            "log_sha256": "a9e5b14ac71d494f9afabc0fa283685f39cdb1772a851ad6bb4e1ff8f05c213f"
+          },
+          {
+            "label": "divide-high-magnitude",
+            "program": "(/ -9223372036854775808 -9223372036854775808)",
+            "passed": true,
+            "pid": 8339,
+            "returncode": 0,
+            "simulated_clocks": 47062,
+            "log_sha256": "58fbc2cd047386ec6d54d2fcced4de8a5d480d649df03a529f8363faf81883c3"
+          }
+        ],
+        "passed": true,
+        "total_simulated_clocks": 523373,
+        "finished_at_utc": "2026-10-14T10:21:40.687766+00:00"
+      },
+      "progress_sha256": "0a3f76c4f6ce1c134d9de0ad9196dafe1c4dd74876b8634ddfdd5602e3a86638"
     },
     "lists": {
       "progress": "build/red2-if-ep-sharing/if-ep-chase/direct-rtl-lists-progress.json",
