@@ -155,6 +155,7 @@ def schedules(m, private):
         for n in (
             "add",
             "sub",
+            "mul",
             "and",
             "or",
             "eq",

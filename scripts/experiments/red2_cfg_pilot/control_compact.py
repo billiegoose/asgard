@@ -9,6 +9,7 @@ def compact(m):
             "copy",
             "add",
             "sub",
+            "mul",
             "and",
             "or",
             "eq",

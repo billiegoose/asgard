@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T02:57:40.542830+00:00",
-  "scope": "Combine maintained saved-equality semantics with shared divider and extract inline-write stage onto the dedicated control engine; generated and typed checked, no complete-top/RTL/area/board claim",
+  "scope": "Combined saved equality/shared divider maps at 17003 LUTs and passes 704 native boundaries/lifecycle; full list equality fails due to shared OR-request extraction bug",
   "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
   "candidate_source_sha256": "202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b",
   "configuration": {
@@ -38,31 +38,21 @@
     "mandatory_integer_corners_enabled": true,
     "complete_top_boundary_and_programs_passed": false,
     "RTL_replay_passed": false,
-    "core_synthesis_available": false,
+    "core_synthesis_available": true,
     "board_programmed": false,
-    "exact_enhanced_RTL_elaboration_passed": true
+    "exact_enhanced_RTL_elaboration_passed": true,
+    "RTL_replay_model_built": true,
+    "complete_top_native_boundary_witnesses": 704,
+    "complete_top_native_boundary_lifecycle_passed": true,
+    "full_list_equality_program_passed": false
   },
-  "live_jobs": {
-    "frontend": {
-      "pid": 62772,
-      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py",
-      "mode": "frontend"
-    },
-    "native_boundaries_then_four_list_program_traces": {
-      "pid": 62773,
-      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py",
-      "mode": "native"
-    },
-    "complete_core_measurement": {
-      "pid": 64820,
-      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-map.py",
-      "scope": "Measure the actual combined source independently of the older frozen divider fit"
-    }
-  },
+  "live_jobs": {},
   "limitations": [
-    "No source-level fit inference from the frozen 16870-LUT candidate",
+    "Complete core uses 17003 LUTs; this is a separate measurement from the frozen 16870-LUT divider candidate",
     "Selected typed comparisons, not exhaustive semantic coverage",
-    "Complete-top native traces, exact enhanced RTL, map and board qualification remain outstanding"
+    "704 selected boundary witnesses pass, but full list equality fails; candidate not qualified",
+    "Corrected request extraction is a separate candidate requiring fresh semantic and area evidence",
+    "RTL replay, mapped replay and physical board qualification remain outstanding"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/configuration.json": "b29ca36466c18f915a571f2c435aab58a8237c755dd6d766fbe7e329b1c4be00",
@@ -81,7 +71,62 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/frontend-progress.json": "02f288ab58c328b68c4443fc998375e8ae4279bdd45d5c47bfd25d681731b7d6",
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/frontend-check.log": "3189df4733dd75a45bbcae219c6e9816dcd8d3e2f37673c9818af7cb212d61a8",
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/map-launch.json": "cd5918aeea7ff604d6b1f16df27027227d8a5668d0887cee1a2e77aec1390e46",
-    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-map.py": "ed0e82298c5ff7367de1037aa40e6e489c5c77f03fbc1e798a05d1ef18cd9360"
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-map.py": "ed0e82298c5ff7367de1037aa40e6e489c5c77f03fbc1e798a05d1ef18cd9360",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/map-progress.json": "47f84135b1e854bffaecbf1ee640bb03d3059045ba7bd3f625021298512a69d8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/map-driver.log": "1b7c9e8b0208dbe8fd273736788a4ba8aafa934774e3a3cd463c1a433af96051",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/rtl-build-progress.json": "1ab98c9b952ea66b93a663b752e8e110a48f20f3a95107f3275a647ceb89b35c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/baseline-area.json": "e1f6d04b2c4bda522fee91ae9bcd569be67f84fdd7795dc6cf0d20d17d4ef20b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/resources.json": "a958175968378e30d57eeeb6cf13c394ad957b961d9d4f3c869a1a9888374d86",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/provenance.json": "76cd794ccac7f643f08e1c1eb34517cc4c3adb4cf83bc331473924f42c847a61",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/resource-attribution.json": "f0676e534554e4b22cad5d436f153ac4fede79d4ad1967f56faea83f17013191",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/native-progress.json": "97e3060673add15f2ae6d2ff35dd6b817633b0b8109054cfe81370c76ae922dc",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/boundary-check.log": "42830bded49138ff92022a35d8d28f3f4fbef0b9dc8e4750792c917945706e83",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/equal-list-check.log": "32182454159380bc5f732d706748597c2016432fe0409745f82bb601d92d602c"
   },
-  "updated_at_utc": "2026-10-14T03:00:38.200598+00:00"
+  "updated_at_utc": "2026-10-14T05:00:19.813633+00:00",
+  "resources": {
+    "top": "top",
+    "lut": 16677,
+    "lut_memory": 326,
+    "lut_total": 17003,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 6346,
+    "bram18": 21,
+    "bram36": 24,
+    "bram36_equivalent": 34.5,
+    "dsp48": 20,
+    "carry4": 702,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 1,
+      "CARRY4": 702,
+      "DSP48E1": 20,
+      "FDRE": 6346,
+      "INV": 852,
+      "LUT2": 2948,
+      "LUT3": 2743,
+      "LUT4": 2541,
+      "LUT5": 3509,
+      "LUT6": 4936,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "core_LUTs_over_divider_only": 133,
+  "known_semantic_failure": {
+    "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+    "before_commit": 41,
+    "red2_fault": 5,
+    "hardware_fault": 0,
+    "microstate": 3,
+    "program_counter": 62,
+    "cause": "Shared OR request guard omitted, IF path control-stack read requests slot 0 instead of 4",
+    "maintained_source_checkpoint_passed": true
+  }
 }

@@ -22,6 +22,19 @@ cases = json.loads((P / "native-cases.json").read_text())
 if "--integer-corners-only" in sys.argv:
     cases = [c for c in cases if "integer_corner_witness" in c]
     assert len(cases) == 152
+if "--shared-multiply-only" in sys.argv:
+    assert "mul" in m["ops"], "requires the optional shared multiplier"
+    entries = sorted((int(pc), int(state)) for state, pc in m["entry_pc"].items())
+    states = {
+        state
+        for (start, state), (stop, _) in zip(
+            entries, [*entries[1:], (len(m["rows"]), -1)], strict=True
+        )
+        if any(row["op"] == m["ops"]["mul"] for row in m["rows"][start:stop])
+    }
+    assert len(states) == 2, states
+    cases = [case for case in cases if case["state"] in states]
+    assert cases and states == {case["state"] for case in cases}
 if "--scalar-core-only" in sys.argv:
     cases = [c for c in cases if c["state"] == m["scalar_core"]["value"]]
 if "--metadata-core-only" in sys.argv:

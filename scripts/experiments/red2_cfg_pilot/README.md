@@ -525,8 +525,14 @@ All 11 program traces pass RTL replay: **518,097 simulated clocks**, plus
 Mapped-primitive application, lifecycle, division, modulo and large-magnitude
 division also pass. The complete burst board maps to **17,819 LUTs**, 8,543 FF,
 34.5 BRAM36 equivalents and 20 DSPs, saving the same 396 LUTs versus the qualified
-burst image. Placement is running; routed timing and physical qualification
-remain pending. This is not the default board candidate. See
+burst image. It routed at **17,826 physical LUT sites**, with 11.29/11.32 MHz
+core/monitor timing estimates against a 10 MHz target. Actual board application
+replay failed, including a fresh single-clock diagnostic. The complete flattened
+mapped board passes application simulation, its core has identical primitive
+parameters and wiring to the core map, and its LUT truth tables match the FASM.
+The physical failure remains unresolved; the previously qualified burst image
+was restored. This is not the default board candidate. See
+[the failed physical qualification](../../../docs/handoffs/red2-shared-divider-physical-results.json),
 [the integration evidence](../../../docs/handoffs/red2-arithmetic-sharing-integration-results.json),
 [the frozen simulation/fit gate](../../../docs/handoffs/synth-red2-shared-divider-results.json)
 and [resource attribution](../../../docs/handoffs/red2-shared-divider-resource-attribution.json).
@@ -555,7 +561,56 @@ The qualified FPGA image and frozen shared-divider candidate still use their
 older sources. A combined candidate in `build/red2-equality-integrated/shared-divider`
 extracts the new write stage onto the existing dedicated control engine. It
 generates 125 entries and 14,982 compact rows and passes 15,152 typed comparisons
-with mandatory integer corners. Complete-top native validation and exact-source
-enhanced RTL elaboration are running; see
+with mandatory integer corners. Exact enhanced RTL elaboration and core mapping
+complete at **17,003 LUTs**, 6,346 FFs, 34.5 BRAM36 equivalents and 20 DSPs.
+All 704 selected native boundaries and lifecycle checks pass, but full list
+equality fails before commit 41. The shared request extraction bug below is
+responsible; this candidate is not qualified. See
 [the combined candidate record](../../../docs/handoffs/red2-equality-shared-divider-integration-results.json).
-No resource claim for that combined revision is made.
+
+## Shared multiplier and shared request guards
+
+`RED2_CFG_PILOT_SHARED_MULTIPLY=1` appends a low-64-bit product instruction to
+the dedicated control engine. It requires integer JOIN lowering and extraction
+of `MICRO_U64_DIV_FINISH` and `MICRO_JOIN_SCALAR_INT_POW`. Source sign, overflow
+and truncation behavior is preserved. No arithmetic instruction is removed.
+Liveness, ownership, compaction, writeback and native models all recognize the
+new instruction; it has explicit scratch-write enable because its opcode is
+appended after HALT.
+
+The frozen pre-request-fix candidate `e718bd5a...` maps at **15,830 LUTs**,
+6,314 FFs, 34.5 BRAM36 equivalents and 10 DSPs. Compared with the 17,003-LUT
+combined core above, that saves 1,173 LUTs and ten DSPs. It passes 15,504 typed
+comparisons including 112 explicit product witnesses, 123 selected native
+controller witnesses, and 820 complete-top native boundaries plus lifecycle.
+Eleven programs pass native/concrete comparison and RTL replay: **523,584
+simulated cycles**, comparing all 626 exposed output bits each cycle. This
+corpus excludes list equality. See
+[the multiplier evidence](../../../docs/handoffs/red2-shared-multiplier-results.json).
+
+Both frozen candidates fail an independent reachable equality checkpoint:
+an IF path read requests control-stack slot 0 instead of slot 4. The old request
+extractor treated an `or` guard as one state name, dropping both alternatives.
+This also affects structure preflight/rewrite request guards. The extractor now
+expands shared guards and merges request blocks in source order; integration
+removes only selected alternatives. Mixed guards require explicit specialized
+lowering. Source-based regressions cover both IF paths and all six shared
+structure requests. `check_integrated.py --equality-checkpoint` constructs the
+reachable state before commit 41 with Concrete RED2, loads it through public
+ports, and compares the next commit's architectural fields and every graph and
+control word. It can record an RTL replay trace through the usual trace option.
+
+Corrected candidates use a fresh output root. Earlier area and passing test
+counts remain evidence only for their frozen sources; the request fix requires
+new semantic validation and area measurement before promotion. Simulation
+cycles include setup and observation commands and are not reductions or a
+performance benchmark. Physical burst replay compares packet endpoints,
+whereas the RTL corpus above compares every simulated cycle.
+
+The fresh corrected source `89c7712c...` passes 15,504 typed comparisons
+including the product corners. The reachable equality checkpoint now passes
+in native hardware-source simulation: 61,871 simulated cycles including public
+setup and full memory readback. All architectural fields and all 256 graph and
+256 control words match Concrete RED2 at that next commit. Full program and
+RTL validation, mapping, routing and physical qualification remain separate.
+See [the corrected request evidence](../../../docs/handoffs/red2-shared-request-guards-results.json).

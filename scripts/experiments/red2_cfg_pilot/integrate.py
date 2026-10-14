@@ -180,14 +180,12 @@ for n in fn.body:
             isinstance(x, ast.If) and ast.unparse(x.test) == "micro_is_lambda_read"
             for x in n.body
         ):
+            from request_arms import retain_unselected
+
             n.body = [
-                x
+                retained
                 for x in n.body
-                if not (
-                    isinstance(x, ast.If)
-                    and "MICRO_" + ast.unparse(x.test).removeprefix("micro_is_").upper()
-                    in selected_names
-                )
+                if (retained := retain_unselected(x, selected_names)) is not None
             ]
             req_execute = next(
                 x

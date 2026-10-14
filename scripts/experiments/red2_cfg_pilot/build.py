@@ -19,8 +19,10 @@ from paths import (
     REVERSE_CONTROL,
     ROOT,
     SCALAR_CORE,
+    SHARED_MULTIPLY,
     SPARSE_PUBLICATION,
 )
+from request_arms import extract as extract_request_arms
 
 SOURCE = ROOT / "src/machines/synthesizable_red2_machine/machine.py"
 source = SOURCE.read_text()
@@ -212,11 +214,11 @@ request_parent = next(
         for c in x.body
     )
 )
-requests = {
-    ast.unparse(x.test).removeprefix("micro_is_"): x.body
-    for x in request_parent.body
-    if isinstance(x, ast.If)
-}
+requests = extract_request_arms(
+    request_parent,
+    selected,
+    {"MICRO_PUB_STACK"} if PUBLICATION_TRANSACTIONS else set(),
+)
 if PUBLICATION_READS:
     requests["pub_exec"] += publication_requests
 if PUBLICATION_TRANSACTIONS:
@@ -323,6 +325,9 @@ OP_NAMES = [
 ]
 if INCLUDE_GRAPH:
     OP_NAMES.insert(OP_NAMES.index("branch"), "ge")
+if SHARED_MULTIPLY:
+    # Append without renumbering the existing immutable control instructions.
+    OP_NAMES.append("mul")
 OP = {n: i for i, n in enumerate(OP_NAMES)}
 rows = []
 slots = {}
@@ -404,9 +409,11 @@ def expr(x, cap=None):
             a = d
         return a
     if isinstance(x, ast.BinOp):
+        assert not isinstance(x.op, ast.Mult) or SHARED_MULTIPLY
         op = {
             ast.Add: "add",
             ast.Sub: "sub",
+            ast.Mult: "mul",
             ast.BitAnd: "and",
             ast.BitOr: "or",
             ast.LShift: "shl",
@@ -422,14 +429,16 @@ def expr(x, cap=None):
         # bits. Right shifts and comparisons must retain their full operands.
         child_cap = (
             width
-            if isinstance(x.op, (ast.Add, ast.Sub, ast.BitAnd, ast.BitOr, ast.LShift))
+            if isinstance(
+                x.op, (ast.Add, ast.Sub, ast.Mult, ast.BitAnd, ast.BitOr, ast.LShift)
+            )
             else None
         )
         a = expr(x.left, child_cap)
         b = expr(
             x.right,
             child_cap
-            if isinstance(x.op, (ast.Add, ast.Sub, ast.BitAnd, ast.BitOr))
+            if isinstance(x.op, (ast.Add, ast.Sub, ast.Mult, ast.BitAnd, ast.BitOr))
             else None,
         )
         d = temp()
@@ -702,6 +711,7 @@ for start, end in zip(starts, [*starts[1:], len(rows)], strict=True):
             for n in (
                 "add",
                 "sub",
+                "mul",
                 "and",
                 "or",
                 "eq",

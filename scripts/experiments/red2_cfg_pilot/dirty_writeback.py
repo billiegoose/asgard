@@ -62,6 +62,7 @@ def constant_writes(manifest):
                         value = {
                             "add": operator.add,
                             "sub": operator.sub,
+                            "mul": operator.mul,
                             "and": operator.and_,
                             "or": operator.or_,
                             "eq": operator.eq,

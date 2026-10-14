@@ -101,6 +101,7 @@ def model(values, state, response):
                 v = {
                     "add": operator.add,
                     "sub": operator.sub,
+                    "mul": operator.mul,
                     "and": operator.and_,
                     "or": operator.or_,
                     "eq": operator.eq,
@@ -127,6 +128,46 @@ cases = []
 coverage = {}
 typed_comparisons = 0
 integer_corners = []
+multiply_corners = {}
+if "--shared-multiply-corners" in sys.argv:
+    assert "mul" in ops
+    products = [
+        (0, 0),
+        (0, mask64),
+        (1, mask64),
+        (1 << 63, 1),
+        ((1 << 32) + 1, (1 << 32) + 1),
+        (mask64, mask64),
+        (7, 3),
+    ]
+    multiply_corners[ref.MICRO_U64_DIV_FINISH] = [
+        {
+            "u64_div_resume_kind": ref.U64_DIV_RESUME_SCALAR_MUL,
+            "u64_div_aux": a,
+            "u64_div_divisor": b,
+            "u64_div_quotient": mask64,
+            "u64_div_flags": flags,
+            "join_scalar_return_ep": ep,
+        }
+        for a, b in products
+        for flags in range(4)
+        for ep in (0, 1)
+    ]
+    multiply_corners[ref.MICRO_JOIN_SCALAR_INT_POW] = [
+        {
+            "join_scalar_int_pow_magnitude": a,
+            "join_scalar_int_pow_base": b,
+            "join_scalar_int_pow_bound": mask64,
+            "join_scalar_int_pow_remaining": remaining,
+            "join_scalar_int_pow_negative": negative,
+            "join_scalar_return_ep": ep,
+        }
+        for a, b in products
+        for remaining in (1, 2)
+        for negative in (0, 1)
+        for ep in (0, 1)
+    ]
+    assert {str(state) for state in multiply_corners} <= set(m["entry_pc"])
 if "--integer-corners" in sys.argv:
     assert "integer_joins" in m
     for op in ("DEC", "INC", "NEGATE", "ABS", "FLOOR", "CEILING"):
@@ -164,7 +205,8 @@ for state in m["entry_pc"]:
         if int(state) in {ref.MICRO_JOIN_PUBLISH, ref.MICRO_JOIN_EP_RESULT_WRITE}
         else []
     )
-    for trial in range(120 + len(corners)):
+    products = multiply_corners.get(int(state), [])
+    for trial in range(120 + len(corners) + len(products)):
         values = {}
         for key in state_keys:
             w = widths[key]
@@ -268,7 +310,7 @@ for state in m["entry_pc"]:
                 reverse_control_witness = trial
         metadata_launch_witness = None
         integer_corner_witness = None
-        if trial >= 120:
+        if 120 <= trial < 120 + len(corners):
             op, opcode, kind, payload = corners[trial - 120]
             values = {k: 0 for k in state_keys}
             values.update(
@@ -359,6 +401,12 @@ for state in m["entry_pc"]:
             kind = ref.DATA_LITERAL_ID if opcode == ref.MOP_STRUCT else ref.DATA_SIGNED
             response[1] = (1 << 26) | (opcode << 21) | (1 << 20) | (kind << 17)
             launch_witness = trial
+        multiply_corner_witness = None
+        if trial >= 120 + len(corners):
+            multiply_corner_witness = trial - 120 - len(corners)
+            values = {key: 0 for key in state_keys}
+            values["microstate"] = int(state)
+            values.update(products[multiply_corner_witness])
         original = sim_call(
             getattr(
                 ref,
@@ -400,6 +448,8 @@ for state in m["entry_pc"]:
             candidates[-1]["metadata_launch_witness"] = metadata_launch_witness
         if integer_corner_witness is not None:
             candidates[-1]["integer_corner_witness"] = integer_corner_witness
+        if multiply_corner_witness is not None:
+            candidates[-1]["multiply_corner_witness"] = multiply_corner_witness
         typed_comparisons += 1
     covered = set()
     witnesses = []
@@ -449,6 +499,15 @@ for state in m["entry_pc"]:
                 selected.pop("trace")
                 witnesses.append(selected)
     for candidate in candidates:
+        if "multiply_corner_witness" in candidate and not any(
+            witness.get("multiply_corner_witness")
+            == candidate["multiply_corner_witness"]
+            for witness in witnesses
+        ):
+            covered |= candidate["trace"]
+            selected = candidate.copy()
+            selected.pop("trace")
+            witnesses.append(selected)
         if "reverse_control_witness" in candidate:
             selected = candidate.copy()
             selected.pop("trace")

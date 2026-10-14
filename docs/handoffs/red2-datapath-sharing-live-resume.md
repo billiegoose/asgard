@@ -1,5 +1,53 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Latest checkpoint: shared multiplier and request extraction (2026-10-14)
+
+This section supersedes the historical process and board-load statuses below.
+The last confirmed FPGA load is the qualified f97 burst image, bitstream
+`5e88122cefd085717d63258192d5fd60f3b9ab10e2ed8bc0e71d5c088b8a8df5`.
+The divider-only board routes at 17,826 physical LUT sites and passes 10 MHz
+timing, but physical application replay fails. The earlier image was restored.
+Flattened mapped-board application simulation, exact mapped-core identity and
+22,653 LUT truth-table checks pass; the downstream physical fault is unresolved.
+See [the physical failure record](red2-shared-divider-physical-results.json).
+
+The optional shared multiplier plus extracted finish/power handlers maps the
+combined semantic core from 17,003 to 15,830 LUTs and from 20 to ten DSPs.
+This frozen `e718bd5a...` source passes 15,504 typed comparisons, 123 selected
+native controller witnesses, 820 native boundary/lifecycle witnesses and 11
+native/concrete programs with 523,584 RTL cycles, all 626 output bits compared
+per cycle. No new FPGA qualification follows from those simulation results.
+See [the multiplier record](red2-shared-multiplier-results.json).
+
+An independent list-equality checkpoint fails in both the combined baseline
+`202f7182...` and multiplier candidate. The maintained source passes the same
+checkpoint. Root cause: RAM request extraction keyed a shared `or` predicate
+as one state name, omitting the IF path request. It read stack slot 0 (saved
+quantum) instead of slot 4 (address). Shared structure request guards were also
+affected. `request_arms.py` now expands shared alternatives, merges request
+blocks in source order and preserves unselected alternatives in integration.
+Source-based pytest regressions cover both IF paths, six structure paths,
+ordered blocks, residual guards and rejection of unsupported mixed/else guards.
+
+The corrected shared-multiplier source is frozen separately at
+`build/red2-request-guards/shared-multiply`, SHA256
+`89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94`.
+Its generation, checkpoint and map receipts live there; do not reuse the old
+15,830-LUT measurement as a measurement of this fix. The durable focused gate
+is `check_integrated.py --equality-checkpoint`; full programs, exact-source RTL
+replay, boundary/lifecycle and physical qualification remain required.
+The corrected checkpoint now passes: 61,871 native simulated cycles including
+setup/readback, with next-commit architecture and all graph/control words
+matching Concrete RED2. Corrected typed validation passes 15,504 comparisons.
+See [the request-fix evidence](red2-shared-request-guards-results.json).
+
+Compiler launchers now bootstrap installed setuptools' `distutils` compatibility
+instead of depending on `/tmp/red2-python-shims`, which disappeared during an
+earlier corpus run. The pinned enhanced compiler is unchanged. That bootstrap
+failure ran no hardware clocks; the remaining four corpus cases subsequently
+passed. Native gate output now explicitly labels simulated clocks and the
+environment. Cycles include setup/observation and do not count RED2 reductions.
+
 The user explicitly redirected effort from physical RAM staging to a substantial
 source-level datapath-sharing pass. Continue this pass through validation,
 measurement, commit and push. Do not resume the old blanket RAM-stage route.

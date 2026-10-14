@@ -14,7 +14,7 @@ import pypeline
 
 # Simulation creates a fresh immutable C type descriptor for every bit slice.
 # Intern descriptors by their exact name to avoid millions of duplicate Python
-# classes during long physical-clock runs. No compiler/source/RTL is modified.
+# classes during long simulated-clock runs. No compiler/source/RTL is modified.
 from native_runtime import cache_scalar_types
 
 cache_scalar_types(pypeline)
@@ -39,16 +39,16 @@ if os.environ.get("RED2_CFG_PILOT_TRACE"):
         return out
 
 
-physical_clocks = 0
+simulated_clocks = 0
 admitted = 0
 max_latency = 0
 
 
 def call(fn, command):
-    global physical_clocks, admitted, max_latency
+    global simulated_clocks, admitted, max_latency
     out = raw(fn, command)
     if fn is hw.SynthesizableRED2Machine:
-        physical_clocks += 1
+        simulated_clocks += 1
         if int(out.busy):
             assert int(command.op) in {
                 hw.CMD_CLOCK,
@@ -61,14 +61,14 @@ def call(fn, command):
                 assert not int(out.committed)
                 advance = hw.red2_command_t(**{**command._asdict(), "op": hw.CMD_CLOCK})
                 out = raw(fn, advance)
-                physical_clocks += 1
+                simulated_clocks += 1
                 if not int(out.busy):
                     max_latency = max(max_latency, cycles + 2)
                     if admitted % 25 == 0:
                         print(
                             "INTEGRATED_PROGRESS",
                             admitted,
-                            physical_clocks,
+                            simulated_clocks,
                             "max_latency",
                             max_latency,
                             flush=True,
@@ -80,7 +80,7 @@ def call(fn, command):
 
 
 pypeline.sim_call = call
-import check_syn_sim as suite  # noqa: E402 -- install physical-clock adapter first
+import check_syn_sim as suite  # noqa: E402 -- install simulated-clock adapter first
 
 
 def application_smoke():
@@ -110,6 +110,68 @@ def single_program():
     print("INTEGRATED_PROGRAM_PASS", source, flush=True)
 
 
+def equality_checkpoint():
+    """Replay the saved IF transition that previously requested stack slot zero.
+
+    Construct its reachable starting state using Concrete RED2, then load it
+    through the public hardware ports. This isolates commit 41 without replaying
+    the long hardware prefix. Full-program validation remains a separate gate.
+    """
+    source = "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))"
+    action, definitions = suite._prepare_thor_program(source)
+    machine = suite.load_faithful_machine(
+        action,
+        quantum=2000,
+        definitions=definitions,
+        memory_words=256,
+        control_words=256,
+    )
+    codec = suite.RED2ABICodec()
+    image = codec.encode_program(machine)
+    metadata = suite._program_literal_metadata(codec, image.struct_selectors)
+    processor = suite.ConcreteRED2Machine(
+        image.state, **suite._program_concrete_kwargs(codec, image, metadata)
+    )
+    for _ in range(40):
+        assert processor.run_to_commit(), processor.fault
+    before = processor.checkpoint()
+    assert processor.run_to_commit(), processor.fault
+    expected = processor.checkpoint()
+    suite._load_program_hardware(before, metadata)
+    for _logical in range(1024):
+        result = suite.sim_call(
+            hw.SynthesizableRED2Machine, suite._command(hw.CMD_CLOCK)
+        )
+        assert int(result.status) != hw.STATUS_FAULT, (
+            "equality checkpoint fault",
+            int(result.red2_fault),
+            int(result.hw_fault),
+        )
+        if int(result.committed):
+            break
+    else:
+        raise AssertionError("equality checkpoint did not commit")
+    suite._assert_scalar_checkpoint(result, expected)
+    assert int(result.status) == processor.status()
+    for address in range(256):
+        result = suite.sim_call(
+            hw.SynthesizableRED2Machine, suite._command(hw.CMD_NOP, address=address)
+        )
+        assert suite._packed_memory_read(result) == expected.memory[address], address
+        assert suite._packed_control_read(result) == expected.control_stack[address], (
+            address
+        )
+    print(
+        "EQUALITY_CHECKPOINT_PARITY_PASS",
+        41,
+        "logical_clocks",
+        _logical + 1,
+        "comparison",
+        "architectural fields and all graph/control RAM words",
+        flush=True,
+    )
+
+
 checks = {
     "--application": application_smoke,
     "--full": suite.check,
@@ -120,6 +182,7 @@ checks = {
     "--closure": suite.check_generic_closure_materialization,
     "--scalar-core": scalar_core_smoke,
     "--program": single_program,
+    "--equality-checkpoint": equality_checkpoint,
 }
 choice = sys.argv[1] if len(sys.argv) > 1 else "--full"
 assert choice in checks
@@ -130,8 +193,10 @@ if trace is not None:
 print(
     "INTEGRATED_NATIVE_PARITY_PASS",
     choice,
-    "physical_clocks",
-    physical_clocks,
+    "environment",
+    "native_hardware_source_simulation",
+    "simulated_clocks",
+    simulated_clocks,
     "admitted",
     admitted,
     "max_latency",

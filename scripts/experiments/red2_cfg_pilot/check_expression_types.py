@@ -26,6 +26,8 @@ cases = {
     "GRAPH_WORDS - 1": 8,
     "index == count - 1": 1,
     "count - 1 + 1": 18,
+    "word * word": 128,
+    "small * index": 25,
 }
 for text, expected in cases.items():
     width, _ = types.infer(ast.parse(text, mode="eval").body)
@@ -36,6 +38,12 @@ assert index == count - 1, "native narrow subtraction must wrap before compariso
 assert int(count - 1) == (1 << 17) - 1
 assert int(count + index + 1) == 1 << 17
 assert int(count - 1 + 1) == 1 << 17
+assert (
+    int(
+        make_uint_t(64)(make_uint_t(64)((1 << 64) - 1) * make_uint_t(64)((1 << 64) - 1))
+    )
+    == 1
+)
 for amount in (63, 64, 65):
     word = make_uint_t(64)(1)
     assert int(word << amount) == (1 << 63 if amount == 63 else 0)

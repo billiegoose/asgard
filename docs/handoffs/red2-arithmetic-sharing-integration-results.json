@@ -79,10 +79,10 @@
   "complete_core_map_available": true,
   "candidate_loaded_on_board": false,
   "limitations": [
-    "All recorded native, RTL and mapped-primitive simulation gates pass",
-    "Complete board maps 396 LUTs smaller; placement, routing and physical qualification remain outstanding",
-    "The separate qualified burst image remains the last recorded FPGA load",
-    "Frozen divider candidate retains the earlier equality gap; maintained-source equality fix has native parity but separate RTL/board qualification is pending"
+    "All recorded native, RTL and mapped-primitive core gates pass",
+    "Complete board passes fit/routed timing but physical application mismatches; it is not qualified",
+    "The prior qualified burst image is restored on the board",
+    "Frozen divider candidate retains the earlier equality gap; separate maintained-source equality and multiplier candidates are still under validation"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/configuration.json": "f322d34bfc9e71c30137fcef3f63357aa4146c2124a0335ec07a98537b684cce",
@@ -162,7 +162,7 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board-map.log": "7dbc3092de0a9c0946f737056fbf484d7b99849202f91861a2a40f1a0a7e6596",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/provenance.json": "aaac40e15af226002a00c7d0c0b0956a1c866b3d358b63857ead183b516bcf71"
   },
-  "updated_at_utc": "2026-10-14T02:57:40.444000+00:00",
+  "updated_at_utc": "2026-10-14T04:24:47.481922+00:00",
   "complete_core_mapping": {
     "baseline_resources": {
       "top": "top",
@@ -493,8 +493,17 @@
     },
     "mapped_LUT_saving_against_qualified_burst_image": 396,
     "mapped_flipflop_saving": 2,
-    "placement_and_routing_complete": false,
+    "placement_and_routing_complete": true,
     "physical_replay_passed": false,
     "output": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider"
+  },
+  "routed_board_qualification": {
+    "report": "docs/handoffs/red2-shared-divider-physical-results.json",
+    "timing_passed": true,
+    "physical_lut_sites": 17826,
+    "physical_replay_passed": false,
+    "burst_mismatch_clock": 2174,
+    "single_clock_mismatch_clock": 1648,
+    "prior_qualified_image_restored": true
   }
 }

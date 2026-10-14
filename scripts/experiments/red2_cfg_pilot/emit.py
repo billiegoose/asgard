@@ -288,6 +288,16 @@ if "ge" in ops:
         "elif row.op == OP_ge:\n        result = add_wide[64]\n"
         "    elif row.op == OP_and:",
     )
+if "mul" in ops:
+    text = text.replace(
+        "    elif row.op == OP_and:",
+        "    elif row.op == OP_mul:\n        result = a * b\n"
+        "    elif row.op == OP_and:",
+    )
+    text = text.replace(
+        "sr.wr_en = row.op < OP_branch or row.op == OP_response",
+        "sr.wr_en = row.op < OP_branch or row.op == OP_response or row.op == OP_mul",
+    )
 if compact:
     # Branch true targets are fall-through; only false targets need storage.
     # Control fields share packed bits because their uses are disjoint by op.

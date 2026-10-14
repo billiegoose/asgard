@@ -58,9 +58,9 @@ class ExpressionTypes:
                 value = self.constant(node)
                 assert value >= 0, "negative constant expression needs signed support"
                 return max(1, value.bit_length()), True
-            if isinstance(node.op, (ast.Add, ast.Sub)):
+            if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult)):
                 _, _, result = arith_result_type(
-                    "add" if isinstance(node.op, ast.Add) else "sub",
+                    {ast.Add: "add", ast.Sub: "sub", ast.Mult: "mul"}[type(node.op)],
                     make_uint_t(lw),
                     make_uint_t(rw),
                 )

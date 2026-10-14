@@ -17,6 +17,7 @@ def allocate(m):
         for n in (
             "add",
             "sub",
+            "mul",
             "and",
             "or",
             "eq",

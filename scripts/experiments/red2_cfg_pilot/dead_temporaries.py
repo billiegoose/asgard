@@ -7,6 +7,7 @@ def eliminate(m):
         "copy",
         "add",
         "sub",
+        "mul",
         "and",
         "or",
         "eq",
@@ -32,6 +33,7 @@ def eliminate(m):
         for n in (
             "add",
             "sub",
+            "mul",
             "and",
             "or",
             "eq",
