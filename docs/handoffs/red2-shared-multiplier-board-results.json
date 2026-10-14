@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-14T07:20:05.910429+00:00",
+  "recorded_at_utc": "2026-10-14T07:40:05.464093+00:00",
   "scope": "Complete mapped, placed, routed and timing-passing shared-multiplier board; physical replay results and observation scopes below",
   "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
   "frozen_fit_gate": "docs/handoffs/synth-red2-shared-multiplier-results.json",
@@ -109,7 +109,7 @@
   "target_clock_mhz": 10,
   "built": true,
   "loaded_on_board": true,
-  "qualified_on_hardware": false,
+  "qualified_on_hardware": true,
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/provenance.json": "f86f595235d4d33dcd9bc06e72ba77a621f5093930215bcdc1dc9ef3d4b77853",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/board-resources.json": "a21019f02cc331972643893a38162f94507d2d064019c904dea57016f20cb918",
@@ -164,9 +164,15 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/load-observed-divide-high-magnitude-result.json": "35a239432b30f1385493394992357b5f3a9dc074c5a88c28a69b44dba92dd28e",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-divide-high-magnitude-burst-result.json": "5079dd80204710936fe864b2bc03ce1ed1dd2a4a0cef59cc29df7769f2d47354",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/load-observed-unequal-list-result.json": "32d1c70b5944df53efb6817715c2729e58b38c877d598e9530c4739f8ef9b256",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-unequal-list-burst-result.json": "b1e70e074a95158d6faf8d1250b727fafc7156cd82e211bb49eccd3e9805fb50"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-unequal-list-burst-result.json": "b1e70e074a95158d6faf8d1250b727fafc7156cd82e211bb49eccd3e9805fb50",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-corpus-qualification.json": "a17c77e78d555ae1d0cbfae32c2f86c437b63bd3da8c378a940d7a2c2e664503",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/load-observed-equal-nested-result.json": "d500401fb2d3aca756ea17a5a4f98b1f5721e4846d31c6dffb050709a047daf1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-equal-nested-burst-result.json": "db2f7bfa27a330c3fa814ed9e01722669fc9fd99d983ef6b649d2c0ef82ecd81",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/load-observed-unequal-nested-result.json": "e3fb13e0d90918e1cd8b578e7039563ffb033bd0b5e09f903a2b54526fc9b61e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/observed-unequal-nested-burst-result.json": "ac355d77d3de3150d8c833b118b12879791cd506c0d69476cb05af6dac7fc3f0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/trace-command-counts.json": "01993bca9889b9553765d68f956c96f958e3959c2f069ddbe8dcf5ee30314310"
   },
-  "qualification_scope": "Passed cases listed here only; remaining physical corpus still in progress",
+  "qualification_scope": "All 15 recorded full programs, lifecycle and equality checkpoint; all 626 public bits at burst packet endpoints only",
   "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
   "physical_lut_sites": {
     "placed_netlist_sha256": "8d89b5d9e1db2b5ed1db8a92a602a2d3be760a0346a7b8b44881e051697de332",
@@ -309,7 +315,9 @@
     "exponent",
     "multiply-signed-min",
     "divide-high-magnitude",
-    "unequal-list"
+    "unequal-list",
+    "equal-nested",
+    "unequal-nested"
   ],
   "physical_application_result": {
     "port": "/dev/cu.usbserial-2101837357871",
@@ -511,17 +519,277 @@
         "label": "equal-nested",
         "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
         "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.txt",
-        "passed": false,
-        "state": "waiting for semantic trace gate"
+        "passed": true,
+        "state": "passed",
+        "vectors_sha256": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887",
+        "metadata_sha256": "d99cdf77a520db807c76c39b34af4776d9ba42cd33f41bcf097acefa578ac029",
+        "expected_output_origin": "Verilator RTL simulation",
+        "expected_clocks": 1380140,
+        "expected_packet_endpoints": 1841,
+        "load_result_sha256": "d500401fb2d3aca756ea17a5a4f98b1f5721e4846d31c6dffb050709a047daf1",
+        "pid": 51970,
+        "returncode": 0,
+        "result_sha256": "db2f7bfa27a330c3fa814ed9e01722669fc9fd99d983ef6b649d2c0ef82ecd81",
+        "finished_at_utc": "2026-10-14T07:28:09.001861+00:00"
+      },
+      {
+        "label": "unequal-nested",
+        "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.txt",
+        "passed": true,
+        "state": "passed",
+        "vectors_sha256": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29",
+        "metadata_sha256": "81b5402c86534dae408e276309055d5bd7ccdc7d4d823fc275697f30f929398d",
+        "expected_output_origin": "Verilator RTL simulation",
+        "expected_clocks": 1210699,
+        "expected_packet_endpoints": 1807,
+        "load_result_sha256": "e3fb13e0d90918e1cd8b578e7039563ffb033bd0b5e09f903a2b54526fc9b61e",
+        "pid": 55248,
+        "returncode": 0,
+        "result_sha256": "ac355d77d3de3150d8c833b118b12879791cd506c0d69476cb05af6dac7fc3f0",
+        "finished_at_utc": "2026-10-14T07:38:25.074494+00:00"
       }
     ],
-    "passed": false
+    "passed": true,
+    "finished_at_utc": "2026-10-14T07:38:25.079285+00:00"
   },
-  "total_passed_executed_clocks": 2040220,
-  "total_passed_compared_packet_endpoints": 19230,
+  "total_passed_executed_clocks": 4631059,
+  "total_passed_compared_packet_endpoints": 22878,
   "passed_comparison_scope": "All 626 public bits at packet endpoints; intermediate burst cycles not individually observed",
   "passed_expected_output_origins": [
     "Verilator RTL simulation",
     "native hardware-source simulation (legacy trace)"
-  ]
+  ],
+  "trace_command_distribution": {
+    "scope": "Command opcode distribution in completed physical test input traces; includes setup, reduction clocks and debug/readback operations; not a maximum-frequency or cycles-per-language-reduction benchmark",
+    "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "cases": [
+      {
+        "label": "application",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "total_trace_clocks": 10688,
+        "command_counts": {
+          "NOP": 1040,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 9340,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427"
+      },
+      {
+        "label": "lifecycle",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "total_trace_clocks": 1043,
+        "command_counts": {
+          "NOP": 9,
+          "RESET": 3,
+          "START": 2,
+          "CLOCK": 1028,
+          "LOAD_STATE": 1
+        },
+        "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5"
+      },
+      {
+        "label": "signed-multiply",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "total_trace_clocks": 46855,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 45491,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8"
+      },
+      {
+        "label": "equality-checkpoint",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "total_trace_clocks": 61871,
+        "command_counts": {
+          "NOP": 512,
+          "LOAD_MEMORY": 256,
+          "LOAD_CONTROL": 6,
+          "CLOCK": 61045,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34"
+      },
+      {
+        "label": "equal-list",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "total_trace_clocks": 811553,
+        "command_counts": {
+          "NOP": 1270,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 809975,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "58b8d79b8713601fc381cb80e07742d838511e370688bdce7e7ef55048459c08"
+      },
+      {
+        "label": "structure",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 124293,
+        "command_counts": {
+          "NOP": 1114,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 122871,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "69cd6949305016d3335bcbd78d384069f909c9b9e7f89d273d5efdf4992a9d25"
+      },
+      {
+        "label": "add",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 26365,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 25001,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "d0565bc1ac18b68506ec94b02fc0e12469025918b5c3f238aa47384e1eb4a647"
+      },
+      {
+        "label": "signed-add",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 26365,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 25001,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "fde0d683a3729d210e132c5bf0f1486d64c80d2ed3605b09c5fb09b106f55ad2"
+      },
+      {
+        "label": "even-negative",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 44745,
+        "command_counts": {
+          "NOP": 1042,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 43395,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "ef9c2398a06d89af3f172f43345d793893bd1ab2f9fd00fb454cfe032a48d575"
+      },
+      {
+        "label": "divide",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 47108,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 45744,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "af46023854a16f90a8dd223d31242980042d89e559697cca667b906c78af0eaf"
+      },
+      {
+        "label": "modulo",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 52241,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 50877,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "9d4a496e1e9430e7f80c0013b31a0edd1ee10ce6fe7d23d1f0cf259eeae2a255"
+      },
+      {
+        "label": "exponent",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 51368,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 50004,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "c59269ddae5d9719217e8a879ef575d82d4c720a793517887a112d8346959f15"
+      },
+      {
+        "label": "multiply-signed-min",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 46501,
+        "command_counts": {
+          "NOP": 1056,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 45137,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "4ea49c8bd26760484ed8bed1720d0c340e3a75e1795e046a58c716ce16a40f3f"
+      },
+      {
+        "label": "divide-high-magnitude",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 47088,
+        "command_counts": {
+          "NOP": 1054,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 45726,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "e632dc87934164f6604008509482f119eb4abb6e35ad93d9c5011d68d2427dd9"
+      },
+      {
+        "label": "unequal-list",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 642136,
+        "command_counts": {
+          "NOP": 1244,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 640584,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885"
+      },
+      {
+        "label": "equal-nested",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 1380140,
+        "command_counts": {
+          "NOP": 1444,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 1378388,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887"
+      },
+      {
+        "label": "unequal-nested",
+        "expected_output_origin": "Verilator RTL simulation",
+        "total_trace_clocks": 1210699,
+        "command_counts": {
+          "NOP": 1418,
+          "LOAD_MEMORY": 256,
+          "CLOCK": 1208973,
+          "LOAD_STATE": 1,
+          "LOAD_LITERAL_META": 51
+        },
+        "vectors_sha256": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29"
+      }
+    ],
+    "total_trace_clocks": 4631059,
+    "total_CLOCK_commands": 4608580,
+    "other_setup_control_NOP_commands": 22479
+  },
+  "preferred_fallback_for_future_experiments": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e"
 }

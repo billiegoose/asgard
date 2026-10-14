@@ -51,11 +51,242 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/vectors.json": "8db51c6ad558d368c2b985b3e4134e87de23c07f76b0603599b31c7234f42a45",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/check.log": "e91012fc2ce9b7664d2303544e71c1fde52e5afdcab798f21324c023c7810f5b",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/origin-parity-result.json": "a82a61412dd055dbcc8fc51f7cac171bfdc8bd27ed2083f26e959aaa0854d14c",
-    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/host.py": "12f4f3f2742a98a459a8674e66068a75542eb574717feff01a208256aa71fd61",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/host.py": "af53303efaca99f5106b73e2e8e1e172c6050a423a12868ed62b63c66148eb20",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_integrated.py": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/rtl_interactive.py": "a0bf08da5ed0e6f0ba21bf3e56b8e7f5755216a79f7202a880dacc4274571697",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/rtl_trace.py": "814ea88b4c26b52e7057ade2f138b40c0614056cda7136d68b434b8dccc55488",
     "/Users/billie/code/billiegoose/asgard/tests/test_red2_rtl_port_layout.py": "0aa0e2eb8f9b1dd8e5ff63bc29a6792ae9118401e9833f93cda45176663e852b",
-    "/Users/billie/code/billiegoose/asgard/tests/test_red2_trace_origins.py": "5039cef95fb0da77bf27ed6025090161a5b3c58368f968d2d9e84b20be386f12"
-  }
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_trace_origins.py": "5039cef95fb0da77bf27ed6025090161a5b3c58368f968d2d9e84b20be386f12",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-structure/vectors.txt": "69cd6949305016d3335bcbd78d384069f909c9b9e7f89d273d5efdf4992a9d25",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-structure/vectors.json": "362a2c0722e4583987b411175d27ce228d52c473ffeb256ba03098c190f9d6d0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-add/vectors.txt": "d0565bc1ac18b68506ec94b02fc0e12469025918b5c3f238aa47384e1eb4a647",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-add/vectors.json": "e53d53cc3620ce56963e836364a12651aab194cc4ff20b02ac3d5edf4b5621d8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-signed-add/vectors.txt": "fde0d683a3729d210e132c5bf0f1486d64c80d2ed3605b09c5fb09b106f55ad2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-signed-add/vectors.json": "f8e200322624d73b5c435c9388faa054734f4d44e3593091aab7eb0da96da619",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-even-negative/vectors.txt": "ef9c2398a06d89af3f172f43345d793893bd1ab2f9fd00fb454cfe032a48d575",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-even-negative/vectors.json": "33858e4897774f4cec295ed8f137f76b35138bb96c738e8e3f7e3825543883d3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide/vectors.txt": "af46023854a16f90a8dd223d31242980042d89e559697cca667b906c78af0eaf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide/vectors.json": "0d262e20735904f47bd7e32dfa156e346ec72d34a07faaaf4ea8ee30d3c1811c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-modulo/vectors.txt": "9d4a496e1e9430e7f80c0013b31a0edd1ee10ce6fe7d23d1f0cf259eeae2a255",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-modulo/vectors.json": "559209d10e59b680bc9a2fbe2d8e84d784163559fe8ac8cc4494186d42c7d93e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-exponent/vectors.txt": "c59269ddae5d9719217e8a879ef575d82d4c720a793517887a112d8346959f15",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-exponent/vectors.json": "a50f6b32c9b28fb2803a0e056c1d9ed63027bcc399d4cf3443f23e49f8540c57",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-multiply-signed-min/vectors.txt": "4ea49c8bd26760484ed8bed1720d0c340e3a75e1795e046a58c716ce16a40f3f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-multiply-signed-min/vectors.json": "f27a11c4c3b70bc12c7633344badba5e0e7e30c344317518c7cfc70849b601e1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide-high-magnitude/vectors.txt": "e632dc87934164f6604008509482f119eb4abb6e35ad93d9c5011d68d2427dd9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide-high-magnitude/vectors.json": "449e150102bf1ece1e45e78642bdebe5d0373cedf32486cfdfc25eb8e63996a8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/vectors.txt": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/vectors.json": "54ab0a10d545aa72179502bf5936809fd044aa241ae2d597017e210379d511d1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.txt": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.json": "d99cdf77a520db807c76c39b34af4776d9ba42cd33f41bcf097acefa578ac029",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.txt": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.json": "81b5402c86534dae408e276309055d5bd7ccdc7d4d823fc275697f30f929398d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observation-corpus-progress.json": "943a9d6b2ce3e27837c7614df7d23bcbb9f822eb70b807f0528dca854e123ca5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/origin-parity-result.json": "47ea04a578e7668ce014aecba2fcc135f0cf61303b22ad707dbd5068a7b95390"
+  },
+  "updated_at_utc": "2026-10-14T07:42:39.430376+00:00",
+  "completed_additional_program_observations": {
+    "scope": "Record frontend Verilator observations only after successful Concrete RED2 comparison at every commit, final full graph/control RAM comparison and HALTED termination; not native expected outputs; no FPGA programming",
+    "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "checker_sha256": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
+    "started_at_utc": "2026-10-14T07:04:22.851151+00:00",
+    "programs": [
+      {
+        "label": "structure",
+        "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+        "passed": true,
+        "pid": 44027,
+        "returncode": 0,
+        "simulated_clocks": 124293,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-structure/vectors.txt",
+        "vectors_sha256": "69cd6949305016d3335bcbd78d384069f909c9b9e7f89d273d5efdf4992a9d25",
+        "metadata_sha256": "362a2c0722e4583987b411175d27ce228d52c473ffeb256ba03098c190f9d6d0",
+        "log_sha256": "4b2819e3158b5a29f3d2a3f6085d70dab2f7169764ab418e9fa8e260fa862eec"
+      },
+      {
+        "label": "add",
+        "program": "(+ 7 8)",
+        "passed": true,
+        "pid": 44172,
+        "returncode": 0,
+        "simulated_clocks": 26365,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-add/vectors.txt",
+        "vectors_sha256": "d0565bc1ac18b68506ec94b02fc0e12469025918b5c3f238aa47384e1eb4a647",
+        "metadata_sha256": "e53d53cc3620ce56963e836364a12651aab194cc4ff20b02ac3d5edf4b5621d8",
+        "log_sha256": "ce2c5407e18c698e3dcdca2ca0108ce9f574313617b29d5235797c4746d32530"
+      },
+      {
+        "label": "signed-add",
+        "program": "(+ -9223372036854775808 1)",
+        "passed": true,
+        "pid": 44216,
+        "returncode": 0,
+        "simulated_clocks": 26365,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-signed-add/vectors.txt",
+        "vectors_sha256": "fde0d683a3729d210e132c5bf0f1486d64c80d2ed3605b09c5fb09b106f55ad2",
+        "metadata_sha256": "f8e200322624d73b5c435c9388faa054734f4d44e3593091aab7eb0da96da619",
+        "log_sha256": "73c78c8d8d586273d07fcab5c5552505dfaf7ed624ca536ace4e0fc47af910d9"
+      },
+      {
+        "label": "even-negative",
+        "program": "(EVEN? -2)",
+        "passed": true,
+        "pid": 44271,
+        "returncode": 0,
+        "simulated_clocks": 44745,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-even-negative/vectors.txt",
+        "vectors_sha256": "ef9c2398a06d89af3f172f43345d793893bd1ab2f9fd00fb454cfe032a48d575",
+        "metadata_sha256": "33858e4897774f4cec295ed8f137f76b35138bb96c738e8e3f7e3825543883d3",
+        "log_sha256": "43ca8fcbaf56c89d19a4256aac94fab711dc53277eddc3fed401287d5f5b25a9"
+      },
+      {
+        "label": "divide",
+        "program": "(/ -6 2)",
+        "passed": true,
+        "pid": 44300,
+        "returncode": 0,
+        "simulated_clocks": 47108,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide/vectors.txt",
+        "vectors_sha256": "af46023854a16f90a8dd223d31242980042d89e559697cca667b906c78af0eaf",
+        "metadata_sha256": "0d262e20735904f47bd7e32dfa156e346ec72d34a07faaaf4ea8ee30d3c1811c",
+        "log_sha256": "480185e6f2052a2bd72890a30c366e6481f8379a573eb73eefbacfaee03900a4"
+      },
+      {
+        "label": "modulo",
+        "program": "(MOD -7 3)",
+        "passed": true,
+        "pid": 44378,
+        "returncode": 0,
+        "simulated_clocks": 52241,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-modulo/vectors.txt",
+        "vectors_sha256": "9d4a496e1e9430e7f80c0013b31a0edd1ee10ce6fe7d23d1f0cf259eeae2a255",
+        "metadata_sha256": "559209d10e59b680bc9a2fbe2d8e84d784163559fe8ac8cc4494186d42c7d93e",
+        "log_sha256": "c9698d1e89fe410bfe09448e50f001711f545140ca13bdbafde9d17f47f4a683"
+      },
+      {
+        "label": "exponent",
+        "program": "(EXPT -2 3)",
+        "passed": true,
+        "pid": 44439,
+        "returncode": 0,
+        "simulated_clocks": 51368,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-exponent/vectors.txt",
+        "vectors_sha256": "c59269ddae5d9719217e8a879ef575d82d4c720a793517887a112d8346959f15",
+        "metadata_sha256": "a50f6b32c9b28fb2803a0e056c1d9ed63027bcc399d4cf3443f23e49f8540c57",
+        "log_sha256": "02176688c854993325784726e5218bc27abfdd17990b3a60934640f8a96507d9"
+      },
+      {
+        "label": "multiply-signed-min",
+        "program": "(* -9223372036854775808 1)",
+        "passed": true,
+        "pid": 44505,
+        "returncode": 0,
+        "simulated_clocks": 46501,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-multiply-signed-min/vectors.txt",
+        "vectors_sha256": "4ea49c8bd26760484ed8bed1720d0c340e3a75e1795e046a58c716ce16a40f3f",
+        "metadata_sha256": "f27a11c4c3b70bc12c7633344badba5e0e7e30c344317518c7cfc70849b601e1",
+        "log_sha256": "22098173fc8acf1472a9ad467923c99e4583a58f03458083333aefdd446bb762"
+      },
+      {
+        "label": "divide-high-magnitude",
+        "program": "(/ -9223372036854775808 -9223372036854775808)",
+        "passed": true,
+        "pid": 45766,
+        "returncode": 0,
+        "simulated_clocks": 47088,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide-high-magnitude/vectors.txt",
+        "vectors_sha256": "e632dc87934164f6604008509482f119eb4abb6e35ad93d9c5011d68d2427dd9",
+        "metadata_sha256": "449e150102bf1ece1e45e78642bdebe5d0373cedf32486cfdfc25eb8e63996a8",
+        "log_sha256": "1205963e302335b4031e2bce613cabfad0c2a7fcd33e212ae7837da24d6739fe"
+      },
+      {
+        "label": "unequal-list",
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "passed": true,
+        "pid": 45829,
+        "returncode": 0,
+        "simulated_clocks": 642136,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/vectors.txt",
+        "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+        "metadata_sha256": "54ab0a10d545aa72179502bf5936809fd044aa241ae2d597017e210379d511d1",
+        "log_sha256": "ba48489c273c47f197cdcb7213ccd66e855c9b0fa63359e547cb251bdd1b9f79"
+      },
+      {
+        "label": "equal-nested",
+        "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+        "passed": true,
+        "pid": 47564,
+        "returncode": 0,
+        "simulated_clocks": 1380140,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.txt",
+        "vectors_sha256": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887",
+        "metadata_sha256": "d99cdf77a520db807c76c39b34af4776d9ba42cd33f41bcf097acefa578ac029",
+        "log_sha256": "de5ce2ae837424f6e11a25c0ab11c71a3e6e8e0c22a4bff56caa0b763fcd61d5"
+      },
+      {
+        "label": "unequal-nested",
+        "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+        "passed": true,
+        "pid": 51940,
+        "returncode": 0,
+        "simulated_clocks": 1210699,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.txt",
+        "vectors_sha256": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29",
+        "metadata_sha256": "81b5402c86534dae408e276309055d5bd7ccdc7d4d823fc275697f30f929398d",
+        "log_sha256": "fe6bdbbb614c40af99dae7b684dc472c0f956b41404eda29a3a6ec42616a3f37"
+      }
+    ],
+    "passed": true,
+    "total_simulated_clocks": 3699049,
+    "finished_at_utc": "2026-10-14T07:37:10.122098+00:00"
+  },
+  "native_trace_byte_identities": [
+    {
+      "scope": "Exact recorded input/output bytes from validated RTL observations versus the complete same-source native application trace; expected-output origins remain separately labeled",
+      "passed": true,
+      "cycles": 10688,
+      "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+      "source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "metadata_origin": "Verilator RTL simulation",
+      "rtl_model": {
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+        "manifest_sha256": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf"
+      },
+      "semantic_validation": {
+        "passed": true,
+        "program": "((LAMBDA (x) x) 7)",
+        "termination": "HALTED",
+        "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+      }
+    },
+    {
+      "scope": "Exact recorded input/output bytes from validated RTL observations versus the completed same-source native unequal-list trace; origins remain separately labeled",
+      "passed": true,
+      "cycles": 642136,
+      "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "rtl_model": {
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+        "manifest_sha256": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf"
+      },
+      "semantic_validation": {
+        "passed": true,
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "termination": "HALTED",
+        "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+      },
+      "native_rtl_bit_replay": {
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "scope": "Full unequal-list native/Concrete architectural parity followed by every-626-bit-per-clock frontend RTL replay; no FPGA programming",
+        "passed": true,
+        "simulated_clocks": 642136,
+        "output_bits_compared_each_clock": 626,
+        "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+        "replay_binary_sha256": "07c638f9d5857a63bb3e691243e4868e7540176ffa124b31ace4c41fdaf7b4e1",
+        "replay_log_sha256": "85d5b79a2e81dd97d8c1164536d22d3499ba867dabc58ccb2720a8e0778c5560"
+      }
+    }
+  ]
 }

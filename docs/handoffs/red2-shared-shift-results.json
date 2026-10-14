@@ -1,6 +1,6 @@
 {
-  "recorded_at_utc": "2026-10-14T07:31:28.307629+00:00",
-  "scope": "Optional shared bidirectional shifter in the existing dedicated RED2 microengine; disabled by default; isolated RTL equivalence and native witnesses passed; complete-core area measurement independently tracked; no FPGA image change",
+  "recorded_at_utc": "2026-10-14T07:37:22.489804+00:00",
+  "scope": "Optional shared bidirectional shifter: complete-core mapping measured against corrected shared-multiplier baseline; isolated RTL/native semantics evidence only; complete controller RTL and physical qualification still required",
   "enabled_by": "RED2_CFG_PILOT_SHARED_SHIFT=1",
   "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "reference_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
@@ -99,6 +99,12 @@
         }
       ]
     },
+    "control_program_identity": {
+      "scope": "All control rows, dispatch tables, scratch allocation and metadata identical to corrected shared-multiplier baseline after removing only the shared_shift descriptive field",
+      "passed": true,
+      "control_rows": 15160,
+      "writable_scratch_words": 458
+    },
     "default_flag_disabled_byte_identity": {
       "scope": "Unchanged shared-multiplier controller generation with optional shared-shift flag disabled",
       "passed": true,
@@ -162,10 +168,60 @@
           "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
           "run.sh"
         ],
-        "pid": 51890
+        "pid": 51890,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:35:50.052919+00:00"
       }
     ],
-    "mapped": false
+    "mapped": true,
+    "resources": {
+      "top": "top",
+      "lut": 15189,
+      "lut_memory": 326,
+      "lut_total": 15515,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 6170,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 10,
+      "carry4": 550,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 550,
+        "DSP48E1": 10,
+        "FDRE": 6170,
+        "INV": 649,
+        "LUT2": 2317,
+        "LUT3": 2588,
+        "LUT4": 2186,
+        "LUT5": 3224,
+        "LUT6": 4874,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "lut_saving": 288,
+    "flipflop_saving": 0,
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "artifacts_sha256": {
+      "machine.py": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+      "provenance.json": "56421c100a724a116e80e8e4575f77e2da339c5738777113077fe4305c2e2e11",
+      "baseline-area.json": "ea1add3e14c8c48cea4775a9dd3b4478dd7cc354d5e496aecdb31034e978e01b",
+      "resources.json": "c4db395d3a9bc58deb0b124010c5e05f637e29fd7511c09efa3c26cd6b954967",
+      "baseline-area.log": "ee03318be9e405cf886daa9a6d825491754ca38cdad5326467a203ddd0391b20",
+      "map-frontend.log": "f4051dc03a127702bc832224a926f72e9aa559a4071edc8fde7eef6acfbcd93d",
+      "frontend.log": "8aba3fa09806d671fc2976ef49fc152ef817f7d942d2776ff39b8e8539ace3a8",
+      "backend-versions.txt": "6e9613ae98053bd2b5e9aecdf9f8aaec7be3836d42e942b4a64c9a5f4e8c29aa"
+    },
+    "finished_at_utc": "2026-10-14T07:35:52.282886+00:00"
   },
   "complete_controller_RTL_replay_passed": false,
   "routed": false,
@@ -181,8 +237,245 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/product-corners-progress.json": "016ab485fe7c0d41b95c68a63eaf7418050766d54466cde5cc077e316330c2a6",
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/machine.py": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/configuration.json": "acc6e5c951e0fee26e95db96248faef9a4d2624123e5693cb1878a2ee893fb0b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/control-identity-result.json": "c11441261b609246a1afb8d7b87f791274e0ee39aaf02685034e009e00e821d8",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/emit.py": "677a548e32cfa0eace5590c1ae4f584aea40331a1581348e8508f1572d1d1209",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/shared_shift.py": "11b828d4f3535139265fb06723f631c6dcf7c0ab015afd73d23d0daa5505d79f",
-    "/Users/billie/code/billiegoose/asgard/tests/test_red2_shared_shift.py": "57f12877658dbd863d2aded6861fdae26ca409e2d75b453a86876519064d68f6"
-  }
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_shared_shift.py": "57f12877658dbd863d2aded6861fdae26ca409e2d75b453a86876519064d68f6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/map-progress.json": "43982c5e966af0ae590ac654d1e19c9ade717f133bcc238bbce6160af0d5ab4b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/provenance.json": "56421c100a724a116e80e8e4575f77e2da339c5738777113077fe4305c2e2e11",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/resources.json": "c4db395d3a9bc58deb0b124010c5e05f637e29fd7511c09efa3c26cd6b954967",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/baseline-area.json": "ea1add3e14c8c48cea4775a9dd3b4478dd7cc354d5e496aecdb31034e978e01b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/mapping-recipe-identity.json": "47ae8b0a76b0cca8c45c37393cddc991c7ef7573063262a55ff5f12d4216de24",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/rtl-build-progress.json": "5ceae6e5f6eaee17469625b796041f87a8cee089e65300e6dfbb0c29cfe617c4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/check-reference-traces.py": "67332fc51257c48e8d314a839ab6b7160f09021e5aabd4d55c59f57706c6e8ab",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/provenance.json": "5d71033e2e0c1c5fbfb47e8b701f6139ec3e4a5c8f075f5c70587741cc7997ab",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/obj/Vreplay_top": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb"
+  },
+  "controlled_LUT_saving": 288,
+  "controlled_mapping_recipe": {
+    "passed": true,
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "byte_identical": [
+      "baseline-area.ys",
+      "area.abc",
+      "run.sh",
+      "backend-versions.txt"
+    ]
+  },
+  "resource_delta_candidate_minus_reference": {
+    "LUTs": -288,
+    "flipflops": 0,
+    "BRAM36_equivalents": 0,
+    "DSP48": 0,
+    "CARRY4": 16
+  },
+  "complete_RTL_model_build": {
+    "started_at_utc": "2026-10-14T07:37:21.372284+00:00",
+    "scope": "Compile replay model from exact measured area-map frontend; no trace replay or FPGA programming yet",
+    "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "coarse_sha256": "8ef53ca8d1a6da581bdea7c334e2039ef6144e2552bd31ca8e7ab5c1d0734eea",
+    "stages": [
+      {
+        "label": "rtl-prepare-convert",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/prepare_verilator.py",
+          "--conversion-only"
+        ],
+        "started_at_utc": "2026-10-14T07:37:21.580422+00:00",
+        "timeout_seconds": 60,
+        "pid": 55219,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:37:21.719209+00:00"
+      },
+      {
+        "label": "rtl-convert",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "red2-shared-shift-convert",
+          "--network",
+          "none",
+          "-v",
+          "fpgatool-nix:/nix",
+          "-v",
+          "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream:/experiment",
+          "-w",
+          "/experiment",
+          "--entrypoint",
+          "/nix/store/v8llyqw71lygr2llhmcc8ya5bdlzq45v-bash-5.3p9/bin/bash",
+          "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+          "-c",
+          "/nix/store/8xp00x56zj0nxqk3h334176g2d25jmvd-yosys-0.67/bin/yosys -Q -T -s rtl-netlist/convert.ys"
+        ],
+        "started_at_utc": "2026-10-14T07:37:21.723116+00:00",
+        "timeout_seconds": 600,
+        "pid": 55220,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:37:33.463542+00:00"
+      },
+      {
+        "label": "rtl-prepare-replay",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/prepare_verilator.py"
+        ],
+        "started_at_utc": "2026-10-14T07:37:33.464688+00:00",
+        "timeout_seconds": 120,
+        "pid": 55256,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:37:35.152902+00:00"
+      },
+      {
+        "label": "rtl-compile",
+        "command": [
+          "bash",
+          "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/build.sh"
+        ],
+        "started_at_utc": "2026-10-14T07:37:35.156396+00:00",
+        "timeout_seconds": 1800,
+        "pid": 55257,
+        "returncode": 0,
+        "finished_at_utc": "2026-10-14T07:37:50.718456+00:00"
+      }
+    ],
+    "built": true,
+    "binary_sha256": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb",
+    "wrapper_byte_identical_to_qualified_ABI": true,
+    "artifacts_sha256": {
+      "clean.v": "02007274485164746ce5d4c1c9298ab7c856049f31936d3a1a9002f956ac1eed",
+      "wrapper.v": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+      "replay.cpp": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
+      "provenance.json": "5d71033e2e0c1c5fbfb47e8b701f6139ec3e4a5c8f075f5c70587741cc7997ab",
+      "build.sh": "df40e3cbadff6cc306ebea4ad667624f6cd00ba7033a10614dcd2a7447086110",
+      "simulator-versions.txt": "91b4c412f87d0330afe4b1cbcc058caf8259586d7fc447648fc523d238a9fc55",
+      "obj/Vreplay_top": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb"
+    },
+    "finished_at_utc": "2026-10-14T07:37:51.043870+00:00"
+  },
+  "current_reference_RTL_replay": {
+    "started_at_utc": "2026-10-14T07:39:18.186562+00:00",
+    "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "reference_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "replay_binary_sha256": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb",
+    "scope": "Complete candidate frontend RTL against earlier-source semantically validated reference traces; all 626 public output bits every cycle; distinct expected-output origins preserved per case; source IDs intentionally differ; no FPGA programming",
+    "cases": [
+      {
+        "label": "application",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-native-application/vectors.txt",
+        "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+        "reference_metadata_sha256": "7d4238b7c87f9a0037bd490c9715f2a5969a4b17ca52c5ff16b3f744dd982bb6",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "simulated_clocks": 10688,
+        "passed": true,
+        "pid": 56690,
+        "returncode": 0,
+        "log_sha256": "a23211f6deeb9768763871f1cd5bf4cdd459da4a06365270395741a5e5618374"
+      },
+      {
+        "label": "lifecycle",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-public-lifecycle/vectors.txt",
+        "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+        "reference_metadata_sha256": "4145fc32e626d0a70d7d3b5a663202ed381f32ed3f40f426b81b13d3cf5439c8",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "simulated_clocks": 1043,
+        "passed": true,
+        "pid": 56705,
+        "returncode": 0,
+        "log_sha256": "c10e1eecf89ede7a7f44b0bd024600fe938508bbf079a299ec1b025be9ecefd3"
+      },
+      {
+        "label": "signed-multiply",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/vectors.txt",
+        "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8",
+        "reference_metadata_sha256": "2a642f35257a16c0844cdfd4bca560745b862fe93e4d9ee7a3da8a5869b882f5",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "simulated_clocks": 46855,
+        "passed": true,
+        "pid": 56706,
+        "returncode": 0,
+        "log_sha256": "b0e7ca91360fd1f33410269a2f91ba6a12a28111bb6d1208aa9f4252d81937ab"
+      },
+      {
+        "label": "equality-checkpoint",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint-rtl/vectors.txt",
+        "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+        "reference_metadata_sha256": "067534bc73a98b8a0eb9b47a9217c02f69868f89030db9c5860d0871d51de56f",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "simulated_clocks": 61871,
+        "passed": true,
+        "pid": 56720,
+        "returncode": 0,
+        "log_sha256": "1ee4ecdfc36661a29fc10480fc391cecd3756f023261c9e1e255eb77f2ec70ee"
+      },
+      {
+        "label": "equal-list",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/vectors.txt",
+        "vectors_sha256": "58b8d79b8713601fc381cb80e07742d838511e370688bdce7e7ef55048459c08",
+        "reference_metadata_sha256": "5ae88d69ec5df1a073df086157d8eb85d3f1cad3b349aaf56d7a294c1fbfbef9",
+        "expected_output_origin": "native hardware-source simulation (legacy trace)",
+        "simulated_clocks": 811553,
+        "passed": true,
+        "pid": 56737,
+        "returncode": 0,
+        "log_sha256": "644e836b1504e136df3f98843c2800c05ae33e58d6c36c2b45c7aec4222d989e"
+      },
+      {
+        "label": "structure",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-structure/vectors.txt",
+        "vectors_sha256": "69cd6949305016d3335bcbd78d384069f909c9b9e7f89d273d5efdf4992a9d25",
+        "reference_metadata_sha256": "362a2c0722e4583987b411175d27ce228d52c473ffeb256ba03098c190f9d6d0",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 124293,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 56932,
+        "returncode": 0,
+        "log_sha256": "35f5bac827519f95dd6f0189390d8a7c6503a71e320018747a46c4490239a8cf"
+      },
+      {
+        "label": "add",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-add/vectors.txt",
+        "vectors_sha256": "d0565bc1ac18b68506ec94b02fc0e12469025918b5c3f238aa47384e1eb4a647",
+        "reference_metadata_sha256": "e53d53cc3620ce56963e836364a12651aab194cc4ff20b02ac3d5edf4b5621d8",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 26365,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(+ 7 8)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 56956,
+        "returncode": 0,
+        "log_sha256": "07a737c7b17c5b1a0a6ba6ad51a56f0da921affcccccb549276c433b7ba4d15c"
+      },
+      {
+        "label": "signed-add",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-signed-add/vectors.txt",
+        "vectors_sha256": "fde0d683a3729d210e132c5bf0f1486d64c80d2ed3605b09c5fb09b106f55ad2",
+        "reference_metadata_sha256": "f8e200322624d73b5c435c9388faa054734f4d44e3593091aab7eb0da96da619",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 26365,
+        "passed": false,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(+ -9223372036854775808 1)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 56971
+      }
+    ],
+    "passed": false
+  },
+  "current_reference_RTL_replay_snapshot_at_utc": "2026-10-14T07:42:48.576706+00:00"
 }

@@ -762,6 +762,8 @@ typed native checks. An isolated enhanced PipelineC/GHDL RTL miter passes SAT
 equivalence against independent Verilog shifts for all 129 input bits. The full
 candidate also passes 15,504 typed handler comparisons and 123 selected emitted
 controller native witnesses, reset cancellation and constant protection. Full
-core mapping is tracked in [the shifter experiment](../../../docs/handoffs/red2-shared-shift-results.json);
-this is not complete-controller RTL or physical qualification. The qualified
+core mapping uses **15,515 LUTs**, saving **288** against the same-recipe
+15,803-LUT reference. FFs, BRAMs and DSPs are unchanged; CARRY4 increases by 16.
+See [the shifter experiment](../../../docs/handoffs/red2-shared-shift-results.json).
+This is not complete-controller RTL or physical qualification. The qualified
 shared-multiplier board source and image are unaffected.

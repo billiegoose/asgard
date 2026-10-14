@@ -14,10 +14,11 @@ LUTs** and 8,370 flip-flops. Routing uses **16,368 physical LUT sites**, leaving
 **4,432 spare**. Both domains pass the 10 MHz requirement: estimated maximum
 12.82 MHz core and 12.76 MHz monitor.
 
-The new image has passed physical function application, lifecycle handling,
-signed multiplication, the equality checkpoint, full one-element list equality,
-and graph construction/access. The wider arithmetic/nested-list corpus is still
-being qualified. Every case starts with a fresh volatile SRAM load. Burst
+The image passes **15 complete programs**, including function application,
+graph construction/access, integer arithmetic and equal/unequal nested lists,
+plus lifecycle handling and the equality checkpoint: **4,631,059 executed engine
+clocks / 22,878 compared packet endpoints**. Every case starts with a fresh
+volatile SRAM load. Burst
 replay compares all 626 public output bits at packet endpoints; intermediate
 cycles are not individually observed. Expected-output origin and exact counts
 are recorded in [the current board evidence](../../../docs/handoffs/red2-shared-multiplier-board-results.json).

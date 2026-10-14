@@ -1,6 +1,6 @@
 # RED2 datapath-sharing pass — live checkpoint
 
-## Current board build: corrected shared multiplier (2026-10-14)
+## Current qualified board: corrected shared multiplier (2026-10-14)
 
 This section supersedes historical running-job statuses below. Dedicated RED2,
 floating arithmetic omitted, division retained, enhanced compiler unchanged.
@@ -52,36 +52,61 @@ native hardware-source trace. No every-cycle observation is claimed for burst
 replay. Each case starts from a fresh SRAM load; no UART retry/resume occurs.
 Full equal-list physical replay also **passes: 811,553 / 1,631**. Exec **6556**
 completed successfully, with `native-corpus-qualification.json` terminal PASS.
-The older f97 image `5e88122c...` remains the preserved fallback and is
-automatically restored on a physical replay failure.
+The older f97 image `5e88122c...` remains preserved. The initial qualification
+drivers would restore it on failure; none of these runs failed. For future
+candidate bring-up, prefer restoring the newly qualified `a0ef3f44...` image.
 
 Validated RTL observation recording now retains a distinct expected-output
 origin, same-source binary/manifest hashes and completed Concrete RED2 semantic
 gate. Application observations exactly match all 10,688 native trace rows.
 Twenty-three focused regressions and Ruff pass. The wider observation corpus
-is live in exec **14079**, `run-observed-rtl-corpus.py`, with
-`rtl-observation-corpus-progress.json`; these are RTL observations rather than
-native expected-output traces. See `red2-rtl-observation-trace-results.json`.
+is **complete** (exec **14079**), `rtl-observation-corpus-progress.json` terminal
+PASS for all twelve additional programs. These are RTL observations rather than
+native expected-output traces. Application and unequal-list observation traces
+are byte-identical to native (10,688 and 642,136 cycles respectively). See
+`red2-rtl-observation-trace-results.json`.
 
-Physical replay against those validated observations is live in exec **84822**,
-`check-observed-corpus.py`, progress `observed-corpus-qualification.json`.
-It passes structure, add, signed-add, negative EVEN?, divide, modulo, exponent,
-signed-minimum multiply, high-magnitude divide and unequal-list. Only the two
-nested-list cases remain; the driver waits for each completed semantic trace
-gate before loading fresh SRAM and sending UART commands. Confirm the actual
-generator/replay child PID before waiting; do not restart an interrupted stream.
+Physical replay against those validated observations also **completes** (exec
+**84822**), `observed-corpus-qualification.json` terminal PASS. This adds
+structure, add, signed-add, negative EVEN?, divide, modulo, exponent,
+signed-minimum multiply, high-magnitude divide, unequal-list, equal-nested and
+unequal-nested. Overall the FPGA passes **15 complete programs plus lifecycle
+and the equality checkpoint: 4,631,059 executed engine clocks / 22,878 compared
+packet endpoints**, all 626 public output bits at each endpoint. Each case
+uses a fresh SRAM load. The final load/replay leaves `a0ef3f44...` on the board.
+UART replay is complete; no transport process should remain active.
 
 The new optional `attribute_resources.py --lut-cones` report partitions all
 15,477 combinational LUTs by conservative endpoint reachability. The largest
 exclusive sets feed remaining core state (3,501) and scratch-memory inputs
 (2,979). These are not removable-area estimates. Five regressions pass; storage
 and DSP attribution remain unchanged. See `red2-lut-endpoint-attribution-results.json`.
-An optional shared left/right shifter experiment is being generated in
-`build/red2-shared-shift/shared-shift`, exec **88979**, progress `progress.json`.
-The current board source/image is unchanged. Exactly emitted shifter expressions
-pass 3,406 actual typed native comparisons; 9,694 independent Python comparisons
-also pass. With the flag disabled, emitted source and control tables remain byte
-identical to the measured baseline. No new area or RTL result is claimed yet.
+The optional shared left/right shifter experiment `60da0147...` at
+`build/red2-shared-shift/shared-shift` maps to **15,515 LUTs**, saving **288**
+against the corrected same-recipe 15,803-LUT reference. FFs (6,170), BRAM36
+equivalents (34.5) and DSPs (ten) are unchanged; CARRY4 increases from 534 to 550.
+Mapping scripts, backend versions and enhanced compiler manifest are identical.
+All 15,160 control rows, dispatch tables and scratch allocation are unchanged;
+the flag adds no controller cycles. Native checks pass 15,504 typed comparisons
+and 123 selected emitted-controller witnesses, reset cancellation and constant
+protection. Exactly emitted shift expressions additionally pass 3,406 typed
+native checks and 9,694 independent arithmetic comparisons. An isolated
+enhanced-PipelineC/GHDL SAT miter proves both shifts for all 129 input bits.
+An initial formal harness used a packed record port where GHDL exposed separate
+field ports; that failed harness receipt is preserved, and the corrected actual
+RTL proof passes. Default-off generation stays byte-identical to the baseline.
+
+The candidate's full RTL replay model is built (exec **92380** terminal PASS),
+binary SHA `af7ce7c4...`. Cross-source regression is live in exec **1119**,
+`check-reference-traces.py`, progress `reference-rtl-replay-progress.json`.
+It intentionally compares new candidate RTL against the earlier-source native
+and validated RTL observation traces, preserving both source IDs and each
+expected-output origin. It checks every one of 626 bits on every cycle for all
+17 cases. Application, lifecycle, signed multiply and the equality checkpoint
+already pass. Revalidate the actual child PID/session before waiting; do not
+restart solely because an observation times out. This candidate has not been
+routed, loaded or physically qualified. The current board remains unchanged.
+See `red2-shared-shift-results.json`. The flag remains optional/default-off.
 
 `audit_bram.py` is now copied and run after routing before frame generation.
 Eight regressions and a real preparation smoke pass. Both saved working/failed
@@ -96,8 +121,10 @@ no device-map change was made.
 
 Records: `red2-corrected-arithmetic-sharing-results.json`,
 `red2-shared-request-guards-results.json`, and
-`red2-shared-multiplier-board-results.json`. Latest commits: `c907c28` (BRAM
-audit) and `a83a97d` (frozen fit gate and controlled comparison), both pushed.
+`red2-shared-multiplier-board-results.json`. Recent pushed commits include
+`7c204c7` (trace origins), `2d2400f` (LUT endpoint attribution), `2156958`
+(physical checkpoint), `ebef101` (explicit clock/endpoint labels) and `370c822`
+(optional shared shifter with isolated RTL equivalence evidence).
 
 ## Latest checkpoint: shared multiplier and request extraction (2026-10-14)
 
