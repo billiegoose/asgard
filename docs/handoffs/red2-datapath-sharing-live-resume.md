@@ -3,6 +3,14 @@
 ## Latest continuation: failed wrapper and next area pass (2026-10-14)
 
 This section supersedes running-job, build and current-board statuses below.
+All four optional source `89c7712c...` complete native/Concrete list programs
+have now **finished and passed** (4,044,528 simulated clocks). Driver PID 5299 /
+child 75941 are terminal. Native unequal-list, equal-nested and unequal-nested
+traces are byte-identical to their earlier validated RTL observations; their
+separate origin metadata remain unchanged. Legacy native metadata is verified
+against the completed native checker logs. This is additional corroboration,
+not a relabeling of existing physical replay receipts. See
+`red2-native-list-corroboration-results.json`.
 The qualified source `89c7712c...` / SRAM bitstream `a0ef3f44...` remains the
 working baseline. It was freshly restored at **09:56:37 UTC** after paired RAM
 diagnostics; no program has run since that restoration. No flash writes occurred.

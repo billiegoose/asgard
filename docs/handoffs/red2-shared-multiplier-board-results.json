@@ -827,5 +827,12 @@
     "finished_at_utc": "2026-10-14T09:56:37.683069+00:00",
     "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
   },
-  "current_board_state": "Freshly restored qualified a0 SRAM image after paired RAM diagnostics; no program execution since that restoration"
+  "current_board_state": "Freshly restored qualified a0 SRAM image after paired RAM diagnostics; no program execution since that restoration",
+  "native_list_corroboration": {
+    "passed": true,
+    "programs": 4,
+    "native_simulated_clocks": 4044528,
+    "three_distinct_RTL_observation_traces_byte_identical_to_native": true,
+    "record": "docs/handoffs/red2-native-list-corroboration-results.json"
+  }
 }
