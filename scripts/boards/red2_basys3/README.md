@@ -77,6 +77,9 @@ needed. It executes without prerecorded command/output vectors or a host RED2
 reducer. The profile has 256 graph words, 256 control words and 64 literal
 metadata slots, with floating arithmetic omitted.
 
+The same command with `--file examples/fibonacci.thor` in place of `--expr ...`
+runs the recursive Fibonacci example and returns `8` for `fib 6` on the board.
+
 The JSON receipt records the returned expression, final architectural fields,
 graph/control RAM hashes and actual bitstream identity. Matching `.load.log`
 and `.packets.jsonl` files preserve loader output and every actual command and
@@ -94,10 +97,13 @@ Pure expressions print their returned THOR value. I/O programs print explicit
 UART output; their final value is retained in the receipt. `--clock path` uses
 the latest valid millisecond value in that file for CLOCK effects.
 
-Physical live tests pass fresh function/arithmetic source returning 42, graph
-access returning 12, division returning -42, UART transmit/receive and CLOCK.
+Eight physical live tests pass fresh function/arithmetic source returning 42,
+graph access returning 12, division returning -42, UART transmit/receive,
+injected/default CLOCK values and recursive Fibonacci returning 8.
 Their final architecture and every graph/control RAM word match separate RTL
-executions with native reducer/RAM APIs disabled. See
+executions with native reducer/RAM APIs disabled. Post-execution comparison also
+matches all 626 response bits at 10,305 packet endpoints. These checks do not
+compare intermediate clocks inside bursts. See
 [the live execution evidence](../../../docs/handoffs/red2-basys3-live-run-results.json).
 
 ## Prepare and build

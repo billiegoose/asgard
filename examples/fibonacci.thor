@@ -1,4 +1,4 @@
-; Fibonacci example for THOR syntax highlighting.
+; Tail-recursive Fibonacci, also exercised by the Basys 3 live runner.
 fib == (lambda (n)
   (letrec ((fib-iter
             (lambda (i current next)

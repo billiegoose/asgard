@@ -58,6 +58,8 @@ The [live board runner](scripts/boards/red2_basys3/README.md#run-thor-on-the-boa
 also compiles fresh THOR programs, executes graph reductions on the FPGA and
 reads back results. For example, `((LAMBDA (x) (+ x 2)) 40)` returns `42` on the
 physical board. UART/CLOCK host operations use the existing I/O adapter.
+The recursive [Fibonacci example](examples/fibonacci.thor) also runs on the
+physical board and returns `8` for `fib 6`.
 
 The lowered candidate remains separate from the maintained top. Saved-JOIN list
 equality is supported; direct/EP private primitive firing remains outside that

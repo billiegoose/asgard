@@ -330,6 +330,114 @@
       "elapsed_seconds": 58.059,
       "finished_at_utc": "2026-10-14T08:08:40.820012+00:00",
       "transcript_sha256": "c8944868a067e3c5bdb9f7318c942355c2009827f27fc0a4f638db0a96d81c4a"
+    },
+    {
+      "label": "system-clock",
+      "started_at_utc": "2026-10-14T08:24:16.091513+00:00",
+      "scope": "THOR compiled on host; graph reductions executed on physical FPGA; no expected-output vectors or host RED2 reducer",
+      "source": "(CLOCK)",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "runner_sha256": "0d3951ee8272e50d4f7ec5b87ed9e957ec6c56e7d5f51938c9ce6e728dc0cd3a",
+      "completed": true,
+      "clock_count_scope": "delivered run-clock edges including any idle tail within a burst; not exact cycles to halt",
+      "burst_clocks": 65536,
+      "port": "/dev/cu.usbserial-2101837357871",
+      "usb_serial": "210183735787",
+      "load_command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "loaded_on_board": true,
+      "result": "1791966292609",
+      "host_calls": 1,
+      "final_checkpoint": {
+        "pc": 2,
+        "fsp": 2,
+        "env": 247,
+        "c": 0,
+        "direction": 1,
+        "q": 2000,
+        "phi": 0,
+        "free_space": 247,
+        "argcnt": 2,
+        "prim_id": 0,
+        "fire": 0,
+        "s_a": 0,
+        "s_d": 0,
+        "halted": 1,
+        "pending_host_op": 0,
+        "pending_host_argument": 0
+      },
+      "final_graph_sha256": "fe938a1cea0692b611ca1feeb166912a782381f3c85ec8ba02c330d4fcc8c9ac",
+      "final_control_sha256": "ba1a044f61b898097c4a7903423468fa78e59900ca0791c91e56e57110899165",
+      "packets": 1543,
+      "delivered_run_clocks": 131072,
+      "confirmed_packets": 1543,
+      "confirmed_run_clocks": 131072,
+      "elapsed_seconds": 59.881,
+      "finished_at_utc": "2026-10-14T08:25:09.284981+00:00",
+      "transcript_sha256": "492f3b2b8c1f9e6f8258c8ef0477aa23f68f39c2f517c7b957dce658694a0da0"
+    },
+    {
+      "label": "fibonacci",
+      "started_at_utc": "2026-10-14T08:38:44.792639+00:00",
+      "scope": "THOR compiled on host; graph reductions executed on physical FPGA; no expected-output vectors or host RED2 reducer",
+      "source": "\nfib == (lambda (n)\n  (letrec ((fib-iter\n            (lambda (i current next)\n              (if (= i 0)\n                  current\n                  (fib-iter (1- i) next (+ current next))))))\n    (fib-iter n 0 1)))\n\nfib-six == (fib 6)\n\nfib-six\n",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "runner_sha256": "0d3951ee8272e50d4f7ec5b87ed9e957ec6c56e7d5f51938c9ce6e728dc0cd3a",
+      "completed": true,
+      "clock_count_scope": "delivered run-clock edges including any idle tail within a burst; not exact cycles to halt",
+      "burst_clocks": 65536,
+      "port": "/dev/cu.usbserial-2101837357871",
+      "usb_serial": "210183735787",
+      "load_command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "loaded_on_board": true,
+      "result": "8",
+      "host_calls": 0,
+      "final_checkpoint": {
+        "pc": 2,
+        "fsp": 2,
+        "env": 164,
+        "c": 0,
+        "direction": 1,
+        "q": 1944,
+        "phi": 0,
+        "free_space": 164,
+        "argcnt": 4,
+        "prim_id": 0,
+        "fire": 0,
+        "s_a": 7,
+        "s_d": 1,
+        "halted": 1,
+        "pending_host_op": 0,
+        "pending_host_argument": 0
+      },
+      "final_graph_sha256": "06857f0868ae56d529e7e201fe5f2cf48605a27104c933c409e40e98ee8c5ca2",
+      "final_control_sha256": "ba1a044f61b898097c4a7903423468fa78e59900ca0791c91e56e57110899165",
+      "packets": 1048,
+      "delivered_run_clocks": 1376256,
+      "confirmed_packets": 1048,
+      "confirmed_run_clocks": 1376256,
+      "elapsed_seconds": 43.417,
+      "finished_at_utc": "2026-10-14T08:39:21.930605+00:00",
+      "transcript_sha256": "58be173e307dbb316c0acf4ad40843806656463ee2e32058b1eea3ba59ea9688"
     }
   ],
   "artifacts_sha256": {
@@ -353,7 +461,7 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-uart-rx.load.log": "0cea4d3f64249b05c7a519aa2a95a57ef9d708c3bb9fec651b2635ca9a0beed7",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/rtl-progress.json": "54b1d27f0147b82540aff2e01af49757607051ed270fa260a7bba590f8011a00",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/rtl-current-progress.json": "f5764a96a10ca58f9a0f53cc6c7a9476837311b45ee07c30f6840cfbda186069",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/final-checkpoint-parity.json": "1bb7a2bca1e9be68ec561d1fdb9a9ec713cf89b59b056f2954508fa130fcedb2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/final-checkpoint-parity.json": "a366e3c6e8dc9b72d428b828cc3b75ce25089994eea9a32fdfb7003e83181bb8",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/clock.txt": "6d78392a5886177fe5b86e585a0b695a2bcd01a05504b3c4e38bc8eeb21e8326",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/check-rtl.py": "71874ad79af5e40bab9369cac7c787e6cef4b6bd183ddbd4989e977d1c60c7d0",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/check-current-rtl.py": "933ee67dd2300457c8e35430a6377478bf635ee9d74282978bb56ac94c97bf1c",
@@ -368,7 +476,22 @@
     "/Users/billie/code/billiegoose/asgard/uv.lock": "04e8cf1b4a0a71ce7acbab91933f92678adf76533e9ef6289d3ae1072e5819fc",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/packet-parity-result.json": "b47753b1f6984e36de127627d1f975e6f4b39b8789a8bb1d8a16e6f6f84f1294",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/run.before-profile-guard.py": "8eb6ed69394cf636c75380dffc3b1e00ee555b1a3a9a2a9ce0fd045cacfeda37",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/rtl-netlist/interactive-driver/provenance.json": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/rtl-netlist/interactive-driver/provenance.json": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-system-clock.json": "d6bc9660f823135a562124ae7b16bd520bd9c175081d53c10f47b6d887b53def",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-system-clock.packets.jsonl": "492f3b2b8c1f9e6f8258c8ef0477aa23f68f39c2f517c7b957dce658694a0da0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-system-clock.load.log": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-fibonacci.json": "0a0674601f6076c66dd78a07529645beb1bd1fe45be535196ce78c561b3c28de",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-fibonacci.packets.jsonl": "58be173e307dbb316c0acf4ad40843806656463ee2e32058b1eea3ba59ea9688",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-fibonacci.load.log": "8977279cc75074a36719eccc5357c8787733d26f49ddef6e9a5591a19e186ba5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/eight-packet-parity-result.json": "4e6492d90f44b3f5eb96c00c859f2815b9de23250b37d81fee157551897cf68e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/system-clock-time-bounds.json": "fb0fa97362c05328f2a8621fc31e3c5f29c665201011dacc7b55ec09221f625c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fibonacci-example-identity.json": "edec93ffc60e2e111aa4415a47d4c00b1e3c2c0e323e34a46fa62000239d095f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/rtl-system-clock-progress.json": "a741bb334f1985182182e34cdbc143cb5d6d7e67e2164377fff70570e19d67c6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/rtl-fibonacci-progress.json": "240ba0d7a4932e1d60b58375601d4dd555c2a8adfa29a28d613c751e235dfa3c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/check-system-clock-rtl.py": "4fe568b9182ee8efbc7519d70a59f4e217e64d9005bc2807c1abcbe1aa8f1d17",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/check-fibonacci-rtl.py": "afc2d172ffcd305cab9043a5401536a2f835dd4fcdf1da6030496088e8b0c7b9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/compare-eight-final-checkpoints.py": "bab44c5d7b4799cd97a4b8e05f1283dc05ef19020f096c6adf4d14e9316c574f",
+    "/Users/billie/code/billiegoose/asgard/examples/fibonacci.thor": "428cbe3a24f9968ac2cbedefe4011d31f8bd25697889a35d45fe8acf6b4ca95a"
   },
   "final_checkpoint_parity": {
     "scope": "Compare physical live-execution final architecture and every graph/control RAM word via independently executed RTL final public-port readback; no per-cycle or intermediate-endpoint equality claim",
@@ -426,6 +549,24 @@
         "architectural_fields": 16,
         "physical_receipt_sha256": "6f4860de012594920b147a48b0890b153431aea1bc9da982cdc83c7bda3e5cfd",
         "RTL_transcript_sha256": "c8944868a067e3c5bdb9f7318c942355c2009827f27fc0a4f638db0a96d81c4a"
+      },
+      {
+        "label": "system-clock",
+        "passed": true,
+        "graph_words": 256,
+        "control_words": 256,
+        "architectural_fields": 16,
+        "physical_receipt_sha256": "d6bc9660f823135a562124ae7b16bd520bd9c175081d53c10f47b6d887b53def",
+        "RTL_transcript_sha256": "492f3b2b8c1f9e6f8258c8ef0477aa23f68f39c2f517c7b957dce658694a0da0"
+      },
+      {
+        "label": "fibonacci",
+        "passed": true,
+        "graph_words": 256,
+        "control_words": 256,
+        "architectural_fields": 16,
+        "physical_receipt_sha256": "0a0674601f6076c66dd78a07529645beb1bd1fe45be535196ce78c561b3c28de",
+        "RTL_transcript_sha256": "58be173e307dbb316c0acf4ad40843806656463ee2e32058b1eea3ba59ea9688"
       }
     ],
     "passed": true
@@ -686,10 +827,22 @@
         "passed": true,
         "packet_endpoints": 1543,
         "output_bits_each_endpoint": 626
+      },
+      {
+        "label": "system-clock",
+        "passed": true,
+        "packet_endpoints": 1543,
+        "output_bits_each_endpoint": 626
+      },
+      {
+        "label": "fibonacci",
+        "passed": true,
+        "packet_endpoints": 1048,
+        "output_bits_each_endpoint": 626
       }
     ],
     "passed": true,
-    "total_packet_endpoints": 7714
+    "total_packet_endpoints": 10305
   },
   "preserved_earlier_physical_runner_source": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/run.before-profile-guard.py",
   "reference_RTL_model": {
@@ -727,5 +880,99 @@
       "-lm"
     ],
     "compiler_version": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: x86_64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin\n"
-  }
+  },
+  "system_clock_time_bounds": {
+    "passed": true,
+    "returned_milliseconds": 1791966292609,
+    "start_milliseconds": 1791966256091,
+    "finish_milliseconds": 1791966309284,
+    "above_uint32_range": true
+  },
+  "fibonacci_example_identity": {
+    "passed": true,
+    "scope": "Documented example and physically tested fixture compile to identical program images and literal metadata",
+    "example_sha256": "428cbe3a24f9968ac2cbedefe4011d31f8bd25697889a35d45fe8acf6b4ca95a",
+    "fixture_sha256": "cc9946a13195f82ddc9508c2e6796b5d8fa4877878f21efbedd989f6ef7f9de6"
+  },
+  "rtl_system_clock_progress": {
+    "runner_sha256": "0d3951ee8272e50d4f7ec5b87ed9e957ec6c56e7d5f51938c9ce6e728dc0cd3a",
+    "scope": "Live runner drives actual frontend RTL through public ports; fresh input program compiled for each run; native reducer/RAM APIs disabled; not physical board evidence",
+    "cases": [
+      {
+        "label": "system-clock",
+        "source": "(CLOCK)",
+        "result": {
+          "completed": true,
+          "result": "1791966292609",
+          "host_calls": 1,
+          "final_checkpoint": {
+            "pc": 2,
+            "fsp": 2,
+            "env": 247,
+            "c": 0,
+            "direction": 1,
+            "q": 2000,
+            "phi": 0,
+            "free_space": 247,
+            "argcnt": 2,
+            "prim_id": 0,
+            "fire": 0,
+            "s_a": 0,
+            "s_d": 0,
+            "halted": 1,
+            "pending_host_op": 0,
+            "pending_host_argument": 0
+          },
+          "final_graph_sha256": "fe938a1cea0692b611ca1feeb166912a782381f3c85ec8ba02c330d4fcc8c9ac",
+          "final_control_sha256": "ba1a044f61b898097c4a7903423468fa78e59900ca0791c91e56e57110899165"
+        },
+        "output": "",
+        "delivered_run_clocks": 131072,
+        "packets": 1543,
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "rtl_fibonacci_progress": {
+    "runner_sha256": "0d3951ee8272e50d4f7ec5b87ed9e957ec6c56e7d5f51938c9ce6e728dc0cd3a",
+    "scope": "Live runner drives actual frontend RTL through public ports; fresh input program compiled for each run; native reducer/RAM APIs disabled; not physical board evidence",
+    "cases": [
+      {
+        "label": "fibonacci",
+        "source": "\nfib == (lambda (n)\n  (letrec ((fib-iter\n            (lambda (i current next)\n              (if (= i 0)\n                  current\n                  (fib-iter (1- i) next (+ current next))))))\n    (fib-iter n 0 1)))\n\nfib-six == (fib 6)\n\nfib-six\n",
+        "result": {
+          "completed": true,
+          "result": "8",
+          "host_calls": 0,
+          "final_checkpoint": {
+            "pc": 2,
+            "fsp": 2,
+            "env": 164,
+            "c": 0,
+            "direction": 1,
+            "q": 1944,
+            "phi": 0,
+            "free_space": 164,
+            "argcnt": 4,
+            "prim_id": 0,
+            "fire": 0,
+            "s_a": 7,
+            "s_d": 1,
+            "halted": 1,
+            "pending_host_op": 0,
+            "pending_host_argument": 0
+          },
+          "final_graph_sha256": "06857f0868ae56d529e7e201fe5f2cf48605a27104c933c409e40e98ee8c5ca2",
+          "final_control_sha256": "ba1a044f61b898097c4a7903423468fa78e59900ca0791c91e56e57110899165"
+        },
+        "output": "",
+        "delivered_run_clocks": 1376256,
+        "packets": 1048,
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "updated_at_utc": "2026-10-14T09:06:30.706993+00:00"
 }

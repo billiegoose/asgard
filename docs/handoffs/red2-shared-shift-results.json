@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T07:37:22.489804+00:00",
-  "scope": "Optional shared bidirectional shifter: complete-core mapping measured against corrected shared-multiplier baseline; isolated RTL/native semantics evidence only; complete controller RTL and physical qualification still required",
+  "scope": "Optional shared bidirectional shifter: controlled complete-core mapping and completed native/frontend RTL/mapped/Concrete gates; complete board maps within budget, placement running, physical qualification pending",
   "enabled_by": "RED2_CFG_PILOT_SHARED_SHIFT=1",
   "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "reference_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
@@ -818,7 +818,7 @@
     },
     "finished_at_utc": "2026-10-14T08:55:12.965823+00:00"
   },
-  "updated_at_utc": "2026-10-14T09:16:08.527920+00:00",
+  "updated_at_utc": "2026-10-14T09:24:14.860327+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
     "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
@@ -839,5 +839,6 @@
     ],
     "saved_IF_fixtures": 26,
     "finished_at_utc": "2026-10-14T09:15:04.128355+00:00"
-  }
+  },
+  "board_results": "docs/handoffs/red2-shared-shift-board-results.json"
 }

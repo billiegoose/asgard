@@ -19,8 +19,9 @@ floating arithmetic omitted, division retained, enhanced compiler unchanged.
   expected-output replay in frontend RTL and Xilinx primitives. The first full
   native equal-list program also passes 811,553-cycle every-626-bit RTL replay.
   Native unequal-list also passes 642,136-cycle every-bit frontend RTL replay.
-  Its new RTL observation trace is byte-identical to native. The remaining two
-  duplicate native nested-list programs continue as corroboration.
+  Its new RTL observation trace is byte-identical to native. Native equal-nested now passes 1,380,140 cycles; its trace is byte-identical
+  to the completed RTL observation. Duplicate native unequal-nested remains
+  running as optional corroboration.
 
 The immutable preparation gate is
 `docs/handoffs/synth-red2-shared-multiplier-results.json` (variant
@@ -102,16 +103,26 @@ binary SHA `af7ce7c4...`. Cross-source regression **passes** (exec **1119**),
 It intentionally compares new candidate RTL against the earlier-source native
 and validated RTL observation traces, preserving both source IDs and each
 expected-output origin. It checks every one of 626 bits on every cycle for all
-17 cases: **4,631,059 simulated clocks**, terminal PASS. This candidate has not been
-routed, loaded or physically qualified. The current board remains unchanged.
+17 cases: **4,631,059 simulated clocks**, terminal PASS. This candidate has not yet been routed, loaded or physically qualified.
+The current board remains the qualified shared-multiplier image.
 See `red2-shared-shift-results.json`. The flag remains optional/default-off.
 
-The next same-source gate is live in exec **34593**, driver
-`build/red2-shared-shift/shared-shift/check-boundaries.py`, progress
-`native-boundary-progress.json`, initial child PID **68085**, log
-`native-boundary.log`. It runs complete-top native boundary/lifecycle/metadata
-and poisoned-payload checks with `--poison-lifecycle`. Revalidate the actual
-PID/session before waiting; these are simulated clocks, not physical clocks.
+The same-source complete-top native gate is **complete**: 820 boundary
+witnesses, reset/private/queued lifecycle, five accepted metadata banks and
+poisoned payload checks all pass. Four Xilinx mapped primitive replays pass
+all 626 bits on each of 120,457 simulated clocks. All 26 same-source frontend
+RTL/Concrete saved-IF fixtures also pass (1,340,406 simulated clocks).
+The immutable preparation gate is
+`docs/handoffs/synth-red2-shared-shift-results.json`; do not edit it.
+
+The new complete board is prepared at `build/red2-basys3-shared-shift`.
+It maps at **16,464 LUTs**, 8,370 FFs, 34.5 BRAM36 equivalents and ten DSPs,
+saving 288 mapped board LUTs. The wrapper still adds 949 LUTs and 2,200 FFs.
+Exact identity checks pass for 22,789 core primitives, their parameters,
+30,607 bijective nets and all 32 packed public fields. Placement is running
+in `red2-shift-place`, driver PID 86470 (exec 88740); revalidate the actual
+process/container before waiting. Routing, timing, bitstream generation and
+physical qualification are pending. See `red2-shared-shift-board-results.json`.
 
 Live execution is now implemented in `scripts/boards/red2_basys3/run.py`.
 It compiles THOR on the host, loads fresh volatile SRAM, sends public-port
@@ -120,18 +131,20 @@ No prerecorded vectors or host RED2 reducer are used. CLOCK/UART effects are
 handled by the existing host I/O adapter at FPGA suspension/resume boundaries.
 Native reducer/RAM APIs are disabled during the RTL runner checks.
 
-Six fresh physical programs pass: `((LAMBDA (x) (+ x 2)) 40)` -> 42,
+Eight fresh physical programs pass: `((LAMBDA (x) (+ x 2)) 40)` -> 42,
 `(CAR (CONS 12 (CONS 34 NIL)))` -> 12, `(/ -84 2)` -> -42, UART transmit,
-UART receive and CLOCK. Their final architectural fields and all 256 graph /
+UART receive, injected CLOCK, real system CLOCK (64-bit timestamp) and
+`examples/fibonacci.thor` (`fib 6` -> 8). Their final architectural fields and all 256 graph /
 256 control RAM words match separate RTL public-port executions. The FPGA
-remains on `a0ef3f44...`, most recently halted after UART receive of `Z` -> 90.
+remains on `a0ef3f44...`, most recently halted after Fibonacci -> 8.
 All live UART processes have completed; no flash writes occurred. Detailed
 receipts and transcripts are in `build/red2-basys3-live-run`, with compact
 evidence in `red2-basys3-live-run-results.json`.
 Post-execution transcript comparison also matches every command and all 626
-response bits at all **7,714 packet endpoints** across these six programs.
+response bits at all **10,305 packet endpoints** across these eight programs.
 These are live-execution endpoint checks, not comparisons at each internal
-burst cycle. The pre-profile-guard runner source was reconstructed and hash
+burst cycle. Fibonacci used 1,376,256 delivered run clocks, including the final burst's
+HALT tail; this is not exact cycles-to-halt. The pre-profile-guard runner source was reconstructed and hash
 verified against its physical receipts, then preserved as
 `build/red2-basys3-live-run/run.before-profile-guard.py`.
 

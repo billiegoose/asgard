@@ -792,16 +792,16 @@
     "other_setup_control_NOP_commands": 22479
   },
   "preferred_fallback_for_future_experiments": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
-  "updated_at_utc": "2026-10-14T08:20:37.096726+00:00",
+  "updated_at_utc": "2026-10-14T09:14:08.390843+00:00",
   "latest_live_execution": {
     "scope": "Fresh compiled THOR using the live runner; distinct from the original prerecorded replay counts",
-    "source": "(UART-RX)",
-    "result": "90",
-    "receipt": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-uart-rx.json",
-    "receipt_sha256": "6f4860de012594920b147a48b0890b153431aea1bc9da982cdc83c7bda3e5cfd",
+    "source": "\nfib == (lambda (n)\n  (letrec ((fib-iter\n            (lambda (i current next)\n              (if (= i 0)\n                  current\n                  (fib-iter (1- i) next (+ current next))))))\n    (fib-iter n 0 1)))\n\nfib-six == (fib 6)\n\nfib-six\n",
+    "result": "8",
+    "receipt": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-live-run/fpga-fibonacci.json",
+    "receipt_sha256": "0a0674601f6076c66dd78a07529645beb1bd1fe45be535196ce78c561b3c28de",
     "live_qualification_report": "docs/handoffs/red2-basys3-live-run-results.json",
-    "six_live_programs_passed": true,
     "final_architecture_and_full_graph_control_RAM_match_RTL": true,
-    "post_execution_all_626_bit_packet_comparisons": 7714
+    "post_execution_all_626_bit_packet_comparisons": 10305,
+    "eight_live_programs_passed": true
   }
 }
