@@ -75,12 +75,14 @@ def retain_legacy(fn, record, original_handler):
     ).body
     legacy.body = fallback
     # Original selected handler has been removed. Place the retained fallback
-    # before the next dispatch handler, preserving all later reset-bank order.
+    # before the next retained dispatch handler, preserving source order even
+    # when the divider loop has also moved onto the shared engine.
     position = next(
         i
         for i, n in enumerate(fn.body)
         if isinstance(n, ast.If)
-        and ast.unparse(n.test) == "clock_dispatch_enable and micro_is_u64_div"
+        and ast.unparse(n.test).startswith("clock_dispatch_enable and micro_is_")
+        and n.lineno > original_handler.end_lineno
     )
     fn.body.insert(position, legacy)
     parents = [

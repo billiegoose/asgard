@@ -1,0 +1,57 @@
+{
+  "recorded_at_utc": "2026-10-14T01:02:53.706977+00:00",
+  "scope": "Candidate extraction of MICRO_U64_DIV onto the existing dedicated hardware control engine; additional cycles allowed; no instruction removed",
+  "candidate_source_sha256": "e6a0dced233b5621f698e291d8662dc9a30912cdfef8a7e289a1c2a928e955ff",
+  "qualified_default_reproduction_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+  "generator_fix": "Reinsert the retained scalar arithmetic before the next source-ordered surviving dispatch handler, including when the divider loop itself is extracted",
+  "regression_checks": {
+    "new_order_and_source_guard_tests_passed": 3,
+    "existing_priority_partition_checks_passed": 18,
+    "qualified_default_source_byte_identical": true
+  },
+  "candidate": {
+    "entry_count": 124,
+    "compact_rows": 14893,
+    "scratch_words": 1024,
+    "control_index_words": 16384
+  },
+  "baseline": {
+    "entry_count": 123,
+    "compact_rows": 14846,
+    "scratch_words": 1024,
+    "control_index_words": 16384
+  },
+  "validation": {
+    "initial_typed_comparisons_passed": 14880,
+    "mandatory_integer_corner_and_full_boundary_validation_complete": false,
+    "driver_pid": 5183,
+    "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/validation-progress.json",
+    "stages": [
+      "typed reference with mandatory integer corners",
+      "all native boundary witnesses and poisoned lifecycle",
+      "multiply/divide/modulo/exponent program parity"
+    ]
+  },
+  "complete_core_map_available": false,
+  "candidate_loaded_on_board": false,
+  "limitations": [
+    "Initial typed run did not include mandatory integer corners; the full validation driver is now running",
+    "No complete-core LUT saving, RTL replay or routed/physical result for this candidate yet",
+    "The separate qualified burst image remains on the FPGA",
+    "Existing list-equality gap remains unresolved"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/configuration.json": "f322d34bfc9e71c30137fcef3f63357aa4146c2124a0335ec07a98537b684cce",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/control.json": "f100cb680d3e72524deb0143d4e0fac591a35463550b05eb4e8600ee9dded033",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/integration-retry.log": "4a4c7427f8fa0986c370a0ac214619d9068545686ab36ecf7986fbf01cb2916a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/integrated-stream/machine.py": "e6a0dced233b5621f698e291d8662dc9a30912cdfef8a7e289a1c2a928e955ff",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/integrated-stream/integration.json": "3c67e21afa4b2fa31f277f54511afd397209a2b27d5cf7c43f559410cb83e225",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/typed-check.log": "06fcb6477235892b10d6c9adb32cf2e9e9c1a0ef57ae314bc9406b3aedc3b40e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/run-validation.py": "df03cac41c24fb6c768bca0a75b5345eb3c207a368d948bf3807c3facf09798c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/validation-launch.json": "2c505eb9cccb96d5d23dda50cca63d2a5df610e6ea1052d6b1ad104b35c5fef7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/default-identity/integration.log": "c47020a952c50b71df5807c2f1528f3b4a91f60da7d526be6a4b03e6d0b27acb",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/default-identity/integrated-stream/machine.py": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+    "scripts/experiments/red2_cfg_pilot/scalar_core.py": "5d5e86f6ed86ba2b54238cc0a77b718c03e45e0d2f903af1b941c3cdd060ae9a",
+    "tests/test_red2_scalar_fallback_order.py": "4b7beed23b11328163a8942b0850f70bccfd55fd07f5e958cc757f3e2fd30a00"
+  }
+}

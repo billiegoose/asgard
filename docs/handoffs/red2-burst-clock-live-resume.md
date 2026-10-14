@@ -66,15 +66,19 @@ configuration has 123 entries and 14,846 rows with the same capacities. Both hav
 200 private and 175 shared words. No complete-core LUT saving or RTL/physical
 parity is established for the new candidate yet.
 
-Typed checking is running as PID 2300 at this checkpoint, through
-`scripts/experiments/red2_cfg_pilot/check.py`, with `typed-check.log` in the
-candidate directory. **Revalidate the process and actual log** before waiting or
-restarting. `generation.log` preserves the initial anchor failure;
-`integration-retry.log` records successful integration. The initial
-`progress.json` only describes the failed generation wrapper, not the retry.
-After typed checks, require complete-top boundary/lifecycle checks, arithmetic
-program parity, enhanced-compiler RTL and a complete-core map before promotion.
-The qualified FPGA image must remain available throughout.
+The initial typed run passed 14,880 comparisons. It omitted mandatory integer
+corners, so a full validation driver is now running as PID 5183 (`run-validation.py`).
+It reruns typed checking with `--integer-corners`, then all boundary witnesses
+and poisoned lifecycle, then multiply, exact divide, modulo and exponent programs.
+Its authoritative files are `validation-progress.json`, `validation-driver.log`
+and stage-specific logs. **Revalidate process identity and actual logs** before
+waiting or restarting. The earlier PID 2300 typed checker has finished.
+
+See `red2-arithmetic-sharing-integration-results.json`. Generation's first
+`progress.json` describes the preserved failed anchor attempt; the successful
+retry is in `integration-retry.log`. No area/RTL/physical claim is made for this
+candidate. Require enhanced-compiler RTL, complete-core mapping and appropriate
+replay before promotion. The qualified FPGA image must remain available.
 
 ## List-equality gap
 
