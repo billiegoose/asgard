@@ -324,6 +324,24 @@ loaded burst-capable image and matching build/load receipts. Reload SRAM after
 this diagnostic before independent program qualification. A nonzero result
 indicates a mismatch or an operational failure, never a successful timeout.
 
+`isolate_response.py` is a further placement experiment for this integer
+snapshot profile. It moves all 625 variable response capture FFs to primary FF
+positions with empty companion LUT/FF pairs and no carry chain in their slice.
+It preserves clock/reset/enable compatibility, all logic, all core placements
+and every other cell placement. Destinations stay within already-used CLB
+tiles, including empty sibling slices:
+
+```sh
+python3 scripts/boards/red2_basys3/isolate_response.py \
+  build/red2-basys3-snapshot-isolated/board-placed.json \
+  --output build/red2-basys3-snapshot-isolated/new-isolated-placement.json \
+  --report build/red2-basys3-snapshot-isolated/new-isolation-proof.json
+```
+
+Use an unrouted placement and new output files. This recipe still requires
+global routing, configuration audits and physical qualification; it is not a
+qualified default build option.
+
 `prepare.py --snapshot-response` captures the 626-bit status once per command and
 selects each payload byte by index. It preserves the request/response format,
 CRC, padding and one core edge per accepted command. The legacy monitor source

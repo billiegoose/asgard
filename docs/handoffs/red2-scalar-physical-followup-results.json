@@ -1,0 +1,504 @@
+{
+  "recorded_at_utc": "2026-10-14T12:28:57.972240+00:00",
+  "scope": "Follow-up diagnosis of unqualified source60 physical scalar-state corruption, with completed bounded logical checks and pending all-response isolation experiment; no new RED2 physical qualification",
+  "prior_report_sha256": "4bd11b06bd95b4ffa1bb0d23a4f9cbc34b306995ea387ee388ee5d37fc38eb63",
+  "source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+  "base_bitstream_sha256": "912e9afc8410961c808beb73dce24ccfbe0c82716586dc463c727ad1278c2625",
+  "slower_clock": {
+    "probe_clock_mhz": 8.333333333333334,
+    "uart_baud": 96000,
+    "image_sha256": "7e3fb83a6b4eaa001e6ecdaeb0f0b945c35288fb7b01cc661fb66d85ca65b08f",
+    "changed_configuration_bits": 6,
+    "physical_pattern_summary": {
+      "passed": false,
+      "patterns": 348,
+      "packets": 1392,
+      "delivered_core_edges": 72384,
+      "mismatching_patterns": 11
+    },
+    "same_11_errors_as_10_MHz": true,
+    "restored_qualified_image": {
+      "started_at_utc": "2026-10-14T12:03:37.367542+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+      "program_script_sha256": "73b22b1c3e60a488e48310ad7ff28415b4c816eed4cd8c6775ff04e6fe01ce33",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-14T12:03:40.504070+00:00",
+      "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    }
+  },
+  "idle_and_busy_visible_state_probe": {
+    "packet_endpoints": 133,
+    "state_and_busy_mismatches": 75,
+    "selected_observations": [
+      {
+        "phase": "pc15-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "pc",
+            "expected": 32768,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "pc15-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "pc",
+            "expected": 32768,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "pc15-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "fsp1-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 2,
+            "actual": 514
+          }
+        ]
+      },
+      {
+        "phase": "fsp1-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 2,
+            "actual": 514
+          }
+        ]
+      },
+      {
+        "phase": "fsp1-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "fsp3-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 8,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp3-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 8,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp3-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "fsp7-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 128,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp7-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 128,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp7-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "fsp9-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 512,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp9-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 512,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp9-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "fsp11-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 2048,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp11-busy-0",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": [
+          {
+            "field": "fsp",
+            "expected": 2048,
+            "actual": 0
+          }
+        ]
+      },
+      {
+        "phase": "fsp11-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      },
+      {
+        "phase": "halted-idle",
+        "edges": 1,
+        "state_and_busy_match": false,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": [
+          {
+            "field": "pc",
+            "expected": 0,
+            "actual": 32768
+          }
+        ]
+      },
+      {
+        "phase": "halted-busy-0",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 1,
+        "actual_busy": 1,
+        "errors": []
+      },
+      {
+        "phase": "halted-final-idle",
+        "edges": 1,
+        "state_and_busy_match": true,
+        "expected_busy": 0,
+        "actual_busy": 0,
+        "errors": []
+      }
+    ],
+    "interpretation": "Scalar errors also appear on the busy visible-state view; halted-induced spurious pc bit15 is absent in the sampled busy view. This does not locate the corruption within input, storage or output paths."
+  },
+  "same_source_mapped_scalar_core": {
+    "scope": "Replay exact failing scalar patterns through the source60 mapped core. Same-source frontend RTL-derived expected full 626-bit output per simulated clock; scalar LOAD_STATE expectations separately asserted; no monitor, P&R or physical proof",
+    "source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "cycles": 1872,
+    "reference_binary_sha256": "1179094e4503466db499717af9079f68870dab32e08e650123d53518352192e2",
+    "vectors_sha256": "753a03e75b4abf20eabedd10554dc45881b6e55f0a67937b82bda7eb0e522549",
+    "mapped_core_sha256": "ea1add3e14c8c48cea4775a9dd3b4478dd7cc354d5e496aecdb31034e978e01b",
+    "mapped_model_sha256": "057d2e74fd8cc340600e8b0292a5b7610e911fc3c70821b66107180a08dbb74c",
+    "script_sha256": "b0c3a288a38d4dbe98cf191767d389a8a82e8412ce46a9e5d418fca0128d12d3",
+    "started_at_utc": "2026-10-14T12:08:01.707542+00:00",
+    "passed": true,
+    "pid": 41227,
+    "returncode": 0,
+    "log_sha256": "77d9df5fa06e46fc65e0104a9fe9c650cf35704437500f8addbaa3377f27cbb2",
+    "finished_at_utc": "2026-10-14T12:08:40.071607+00:00"
+  },
+  "physical_LUT_input_assignment": {
+    "scope": "Compare routed external LUT input pins with post-route cell pin mappings.\n\nUses the physical CLB pin in the site-entrance PIP, not the virtual swappable\nSITEWIRE pin. Does not simulate routes or prove configuration DB correctness.\n",
+    "routed_netlist_sha256": "11c1f390b846dfbd6001931b83ef428732e3165ba7e2bfce408b8bd012759e08",
+    "checked_pins": 81903,
+    "mismatch_count": 0
+  },
+  "unconditional_external_wire_closure": {
+    "scope": "Unconditional external wire connection closure seeded by every explicitly routed external wire, including unoccupied intermediates. Site virtual wires, conditional/default PPIPs, and BUFG cell input/output arcs excluded. Not a configurable PIP or hardware connectivity proof.",
+    "routed_net_entries": 32898,
+    "seed_wires": 739618,
+    "closure_wires": 1519719,
+    "checked_directed_edges": 2437250,
+    "conflict_count": 0,
+    "conflicts": [],
+    "routed_sha256": "11c1f390b846dfbd6001931b83ef428732e3165ba7e2bfce408b8bd012759e08"
+  },
+  "FF_control_set_helper": {
+    "scope": "Post-route SLICE_FFX groups checked with the maintained control_set helper: CK/SR/CE net identities, clock and real reset/set/clear/preset inversion parameters, synchronous/latch mode flags; no physical configuration proof",
+    "site_groups": 3213,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "helper_sha256": "24d144a8e7947bdc83dc38bbacf286aa58330514185aed6b617285a3c7dbd6b2"
+  },
+  "mapped_TX_byte_cone": {
+    "scope": "Exact mapped combinational cone feeding UART TX-byte FF data/enable/reset; all sequential outputs are cut and reachable SEND/ready state supplied; all 626 status bits walked, with zero/all ones/mixed status snapshots injected; no physical, BRAM, input transport, frame-clock or RED2 execution claim",
+    "source_mapped_board_sha256": "8bb89a88d1ec4aff2253b0cb96d19814802293f2383a90d2774a9a1729b1e3e9",
+    "patterns": 627,
+    "payload_bytes_per_pattern": 79,
+    "compared_byte_loads": 49533,
+    "boundary_bits": 688,
+    "cells": 294,
+    "primitive_types": {
+      "LUT6": 203,
+      "LUT3": 22,
+      "LUT4": 13,
+      "LUT5": 37,
+      "CARRY4": 2,
+      "INV": 6,
+      "LUT2": 11
+    },
+    "returncode": 0,
+    "passed": true,
+    "artifacts_sha256": {
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/cone.json": "326d349f1d141b8c1d2c1b4693e6075a5b6fc64ac881b31f33438ca3fe99c746",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/cone.v": "1223d64749788b8d518fbcfca36f470b4bc77077f0075172c3ed4759333d905c",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/test.sv": "7e62134ee28a7fe2858f7b048eef2a49ae68de1266e0785251f3d034ab0a3ac2",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/vectors.txt": "e16f9326474c6b53db454c8d04077bab7221a0d4155b73fc852a83d71b81eb33",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/run.log": "ce0ca42eb79a8ff9b069956f91c2e1e2a4f202004df951b19c4df3b55aa4efc4"
+    }
+  },
+  "mapped_sequential_monitor": {
+    "scope": "Exercise the actual mapped monitor's state, CRC, capture and byte-load logic. Actual mapped sequential monitor and byte-load cone; UART RX bytes and TX-ready state supplied, result bus injected; verify request-to-command transport, immutable pre-edge snapshot, all response bytes and CRC on 13 focused zero/ones/scalar/graph snapshots, one core_ce per packet. Excludes serial PHY, clock tree, core logic and physical routing.",
+    "source_mapped_board_sha256": "8bb89a88d1ec4aff2253b0cb96d19814802293f2383a90d2774a9a1729b1e3e9",
+    "command_bits_checked": 685,
+    "cells": 2701,
+    "patterns": 13,
+    "stages": [
+      {
+        "label": "export",
+        "pid": 45854,
+        "returncode": 0
+      },
+      {
+        "label": "compile",
+        "pid": 45857,
+        "returncode": 0
+      },
+      {
+        "label": "run",
+        "pid": 45863,
+        "returncode": 0
+      }
+    ],
+    "passed": true
+  },
+  "incomplete_extended_monitor_run": {
+    "patterns_requested": 627,
+    "passed": false,
+    "reason": "Command '['vvp', '/Users/billie/code/billiegoose/asgard/build/red2-basys3-snapshot-relocated/mapped-monitor-checked/test.vvp']' timed out after 300 seconds",
+    "scope": "Execution limit reached after 300 seconds; no completion or coverage claim. Separate 13-frame focused test completed and passed."
+  },
+  "pending_response_isolation": {
+    "scope": "Isolate every response capture FF from paired LUTs/5FFs and carry sites. All core and other cell placements, all cell types/parameters/connections and all logic unchanged; destinations in already-used CLB tiles, including empty sibling slices; primary FF only, empty LUT/FF companion pair, no carry in destination slice, compatible clock/reset/enable/inversions; global rerouting still required.",
+    "moved_FFs": 625,
+    "other_placements_preserved": 28858,
+    "free_candidate_pairs": 667,
+    "modified_placement_sha256": "c251e8b484aa0ea8a47a4f96b12c62db19d8226dbc6ac8afd1e6d8f9f790dc71",
+    "maintained_recipe_reproduces_exact_experiment": true,
+    "source_placement_sha256": "d2363d9f8fca1bac63971574c84209e276b9080df599ce5570f44b9be88a4328",
+    "build_driver_pid": 45784,
+    "build_session": 12138,
+    "qualification_session": 1522,
+    "qualification_policy": "Require audited build and timing/placement invariants; fresh SRAM for 131 RAM patterns, fresh SRAM for 348 scalar-state patterns; only then run 15 complete same-source RTL/Concrete-checked program replays, fresh SRAM per case; always restore qualified a0 after programming. No flash, retry or timeout success."
+  },
+  "IF_area_candidate_partial_mapped_gate": {
+    "source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+    "completed_cases": [
+      {
+        "label": "lifecycle",
+        "program": null,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-lifecycle/vectors.txt",
+        "metadata_sha256": "36717d4b3da2d06e93a31173754e8c5d865c131882de23995d012fa13449a4b7",
+        "simulated_clocks": 1053,
+        "vectors_sha256": "fb86f6c8977d319a9e27ddad115079ea1da652b62c58c8d6a9093d8b6fed811e",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      },
+      {
+        "label": "application",
+        "program": "((LAMBDA (x) x) 7)",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-application/vectors.txt",
+        "metadata_sha256": "5ae3ecaf206f68e403d8806c1ef18279086fb20e419b96f448a87386c7c70385",
+        "simulated_clocks": 10690,
+        "vectors_sha256": "1ec5d68bf0df3ff6cc207b8b26a7dd39519b7e9280ca57753616670c34f5e4e8",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      },
+      {
+        "label": "signed-multiply-valid",
+        "program": "(* -9223372036854775808 1)",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-signed-multiply-valid/vectors.txt",
+        "metadata_sha256": "45c8079788ce1d55532cdfe6d475db51ecd85248843eb63cd1d6cdcfb5c7e57c",
+        "simulated_clocks": 46475,
+        "vectors_sha256": "2508706c448e8623b3f1e8d64790942500ea32bc5be858a5690dc95eba92e696",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      }
+    ],
+    "complete_gate_passed": false,
+    "pending_stage": {
+      "label": "native-equality-checkpoint",
+      "command": [
+        "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+        "-u",
+        "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_integrated.py",
+        "--equality-checkpoint"
+      ],
+      "passed": false,
+      "started_at_utc": "2026-10-14T12:24:37.017462+00:00",
+      "pid": 47192
+    },
+    "driver_session": 85726,
+    "prior_harness_issue": "Selected MIN_INT * -1 for a HALT-only program checker; Concrete correctly faults unsupported-value on overflow before commit 9. Replaced with MIN_INT * 1, already validated in complete RTL program suite.",
+    "no_physical_build_or_qualification_for_this_source": true
+  },
+  "last_completed_board_restore": {
+    "started_at_utc": "2026-10-14T12:06:40.982412+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+    "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+    "program_script_sha256": "f71866f7dfdb0bb0a205158d5604473948c2ae1240c1f44db0085b9262bd8a4c",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-14T12:06:44.134696+00:00",
+    "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+  },
+  "limitations": [
+    "These static/model checks do not prove physical connectivity, clock timing, or the configuration database.",
+    "The precise cause remains unresolved; no new physical image is qualified.",
+    "The mapped byte-cone patterns respect constants and shared physical input nets; status bit624 is fixed zero in this profile.",
+    "The sequential monitor test supplies received bytes and UART-ready state directly; it excludes serial PHY, clock tree, core execution and physical routing. It checks 685 retained command bits; aux[63:27] were optimized away as unused.",
+    "Early harness attempts encountered fixed status bit624, unused command aux bits and generic FF names; corrected targeted checks preserve those failed artifacts."
+  ],
+  "artifact_sha256": {
+    "build/red2-basys3-snapshot-relocated/slow-clock/state-physical.json": "90d2ddcfe25c2c29ccd10d055f30b0184c9427127b01fb63ad7ea31eb99c85b3",
+    "build/red2-basys3-snapshot-relocated/state-views.json": "555c597ff5765034cc7f58b89c12de1fa5ebf68c8c068198fb5e8f5b98860472",
+    "build/red2-basys3-snapshot-relocated/mapped-scalar-probe/result.json": "df2566932398785d94aeb165362760bba90a5cf783cf66dbf9ad73ebe7f096f5",
+    "build/red2-basys3-snapshot-relocated/physical-lut-inputs.json": "3bd10ad111a3e895500c691e1aaddc4400f9e582c88c7992bdcd1438c6144ebc",
+    "build/red2-basys3-snapshot-relocated/fixed-wire-closure.json": "03f4faab4ca174818e9bc5e8dbc6fb06c092c29d1cc3d62fd359b4e3836a2b1b",
+    "build/red2-basys3-snapshot-relocated/ff-control-set-helper-audit.json": "1618a7133f4e54f71300275f4975a2fc02c5ca3597cdc584e40fa1f37ebeb591",
+    "build/red2-basys3-snapshot-relocated/mapped-byte-all-status-reachable/result.json": "cb58ff3ca10cd8bc072ee87121547b3696dfde4bc749202a71a8c71d51b642e2",
+    "build/red2-basys3-snapshot-relocated/mapped-monitor-focused/result.json": "c81d74154187d6cfb53b57b400a24b0bfef1f12d94259b3508a379bfa8cd034b",
+    "build/red2-basys3-snapshot-relocated/mapped-monitor-checked/result.json": "cc764dbc33370a89f0055c094cffb8c0e7a30e65f53e04a73edae0cf8d94883a",
+    "build/red2-basys3-snapshot-isolated/response-isolation-moves.json": "a3784356bb7a6eb46559b576d92f3f52a237f393996d98e112ed184f8ed89b82",
+    "build/red2-basys3-snapshot-isolated/isolate-response.py": "13ef7082e6f95705e1c007655d9f92c2ec8df2b98b86536c86d945f1239a7b5c",
+    "build/red2-basys3-snapshot-isolated/run-physical.py": "9f3c39a9ee657d7b9a1a02b559148d2630a464b4948a6e4dc4629ab0ecd4039f",
+    "build/red2-basys3-snapshot-isolated/qualify-when-built.py": "16578bc8c28f7d11033cfe9aa12913a3170b39bb44e9a39378e16a0ac93ddd12",
+    "scripts/boards/red2_basys3/isolate_response.py": "3aa011acfe352455a657124f6b1a95503959763c7a3318a66e48a39c761d9042"
+  }
+}

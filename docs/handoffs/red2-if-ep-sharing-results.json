@@ -395,5 +395,45 @@
     "boundary_witnesses": 847,
     "cases_sha256": "67c01babf320995b2d3c4f87cb41f7ae0529f64ec4b315ad5b72623e23d2cd61",
     "finished_at_utc": "2026-10-14T11:02:07.732183+00:00"
+  },
+  "mapped_primitive_partial_followup": {
+    "source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+    "completed_cases": [
+      {
+        "label": "lifecycle",
+        "program": null,
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-lifecycle/vectors.txt",
+        "metadata_sha256": "36717d4b3da2d06e93a31173754e8c5d865c131882de23995d012fa13449a4b7",
+        "simulated_clocks": 1053,
+        "vectors_sha256": "fb86f6c8977d319a9e27ddad115079ea1da652b62c58c8d6a9093d8b6fed811e",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      },
+      {
+        "label": "application",
+        "program": "((LAMBDA (x) x) 7)",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-application/vectors.txt",
+        "metadata_sha256": "5ae3ecaf206f68e403d8806c1ef18279086fb20e419b96f448a87386c7c70385",
+        "simulated_clocks": 10690,
+        "vectors_sha256": "1ec5d68bf0df3ff6cc207b8b26a7dd39519b7e9280ca57753616670c34f5e4e8",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      },
+      {
+        "label": "signed-multiply-valid",
+        "program": "(* -9223372036854775808 1)",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/mapped-native-signed-multiply-valid/vectors.txt",
+        "metadata_sha256": "45c8079788ce1d55532cdfe6d475db51ecd85248843eb63cd1d6cdcfb5c7e57c",
+        "simulated_clocks": 46475,
+        "vectors_sha256": "2508706c448e8623b3f1e8d64790942500ea32bc5be858a5690dc95eba92e696",
+        "expected_output_origin": "native hardware-source simulation",
+        "passed": true
+      }
+    ],
+    "overall_gate_passed": false,
+    "pending_stage_at_checkpoint": "mapped-equality-checkpoint",
+    "progress_path": "build/red2-if-ep-sharing/if-ep-chase/mapped-qualification-resume-progress.json",
+    "scope": "Fresh same-source native vectors; complete native/Concrete case, frontend RTL replay, then actual Xilinx mapped primitive replay. All 626 outputs each simulated clock. Final equality-checkpoint gate is still in progress.",
+    "followup_report_sha256": "68ea344df4e47106f7b33fef14c3bcddf8937db5401b29f0ec21348881b1d51e"
   }
 }

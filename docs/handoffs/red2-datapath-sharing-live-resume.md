@@ -1,5 +1,56 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Latest: model checks and all-response isolation route (2026-10-14)
+
+This section supersedes current-job claims below. Last completed board restore:
+qualified `a0ef3f44...` at **12:06:44 UTC**. No later diagnostic has programmed
+SRAM yet at this checkpoint; the queued isolation supervisor may do so after
+its build passes. It always restores `a0` after any programming.
+
+The source60 two-capture image has the **same 11/348 scalar errors at
+8.333333 MHz**, after changing only six clock-divider bits. A 133-endpoint
+physical probe also sees errors on the busy visible-state view; this does not
+identify the faulty stage. The exact failing scalar patterns pass the actual
+mapped core: **1,872 simulated clocks, every 626-bit output compared with its
+same-source RTL reference**, with independent LOAD_STATE field assertions.
+
+Further checks pass: 81,903 actual physical LUT input bindings; 3,213 FF
+control-set groups; unconditional fixed-wire closure through **1,519,719
+external wires / 2,437,250 directed edges**, no conflicts. The exact mapped TX
+byte cone passes **49,533 byte-load checks** across 627 reachable status patterns.
+The full mapped sequential monitor passes **13 focused packet frames**, checking
+685 retained command bits, immutable capture, all response bytes and CRC, and
+one core_ce per request. UART serial PHY, clock tree and core logic are cut.
+The broader 627-frame run **timed out at 300 seconds** and is not counted as
+passed. See `red2-scalar-physical-followup-results.json` for scopes and hashes.
+
+**Live all-response isolation experiment:**
+`build/red2-basys3-snapshot-isolated`, physical exec **12138**, driver PID
+**45784**, routing in container `red2-snapshot-isolated-route`. The proof moves
+all **625 response FFs** into primary FF positions with empty companion LUT/FF
+pairs, no carry in their slices and matching control sets; **28,858 other cells
+and all cell logic/connections/parameters are unchanged**. It uses only CLB tiles
+already occupied by the design, including empty sibling slices. There are 667
+eligible pairs. `scripts/boards/red2_basys3/isolate_response.py` reproduces the
+exact experiment placement and moves. Global routes are recomputed.
+Supervisor exec **1522** waits for the actual live build (without restarting it),
+requires audited fit/timing/placement, then gates on RAM patterns and scalar
+patterns before running the full 15-program same-source physical corpus. Each
+program uses fresh volatile SRAM; baseline `a0` is restored afterwards. No new
+image is qualified yet. Inspect live progress before relying on these statuses.
+
+**Live IF EP-chase mapped gate:** source `7d965e66...`, 15,181 core LUTs / 6,090
+FFs, exec **85726**, `build/red2-if-ep-sharing/if-ep-chase/resume-mapped.py`.
+Fresh same-source native vectors and frontend/mapped replay pass lifecycle
+(1,053), application (10,690), and signed-minimum multiply (46,475 simulated
+clocks), all 626 outputs each simulated cycle. The native equality-checkpoint
+stage is running, then frontend/mapped replays remain. Initial driver exec
+21945 is terminal failed because MIN_INT * -1 was mistakenly selected for a
+HALT-only harness; Concrete correctly rejects overflow. Resume reuses only
+hash-verified completed stages and substitutes the previously RTL-validated
+MIN_INT * 1 expression. Original failed logs/traces remain unchanged. No overall
+mapped gate or physical qualification is claimed yet for source7d.
+
 ## Latest: scalar state reproducer and two-capture results (2026-10-14)
 
 This section supersedes current-board and next-experiment claims below.
