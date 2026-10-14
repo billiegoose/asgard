@@ -66,10 +66,11 @@ configuration has 123 entries and 14,846 rows with the same capacities. Both hav
 200 private and 175 shared words. No complete-core LUT saving or RTL/physical
 parity is established for the new candidate yet.
 
-The initial typed run passed 14,880 comparisons. It omitted mandatory integer
-corners, so a full validation driver is now running as PID 5183 (`run-validation.py`).
-It reruns typed checking with `--integer-corners`, then all boundary witnesses
-and poisoned lifecycle, then multiply, exact divide, modulo and exponent programs.
+The initial typed run passed 14,880 comparisons. The full run with mandatory
+integer corners now passes 15,032 comparisons and retains all 152 corner
+witnesses. Validation driver PID 5183 (`run-validation.py`) is running all
+boundary witnesses and poisoned lifecycle next, then multiply, exact divide,
+modulo and exponent programs.
 Its authoritative files are `validation-progress.json`, `validation-driver.log`
 and stage-specific logs. **Revalidate process identity and actual logs** before
 waiting or restarting. The earlier PID 2300 typed checker has finished.

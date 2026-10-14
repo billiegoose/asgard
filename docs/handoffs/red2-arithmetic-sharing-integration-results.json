@@ -30,12 +30,15 @@
       "typed reference with mandatory integer corners",
       "all native boundary witnesses and poisoned lifecycle",
       "multiply/divide/modulo/exponent program parity"
-    ]
+    ],
+    "typed_comparisons_with_mandatory_integer_corners_passed": 15032,
+    "mandatory_integer_corner_witnesses": 152,
+    "full_boundary_and_program_validation_complete": false
   },
   "complete_core_map_available": false,
   "candidate_loaded_on_board": false,
   "limitations": [
-    "Initial typed run did not include mandatory integer corners; the full validation driver is now running",
+    "Typed comparisons and mandatory integer corners pass; complete boundary/lifecycle and arithmetic programs remain under validation",
     "No complete-core LUT saving, RTL replay or routed/physical result for this candidate yet",
     "The separate qualified burst image remains on the FPGA",
     "Existing list-equality gap remains unresolved"
@@ -52,6 +55,10 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/default-identity/integration.log": "c47020a952c50b71df5807c2f1528f3b4a91f60da7d526be6a4b03e6d0b27acb",
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/default-identity/integrated-stream/machine.py": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
     "scripts/experiments/red2_cfg_pilot/scalar_core.py": "5d5e86f6ed86ba2b54238cc0a77b718c03e45e0d2f903af1b941c3cdd060ae9a",
-    "tests/test_red2_scalar_fallback_order.py": "4b7beed23b11328163a8942b0850f70bccfd55fd07f5e958cc757f3e2fd30a00"
-  }
+    "tests/test_red2_scalar_fallback_order.py": "4b7beed23b11328163a8942b0850f70bccfd55fd07f5e958cc757f3e2fd30a00",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/typed-integer-corners.log": "bebc63fd23da1e7ef8947c69b233fb1f4a1216dc333e180905fd2f74413f4f97",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/native-cases.json": "2bfd6fdeb11af02e66ca39b94bae7a9b7645943caa8e00dceab8145cc41d0917",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/native-coverage.json": "56fba7686c5cc67fe7bf19fc5540f61f1f370d23ad45f85a01f96a06cf563073"
+  },
+  "updated_at_utc": "2026-10-14T01:05:23.201708+00:00"
 }
