@@ -61,7 +61,7 @@
       "finished_at_utc": "2026-10-14T05:07:28.366918+00:00"
     },
     "full_native_equality_programs_passed": false,
-    "full_native_boundaries_lifecycle_passed": false,
+    "full_native_boundaries_lifecycle_passed": true,
     "physical_board_programmed": false,
     "native_emitted_controller_witnesses_passed": 123,
     "native_controller_reset_cancel_and_constant_protection_passed": true,
@@ -429,7 +429,53 @@
       "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
       "passed": true
     },
-    "all_Xilinx_mapped_checks_passed": false
+    "all_Xilinx_mapped_checks_passed": true,
+    "complete_top_native_boundary_witnesses": 820,
+    "Xilinx_mapped_primitive_cases": [
+      {
+        "label": "lifecycle",
+        "simulated_clocks": 1043,
+        "output_bits_compared_each_clock": 626,
+        "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+        "passed": true
+      },
+      {
+        "label": "equality-checkpoint",
+        "simulated_clocks": 61871,
+        "output_bits_compared_each_clock": 626,
+        "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+        "passed": true
+      },
+      {
+        "label": "signed-multiply",
+        "simulated_clocks": 46855,
+        "output_bits_compared_each_clock": 626,
+        "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8",
+        "passed": true
+      },
+      {
+        "label": "application",
+        "passed": true,
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "simulated_clocks": 10688,
+        "output_bits_compared_each_clock": 626,
+        "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+        "scope": "Xilinx mapped-primitive application replay versus native expected output, every exposed bit every cycle; no board programming"
+      }
+    ],
+    "application_native_and_RTL_replay": {
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "scope": "Full native application/Concrete parity, followed by every-626-bit-per-clock Verilator replay; board first-probe trace; no FPGA programming",
+      "started_at_utc": "2026-10-14T05:54:54.064976+00:00",
+      "passed": true,
+      "pid": 21878,
+      "simulated_clocks": 10688,
+      "output_bits_compared_each_clock": 626,
+      "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+      "native_log_sha256": "81d5623ffa6eda861a3155168a32b0c347a904d0db18fa647a30fb9d734f4f58",
+      "replay_log_sha256": "a23211f6deeb9768763871f1cd5bf4cdd459da4a06365270395741a5e5618374",
+      "finished_at_utc": "2026-10-14T05:56:03.712064+00:00"
+    }
   },
   "resources": {
     "top": "top",
@@ -470,8 +516,8 @@
     "Typed handler oracle shares extraction machinery; original-source request regressions and independent architectural checkpoint additionally check correctness",
     "No new FPGA behavior or routed timing claim",
     "Direct RTL program parity compares committed architecture, expected RAM mutations and final full RAM; it is distinct from every-bit native trace replay",
-    "Xilinx primitive lifecycle passes; longer equality and multiplication primitive replays remain pending",
-    "Corrected divider-only attribution baseline is being regenerated/measured separately at build/red2-request-guards/shared-divider"
+    "All 820 native boundaries/lifecycle and four mapped replays pass; full native equality reruns remain separately tracked",
+    "Board mapping, placement, routing, timing and physical replay are still required"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/configuration.json": "17a163329f442ca921b0ac48d1cf3c0758d2f991dde1f1087d1a6d5919b90341",
@@ -521,7 +567,15 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/vectors.json": "2a642f35257a16c0844cdfd4bca560745b862fe93e4d9ee7a3da8a5869b882f5",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/rtl-replay-result.json": "a57683e7f7635bb3c764c23e2fb6eb128fc46cfee478b731cf691313426db11c",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/rtl-replay.log": "b0e7ca91360fd1f33410269a2f91ba6a12a28111bb6d1208aa9f4252d81937ab",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-lifecycle.log": "b6ac03a950685df68d37b4d45c7feff37bee05a47d87011fc20bf2e929a5b42d"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-lifecycle.log": "b6ac03a950685df68d37b4d45c7feff37bee05a47d87011fc20bf2e929a5b42d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-progress.json": "9fb62e3c9697e3e1104c948e44b58a765efec7824f9d2c2cfc4212e4152dc56d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/boundary-check.log": "47958bdf0cc48de0d502b93e954e94bce2543bfe05aed3065364f0230c75c441",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/mapped-check-progress.json": "7b61b72057dc6140552ab5feff69121c0eb3eae6b89b678355f70070c3062e69",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/mapped-application-result.json": "0a4321c9e216721edb3adb0847242d1f2ecc3fe12c9a7804de30781dabdb776c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-application-progress.json": "a9ae48f6874f93009551bb1ed99995473c52abb1e713b63234407866615481c9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-application.log": "5ebc7b9c7813299a97263986d73ee0206cdfdf7891f8d857f6450e5d63afd087",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-equality-checkpoint.log": "e768ceafa0c87c9b08affb54c433418acad40a4c8465dd47f462b1c29fbf6f89",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-signed-multiply.log": "d7d28491d8f4418a5696eb10f606d39ba2f3aa0d88d916b9d53e8b8de8915ca3"
   },
   "generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "a1e930167f9971da42a3145e89c9474158022f9468da689cacc2c64548d0a19c",
@@ -582,7 +636,7 @@
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
     "tests/test_red2_request_arms.py": "f8757e05f0cb3f557a1b7a51e8fa9909cfced3dec5010f21875969c367070bb7"
   },
-  "updated_at_utc": "2026-10-14T05:38:42.631376+00:00",
+  "updated_at_utc": "2026-10-14T06:17:53.050630+00:00",
   "mapping_provenance": {
     "enhanced_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
     "all_HDL_and_mapping_script_hashes_verified": true,
@@ -599,5 +653,7 @@
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "70c9c13ecab7148056e509b48d91cbe8b6da4a64881330341b5eae6946d11453",
     "scripts/experiments/red2_cfg_pilot/check_integrated.py": "f4d82a36610d5ff4b0abc316b904b519dffff78cbfc88b9afcd95933d9c6d007",
     "scripts/experiments/red2_cfg_pilot/check_interactive_vectors.py": "fa065ebd39f619877c3f44dce8e951c153ef635bf971b473d37329369bafc37a"
-  }
+  },
+  "controlled_arithmetic_comparison_report": "docs/handoffs/red2-corrected-arithmetic-sharing-results.json",
+  "frozen_experimental_board_gate": "docs/handoffs/synth-red2-shared-multiplier-results.json"
 }

@@ -1,0 +1,421 @@
+{
+  "recorded_at_utc": "2026-10-14T06:06:15.232619+00:00",
+  "scope": "Controlled enhanced synthesis comparison with corrected shared RAM request guards and the same maintained RED2 semantics; no instruction removed; no board result",
+  "baseline": {
+    "candidate_source_sha256": "1375f43099be547a2e6b09f8067d1c496ba91a590f8316f66fe5ef611402b81d",
+    "configuration": {
+      "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider",
+      "RED2_CFG_PILOT_GRAPH": "1",
+      "RED2_CFG_PILOT_LOOKUP": "1",
+      "RED2_CFG_PILOT_COMPACT": "1",
+      "RED2_CFG_PILOT_OWNED": "1",
+      "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+      "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE",
+      "RED2_CFG_PILOT_DICTIONARY": "1",
+      "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+      "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+      "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+      "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+      "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+      "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+      "RED2_CFG_PILOT_SCALAR_CORE": "1",
+      "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+      "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+      "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+      "RED2_CFG_PILOT_INTEGER_JOINS": "1",
+      "RED2_SYN_FLOAT": "0",
+      "RED2_SYN_GRAPH_WORDS": "256",
+      "RED2_CFG_PILOT_SHARED_RESPONSE": "1",
+      "RED2_CFG_PILOT_COMPACT_PENDING": "1",
+      "RED2_CFG_PILOT_REVERSE_CONTROL": "1",
+      "RED2_CFG_PILOT_DIRTY_WRITEBACK": "1",
+      "RED2_CFG_PILOT_SHARED_MULTIPLY": "0"
+    },
+    "resources": {
+      "top": "top",
+      "lut": 16483,
+      "lut_memory": 326,
+      "lut_total": 16809,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 6200,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 20,
+      "carry4": 700,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 700,
+        "DSP48E1": 20,
+        "FDRE": 6200,
+        "INV": 845,
+        "LUT2": 2900,
+        "LUT3": 2725,
+        "LUT4": 2484,
+        "LUT5": 3666,
+        "LUT6": 4708,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "equality_checkpoint": {
+      "environment": "native hardware-source simulation compared with Concrete RED2",
+      "scope": "Reachable state before commit 41 loaded through public ports; compare next commit architecture and every graph/control RAM word; no FPGA programming",
+      "candidate_source_sha256": "1375f43099be547a2e6b09f8067d1c496ba91a590f8316f66fe5ef611402b81d",
+      "started_at_utc": "2026-10-14T05:45:16.415589+00:00",
+      "passed": true,
+      "pid": 18804,
+      "returncode": 0,
+      "simulated_clocks": 61869,
+      "log_sha256": "1784e36e12445fae793e926c7dbf9f81ccf4d09f3a3eb3e958c5c669e7b6f03c",
+      "finished_at_utc": "2026-10-14T05:51:01.433635+00:00"
+    },
+    "resource_attribution": {
+      "source_sha256": "1375f43099be547a2e6b09f8067d1c496ba91a590f8316f66fe5ef611402b81d",
+      "mapped_core_sha256": "26512338619153b8f19a59d9c61e6036554b1915b1dbd52d612ca179d48931b0",
+      "module": "top",
+      "method": "Match declared Reg variable net aliases to mapped flip-flop Q bits; group RAM and DSP primitives by preserved instance names.",
+      "limitation": "Register ownership is not a functional LUT budget. ABC flattened and shared combinational logic; source-function LUT totals cannot be recovered from these names.",
+      "declared_register_variables": {
+        "root": 220,
+        "microengine": 6
+      },
+      "flipflops_by_named_register_owner": {
+        "integer_arithmetic": 532,
+        "microengine": 1053,
+        "remaining_core_state": 2727,
+        "transfer_bridge": 1723,
+        "unattributed": 165
+      },
+      "memories_by_instance": {
+        "cfg_control_index_rom": {
+          "RAMB36E1": 6
+        },
+        "cfg_control_rom": {
+          "RAMB36E1": 9
+        },
+        "cfg_plan_rom": {
+          "RAMB18E1": 3
+        },
+        "cfg_scratch_ram": {
+          "RAMB36E1": 2
+        },
+        "control_ram": {
+          "RAMB36E1": 2
+        },
+        "graph_ram": {
+          "RAMB36E1": 2
+        },
+        "literal_meta_ram": {
+          "RAM64X1S": 126
+        },
+        "promote_forward_ram": {
+          "RAM256X1S": 50
+        },
+        "promote_mat_ram": {
+          "RAMB36E1": 2
+        },
+        "pub_mat_ram": {
+          "RAMB18E1": 5
+        },
+        "pub_patch_addr_ram": {
+          "RAMB18E1": 1
+        },
+        "pub_patch_ram": {
+          "RAMB18E1": 5
+        },
+        "pub_root_ram": {
+          "RAMB36E1": 1
+        },
+        "pub_task_ram": {
+          "RAMB18E1": 7
+        }
+      },
+      "dsp48_by_multiplier_instance": {
+        "bin_op_inferred_mult_machine_py_l4979_c50_ec79": 10,
+        "bin_op_inferred_mult_machine_py_l5059_c53_ec109": 10
+      },
+      "primitives": {
+        "$scopeinfo": 7929,
+        "BUFG": 1,
+        "CARRY4": 700,
+        "DSP48E1": 20,
+        "FDRE": 6200,
+        "INV": 845,
+        "LUT2": 2900,
+        "LUT3": 2725,
+        "LUT4": 2484,
+        "LUT5": 3666,
+        "LUT6": 4708,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      }
+    },
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651"
+  },
+  "shared_multiplier": {
+    "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "configuration": {
+      "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply",
+      "RED2_CFG_PILOT_GRAPH": "1",
+      "RED2_CFG_PILOT_LOOKUP": "1",
+      "RED2_CFG_PILOT_COMPACT": "1",
+      "RED2_CFG_PILOT_OWNED": "1",
+      "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+      "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE,MICRO_U64_DIV_FINISH,MICRO_JOIN_SCALAR_INT_POW",
+      "RED2_CFG_PILOT_DICTIONARY": "1",
+      "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+      "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+      "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+      "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+      "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+      "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+      "RED2_CFG_PILOT_SCALAR_CORE": "1",
+      "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+      "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+      "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+      "RED2_CFG_PILOT_INTEGER_JOINS": "1",
+      "RED2_SYN_FLOAT": "0",
+      "RED2_SYN_GRAPH_WORDS": "256",
+      "RED2_CFG_PILOT_SHARED_RESPONSE": "1",
+      "RED2_CFG_PILOT_COMPACT_PENDING": "1",
+      "RED2_CFG_PILOT_REVERSE_CONTROL": "1",
+      "RED2_CFG_PILOT_DIRTY_WRITEBACK": "1",
+      "RED2_CFG_PILOT_SHARED_MULTIPLY": "1"
+    },
+    "resources": {
+      "top": "top",
+      "lut": 15477,
+      "lut_memory": 326,
+      "lut_total": 15803,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 6170,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 10,
+      "carry4": 534,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 1,
+        "CARRY4": 534,
+        "DSP48E1": 10,
+        "FDRE": 6170,
+        "INV": 649,
+        "LUT2": 2341,
+        "LUT3": 2671,
+        "LUT4": 2299,
+        "LUT5": 3523,
+        "LUT6": 4643,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "equality_checkpoint": {
+      "environment": "native hardware-source simulation compared with Concrete RED2",
+      "scope": "Reachable state before commit 41 loaded through public ports; compare next commit architecture and every graph/control RAM word; no FPGA programming",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "started_at_utc": "2026-10-14T05:02:48.301266+00:00",
+      "passed": true,
+      "pid": 3092,
+      "returncode": 0,
+      "simulated_clocks": 61871,
+      "log_sha256": "c8a19e0d97aad26a4b477bb2920a92eaca625fa6e1d7c92bb2be9eeaec249128",
+      "finished_at_utc": "2026-10-14T05:07:28.366918+00:00"
+    },
+    "resource_attribution": {
+      "source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "mapped_core_sha256": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
+      "module": "top",
+      "method": "Match declared Reg variable net aliases to mapped flip-flop Q bits; group RAM and DSP primitives by preserved instance names.",
+      "limitation": "Register ownership is not a functional LUT budget. ABC flattened and shared combinational logic; source-function LUT totals cannot be recovered from these names.",
+      "declared_register_variables": {
+        "root": 218,
+        "microengine": 6
+      },
+      "flipflops_by_named_register_owner": {
+        "integer_arithmetic": 532,
+        "microengine": 1053,
+        "remaining_core_state": 2695,
+        "transfer_bridge": 1723,
+        "unattributed": 167
+      },
+      "memories_by_instance": {
+        "cfg_control_index_rom": {
+          "RAMB36E1": 6
+        },
+        "cfg_control_rom": {
+          "RAMB36E1": 9
+        },
+        "cfg_plan_rom": {
+          "RAMB18E1": 3
+        },
+        "cfg_scratch_ram": {
+          "RAMB36E1": 2
+        },
+        "control_ram": {
+          "RAMB36E1": 2
+        },
+        "graph_ram": {
+          "RAMB36E1": 2
+        },
+        "literal_meta_ram": {
+          "RAM64X1S": 126
+        },
+        "promote_forward_ram": {
+          "RAM256X1S": 50
+        },
+        "promote_mat_ram": {
+          "RAMB36E1": 2
+        },
+        "pub_mat_ram": {
+          "RAMB18E1": 5
+        },
+        "pub_patch_addr_ram": {
+          "RAMB18E1": 1
+        },
+        "pub_patch_ram": {
+          "RAMB18E1": 5
+        },
+        "pub_root_ram": {
+          "RAMB36E1": 1
+        },
+        "pub_task_ram": {
+          "RAMB18E1": 7
+        }
+      },
+      "dsp48_by_multiplier_instance": {
+        "bin_op_inferred_mult_machine_py_l1181_c17_ec22": 10
+      },
+      "primitives": {
+        "$scopeinfo": 7791,
+        "BUFG": 1,
+        "CARRY4": 534,
+        "DSP48E1": 10,
+        "FDRE": 6170,
+        "INV": 649,
+        "LUT2": 2341,
+        "LUT3": 2671,
+        "LUT4": 2299,
+        "LUT5": 3523,
+        "LUT6": 4643,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      }
+    },
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651"
+  },
+  "configuration_differences": {
+    "RED2_CFG_PILOT_OUT": [
+      "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider",
+      "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply"
+    ],
+    "RED2_CFG_PILOT_SHARED_MULTIPLY": [
+      "0",
+      "1"
+    ],
+    "RED2_CFG_PILOT_EXTRA_STATES": [
+      "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE",
+      "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE,MICRO_U64_DIV_FINISH,MICRO_JOIN_SCALAR_INT_POW"
+    ]
+  },
+  "same_mapping_recipe_and_backend_bytes": true,
+  "all_HDL_and_script_fingerprints_verified": true,
+  "resource_savings": {
+    "LUTs": 1006,
+    "flipflops": 30,
+    "BRAM36_equivalent": 0.0,
+    "DSP48E1": 10,
+    "CARRY4": 166
+  },
+  "baseline_direct_RTL_program_parity": {
+    "candidate_source_sha256": "1375f43099be547a2e6b09f8067d1c496ba91a590f8316f66fe5ef611402b81d",
+    "scope": "Corrected legacy-product reference: direct RTL/Concrete program parity with architecture and expected mutations per commit, full graph/control RAM at termination; no FPGA programming",
+    "programs": [
+      {
+        "label": "multiply",
+        "program": "(* -7 -3)",
+        "passed": true,
+        "pid": 23486,
+        "simulated_clocks": 46514,
+        "log_sha256": "663ebc97c0b3595104e949f1e3d8690680139e77a4e2043dbb443198938b8d9d"
+      },
+      {
+        "label": "power",
+        "program": "(EXPT -2 3)",
+        "passed": true,
+        "pid": 23508,
+        "simulated_clocks": 50154,
+        "log_sha256": "16a3cbac524e70910493945fb90a643b2955ef946080448bd4b3b6338420889f"
+      },
+      {
+        "label": "divide",
+        "program": "(/ -6 2)",
+        "passed": true,
+        "pid": 23540,
+        "simulated_clocks": 46737,
+        "log_sha256": "b6909b7cc83875880b0e60a21a00b064158531cdbab4f6fd9cb3cc47c4f78a4a"
+      },
+      {
+        "label": "multiply-signed-min",
+        "program": "(* -9223372036854775808 1)",
+        "passed": true,
+        "pid": 23563,
+        "simulated_clocks": 46154,
+        "log_sha256": "e22cb20fdee49867f729678056251040b7cfeb9ca6a4fd57377e3d0ebf1c0eec"
+      }
+    ],
+    "passed": true
+  },
+  "candidate_validation_report": "docs/handoffs/red2-shared-request-guards-results.json",
+  "limitations": [
+    "Savings include moving complete finish/power handlers to the shared engine, not solely removing a multiplier",
+    "Register alias ownership does not establish functional LUT budgets after ABC sharing",
+    "Trace clocks include setup and observation; not a reduction performance benchmark",
+    "Area is core-only; routing, timing and physical-board qualification are separate"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/configuration.json": "9e815f121d3e2a92dd55aa0e546c019bcbfcb21ce01b1b5f54335b74dc7efcc0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/progress.json": "8713a8746232365441ec8fe5000d20385bdb9c3a895cb85823e0f80447de3975",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/checkpoint-progress.json": "c54994607bb484bf7935d698d58d560f5f1ed9129dd5b49276f00777c07a637f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/equality-checkpoint/native.log": "1784e36e12445fae793e926c7dbf9f81ccf4d09f3a3eb3e958c5c669e7b6f03c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/map-progress.json": "988ae82a5d395eeb47b2486795de486a179c582b3ef92ed7385464dbf064c145",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/machine.py": "1375f43099be547a2e6b09f8067d1c496ba91a590f8316f66fe5ef611402b81d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/baseline-area.json": "26512338619153b8f19a59d9c61e6036554b1915b1dbd52d612ca179d48931b0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/provenance.json": "6da684cccafc208094f6a74de7d4c27f5fe01891beb0e8bfb743d2d9d2b3c796",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/resources.json": "723f26f979aa65e77730fae50767d72877a6596c66045869d1b4fd205f4d0360",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/resource-attribution.json": "e2f3c7f516905d68e3d82100a2c9421e11507f62493a06bd1c08e90a9ed82545",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/configuration.json": "17a163329f442ca921b0ac48d1cf3c0758d2f991dde1f1087d1a6d5919b90341",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/progress.json": "c0cecca6ed59b7751e10186ff1e2d611a407a1c889c09c518ccd1b0fafcdc0b9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/checkpoint-progress.json": "061cf894762b0212f1b4a7d5d5383f6ab58eefcd623c21069efbe70b481e1950",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint/native.log": "c8a19e0d97aad26a4b477bb2920a92eaca625fa6e1d7c92bb2be9eeaec249128",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/map-progress.json": "32c526ff93b3a78113ef2a29af594b3558129aca3b33849578e8c704d5caebff",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/machine.py": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.json": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/provenance.json": "96f930e451350fa5b878d14517c6835b346d56d41358e684e71ec61cd4c660f4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resources.json": "52f2af8ca9edacb49f8343e1513eedd70c013cd0156d9900186b7e2b7c695d69",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resource-attribution.json": "7c4a244eef3a6feb1e3ed0d8081fe8388dfe5f836c66d0431174af3102cd6c3f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/direct-rtl-reference-progress.json": "c3a022db3d945ae08e249ff3498331bdfbdc18ec5770114800b8d54b423448e2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/rtl-build-progress.json": "f41a423d5cc75be2290b74edae8464456dea75f62f252cce86cf3da6d9602bf2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-divider/integrated-stream/rtl-netlist/interactive-driver/provenance.json": "7736f823000dc03c433a9d218ae285c00d8a5cb818bf484d71e1e377744553c9"
+  }
+}

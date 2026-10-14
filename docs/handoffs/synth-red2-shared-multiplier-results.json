@@ -1,0 +1,363 @@
+{
+  "recorded_at_utc": "2026-10-14T06:13:22.899134+00:00",
+  "scope": "Frozen experimental board-fit preparation gate for corrected shared multiplier RED2 core; physical qualification remains pending",
+  "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+  "fpgatool_commit": "f8da9ea81aba290ea2cd8122983935a104784ed6",
+  "variants": {
+    "shared-multiply": {
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+      "configuration": {
+        "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply",
+        "RED2_CFG_PILOT_GRAPH": "1",
+        "RED2_CFG_PILOT_LOOKUP": "1",
+        "RED2_CFG_PILOT_COMPACT": "1",
+        "RED2_CFG_PILOT_OWNED": "1",
+        "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+        "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE,MICRO_U64_DIV_FINISH,MICRO_JOIN_SCALAR_INT_POW",
+        "RED2_CFG_PILOT_DICTIONARY": "1",
+        "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+        "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+        "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+        "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+        "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+        "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+        "RED2_CFG_PILOT_SCALAR_CORE": "1",
+        "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+        "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+        "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+        "RED2_CFG_PILOT_INTEGER_JOINS": "1",
+        "RED2_SYN_FLOAT": "0",
+        "RED2_SYN_GRAPH_WORDS": "256",
+        "RED2_CFG_PILOT_SHARED_RESPONSE": "1",
+        "RED2_CFG_PILOT_COMPACT_PENDING": "1",
+        "RED2_CFG_PILOT_REVERSE_CONTROL": "1",
+        "RED2_CFG_PILOT_DIRTY_WRITEBACK": "1",
+        "RED2_CFG_PILOT_SHARED_MULTIPLY": "1"
+      },
+      "resources": {
+        "top": "top",
+        "lut": 15477,
+        "lut_memory": 326,
+        "lut_total": 15803,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 6170,
+        "bram18": 21,
+        "bram36": 24,
+        "bram36_equivalent": 34.5,
+        "dsp48": 10,
+        "carry4": 534,
+        "muxf7": 0,
+        "muxf8": 0,
+        "primitives": {
+          "BUFG": 1,
+          "CARRY4": 534,
+          "DSP48E1": 10,
+          "FDRE": 6170,
+          "INV": 649,
+          "LUT2": 2341,
+          "LUT3": 2671,
+          "LUT4": 2299,
+          "LUT5": 3523,
+          "LUT6": 4643,
+          "RAM256X1S": 50,
+          "RAM64X1S": 126,
+          "RAMB18E1": 21,
+          "RAMB36E1": 24
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "usable_fit_candidate": true,
+      "verilator_netlist_provenance": {
+        "coarse_json_sha256": "97fc5d6d96464777cc9d123a770df822b1d4895000ceee13d2f7d37b176bc3a5",
+        "coarse_verilog_sha256": "9433046b62806e57fa411a9b073b9c6ad77d3de3602dcbcb22b4e2cd6ef7f1c6",
+        "candidate_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "replay_cpp_sha256": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
+        "wrapper_sha256": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+        "conversion_passes": "read_json; rename -hide; opt_clean -purge; memory_unpack; write_verilog -noattr",
+        "input_width": 722,
+        "output_width": 626,
+        "scope": "Optimized GHDL/Yosys area-map frontend RTL before technology mapping"
+      },
+      "artifacts": {
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-progress.json": "9fb62e3c9697e3e1104c948e44b58a765efec7824f9d2c2cfc4212e4152dc56d",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/boundary-check.log": "47958bdf0cc48de0d502b93e954e94bce2543bfe05aed3065364f0230c75c441",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-cases.json": "c9fb6999496dd2c3cf3d7c997caae9254bf8e877ac337bc4278ad9f9026f67d1",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/product-corner-progress.json": "d5d036acf6f220edd093be5eb31331dff0a4a9502885da88a4f88f6ae47bf960",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/typed-product-corners.log": "f99738cd4326c345fe5001b436e756290dfcc5571e9722b5b08d44f30661dff8",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/controller-product-corners.log": "05a3730a35f41008404066a7715eeb78ade6019458493117211a9b393c6aa236",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-corpus-progress.json": "e198a8828bbcba466da95f5f885ae08e7833e602dd0fb027881f83f6fa00ba1c",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-nested-progress.json": "5938c4cbc59e3bdfe5533725cde74ea4bc7e6c1bd0a4b452e7b9ec8179cdda79",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-application/check.log": "93f629943ce9c5daa9f76ffa62f12e8c2dcc9d89de052be58cfe40206d9e6640",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-structure/check.log": "036392900b6ad286da712e1b5606ae1a75d80dfae7bb7bd641a59a695d4f2487",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-add/check.log": "b2f47374febc6f05728e1e203d0d791a58fdb3c238298f73525dcdf0f5473542",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-signed-add/check.log": "ff4ff9fe6847a87cc924bfcd87ea3a7492dae7849f87b3c89e55c2c93160041e",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-even-negative/check.log": "c0643639293463d87cf06e4acbe1a689a1e9d6a678c0301097e5b32a65335bfc",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-multiply/check.log": "092ee8ecb8ab2a45e44e29bace256c4bb997f328bf0dadc2782058baa16785b7",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-divide/check.log": "535d8417d13117cbc7dee770278355c3cac8850cc32abf9b945acd515b2bb324",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-modulo/check.log": "445c3d33d7bc83bee018262389fa87be56470ecd51d373edebea5bed1bce8de5",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-exponent/check.log": "f316d87a1a517f756aa48cbc53734f788c1ed720df1ed1004080f4f08cdc05f1",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-multiply-signed-min/check.log": "759e770eefceb7e4c9eed951931ddd9afc4ba77b0803d681ff8ece8d5a73955e",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-divide-high-magnitude/check.log": "391f63c1228c749e57ddc2d0f3b38503ef4eb2bf47a0f5fbc5a42a8eca2cdbbb",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-equal-list/check.log": "1177f6cfb7051c07c0fe0c86a2634fd9e4d1fdae0b59dfb3bcd06e0892988dec",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-unequal-list/check.log": "41dd449d6a1ed4ae2918bb506bb0b8305bc9aa2c987392c14137ee02620ff31f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-equal-nested/check.log": "64084fc262dbbc817ae2b7936ed99876d7940c17c82c8e2bf6347e495fc54cca",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-unequal-nested/check.log": "16fb63fbb1133074c0e4892894530d17b15054c8944fd5959aad791bb7b0d8c8",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-saved-if-fixtures.log": "be2a7815bdde98072fed67accec1bf9bd08ab34189e246d29c4ef9518c23c9ce",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-application-progress.json": "a9ae48f6874f93009551bb1ed99995473c52abb1e713b63234407866615481c9",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-native-application/vectors.json": "7d4238b7c87f9a0037bd490c9715f2a5969a4b17ca52c5ff16b3f744dd982bb6",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/public-lifecycle-progress.json": "9f00fe12cb10fe43a79062ae0ff568254bd3e2ab78a2b4a1a1927ffc6520532d",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-public-lifecycle/vectors.json": "4145fc32e626d0a70d7d3b5a663202ed381f32ed3f40f426b81b13d3cf5439c8",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/checkpoint-rtl-progress.json": "7222337a72cec0b2c392aee2d1149ff4477b44fce00d4e8de02e997a99174d24",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint-rtl/vectors.json": "067534bc73a98b8a0eb9b47a9217c02f69868f89030db9c5860d0871d51de56f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/rtl-replay-result.json": "a57683e7f7635bb3c764c23e2fb6eb128fc46cfee478b731cf691313426db11c",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/vectors.json": "2a642f35257a16c0844cdfd4bca560745b862fe93e4d9ee7a3da8a5869b882f5",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/mapped-check-progress.json": "7b61b72057dc6140552ab5feff69121c0eb3eae6b89b678355f70070c3062e69",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/mapped-application-result.json": "0a4321c9e216721edb3adb0847242d1f2ecc3fe12c9a7804de30781dabdb776c",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/core.v": "38187f6d17a248b6e0ffe2b35abb62a25e6b04980026524f1019787334a4140a",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/wrapper.v": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/replay.sv": "b57753bf1dccd3a0f90b65b87c9b4e926e761cc8542cf35e57984b77a1779e62",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/cells_sim.v": "f108df3fc3a28f6a6d527cc1c7eefc05261c0dc24fe4e0781fa66c3106ae1151",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/RAMB18E1.v": "f04b8980e1565e9b622723334d48d687e6dc48b93d08cb99ecb1206a0700848b",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/RAMB36E1.v": "b6153b595696f7eebe6840b2b8d518e32df698cb8e8b2730c8838648ceec72fb",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/RAMD64E.v": "f2d8a878e8fda2f6e2cde57428ec0b3a52a7ebaffe4e8ca1e0e997c45cf754c2",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/replay.vvp": "3f4efb0de940eadffc1004e3d0e559e637fa8e2a07ea7bac02fa83acdaa6534b",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-application.log": "5ebc7b9c7813299a97263986d73ee0206cdfdf7891f8d857f6450e5d63afd087",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-lifecycle.log": "b6ac03a950685df68d37b4d45c7feff37bee05a47d87011fc20bf2e929a5b42d",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-equality-checkpoint.log": "e768ceafa0c87c9b08affb54c433418acad40a4c8465dd47f462b1c29fbf6f89",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-signed-multiply.log": "d7d28491d8f4418a5696eb10f606d39ba2f3aa0d88d916b9d53e8b8de8915ca3",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/map-progress.json": "32c526ff93b3a78113ef2a29af594b3558129aca3b33849578e8c704d5caebff",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/frontend.ys": "3c3b69dd10ce9de36fd4db4a938029f658cf2849c18067550ea7a4a3af1e1d71",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.ys": "ed06ae522806f47f07668606298ca34c221c8a4162e4f593f90d21d4d7f507aa",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/run.sh": "524343623b2b34d0f1a1b26f3db69a340d8eeb5fe99465b58f24bffbde01612a",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/machine.py": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.json": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resources.json": "52f2af8ca9edacb49f8343e1513eedd70c013cd0156d9900186b7e2b7c695d69",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/provenance.json": "96f930e451350fa5b878d14517c6835b346d56d41358e684e71ec61cd4c660f4",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resource-attribution.json": "7c4a244eef3a6feb1e3ed0d8081fe8388dfe5f836c66d0431174af3102cd6c3f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/rtl-netlist/wrapper.v": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/rtl-netlist/provenance.json": "5b240fe2bda6e36e0dc249953c480602ed72fa758289013dd9a7af7fb0e0484d",
+        "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/configuration.json": "17a163329f442ca921b0ac48d1cf3c0758d2f991dde1f1087d1a6d5919b90341"
+      },
+      "validation": {
+        "typed_comparisons": 15504,
+        "native_controller_witnesses": 123,
+        "complete_top_native_boundary_witnesses": 820,
+        "native_lifecycle_metadata_and_poison_checks_passed": true,
+        "direct_RTL_Concrete_full_programs": [
+          {
+            "label": "application",
+            "program": "((LAMBDA (x) x) 7)",
+            "passed": true,
+            "pid": 10087,
+            "returncode": 0,
+            "simulated_clocks": 10688,
+            "log_sha256": "93f629943ce9c5daa9f76ffa62f12e8c2dcc9d89de052be58cfe40206d9e6640"
+          },
+          {
+            "label": "structure",
+            "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+            "passed": true,
+            "pid": 10101,
+            "returncode": 0,
+            "simulated_clocks": 124293,
+            "log_sha256": "036392900b6ad286da712e1b5606ae1a75d80dfae7bb7bd641a59a695d4f2487"
+          },
+          {
+            "label": "add",
+            "program": "(+ 7 8)",
+            "passed": true,
+            "pid": 10189,
+            "returncode": 0,
+            "simulated_clocks": 26365,
+            "log_sha256": "b2f47374febc6f05728e1e203d0d791a58fdb3c238298f73525dcdf0f5473542"
+          },
+          {
+            "label": "signed-add",
+            "program": "(+ -9223372036854775808 1)",
+            "passed": true,
+            "pid": 10209,
+            "returncode": 0,
+            "simulated_clocks": 26365,
+            "log_sha256": "ff4ff9fe6847a87cc924bfcd87ea3a7492dae7849f87b3c89e55c2c93160041e"
+          },
+          {
+            "label": "even-negative",
+            "program": "(EVEN? -2)",
+            "passed": true,
+            "pid": 10225,
+            "returncode": 0,
+            "simulated_clocks": 44745,
+            "log_sha256": "c0643639293463d87cf06e4acbe1a689a1e9d6a678c0301097e5b32a65335bfc"
+          },
+          {
+            "label": "multiply",
+            "program": "(* -7 -3)",
+            "passed": true,
+            "pid": 10276,
+            "returncode": 0,
+            "simulated_clocks": 46855,
+            "log_sha256": "092ee8ecb8ab2a45e44e29bace256c4bb997f328bf0dadc2782058baa16785b7"
+          },
+          {
+            "label": "divide",
+            "program": "(/ -6 2)",
+            "passed": true,
+            "pid": 10314,
+            "returncode": 0,
+            "simulated_clocks": 47108,
+            "log_sha256": "535d8417d13117cbc7dee770278355c3cac8850cc32abf9b945acd515b2bb324"
+          },
+          {
+            "label": "modulo",
+            "program": "(MOD -7 3)",
+            "passed": true,
+            "pid": 10346,
+            "returncode": 0,
+            "simulated_clocks": 52241,
+            "log_sha256": "445c3d33d7bc83bee018262389fa87be56470ecd51d373edebea5bed1bce8de5"
+          },
+          {
+            "label": "exponent",
+            "program": "(EXPT -2 3)",
+            "passed": true,
+            "pid": 10386,
+            "returncode": 0,
+            "simulated_clocks": 51368,
+            "log_sha256": "f316d87a1a517f756aa48cbc53734f788c1ed720df1ed1004080f4f08cdc05f1"
+          },
+          {
+            "label": "multiply-signed-min",
+            "program": "(* -9223372036854775808 1)",
+            "passed": true,
+            "pid": 11638,
+            "returncode": 0,
+            "simulated_clocks": 46501,
+            "log_sha256": "759e770eefceb7e4c9eed951931ddd9afc4ba77b0803d681ff8ece8d5a73955e"
+          },
+          {
+            "label": "divide-high-magnitude",
+            "program": "(/ -9223372036854775808 -9223372036854775808)",
+            "passed": true,
+            "pid": 11677,
+            "returncode": 0,
+            "simulated_clocks": 47088,
+            "log_sha256": "391f63c1228c749e57ddc2d0f3b38503ef4eb2bf47a0f5fbc5a42a8eca2cdbbb"
+          },
+          {
+            "label": "equal-list",
+            "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+            "passed": true,
+            "pid": 11716,
+            "returncode": 0,
+            "simulated_clocks": 811553,
+            "log_sha256": "1177f6cfb7051c07c0fe0c86a2634fd9e4d1fdae0b59dfb3bcd06e0892988dec"
+          },
+          {
+            "label": "unequal-list",
+            "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+            "passed": true,
+            "pid": 13394,
+            "returncode": 0,
+            "simulated_clocks": 642136,
+            "log_sha256": "41dd449d6a1ed4ae2918bb506bb0b8305bc9aa2c987392c14137ee02620ff31f"
+          },
+          {
+            "label": "equal-nested",
+            "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+            "passed": true,
+            "pid": 10088,
+            "returncode": 0,
+            "simulated_clocks": 1380140,
+            "log_sha256": "64084fc262dbbc817ae2b7936ed99876d7940c17c82c8e2bf6347e495fc54cca"
+          },
+          {
+            "label": "unequal-nested",
+            "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+            "passed": true,
+            "pid": 12060,
+            "returncode": 0,
+            "simulated_clocks": 1210699,
+            "log_sha256": "16fb63fbb1133074c0e4892894530d17b15054c8944fd5959aad791bb7b0d8c8"
+          }
+        ],
+        "direct_RTL_Concrete_saved_IF_fixtures": 26,
+        "native_expected_bitwise_RTL_replays": [
+          {
+            "label": "application",
+            "simulated_clocks": 10688,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+            "passed": true
+          },
+          {
+            "label": "lifecycle",
+            "simulated_clocks": 1043,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+            "passed": true
+          },
+          {
+            "label": "equality-checkpoint",
+            "simulated_clocks": 61871,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+            "passed": true
+          },
+          {
+            "label": "signed-multiply",
+            "simulated_clocks": 46855,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8",
+            "passed": true
+          }
+        ],
+        "Xilinx_mapped_primitive_replays": [
+          {
+            "label": "lifecycle",
+            "simulated_clocks": 1043,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+            "passed": true
+          },
+          {
+            "label": "equality-checkpoint",
+            "simulated_clocks": 61871,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+            "passed": true
+          },
+          {
+            "label": "signed-multiply",
+            "simulated_clocks": 46855,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8",
+            "passed": true
+          },
+          {
+            "label": "application",
+            "passed": true,
+            "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+            "simulated_clocks": 10688,
+            "output_bits_compared_each_clock": 626,
+            "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+            "scope": "Xilinx mapped-primitive application replay versus native expected output, every exposed bit every cycle; no board programming"
+          }
+        ]
+      },
+      "qualification_basis": "Direct generated-RTL/Concrete full-program semantic checks plus native boundaries/lifecycle and bitwise native-expected RTL/technology-mapped replay. Additional slow native equality reruns are corroborating and are not required for this experimental fit attempt.",
+      "limitations": [
+        "Experimental fit gate, not routing/timing or physical-board qualification",
+        "Full native equality reruns remain separate; no claim they have passed",
+        "Typed/handler witnesses include arbitrary injected states, not exhaustive reachable-state coverage",
+        "Integer-only profile; direct/EP private primitive firing remains outside saved-JOIN support",
+        "No instructions removed; finite 256-word graph and control stores"
+      ],
+      "loaded_on_board": false
+    }
+  },
+  "freeze_script_sha256": "858d428575b4fdf412f62e06e95442beb1c9270507288d3126ebb81f4cb37a45"
+}

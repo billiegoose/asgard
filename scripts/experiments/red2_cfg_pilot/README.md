@@ -681,3 +681,28 @@ signed multiply also passes ordinary RTL replay on all 626 output bits for
 46,855 cycles. Xilinx mapped-primitive lifecycle replay passes all 626 bits for
 1,043 cycles; its longer equality/multiply cases are still running. These
 simulation results do not establish routing, timing or physical-board behavior.
+
+The corrected divider-only reference is now measured with the same source
+semantics, shared request fix, compiler and byte-identical mapping recipe:
+
+| Corrected core | LUTs including LUT RAM | FFs | BRAM36 equivalents | DSPs | CARRY4 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Legacy finish/power arithmetic | 16,809 | 6,200 | 34.5 | 20 | 700 |
+| Shared product/finish/power | **15,803** | **6,170** | **34.5** | **10** | **534** |
+
+The controlled saving is **1,006 LUTs**, 30 FFs and ten DSPs. The baseline maps
+two ten-DSP multiplier instances; the candidate maps one. Both pass the reachable
+equality checkpoint; baseline multiply, power, divide and signed-boundary
+multiply also pass direct RTL/Concrete program parity. The saving includes
+moving the complete finish/power handlers, rather than only deleting a
+multiplier. See [the controlled comparison](../../../docs/handoffs/red2-corrected-arithmetic-sharing-results.json).
+
+All 820 candidate native boundary witnesses, lifecycle, accepted metadata and
+poisoned payload checks now pass. Four native-expected traces pass both frontend
+RTL and Xilinx mapped-primitive replay on all 626 bits per cycle: application,
+public lifecycle, equality checkpoint and signed multiply. The frozen
+[experimental board-fit gate](../../../docs/handoffs/synth-red2-shared-multiplier-results.json)
+uses those results plus the 15 independent full-program RTL/Concrete tests and
+26 saved-IF fixtures. The slower duplicate native list-program corpus remains
+separate corroboration. This gate permits experimental board preparation;
+routed timing and physical qualification remain separate.
