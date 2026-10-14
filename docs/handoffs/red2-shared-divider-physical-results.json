@@ -314,6 +314,26 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/mapped-board-sim/application.log": "68af5acc1892f909a276175bef9ab55fb4ab8b2e748205f682f6df25742c66de",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/audit-lut-init.py": "4bc341a0fb6de5f9f9423b10f944eecd7cfa905161e3f9de0d044a33150691df",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/lut-init-audit.json": "a8cc21c13121206ed1208cd949d8a553e7b04ca9947ae9b456b08c17a888e1c0",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-after-shared-divider-single-clock-result.json": "f86a029addb3404ef6d7a503eafa6a0ba6a8e27d034c08d521fb60bd70f1327c"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-after-shared-divider-single-clock-result.json": "f86a029addb3404ef6d7a503eafa6a0ba6a8e27d034c08d521fb60bd70f1327c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-init-audit.json": "a9c071391797d00a9ffe92567513e886245ce47dc1865a8cedbfe803746afb96",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-init-audit.log": "1d0ff060d650c8f06308fca8eabad95626edf82c95920790970859bf670474d6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/audit-bram-init.py": "3999b42dfa3a2b9e6ccfca8cf5e176835091fc36cb8b8c70f16a1af906464201"
+  },
+  "updated_at_utc": "2026-10-14T05:32:17.780468+00:00",
+  "BRAM_initialization_and_output_register_FASM_audit": {
+    "scope": "Mapped routed BRAM initialization known bits and output register enables versus emitted FASM; RAMB36 even/odd split checked; not bitstream-frame, routing, pin polarity, width or physical behavior verification",
+    "passed": true,
+    "BRAM_cells": 45,
+    "BRAM18_halves": 69,
+    "initialization_words_checked": 4968,
+    "known_initialization_bits_checked": 962048,
+    "registered_output_half_ports": 0,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "artifacts_sha256": {
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board-routed.json": "99b3f7e7f3f2ab90f58571c75fe1bbe9fe8ec5d353d29521ad408c6f0ab545c5",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board.fasm": "847c1472aaa0cea144ab5952d0922ba3c28035a31c5f1ebec0b592235850f49d",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3/tilegrid.json": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e"
+    }
   }
 }

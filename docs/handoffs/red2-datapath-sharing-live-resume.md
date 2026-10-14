@@ -63,6 +63,35 @@ commits and all RAM at termination, rather than every bit with native per cycle.
 Durable direct RTL corpus/nested/26 saved-IF gates are separate jobs below the
 corrected output root. Their terminal progress files must be checked before
 claiming completion. The original native full-program/boundary jobs continue.
+Completed additions: all 11 original programs pass direct RTL/Concrete parity
+(523,617 simulated cycles); the equal two-element nested list passes 1,380,140
+cycles; all 26 saved-IF fixtures pass architectural and full-RAM parity in RTL;
+and public queued lifecycle passes native assertions plus every-bit RTL replay
+for 1,043 cycles. The direct corpus is also replaying the two simple equality
+programs, while the nested job is running the unequal case. Xilinx mapped
+primitive replay for lifecycle/equality-checkpoint/signed multiply is now running
+under `mapped-check-progress.json`; the native product trace is recorded by
+that driver. Do not infer completion from file existence.
+
+The older failed divider board also passes a BRAM known-initialization-bit and
+output-register-setting audit against FASM: 45 cells, 69 halves, 4,968 words,
+962,048 known bits, zero mismatches. This does not check frame conversion,
+widths, clock polarity, routed wires or physical behavior. No board was loaded.
+
+Terminal direct RTL results now supersede the preceding running-list statuses:
+all 13 original/simple-equality corpus programs and both nested-list programs
+pass (15 total, 4,568,145 simulated cycles). All 26 saved-IF fixtures pass too.
+The host checker changed only to add the saved-IF entrypoint while the batches
+ran; deleting that import/function/mode exactly reconstructs the batches'
+initial checker hash, so existing program checking/transport code is verified
+unchanged. Candidate source and model manifest were checked before each case.
+Native signed multiply passes every-bit ordinary RTL replay for 46,855 cycles.
+Mapped Xilinx lifecycle passes all 626 bits for 1,043 cycles; the mapped driver
+continues with equality-checkpoint and signed multiply. Native boundary and
+native full equality traces remain live and must be verified independently.
+A corrected shared-divider-only reference profile (shared multiplier disabled,
+finish/power left in legacy logic) is generating/being mapped separately under
+`build/red2-request-guards/shared-divider` for a controlled area comparison.
 
 Compiler launchers now bootstrap installed setuptools' `distutils` compatibility
 instead of depending on `/tmp/red2-python-shims`, which disappeared during an

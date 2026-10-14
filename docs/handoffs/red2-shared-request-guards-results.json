@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T05:08:07.951560+00:00",
-  "scope": "Shared OR RAM request guards fixed; exact-source typed and reachable equality checkpoint pass; full program, RTL, mapping and physical qualification tracked separately",
+  "scope": "Corrected shared request guards plus shared multiplier: complete 15803-LUT core map; 15 full direct RTL/Concrete programs and 26 saved-IF fixtures pass; focused native bitwise RTL and mapped lifecycle pass; broader native boundaries, mapped cases and physical qualification remain separate",
   "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
   "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
   "configuration": {
@@ -41,8 +41,8 @@
     "unsupported_mixed_guards": "Fail extraction unless an explicit specialized lowering is registered"
   },
   "validation": {
-    "pytest_passed": 17,
-    "pytest_scope": "12 original-source request regression cases, three scalar fallback tests and two compiler compatibility tests",
+    "pytest_passed": 21,
+    "pytest_scope": "12 original-source request cases, three scalar fallback, two compiler compatibility and four packed-port/trace layout cases",
     "typed_comparisons": 15392,
     "typed_comparisons_including_112_product_corners": 15504,
     "expression_width_checks": 13,
@@ -126,7 +126,310 @@
         "simulated_clocks": 642136,
         "seconds": 223.67373004881665
       }
-    ]
+    ],
+    "public_lifecycle_native_and_RTL_replay": {
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "scope": "Native public queued RESET/LOAD_STATE/START assertions, followed by every-626-bit-per-clock replay in Verilator; no FPGA programming",
+      "started_at_utc": "2026-10-14T05:24:26.559581+00:00",
+      "passed": true,
+      "pid": 11707,
+      "simulated_clocks": 1043,
+      "output_bits_compared_each_clock": 626,
+      "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+      "native_log_sha256": "219a44c6208b4fc2cee9769d97a8772b30b666e0a73a3703ff8f2d33b8f7b955",
+      "replay_log_sha256": "c10e1eecf89ede7a7f44b0bd024600fe938508bbf079a299ec1b025be9ecefd3",
+      "finished_at_utc": "2026-10-14T05:24:51.991493+00:00"
+    },
+    "saved_IF_direct_RTL_fixtures": {
+      "environment": "Interactive Verilator RTL compared with independent Concrete RED2 fixtures",
+      "passed": true,
+      "fixtures": 26,
+      "private_equality_fixtures": 18,
+      "ordinary_IF_fixtures": 8,
+      "comparison": "Architectural fields and every graph/control RAM word for every fixture",
+      "simulated_clocks": 1340406
+    },
+    "original_eleven_program_direct_RTL_corpus": {
+      "environment": "Interactive Verilator RTL compared directly with Concrete RED2",
+      "passed": true,
+      "comparison": "Compare architectural fields and expected RAM mutations at every commit, all graph/control words at termination; no every-bit native trace comparison claimed for these programs; no FPGA programming",
+      "programs": [
+        {
+          "label": "application",
+          "program": "((LAMBDA (x) x) 7)",
+          "passed": true,
+          "pid": 10087,
+          "returncode": 0,
+          "simulated_clocks": 10688,
+          "log_sha256": "93f629943ce9c5daa9f76ffa62f12e8c2dcc9d89de052be58cfe40206d9e6640"
+        },
+        {
+          "label": "structure",
+          "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+          "passed": true,
+          "pid": 10101,
+          "returncode": 0,
+          "simulated_clocks": 124293,
+          "log_sha256": "036392900b6ad286da712e1b5606ae1a75d80dfae7bb7bd641a59a695d4f2487"
+        },
+        {
+          "label": "add",
+          "program": "(+ 7 8)",
+          "passed": true,
+          "pid": 10189,
+          "returncode": 0,
+          "simulated_clocks": 26365,
+          "log_sha256": "b2f47374febc6f05728e1e203d0d791a58fdb3c238298f73525dcdf0f5473542"
+        },
+        {
+          "label": "signed-add",
+          "program": "(+ -9223372036854775808 1)",
+          "passed": true,
+          "pid": 10209,
+          "returncode": 0,
+          "simulated_clocks": 26365,
+          "log_sha256": "ff4ff9fe6847a87cc924bfcd87ea3a7492dae7849f87b3c89e55c2c93160041e"
+        },
+        {
+          "label": "even-negative",
+          "program": "(EVEN? -2)",
+          "passed": true,
+          "pid": 10225,
+          "returncode": 0,
+          "simulated_clocks": 44745,
+          "log_sha256": "c0643639293463d87cf06e4acbe1a689a1e9d6a678c0301097e5b32a65335bfc"
+        },
+        {
+          "label": "multiply",
+          "program": "(* -7 -3)",
+          "passed": true,
+          "pid": 10276,
+          "returncode": 0,
+          "simulated_clocks": 46855,
+          "log_sha256": "092ee8ecb8ab2a45e44e29bace256c4bb997f328bf0dadc2782058baa16785b7"
+        },
+        {
+          "label": "divide",
+          "program": "(/ -6 2)",
+          "passed": true,
+          "pid": 10314,
+          "returncode": 0,
+          "simulated_clocks": 47108,
+          "log_sha256": "535d8417d13117cbc7dee770278355c3cac8850cc32abf9b945acd515b2bb324"
+        },
+        {
+          "label": "modulo",
+          "program": "(MOD -7 3)",
+          "passed": true,
+          "pid": 10346,
+          "returncode": 0,
+          "simulated_clocks": 52241,
+          "log_sha256": "445c3d33d7bc83bee018262389fa87be56470ecd51d373edebea5bed1bce8de5"
+        },
+        {
+          "label": "exponent",
+          "program": "(EXPT -2 3)",
+          "passed": true,
+          "pid": 10386,
+          "returncode": 0,
+          "simulated_clocks": 51368,
+          "log_sha256": "f316d87a1a517f756aa48cbc53734f788c1ed720df1ed1004080f4f08cdc05f1"
+        },
+        {
+          "label": "multiply-signed-min",
+          "program": "(* -9223372036854775808 1)",
+          "passed": true,
+          "pid": 11638,
+          "returncode": 0,
+          "simulated_clocks": 46501,
+          "log_sha256": "759e770eefceb7e4c9eed951931ddd9afc4ba77b0803d681ff8ece8d5a73955e"
+        },
+        {
+          "label": "divide-high-magnitude",
+          "program": "(/ -9223372036854775808 -9223372036854775808)",
+          "passed": true,
+          "pid": 11677,
+          "returncode": 0,
+          "simulated_clocks": 47088,
+          "log_sha256": "391f63c1228c749e57ddc2d0f3b38503ef4eb2bf47a0f5fbc5a42a8eca2cdbbb"
+        }
+      ],
+      "total_simulated_clocks": 523617
+    },
+    "equal_nested_list_direct_RTL": {
+      "environment": "Interactive Verilator RTL compared directly with Concrete RED2",
+      "comparison": "Compare architectural fields and expected RAM mutations at every commit, all graph/control words at termination; no every-bit native trace comparison claimed for these programs; no FPGA programming",
+      "label": "equal-nested",
+      "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+      "passed": true,
+      "pid": 10088,
+      "returncode": 0,
+      "simulated_clocks": 1380140,
+      "log_sha256": "64084fc262dbbc817ae2b7936ed99876d7940c17c82c8e2bf6347e495fc54cca"
+    },
+    "full_program_direct_RTL_corpus": {
+      "passed": true,
+      "program_count": 15,
+      "comparison": "Compare architectural fields and expected RAM mutations at every commit, all graph/control words at termination; no every-bit native trace comparison claimed for these programs; no FPGA programming",
+      "environment": "Interactive Verilator RTL compared directly with Concrete RED2",
+      "simulated_clocks": 4568145,
+      "programs": [
+        {
+          "label": "application",
+          "program": "((LAMBDA (x) x) 7)",
+          "passed": true,
+          "pid": 10087,
+          "returncode": 0,
+          "simulated_clocks": 10688,
+          "log_sha256": "93f629943ce9c5daa9f76ffa62f12e8c2dcc9d89de052be58cfe40206d9e6640"
+        },
+        {
+          "label": "structure",
+          "program": "(CAR (CONS 7 (CONS 8 NIL)))",
+          "passed": true,
+          "pid": 10101,
+          "returncode": 0,
+          "simulated_clocks": 124293,
+          "log_sha256": "036392900b6ad286da712e1b5606ae1a75d80dfae7bb7bd641a59a695d4f2487"
+        },
+        {
+          "label": "add",
+          "program": "(+ 7 8)",
+          "passed": true,
+          "pid": 10189,
+          "returncode": 0,
+          "simulated_clocks": 26365,
+          "log_sha256": "b2f47374febc6f05728e1e203d0d791a58fdb3c238298f73525dcdf0f5473542"
+        },
+        {
+          "label": "signed-add",
+          "program": "(+ -9223372036854775808 1)",
+          "passed": true,
+          "pid": 10209,
+          "returncode": 0,
+          "simulated_clocks": 26365,
+          "log_sha256": "ff4ff9fe6847a87cc924bfcd87ea3a7492dae7849f87b3c89e55c2c93160041e"
+        },
+        {
+          "label": "even-negative",
+          "program": "(EVEN? -2)",
+          "passed": true,
+          "pid": 10225,
+          "returncode": 0,
+          "simulated_clocks": 44745,
+          "log_sha256": "c0643639293463d87cf06e4acbe1a689a1e9d6a678c0301097e5b32a65335bfc"
+        },
+        {
+          "label": "multiply",
+          "program": "(* -7 -3)",
+          "passed": true,
+          "pid": 10276,
+          "returncode": 0,
+          "simulated_clocks": 46855,
+          "log_sha256": "092ee8ecb8ab2a45e44e29bace256c4bb997f328bf0dadc2782058baa16785b7"
+        },
+        {
+          "label": "divide",
+          "program": "(/ -6 2)",
+          "passed": true,
+          "pid": 10314,
+          "returncode": 0,
+          "simulated_clocks": 47108,
+          "log_sha256": "535d8417d13117cbc7dee770278355c3cac8850cc32abf9b945acd515b2bb324"
+        },
+        {
+          "label": "modulo",
+          "program": "(MOD -7 3)",
+          "passed": true,
+          "pid": 10346,
+          "returncode": 0,
+          "simulated_clocks": 52241,
+          "log_sha256": "445c3d33d7bc83bee018262389fa87be56470ecd51d373edebea5bed1bce8de5"
+        },
+        {
+          "label": "exponent",
+          "program": "(EXPT -2 3)",
+          "passed": true,
+          "pid": 10386,
+          "returncode": 0,
+          "simulated_clocks": 51368,
+          "log_sha256": "f316d87a1a517f756aa48cbc53734f788c1ed720df1ed1004080f4f08cdc05f1"
+        },
+        {
+          "label": "multiply-signed-min",
+          "program": "(* -9223372036854775808 1)",
+          "passed": true,
+          "pid": 11638,
+          "returncode": 0,
+          "simulated_clocks": 46501,
+          "log_sha256": "759e770eefceb7e4c9eed951931ddd9afc4ba77b0803d681ff8ece8d5a73955e"
+        },
+        {
+          "label": "divide-high-magnitude",
+          "program": "(/ -9223372036854775808 -9223372036854775808)",
+          "passed": true,
+          "pid": 11677,
+          "returncode": 0,
+          "simulated_clocks": 47088,
+          "log_sha256": "391f63c1228c749e57ddc2d0f3b38503ef4eb2bf47a0f5fbc5a42a8eca2cdbbb"
+        },
+        {
+          "label": "equal-list",
+          "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+          "passed": true,
+          "pid": 11716,
+          "returncode": 0,
+          "simulated_clocks": 811553,
+          "log_sha256": "1177f6cfb7051c07c0fe0c86a2634fd9e4d1fdae0b59dfb3bcd06e0892988dec"
+        },
+        {
+          "label": "unequal-list",
+          "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+          "passed": true,
+          "pid": 13394,
+          "returncode": 0,
+          "simulated_clocks": 642136,
+          "log_sha256": "41dd449d6a1ed4ae2918bb506bb0b8305bc9aa2c987392c14137ee02620ff31f"
+        },
+        {
+          "label": "equal-nested",
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+          "passed": true,
+          "pid": 10088,
+          "returncode": 0,
+          "simulated_clocks": 1380140,
+          "log_sha256": "64084fc262dbbc817ae2b7936ed99876d7940c17c82c8e2bf6347e495fc54cca"
+        },
+        {
+          "label": "unequal-nested",
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+          "passed": true,
+          "pid": 12060,
+          "returncode": 0,
+          "simulated_clocks": 1210699,
+          "log_sha256": "16fb63fbb1133074c0e4892894530d17b15054c8944fd5959aad791bb7b0d8c8"
+        }
+      ],
+      "server_binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+      "harness_source_note": "Only the saved-IF fixture entry point was added during the batch. Removing that import/function/mode reproduces the exact initial checker hash. Program checking and transport code remained unchanged; FPGA source and model manifest were checked unchanged before each program."
+    },
+    "signed_multiply_native_and_bitwise_RTL_replay": {
+      "scope": "Signed multiply full native/Concrete program followed by every-626-bit-per-clock frontend RTL replay",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "passed": true,
+      "simulated_clocks": 46855,
+      "output_bits_compared_each_clock": 626,
+      "vectors_sha256": "4f980a2189e7f3d215ed823d63efafbc7b2a465b4119fd60788efff31477c5c8",
+      "replay_log_sha256": "b0e7ca91360fd1f33410269a2f91ba6a12a28111bb6d1208aa9f4252d81937ab"
+    },
+    "Xilinx_mapped_primitive_lifecycle": {
+      "label": "lifecycle",
+      "simulated_clocks": 1043,
+      "output_bits_compared_each_clock": 626,
+      "vectors_sha256": "d4a6577cf46a83a585952b3f49ff70e22de62ec7c4e599c70403ff6612220ac5",
+      "passed": true
+    },
+    "all_Xilinx_mapped_checks_passed": false
   },
   "resources": {
     "top": "top",
@@ -166,7 +469,9 @@
     "Reachable checkpoint is one commit starting from a concrete-produced state; full hardware prefix remains a separate gate",
     "Typed handler oracle shares extraction machinery; original-source request regressions and independent architectural checkpoint additionally check correctness",
     "No new FPGA behavior or routed timing claim",
-    "Direct RTL prototype programs check committed architecture, expected mutations and final full RAM; they do not compare all 626 bits with native outputs every cycle"
+    "Direct RTL program parity compares committed architecture, expected RAM mutations and final full RAM; it is distinct from every-bit native trace replay",
+    "Xilinx primitive lifecycle passes; longer equality and multiplication primitive replays remain pending",
+    "Corrected divider-only attribution baseline is being regenerated/measured separately at build/red2-request-guards/shared-divider"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/configuration.json": "17a163329f442ca921b0ac48d1cf3c0758d2f991dde1f1087d1a6d5919b90341",
@@ -199,7 +504,24 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-complete-checkpoint-vector-result.json": "a97f5e464bc798fecf62feab41b63a0177385e5e65808c2f8ffa71f143bc31cb",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-application/result.json": "0e945622424da02b5f1c41d310c6482c8ca72a6873da240c625e51cf76e35839",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-equal-list/result.json": "4ede00b974bdfe9ea66f7e377807f7b02f6f3549179b702c1d6b1112f49571e7",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-unequal-list/result.json": "595aab57027ce9c500eb9922b04bfab8e9313b966d6c8cc5e5f01ba55003e290"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-unequal-list/result.json": "595aab57027ce9c500eb9922b04bfab8e9313b966d6c8cc5e5f01ba55003e290",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/public-lifecycle-progress.json": "9f00fe12cb10fe43a79062ae0ff568254bd3e2ab78a2b4a1a1927ffc6520532d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-public-lifecycle/native.log": "219a44c6208b4fc2cee9769d97a8772b30b666e0a73a3703ff8f2d33b8f7b955",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-public-lifecycle/replay.log": "c10e1eecf89ede7a7f44b0bd024600fe938508bbf079a299ec1b025be9ecefd3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-public-lifecycle/vectors.json": "4145fc32e626d0a70d7d3b5a663202ed381f32ed3f40f426b81b13d3cf5439c8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-saved-if-fixtures.log": "be2a7815bdde98072fed67accec1bf9bd08ab34189e246d29c4ef9518c23c9ce",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-equal-nested/check.log": "64084fc262dbbc817ae2b7936ed99876d7940c17c82c8e2bf6347e495fc54cca",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/rtl-netlist/interactive-driver/provenance.json": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-corpus-progress.json": "e198a8828bbcba466da95f5f885ae08e7833e602dd0fb027881f83f6fa00ba1c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-nested-progress.json": "5938c4cbc59e3bdfe5533725cde74ea4bc7e6c1bd0a4b452e7b9ec8179cdda79",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-corpus-driver.log": "74c5ec56d8cc998873b8588006b56c8bbf17e5b9c1b562cb56b1af5c174b55ca",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-nested-driver.log": "1e33a9816984fa28d3fbed34c45c282d86f669c731aa49ff109460a41b07840f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/direct-rtl-unequal-nested/check.log": "16fb63fbb1133074c0e4892894530d17b15054c8944fd5959aad791bb7b0d8c8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/native.log": "fa80d06a8cb1dc5997bd3fc155d66c05eac3e11d7353023a1949f3c320893766",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/vectors.json": "2a642f35257a16c0844cdfd4bca560745b862fe93e4d9ee7a3da8a5869b882f5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/rtl-replay-result.json": "a57683e7f7635bb3c764c23e2fb6eb128fc46cfee478b731cf691313426db11c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-mapped-multiply/rtl-replay.log": "b0e7ca91360fd1f33410269a2f91ba6a12a28111bb6d1208aa9f4252d81937ab",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-lifecycle.log": "b6ac03a950685df68d37b4d45c7feff37bee05a47d87011fc20bf2e929a5b42d"
   },
   "generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "a1e930167f9971da42a3145e89c9474158022f9468da689cacc2c64548d0a19c",
@@ -260,7 +582,7 @@
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
     "tests/test_red2_request_arms.py": "f8757e05f0cb3f557a1b7a51e8fa9909cfced3dec5010f21875969c367070bb7"
   },
-  "updated_at_utc": "2026-10-14T05:21:23.511006+00:00",
+  "updated_at_utc": "2026-10-14T05:38:42.631376+00:00",
   "mapping_provenance": {
     "enhanced_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
     "all_HDL_and_mapping_script_hashes_verified": true,
@@ -270,5 +592,12 @@
     "LUTs": 27,
     "flipflops": 144,
     "CARRY4": 18
+  },
+  "interactive_driver_scripts_sha256": {
+    "scripts/experiments/red2_cfg_pilot/build_interactive_rtl.py": "a29197831a4b9fc12d0e3e62f30e85ecad721c89be74131b9665becdded40691",
+    "scripts/experiments/red2_cfg_pilot/rtl_interactive.py": "d7d8b3c686867e9200dc80cc427f02f0520bd135490e35d3b8e390c8c344cce8",
+    "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "70c9c13ecab7148056e509b48d91cbe8b6da4a64881330341b5eae6946d11453",
+    "scripts/experiments/red2_cfg_pilot/check_integrated.py": "f4d82a36610d5ff4b0abc316b904b519dffff78cbfc88b9afcd95933d9c6d007",
+    "scripts/experiments/red2_cfg_pilot/check_interactive_vectors.py": "fa065ebd39f619877c3f44dce8e951c153ef635bf971b473d37329369bafc37a"
   }
 }

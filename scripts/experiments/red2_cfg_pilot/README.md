@@ -664,3 +664,20 @@ equal/unequal one-element list programs also pass through termination, including
 final full-RAM equality. Their program results are distinct from the per-cycle
 native-output comparison. The durable driver is running the broader corpus and
 nested lists; see the separate validation scopes in the request-fix evidence.
+
+The durable interactive driver now passes all 11 original programs on the
+corrected core: 523,617 simulated cycles with architecture/mutations checked at
+every commit and all RAM at termination. The equal two-element nested list also
+passes (1,380,140 cycles). All 26 saved-IF fixtures pass in actual RTL, including
+all architectural fields and every graph/control word for each fixture. Native
+public lifecycle assertions and ordinary every-bit RTL replay pass a separate
+1,043-cycle continuous command trace. Broader native boundary/lifecycle and
+remaining direct RTL list cases still have separate completion receipts.
+
+All **15 full programs** have now completed direct RTL/Concrete parity,
+including equal and unequal nested lists: 4,568,145 simulated cycles across
+the programs. The 26 saved-IF fixtures are a separate passing gate. Native
+signed multiply also passes ordinary RTL replay on all 626 output bits for
+46,855 cycles. Xilinx mapped-primitive lifecycle replay passes all 626 bits for
+1,043 cycles; its longer equality/multiply cases are still running. These
+simulation results do not establish routing, timing or physical-board behavior.
