@@ -1,5 +1,62 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Current board build: corrected shared multiplier (2026-10-14)
+
+This section supersedes historical running-job statuses below. Dedicated RED2,
+floating arithmetic omitted, division retained, enhanced compiler unchanged.
+
+- Corrected shared-divider reference `1375f430...`: **16,809 LUTs**, 6,200 FFs,
+  34.5 BRAM36 equivalents, 20 DSPs, 700 CARRY4. It passes 15,152 typed comparisons,
+  the reachable equality checkpoint and four direct RTL arithmetic programs.
+- Corrected shared product/finish/power candidate `89c7712c...`: **15,803 LUTs**,
+  6,170 FFs, 34.5 BRAM36 equivalents, ten DSPs, 534 CARRY4. With the same semantics
+  and byte-identical mapper scripts/backend, this saves 1,006 LUTs, 30 FFs and
+  ten DSPs. Attribution verifies two ten-DSP multipliers become one; register
+  alias groups are not functional LUT budgets.
+- All **820 native boundaries plus lifecycle/metadata/poison checks pass**.
+  All 15 direct RTL/Concrete programs and 26 saved-IF fixtures pass. Application,
+  lifecycle, equality checkpoint and signed multiply pass every-bit native
+  expected-output replay in frontend RTL and Xilinx primitives. The first full
+  native equal-list program also passes 811,553-cycle every-626-bit RTL replay.
+  The remaining three duplicate native list programs continue as corroboration.
+
+The immutable preparation gate is
+`docs/handoffs/synth-red2-shared-multiplier-results.json` (variant
+`shared-multiply`). Do not edit it: board provenance pins its hash. It explicitly
+uses direct generated-RTL/Concrete program semantics plus the native boundary
+and bitwise/mapped gates; it does not claim the slow duplicate native corpus
+has completed. Physical qualification is a separate requirement.
+
+The complete burst board is prepared at `build/red2-basys3-shared-multiplier`.
+It maps at **16,752 LUTs**, 8,370 FFs, 34.5 BRAM36 equivalents and ten DSPs; the
+wrapper adds exactly 949 LUTs and 2,200 FFs. Exact backward-cone identity matches
+23,061 original core primitives, all parameters, 30,767 bijective nets and all
+32 packed public fields after only cutting the core clock/command boundary.
+
+Build exec session **56972**, driver `run-physical.py`, progress
+`physical-progress.json`; map passed and placement is live in container
+`red2-multiplier-place`. Revalidate the actual session/container before waiting.
+It uses the existing pinned backend `e9fd42e7...`, chipdb alias, 10 MHz target,
+seed 1, four-thread analytical placement, eight serializer-pair relocation and
+router2 hold-fix=8. No automatic physical loader was started. The last confirmed
+board image remains the qualified f97 burst image `5e88122c...`.
+
+`audit_bram.py` is now copied and run after routing before frame generation.
+Eight regressions and a real preparation smoke pass. Both saved working/failed
+boards pass all 45 BRAMs' known INIT data and intended width/clock/write settings
+(69 halves, 4,968 words, 962,048 known bits and 855 flags). The first temporary
+audit mistakenly used pre-SDP72 width expectations and flagged 14 intentional
+bits; its failed receipt is retained and the pinned patch is now included.
+This has not identified the prior physical failure. The xc7a35t-to-xc7a50t alias
+also matches upstream [nextpnr](https://raw.githubusercontent.com/YosysHQ/nextpnr/main/himbaechel/uarch/xilinx/xilinx.cc)
+and [prjxray](https://raw.githubusercontent.com/f4pga/prjxray/master/settings/artix7/devices.yaml);
+no device-map change was made.
+
+Records: `red2-corrected-arithmetic-sharing-results.json`,
+`red2-shared-request-guards-results.json`, and
+`red2-shared-multiplier-board-results.json`. Latest commits: `c907c28` (BRAM
+audit) and `a83a97d` (frozen fit gate and controlled comparison), both pushed.
+
 ## Latest checkpoint: shared multiplier and request extraction (2026-10-14)
 
 This section supersedes the historical process and board-load statuses below.

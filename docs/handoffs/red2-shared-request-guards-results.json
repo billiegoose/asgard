@@ -475,6 +475,16 @@
       "native_log_sha256": "81d5623ffa6eda861a3155168a32b0c347a904d0db18fa647a30fb9d734f4f58",
       "replay_log_sha256": "a23211f6deeb9768763871f1cd5bf4cdd459da4a06365270395741a5e5618374",
       "finished_at_utc": "2026-10-14T05:56:03.712064+00:00"
+    },
+    "additional_full_native_equal_list_and_bitwise_RTL_replay": {
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "scope": "Full equal-list native/Concrete architectural parity followed by every-626-bit-per-clock frontend RTL replay; no FPGA programming",
+      "passed": true,
+      "simulated_clocks": 811553,
+      "output_bits_compared_each_clock": 626,
+      "vectors_sha256": "58b8d79b8713601fc381cb80e07742d838511e370688bdce7e7ef55048459c08",
+      "replay_binary_sha256": "07c638f9d5857a63bb3e691243e4868e7540176ffa124b31ace4c41fdaf7b4e1",
+      "replay_log_sha256": "644e836b1504e136df3f98843c2800c05ae33e58d6c36c2b45c7aec4222d989e"
     }
   },
   "resources": {
@@ -575,7 +585,11 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-application-progress.json": "a9ae48f6874f93009551bb1ed99995473c52abb1e713b63234407866615481c9",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-application.log": "5ebc7b9c7813299a97263986d73ee0206cdfdf7891f8d857f6450e5d63afd087",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-equality-checkpoint.log": "e768ceafa0c87c9b08affb54c433418acad40a4c8465dd47f462b1c29fbf6f89",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-signed-multiply.log": "d7d28491d8f4418a5696eb10f606d39ba2f3aa0d88d916b9d53e8b8de8915ca3"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/mapped-sim/mapped-signed-multiply.log": "d7d28491d8f4418a5696eb10f606d39ba2f3aa0d88d916b9d53e8b8de8915ca3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/replay-result.json": "1a02e48ebaa5bf6991d5fa6a18b6b8cf9183a908a9a32eae92a99aba8ce7ae9a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/replay.log": "644e836b1504e136df3f98843c2800c05ae33e58d6c36c2b45c7aec4222d989e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/vectors.json": "5ae88d69ec5df1a073df086157d8eb85d3f1cad3b349aaf56d7a294c1fbfbef9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/native.log": "569c3d1be579aca929dda0eafe18df1dcdb2144f1810f00e1d2786c8296f7b85"
   },
   "generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "a1e930167f9971da42a3145e89c9474158022f9468da689cacc2c64548d0a19c",
@@ -636,7 +650,7 @@
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
     "tests/test_red2_request_arms.py": "f8757e05f0cb3f557a1b7a51e8fa9909cfced3dec5010f21875969c367070bb7"
   },
-  "updated_at_utc": "2026-10-14T06:17:53.050630+00:00",
+  "updated_at_utc": "2026-10-14T06:35:50.289606+00:00",
   "mapping_provenance": {
     "enhanced_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
     "all_HDL_and_mapping_script_hashes_verified": true,
@@ -655,5 +669,6 @@
     "scripts/experiments/red2_cfg_pilot/check_interactive_vectors.py": "fa065ebd39f619877c3f44dce8e951c153ef635bf971b473d37329369bafc37a"
   },
   "controlled_arithmetic_comparison_report": "docs/handoffs/red2-corrected-arithmetic-sharing-results.json",
-  "frozen_experimental_board_gate": "docs/handoffs/synth-red2-shared-multiplier-results.json"
+  "frozen_experimental_board_gate": "docs/handoffs/synth-red2-shared-multiplier-results.json",
+  "board_progress_report": "docs/handoffs/red2-shared-multiplier-board-results.json"
 }
