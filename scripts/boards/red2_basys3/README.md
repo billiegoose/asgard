@@ -23,6 +23,13 @@ replay compares all 626 public output bits at packet endpoints; intermediate
 cycles are not individually observed. Expected-output origin and exact counts
 are recorded in [the current board evidence](../../../docs/handoffs/red2-shared-multiplier-board-results.json).
 
+A clock count is a count of engine cycles, not RED2 reductions or a frequency.
+One reduction spans many cycles of graph access and shared-datapath work.
+“Passed” means the stated comparisons found no mismatch over that execution:
+RTL replay can check every simulated cycle; physical burst replay checks packet
+endpoints. Live-program run counts can include an idle HALT tail within the last
+burst and are not exact cycles-to-halt measurements.
+
 The frozen [preparation gate](../../../docs/handoffs/synth-red2-shared-multiplier-results.json)
 records 820 native boundary/lifecycle witnesses, 15 complete RTL/Concrete
 programs, 26 saved-IF fixtures and four every-bit native-expected RTL/primitive
@@ -52,6 +59,13 @@ write-width correction. Eight regression cases and both the working burst
 image and failed divider image pass this check. It does not establish routed
 connectivity, frame conversion, timing or physical behavior. The build record
 fingerprints the auditor and its result.
+
+The experimental indexed-snapshot serializer can be tested with
+`check.py --snapshot-response --burst-clock --output <new-directory>` and
+`check_burst.py --snapshot-response --output <new-directory>`. These check the
+UART protocol and burst behavior in simulation. Physical qualification remains
+separate; the currently qualified image and commands below use the existing
+working board build.
 
 ## Run THOR on the board
 

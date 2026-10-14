@@ -298,17 +298,25 @@ def main():
     parser.add_argument("--core-top", type=Path)
     parser.add_argument("--vectors", type=Path)
     parser.add_argument("--burst-clock", action="store_true")
+    parser.add_argument("--snapshot-response", action="store_true")
     args = parser.parse_args()
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
     if bool(args.core_top) != bool(args.vectors):
         parser.error("core-top and vectors must be provided together")
     monitor = None
-    if args.burst_clock:
-        from burst_monitor import burst_clock
-
+    if args.snapshot_response or args.burst_clock:
         monitor = args.output / "monitor.v"
-        monitor.write_text(burst_clock((HERE / "monitor.v").read_text()))
+        source = (HERE / "monitor.v").read_text()
+        if args.snapshot_response:
+            from snapshot_monitor import snapshot_response
+
+            source = snapshot_response(source)
+        if args.burst_clock:
+            from burst_monitor import burst_clock
+
+            source = burst_clock(source)
+        monitor.write_text(source)
     uart_check(args.output, monitor)
     if args.core_top:
         core_check(

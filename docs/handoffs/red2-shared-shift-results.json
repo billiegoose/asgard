@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T07:37:22.489804+00:00",
-  "scope": "Optional shared bidirectional shifter: controlled complete-core mapping and completed native/frontend RTL/mapped/Concrete gates; complete board maps within budget, placement running, physical qualification pending",
+  "scope": "Shared bidirectional shifter: controlled complete-core mapping and completed logical gates; first complete board routes/times successfully but fails physical setup readback; diagnostic indexed-snapshot wrapper building",
   "enabled_by": "RED2_CFG_PILOT_SHARED_SHIFT=1",
   "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "reference_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
@@ -224,7 +224,7 @@
     "finished_at_utc": "2026-10-14T07:35:52.282886+00:00"
   },
   "complete_controller_RTL_replay_passed": true,
-  "routed": false,
+  "routed": true,
   "loaded_on_board": false,
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/native-shift-result.json": "88cdbc772a3c853b3a71c24ad9df8a065dd50be1a12e32e29e6796039a0be132",
@@ -818,7 +818,7 @@
     },
     "finished_at_utc": "2026-10-14T08:55:12.965823+00:00"
   },
-  "updated_at_utc": "2026-10-14T09:39:29.104984+00:00",
+  "updated_at_utc": "2026-10-14T10:07:40.056460+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
     "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
@@ -998,13 +998,13 @@
       "total_simulated_clocks": 523617,
       "finished_at_utc": "2026-10-14T09:33:36.737656+00:00"
     },
-    "list_programs_pending": true,
+    "list_programs_pending": false,
     "progress_path": "build/red2-shared-shift/shared-shift/board-rtl-traces-lists-progress.json",
     "artifacts_sha256": {
       "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-traces-short-progress.json": "94c635ce2331ffa6972f4c45f297698b3418df692e0f737d3abdc7189e82ac9a",
       "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/record-board-rtl-traces.py": "087649cd81c0dcd6ad42533e4dac65868fde73078d040a1144b73b4f1e14b010"
     },
-    "list_programs_progress_snapshot": {
+    "list_programs": {
       "scope": "Same-source actual Verilator observations, emitted only after Concrete RED2 architecture and RAM comparison at every commit, final complete graph/control RAM comparison and HALTED termination; no FPGA programming",
       "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
       "checker_sha256": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
@@ -1027,12 +1027,50 @@
         {
           "label": "unequal-list",
           "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
-          "passed": false,
-          "pid": 92787
+          "passed": true,
+          "pid": 92787,
+          "returncode": 0,
+          "deduplicated_identical_data_with": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/vectors.txt",
+          "simulated_clocks": 642136,
+          "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-unequal-list/vectors.txt",
+          "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+          "metadata_sha256": "8a02f5511d4bfc4251dbae8ae1af5014356de7abed3a2d550a7c700086f110ac",
+          "log_sha256": "dd178603072d076b48f8449997cbbc7b993b95746121b1dec56e6592a3607f4d"
+        },
+        {
+          "label": "equal-nested",
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+          "passed": true,
+          "pid": 94613,
+          "returncode": 0,
+          "deduplicated_identical_data_with": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.txt",
+          "simulated_clocks": 1380140,
+          "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-equal-nested/vectors.txt",
+          "vectors_sha256": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887",
+          "metadata_sha256": "5eac3e8e349142cfc8b67940eaf406e123e7b8b2a4d46736519a4e5a14215987",
+          "log_sha256": "b7fd02f543eb8c6e8741519dd1e300acf7c76af4a347b254966e73ddd8b586c1"
+        },
+        {
+          "label": "unequal-nested",
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+          "passed": true,
+          "pid": 99777,
+          "returncode": 0,
+          "deduplicated_identical_data_with": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.txt",
+          "simulated_clocks": 1210699,
+          "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-unequal-nested/vectors.txt",
+          "vectors_sha256": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29",
+          "metadata_sha256": "89248f8b4224822df342f28ffaefa9841fe973995b6a2024ccfe3a59a89241b3",
+          "log_sha256": "ff060787b009fa191d4f7787bd6b663dc2853d7c951e2c9d1755739914c4852e"
         }
       ],
-      "passed": false
+      "passed": true,
+      "total_simulated_clocks": 4044528,
+      "finished_at_utc": "2026-10-14T10:05:25.973832+00:00"
     },
-    "list_programs_snapshot_at_utc": "2026-10-14T09:39:29.104984+00:00"
-  }
+    "total_programs": 15,
+    "total_simulated_clocks": 4568145
+  },
+  "qualified_on_hardware": false,
+  "physical_results": "docs/handoffs/red2-shared-shift-physical-results.json"
 }

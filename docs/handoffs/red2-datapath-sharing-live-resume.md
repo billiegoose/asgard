@@ -1,5 +1,58 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Latest continuation: failed wrapper and next area pass (2026-10-14)
+
+This section supersedes running-job, build and current-board statuses below.
+The qualified source `89c7712c...` / SRAM bitstream `a0ef3f44...` remains the
+working baseline. It was freshly restored at **09:56:37 UTC** after paired RAM
+diagnostics; no program has run since that restoration. No flash writes occurred.
+
+Shared-shifter source `60da0147...` now passes **15 same-source complete RTL /
+Concrete programs: 4,568,145 simulated clocks**. All final graph/control RAM
+checks pass. The actual RTL trace bytes match the earlier reference traces;
+source/origin metadata remain separate. Both trace-recording drivers are terminal.
+
+Its shift-register board **builds and routes**, at **16,321 physical LUT sites**
+(4,479 spare) and 12.58/12.67 MHz estimated core/monitor maxima, passing 10 MHz.
+The 288 mapped-LUT reduction produces **47 fewer physical LUT sites**; these
+are different resource measures. BRAM and 20,319 LUT truth-table audits pass.
+However bitstream `f8b7069c...` **fails physical application setup readback at
+engine-clock endpoint 461**, before START. Only `memory_read` differs there.
+The failed image also fails 34/131 walking-bit RAM words; the qualified image
+passes the identical diagnostic. Byte lanes 0 and 5 repeatedly lose bits.
+The cause is unresolved; this does not establish shifter arithmetic failure.
+See `red2-shared-shift-physical-results.json` and the updated board report.
+Do not retry the old supervisor or claim that candidate is physically qualified.
+
+A controlled wrapper variant uses the existing **immutable indexed snapshot**
+serializer with the same exact RED2 core. Full UART/CRC/recovery and burst RTL
+tests pass, including TX stalls and counts through 1,048,575. Thirty-eight
+focused pytest cases and Ruff pass. Added `--snapshot-response` test CLI flags
+exercise this combination directly. It maps at **16,108 board LUTs**, saving
+another 356; exact core identity passes. Placement is running at
+`build/red2-basys3-shared-shift-snapshot`, driver PID **1819**, exec **57133**,
+container `red2-shift-snapshot-place`. Supervisor PID **2001**, exec **3719**,
+waits for actual build completion, then LUT audit and a **131-word physical RAM
+pattern pass before program qualification**. It restores qualified `a0` on
+failure. Revalidate the processes before waiting; never start a second UART
+client while the supervisor is performing physical tests.
+See `red2-shared-shift-snapshot-board-results.json`.
+
+Separately, the remaining **IF EP-chase graph handler** is extracted using only
+`MICRO_JOIN_IF_EP_CHASE` added to the previous configuration. Source
+`7d965e66...` maps at **15,181 core LUTs / 6,090 FFs**, saving **334 LUTs and
+80 FFs** with identical mapping scripts/backend/compiler and unchanged BRAM/DSP.
+It adds 88 control rows (15,248 total), keeps 1,024 scratch words and covers
+128 entries. All 88 new rows are covered by **27 targeted emitted-controller
+native witnesses**, including malformed addresses, EP hop limits, atomic words,
+closure continuation and unsupported forms. Reset and constant protection pass.
+Full native/product/lifecycle/metadata/poison qualification runs in exec **90523**,
+driver PID **3379**, `full-boundary-progress.json`. The same-source RTL replay
+model is built; 26 saved-IF RTL/Concrete fixtures run in exec **70543**, driver
+PID **3389**, `saved-if-rtl-progress.json`. Revalidate those processes and read
+their current progress. No board preparation or physical qualification is claimed
+for this separate extraction. See `red2-if-ep-sharing-results.json`.
+
 ## Current qualified board: corrected shared multiplier (2026-10-14)
 
 This section supersedes historical running-job statuses below. Dedicated RED2,

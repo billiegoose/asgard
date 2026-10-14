@@ -14,11 +14,17 @@ HERE = Path(__file__).resolve().parent
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--snapshot-response", action="store_true")
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     monitor = output / "monitor.v"
-    monitor.write_text(burst_clock((HERE / "monitor.v").read_text()))
+    source = (HERE / "monitor.v").read_text()
+    if args.snapshot_response:
+        from snapshot_monitor import snapshot_response
+
+        source = snapshot_response(source)
+    monitor.write_text(burst_clock(source))
     mask = (1 << 626) - 1
     counts = [1, 2, 257, 65537, 1048575]
     commands = [

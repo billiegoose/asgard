@@ -1,0 +1,411 @@
+{
+  "recorded_at_utc": "2026-10-14T10:07:40.056460+00:00",
+  "scope": "Decode first failed physical endpoint and compare fresh-image RAM diagnostics; no hardware qualification claim",
+  "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+  "bitstream_sha256": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+  "failed_replay": {
+    "port": "/dev/cu.usbserial-2101837357871",
+    "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "prepared_provenance_sha256": "e0a985f7033b2a20d3f5a55401a19cb704dfc4a362f57d89c73e7d41070deb37",
+    "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+    "expected_output_origin": "Verilator RTL simulation",
+    "expected_clocks": 10688,
+    "comparison_scope": "packet endpoints only",
+    "output_bits_per_sample": 626,
+    "completed_pass": false,
+    "expected_rtl_model": {
+      "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+      "binary_sha256": "1179094e4503466db499717af9079f68870dab32e08e650123d53518352192e2",
+      "manifest_sha256": "6b5ab3ee1622e00c54d696f25ade94c1b2b26c3d04ed3adbd01a02a4d2dce526"
+    },
+    "expected_semantic_validation": {
+      "passed": true,
+      "program": "((LAMBDA (x) x) 7)",
+      "termination": "HALTED",
+      "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+    },
+    "burst_clock": true,
+    "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+    "executed_clocks": 257,
+    "compared_samples": 257,
+    "expected_samples": 1354,
+    "last_compared_clock": 256,
+    "mismatch_clock": 461,
+    "actual": "420000000000000000000010000000000000000000000000000000000000000000000000401EE0000000000000FA00000003DC001000000000",
+    "expected": "422000000000000000000030000000000000000000000000000000000000000000000000401EE0000000000000FA00000003DC001000000000",
+    "error": "FPGA output mismatch at clock 461",
+    "elapsed_seconds": 7.575
+  },
+  "differing_fields": {
+    "memory_read": {
+      "actual": {
+        "lo": 1,
+        "hi": 69206016
+      },
+      "expected": {
+        "lo": 3,
+        "hi": 69337088
+      }
+    }
+  },
+  "other_public_fields_equal": true,
+  "reference_memory_diagnostic": {
+    "passed": true,
+    "checked_words": 131,
+    "differing_response_byte_lanes": {}
+  },
+  "candidate_memory_diagnostic": {
+    "passed": false,
+    "checked_words": 131,
+    "differing_response_byte_lanes": {
+      "0": 36,
+      "5": 40
+    },
+    "errors": [
+      {
+        "address": 1,
+        "expected": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        "actual": "EDEDEDEDEDEDEDEDEDEDEDEDEDEDEDED",
+        "differing_graph_bits": [
+          1,
+          4,
+          9,
+          12,
+          17,
+          20,
+          25,
+          28,
+          33,
+          36,
+          41,
+          44,
+          49,
+          52,
+          57,
+          60,
+          65,
+          68,
+          73,
+          76,
+          81,
+          84,
+          89,
+          92,
+          97,
+          100,
+          105,
+          108,
+          113,
+          116,
+          121,
+          124
+        ]
+      },
+      {
+        "address": 2,
+        "expected": "0123456789ABCDEF0011223344556677",
+        "actual": "0121456589A9CDED0001202144456465",
+        "differing_graph_bits": [
+          1,
+          4,
+          9,
+          20,
+          33,
+          36,
+          41,
+          52,
+          65,
+          81,
+          97,
+          113
+        ]
+      },
+      {
+        "address": 4,
+        "expected": "00000000000000000000000000000002",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          1
+        ]
+      },
+      {
+        "address": 7,
+        "expected": "00000000000000000000000000000010",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          4
+        ]
+      },
+      {
+        "address": 12,
+        "expected": "00000000000000000000000000000200",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          9
+        ]
+      },
+      {
+        "address": 15,
+        "expected": "00000000000000000000000000001000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          12
+        ]
+      },
+      {
+        "address": 20,
+        "expected": "00000000000000000000000000020000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          17
+        ]
+      },
+      {
+        "address": 23,
+        "expected": "00000000000000000000000000100000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          20
+        ]
+      },
+      {
+        "address": 28,
+        "expected": "00000000000000000000000002000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          25
+        ]
+      },
+      {
+        "address": 31,
+        "expected": "00000000000000000000000010000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          28
+        ]
+      },
+      {
+        "address": 36,
+        "expected": "00000000000000000000000200000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          33
+        ]
+      },
+      {
+        "address": 39,
+        "expected": "00000000000000000000001000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          36
+        ]
+      },
+      {
+        "address": 44,
+        "expected": "00000000000000000000020000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          41
+        ]
+      },
+      {
+        "address": 47,
+        "expected": "00000000000000000000100000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          44
+        ]
+      },
+      {
+        "address": 52,
+        "expected": "00000000000000000002000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          49
+        ]
+      },
+      {
+        "address": 55,
+        "expected": "00000000000000000010000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          52
+        ]
+      },
+      {
+        "address": 60,
+        "expected": "00000000000000000200000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          57
+        ]
+      },
+      {
+        "address": 63,
+        "expected": "00000000000000001000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          60
+        ]
+      },
+      {
+        "address": 68,
+        "expected": "00000000000000020000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          65
+        ]
+      },
+      {
+        "address": 71,
+        "expected": "00000000000000100000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          68
+        ]
+      },
+      {
+        "address": 76,
+        "expected": "00000000000002000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          73
+        ]
+      },
+      {
+        "address": 79,
+        "expected": "00000000000010000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          76
+        ]
+      },
+      {
+        "address": 84,
+        "expected": "00000000000200000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          81
+        ]
+      },
+      {
+        "address": 87,
+        "expected": "00000000001000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          84
+        ]
+      },
+      {
+        "address": 92,
+        "expected": "00000000020000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          89
+        ]
+      },
+      {
+        "address": 95,
+        "expected": "00000000100000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          92
+        ]
+      },
+      {
+        "address": 100,
+        "expected": "00000002000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          97
+        ]
+      },
+      {
+        "address": 103,
+        "expected": "00000010000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          100
+        ]
+      },
+      {
+        "address": 108,
+        "expected": "00000200000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          105
+        ]
+      },
+      {
+        "address": 111,
+        "expected": "00001000000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          108
+        ]
+      },
+      {
+        "address": 116,
+        "expected": "00020000000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          113
+        ]
+      },
+      {
+        "address": 119,
+        "expected": "00100000000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          116
+        ]
+      },
+      {
+        "address": 124,
+        "expected": "02000000000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          121
+        ]
+      },
+      {
+        "address": 127,
+        "expected": "10000000000000000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          124
+        ]
+      }
+    ]
+  },
+  "restored_qualified_image": {
+    "started_at_utc": "2026-10-14T09:56:34.510493+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+    "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+    "program_script_sha256": "3376f7371744b7998862fc51ba5e78cee03bc934d718326fa9e921e14b6ecaee",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-14T09:56:37.683069+00:00",
+    "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+  },
+  "interpretation": "Readback repeatedly loses graph bit positions 1 and 4 modulo eight, corresponding to response-byte lanes 5 and 0. This motivates testing the existing immutable indexed-snapshot serializer. It does not prove whether corruption occurs in input delivery, RAM, snapshot capture or response shifting. The mismatch occurs before START, so it does not establish a failure of the shifter arithmetic.",
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/application-burst-result.json": "9ca1efb0c3bceb73388e5ed1df04b3151ba824f63e22d7a06b631a9387d524a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-reference.json": "95b0406b3e3302e15182b8ed7f49cf6943ce32957458bea576e5d4fef5e4d6a7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-candidate.json": "ee3216df98b0efd41fc7b102f6ba5972d2147a87ea3dfb3f6ee5ecc50b587237",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pair-diagnostic.json": "c48ed6cd023fa289c02c65e0df2a6469c7ad23dac920d28ac2946f3e1515a5da"
+  }
+}

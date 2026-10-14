@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T09:24:14.860327+00:00",
-  "scope": "Complete shared-shifter board mapping and exact core identity verified; placement currently running; routing, timing, bitstream and physical qualification pending",
+  "scope": "Shared-shifter complete board built within resources and passed routed timing/BRAM/LUT truth-table audits, but failed first physical application replay and walking-bit RAM test; qualified shared-multiplier image restored",
   "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "frozen_fit_gate": "docs/handoffs/synth-red2-shared-shift-results.json",
   "output_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift",
@@ -108,15 +108,10 @@
   },
   "controlled_mapped_board_LUT_saving": 288,
   "target_clock_mhz": 10,
-  "built": false,
+  "built": true,
   "loaded_on_board": false,
   "qualified_on_hardware": false,
-  "current_stage": "place: parallel refinement",
-  "process_at_checkpoint": {
-    "driver_pid": 86470,
-    "container": "red2-shift-place",
-    "verified_live_at_utc": "2026-10-14T09:39:29.104984+00:00"
-  },
+  "current_stage": "physical qualification failed; diagnostic snapshot wrapper variant building",
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/provenance.json": "e0a985f7033b2a20d3f5a55401a19cb704dfc4a362f57d89c73e7d41070deb37",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/board-resources.json": "8d09bce7c2ab32c65f2b3e1ede132b22baed707283ddf2b3c32f34ca40a79ab0",
@@ -132,17 +127,204 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/qualify-when-built.py": "feedc799ce670b09fae420997f7202d58282e09a000035484946c52d03f4d8ca",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/qualify-rtl-corpus.py": "d2e80d557b9a5f98d1561ef3fbac149a0c4ca2701178cb134817c97e8cc5210e",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/extract-core.py": "72b395521854c91c99feb735b61df328164c0670683f9b5f85301378077f5d1a",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/check-core-identity.py": "2d2b734682eac5228353d3909d28c75c314351f26b8442bb1797ad0998b078b2"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/check-core-identity.py": "2d2b734682eac5228353d3909d28c75c314351f26b8442bb1797ad0998b078b2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/build-result.json": "a6992da67966045449947964022680c7d254061bda8215bfd9950b5fb7da7d41",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/physical-progress.json": "99212a0277c61b70b43d1445c69ec7f5f8b69954d098de5d7aeba77fccb1104b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/board-physical-lut-sites.json": "773be57570cd869997140471f174b460120d35781eda114cdab2d90ddab6ff5a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/board-timing.json": "f1c6086680bb8fb4ffa1c129157f8dabcf342a2f7ebfe571db2ac744685295c8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/board-bram-audit.json": "90ad02475fd077a1b60c6b37f5a7f5ca4b56261dcaa9a43056382878d9134fe2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/lut-init-audit.json": "9542ab38229bd0475d0c7dafad28daa147c8e42a53ab43d044884798cf09137a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/red2_basys3.bit": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/rtl-corpus-qualification.json": "ff86033e573826b39adb6ef036aa26d14cdc7996d38a5ef505b83a3670438240",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/application-burst-result.json": "9ca1efb0c3bceb73388e5ed1df04b3151ba824f63e22d7a06b631a9387d524a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-reference.json": "95b0406b3e3302e15182b8ed7f49cf6943ce32957458bea576e5d4fef5e4d6a7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-candidate.json": "ee3216df98b0efd41fc7b102f6ba5972d2147a87ea3dfb3f6ee5ecc50b587237",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pair-diagnostic.json": "c48ed6cd023fa289c02c65e0df2a6469c7ad23dac920d28ac2946f3e1515a5da"
   },
   "fallback_qualified_bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
-  "updated_at_utc": "2026-10-14T09:39:29.104984+00:00",
+  "updated_at_utc": "2026-10-14T10:07:40.056460+00:00",
   "qualification_supervisor": {
-    "pid": 94228,
-    "exec_session": 58124,
-    "state": "waiting for successful complete build",
-    "driver": "build/red2-basys3-shared-shift/qualify-when-built.py",
-    "qualification_driver": "build/red2-basys3-shared-shift/qualify-rtl-corpus.py",
-    "progress": "build/red2-basys3-shared-shift/qualification-supervisor.json",
-    "scope": "Loads fresh volatile SRAM per case only after map/place/route/timing/audits/bitstream complete, then compares same-source actual RTL observations; restores qualified a0 image on physical test failure"
-  }
+    "scope": "Wait for actual live board build; qualify only a completed audited timing-passing build; no restart of build or trace producers",
+    "started_at_utc": "2026-10-14T09:38:39.338169+00:00",
+    "build_driver_pid": 86470,
+    "state": "failed",
+    "qualified": false,
+    "bitstream_sha256": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+    "build_result_sha256": "a6992da67966045449947964022680c7d254061bda8215bfd9950b5fb7da7d41",
+    "qualification_pid": 98394,
+    "qualification_returncode": 1,
+    "error": "{'scope': 'Wait for actual live board build; qualify only a completed audited timing-passing build; no restart of build or trace producers', 'started_at_utc': '2026-10-14T09:38:39.338169+00:00', 'build_driver_pid': 86470, 'state': 'physical qualification', 'qualified': False, 'bitstream_sha256': 'f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75', 'build_result_sha256': 'a6992da67966045449947964022680c7d254061bda8215bfd9950b5fb7da7d41', 'qualification_pid': 98394, 'qualification_returncode': 1}",
+    "finished_at_utc": "2026-10-14T09:53:11.082604+00:00"
+  },
+  "ever_loaded_on_board": true,
+  "bitstream_sha256": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+  "physical_resources": {
+    "placed_netlist_sha256": "63c10f8b0fba87c927444b0b2f1cee042422e07559e6b926719ed2afc1a153d4",
+    "routed_netlist_sha256": "d89326a9a760db48e43e831755d95f4d9be8bc679f4c113ddf2635c0ba9c39f3",
+    "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+    "preserved_cell_placements": 29821,
+    "lut_half_cells": 20645,
+    "unique_physical_lut_sites": 16321,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+  },
+  "routed_clocks": {
+    "core_clock": {
+      "achieved_mhz": 12.58,
+      "status": "PASS",
+      "required_mhz": 10.0
+    },
+    "clock": {
+      "achieved_mhz": 12.67,
+      "status": "PASS",
+      "required_mhz": 10.0
+    }
+  },
+  "physical_LUT_site_saving": 47,
+  "spare_physical_LUT_sites": 4479,
+  "physical_qualification": {
+    "scope": "Physical Basys 3 replay against actual same-source Verilator observations validated independently against Concrete RED2 at every commit and all final graph/control RAM; all 626 public bits at packet endpoints only; fresh volatile SRAM per case; no flash, UART retries or resume",
+    "started_at_utc": "2026-10-14T09:52:53.507842+00:00",
+    "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+    "bitstream_sha256": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+    "driver_sha256": "d2e80d557b9a5f98d1561ef3fbac149a0c4ca2701178cb134817c97e8cc5210e",
+    "host_sha256": "af53303efaca99f5106b73e2e8e1e172c6050a423a12868ed62b63c66148eb20",
+    "cases": [
+      {
+        "label": "application",
+        "program": "((LAMBDA (x) x) 7)",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-application/vectors.txt",
+        "passed": false,
+        "state": "physical replay",
+        "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+        "metadata_sha256": "ad0a1fec77df8d569df9cf0e95ea20e0e1e6bb3eac74190e20c04b7571c85b04",
+        "expected_output_origin": "Verilator RTL simulation",
+        "expected_clocks": 10688,
+        "expected_packet_endpoints": 1354,
+        "load_result_sha256": "ffca6a4425848f80f0b21dba48cb4842ce8fe4b11640fef0897e1476f7d06302"
+      }
+    ],
+    "passed": false,
+    "error": "(['/Users/billie/code/billiegoose/asgard/.venv/bin/python', '-u', '/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/host.py', '--burst-clock', '--port', '/dev/cu.usbserial-2101837357871', '--prepared', '/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift', '--log', '/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/application-burst-result.json', '/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-application/vectors.txt'], 1, PosixPath('/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/application-burst-replay.log'))",
+    "restored_qualified_image": {
+      "started_at_utc": "2026-10-14T09:53:07.637470+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+      "program_script_sha256": "16c5d425b5005b9ab1218612d04af5aaf2ae708e88a2c0a8d193823fdad1191d",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-14T09:53:10.931073+00:00",
+      "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    },
+    "finished_at_utc": "2026-10-14T09:53:10.990525+00:00"
+  },
+  "LUT_truth_table_audit": {
+    "checked_luts": 20319,
+    "mismatch_count": 0,
+    "mismatches": []
+  },
+  "BRAM_FASM_audit": {
+    "scope": "Routed BRAM known init bits and intended FASM configuration; not frame conversion, connectivity, timing, or physical behavior",
+    "passed": true,
+    "BRAM_cells": 45,
+    "BRAM18_halves": 69,
+    "initialization_words_checked": 4968,
+    "known_initialization_bits_checked": 962048,
+    "configuration_flags_checked": 855,
+    "width_marker_sets_checked": 69,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "artifacts_sha256": {
+      "board-routed.json": "d89326a9a760db48e43e831755d95f4d9be8bc679f4c113ddf2635c0ba9c39f3",
+      "board.fasm": "df6cfda7ce0d90aab525d2fcde8c0f3681ef309373f17670331f438ae36a269b",
+      "/nix/store/y8w2pcqwz7zpvfyr4g6hb3ms6k57kmb1-nextpnr-1.0.0/share/nextpnr/external/prjxray-db/artix7/xc7a50t/tilegrid.json": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e"
+    }
+  },
+  "memory_pair_diagnostic": {
+    "scope": "Fresh SRAM graph RAM walking-bit diagnostic on qualified reference and failed candidate; no RED2 execution or semantic qualification",
+    "started_at_utc": "2026-10-14T09:56:00.600859+00:00",
+    "cases": [
+      {
+        "label": "reference",
+        "image_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+        "load_result_sha256": "e5e02597e57b9f6406a1af1da569341141e8fe4c2ff0f327a1bbec917393d858",
+        "pid": 99839,
+        "returncode": 0,
+        "result_path": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-reference.json",
+        "result_sha256": "95b0406b3e3302e15182b8ed7f49cf6943ce32957458bea576e5d4fef5e4d6a7"
+      },
+      {
+        "label": "candidate",
+        "image_sha256": "f8b7069c8ca003a27a9bde9675f1d38d01f577590afff6bf2462ebec64e08b75",
+        "load_result_sha256": "dd18df7797c18d6e9f9c780d54e18af91116ccacf8171d6c083e428c4d99fff4",
+        "pid": 99868,
+        "returncode": 1,
+        "result_path": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/memory-pattern-candidate.json",
+        "result_sha256": "ee3216df98b0efd41fc7b102f6ba5972d2147a87ea3dfb3f6ee5ecc50b587237"
+      }
+    ],
+    "restored_qualified_image": {
+      "started_at_utc": "2026-10-14T09:56:34.510493+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+      "program_script_sha256": "3376f7371744b7998862fc51ba5e78cee03bc934d718326fa9e921e14b6ecaee",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-14T09:56:37.683069+00:00",
+      "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    },
+    "finished_at_utc": "2026-10-14T09:56:37.773254+00:00"
+  },
+  "current_board": {
+    "started_at_utc": "2026-10-14T09:56:34.510493+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+    "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+    "program_script_sha256": "3376f7371744b7998862fc51ba5e78cee03bc934d718326fa9e921e14b6ecaee",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-14T09:56:37.683069+00:00",
+    "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+  },
+  "snapshot_wrapper_experiment": "docs/handoffs/red2-shared-shift-snapshot-board-results.json",
+  "completed_build_driver_pid": 86470
 }
