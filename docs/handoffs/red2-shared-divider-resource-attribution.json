@@ -1,0 +1,177 @@
+{
+  "recorded_at_utc": "2026-10-14T01:37:21.648950+00:00",
+  "scope": "Named mapped storage comparison; functional LUT ownership is not inferred after ABC sharing",
+  "qualified_core": {
+    "source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+    "mapped_core_sha256": "9365bacb7e217113380b42e8a2b94db15a2b8e01118f7364224f7b572ef2189f",
+    "module": "top",
+    "method": "Match declared Reg variable net aliases to mapped flip-flop Q bits; group RAM and DSP primitives by preserved instance names.",
+    "limitation": "Register ownership is not a functional LUT budget. ABC flattened and shared combinational logic; source-function LUT totals cannot be recovered from these names.",
+    "declared_register_variables": {
+      "root": 222,
+      "microengine": 6
+    },
+    "flipflops_by_named_register_owner": {
+      "integer_arithmetic": 532,
+      "microengine": 1053,
+      "remaining_core_state": 2870,
+      "transfer_bridge": 1723,
+      "unattributed": 167
+    },
+    "memories_by_instance": {
+      "cfg_control_index_rom": {
+        "RAMB36E1": 6
+      },
+      "cfg_control_rom": {
+        "RAMB36E1": 9
+      },
+      "cfg_plan_rom": {
+        "RAMB18E1": 3
+      },
+      "cfg_scratch_ram": {
+        "RAMB36E1": 2
+      },
+      "control_ram": {
+        "RAMB36E1": 2
+      },
+      "graph_ram": {
+        "RAMB36E1": 2
+      },
+      "literal_meta_ram": {
+        "RAM64X1S": 126
+      },
+      "promote_forward_ram": {
+        "RAM256X1S": 50
+      },
+      "promote_mat_ram": {
+        "RAMB36E1": 2
+      },
+      "pub_mat_ram": {
+        "RAMB18E1": 5
+      },
+      "pub_patch_addr_ram": {
+        "RAMB18E1": 1
+      },
+      "pub_patch_ram": {
+        "RAMB18E1": 5
+      },
+      "pub_root_ram": {
+        "RAMB36E1": 1
+      },
+      "pub_task_ram": {
+        "RAMB18E1": 7
+      }
+    },
+    "dsp48_by_multiplier_instance": {
+      "bin_op_inferred_mult_machine_py_l4999_c50_ec79": 10,
+      "bin_op_inferred_mult_machine_py_l5079_c53_ec109": 10
+    },
+    "primitives": {
+      "$scopeinfo": 7973,
+      "BUFG": 1,
+      "CARRY4": 736,
+      "DSP48E1": 20,
+      "FDRE": 6345,
+      "INV": 859,
+      "LUT2": 3301,
+      "LUT3": 2804,
+      "LUT4": 2636,
+      "LUT5": 3186,
+      "LUT6": 5013,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    }
+  },
+  "shared_divider_candidate": {
+    "source_sha256": "e6a0dced233b5621f698e291d8662dc9a30912cdfef8a7e289a1c2a928e955ff",
+    "mapped_core_sha256": "f2baeeeb217fb64b11a11e2a8c9b7f0ff1a4cf83bd57db2d59f77d79ddcdfc2a",
+    "module": "top",
+    "method": "Match declared Reg variable net aliases to mapped flip-flop Q bits; group RAM and DSP primitives by preserved instance names.",
+    "limitation": "Register ownership is not a functional LUT budget. ABC flattened and shared combinational logic; source-function LUT totals cannot be recovered from these names.",
+    "declared_register_variables": {
+      "root": 222,
+      "microengine": 6
+    },
+    "flipflops_by_named_register_owner": {
+      "integer_arithmetic": 532,
+      "microengine": 1053,
+      "remaining_core_state": 2870,
+      "transfer_bridge": 1723,
+      "unattributed": 165
+    },
+    "memories_by_instance": {
+      "cfg_control_index_rom": {
+        "RAMB36E1": 6
+      },
+      "cfg_control_rom": {
+        "RAMB36E1": 9
+      },
+      "cfg_plan_rom": {
+        "RAMB18E1": 3
+      },
+      "cfg_scratch_ram": {
+        "RAMB36E1": 2
+      },
+      "control_ram": {
+        "RAMB36E1": 2
+      },
+      "graph_ram": {
+        "RAMB36E1": 2
+      },
+      "literal_meta_ram": {
+        "RAM64X1S": 126
+      },
+      "promote_forward_ram": {
+        "RAM256X1S": 50
+      },
+      "promote_mat_ram": {
+        "RAMB36E1": 2
+      },
+      "pub_mat_ram": {
+        "RAMB18E1": 5
+      },
+      "pub_patch_addr_ram": {
+        "RAMB18E1": 1
+      },
+      "pub_patch_ram": {
+        "RAMB18E1": 5
+      },
+      "pub_root_ram": {
+        "RAMB36E1": 1
+      },
+      "pub_task_ram": {
+        "RAMB18E1": 7
+      }
+    },
+    "dsp48_by_multiplier_instance": {
+      "bin_op_inferred_mult_machine_py_l4992_c50_ec79": 10,
+      "bin_op_inferred_mult_machine_py_l5072_c53_ec109": 10
+    },
+    "primitives": {
+      "$scopeinfo": 7954,
+      "BUFG": 1,
+      "CARRY4": 702,
+      "DSP48E1": 20,
+      "FDRE": 6343,
+      "INV": 852,
+      "LUT2": 2854,
+      "LUT3": 2708,
+      "LUT4": 2386,
+      "LUT5": 3527,
+      "LUT6": 5069,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    }
+  },
+  "interpretation": "Named integer arithmetic storage remains 532 FF; both multipliers remain ten DSP48 each. The measured saving is combinational logic/carry resources rather than removal of arithmetic state.",
+  "complete_core_lut_saving": 396,
+  "complete_core_CARRY4_saving": 34,
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/default-identity/resource-attribution.json": "a3f44743afa9a87ee9998cc1d628d7c4a91d761335ed9f5a4964a79e23537ecf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/integrated-stream/resource-attribution.json": "19051555da2ff30458127b58b2329a3ecbda87dc96cde1928caccde488429912"
+  }
+}

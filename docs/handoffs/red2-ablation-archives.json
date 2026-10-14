@@ -1,0 +1,69 @@
+{
+  "recorded_at_utc": "2026-10-14T01:08:28.340494+00:00",
+  "scope": "Lossless archives of completed nonselected ablation intermediates only; qualified dirty-writeback and board build inputs untouched",
+  "original_measurement_report_sha256": "ae62919d5f0e13d0a25c427e71ace281afbeaa9e3803d0ea3d3619d17b509bef",
+  "restore": "Use the per-entry restore_command, then verify the recreated JSON against original_sha256 before use.",
+  "archives": [
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/coarse.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/coarse.json.gz",
+      "original_sha256": "7ea600e6ae1d1e2cbac21e18e1e5b82258f4fd36178bbed89b4c3086a299bfcc",
+      "archive_sha256": "c03365a8aa870f7e0d09ca8642b2eed69af2b74e6c908589a3bb2b2e4ad8f6be",
+      "original_bytes": 48296111,
+      "archive_bytes": 2030637,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/coarse.json.gz"
+    },
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/baseline-area.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/baseline-area.json.gz",
+      "original_sha256": "e4325dd1cafef2f96fad936c2291cb5f85a47162656fa1a76b2789888c463847",
+      "archive_sha256": "67e3e9953cfc57db1a8aedffbfeca24863ab2d5b583dde9551296305ffaa6213",
+      "original_bytes": 68707692,
+      "archive_bytes": 3341755,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-response/integrated-stream/baseline-area.json.gz"
+    },
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/coarse.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/coarse.json.gz",
+      "original_sha256": "de07570f6223bffdf34877ab5013c44ce27caed8f6908a275739517485a2fbba",
+      "archive_sha256": "3beb3b6c2eda4917fb22409df0d4f49eebdd4c881e53a97e52064ea8649df51a",
+      "original_bytes": 48282612,
+      "archive_bytes": 2027759,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/coarse.json.gz"
+    },
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/baseline-area.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/baseline-area.json.gz",
+      "original_sha256": "97b4bddd2409b33612c8b9ff74c219db4078f79d992785ef5feabf03a9f565d3",
+      "archive_sha256": "af5790621792a97c600e79dacb355ebe9054d38df2dba5daa58658f5e004a8bd",
+      "original_bytes": 68346938,
+      "archive_bytes": 3332359,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/shared-storage/integrated-stream/baseline-area.json.gz"
+    },
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/coarse.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/coarse.json.gz",
+      "original_sha256": "a8cf06b442712e27af85971ade313136d0c6ce299f9faaf494b805f26cc4cc04",
+      "archive_sha256": "c57f49aac04c40f98765021507a487d709c89343e6dfdd6dd8b0e0d02d42c392",
+      "original_bytes": 47841893,
+      "archive_bytes": 1991006,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/coarse.json.gz"
+    },
+    {
+      "original_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/baseline-area.json",
+      "archive_path": "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/baseline-area.json.gz",
+      "original_sha256": "ba62394ca2212b8219fb9e8c889a0e109721c829cfd8c25ed5a12fd241a78da2",
+      "archive_sha256": "b366828e8116fd52f85182132a6f4c40c922d71a6b280c1f0bd09d87feaf1955",
+      "original_bytes": 67959162,
+      "archive_bytes": 3298357,
+      "matches_recorded_measurement_artifact": true,
+      "restore_command": "gunzip -k -- /Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/reverse-control/integrated-stream/baseline-area.json.gz"
+    }
+  ],
+  "bytes_saved": 333412535
+}

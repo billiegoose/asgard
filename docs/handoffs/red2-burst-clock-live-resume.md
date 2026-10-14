@@ -63,23 +63,35 @@ retained source-ordered dispatch handler. Three regression tests and the existin
 The new divider candidate successfully integrates with 124 entries, 14,893
 compact rows, 1,024 scratch words and 16,384 control-index words. The prior
 configuration has 123 entries and 14,846 rows with the same capacities. Both have
-200 private and 175 shared words. No complete-core LUT saving or RTL/physical
-parity is established for the new candidate yet.
+200 private and 175 shared words.
 
-The initial typed run passed 14,880 comparisons. The full run with mandatory
-integer corners now passes 15,032 comparisons and retains all 152 corner
-witnesses. Validation driver PID 5183 (`run-validation.py`) is running all
-boundary witnesses and poisoned lifecycle next, then multiply, exact divide,
-modulo and exponent programs.
-Its authoritative files are `validation-progress.json`, `validation-driver.log`
-and stage-specific logs. **Revalidate process identity and actual logs** before
-waiting or restarting. The earlier PID 2300 typed checker has finished.
+Complete core synthesis **finished**: 16,870 LUTs including LUT RAM, 6,343 FF,
+34.5 BRAM36 equivalents, 20 DSPs and 702 CARRY4. Against the qualified core this
+saves **396 LUTs**, two FF and 34 CARRY4. Enhanced compiler manifest, mapping
+scripts and Yosys/GHDL versions match; all generated HDL hashes were checked.
+This is a core result; no new board mapping or routing is established.
 
-See `red2-arithmetic-sharing-integration-results.json`. Generation's first
+Native validation driver 5183 **finished successfully**. It passed 15,032 typed
+comparisons with all 152 mandatory integer corners, 699 selected complete-top
+boundary witnesses across all 124 entries, lifecycle/accepted-metadata and
+poisoned queued-payload checks, then multiply/divide/modulo/exponent program
+parity. Selected witnesses do not establish exhaustive ISA coverage.
+
+The RTL model is built from the exact measured frontend. Driver PID 30841
+(`run-rtl-corpus.py`) is replaying 11 fresh native/concrete checked public-port
+traces through Verilator. The first five programs have passed: **230,990
+simulated clocks, every 626-bit output compared on every clock**. Arithmetic and
+signed-boundary multiplication/division follow. Its authoritative files are
+`rtl-corpus-progress.json`, `rtl-corpus-driver.log` and per-program native/replay
+logs. Revalidate process identity and actual logs before waiting or restarting.
+
+See `red2-arithmetic-sharing-integration-results.json` and
+`red2-shared-divider-resource-attribution.json`. Generation's first
 `progress.json` describes the preserved failed anchor attempt; the successful
-retry is in `integration-retry.log`. No area/RTL/physical claim is made for this
-candidate. Require enhanced-compiler RTL, complete-core mapping and appropriate
-replay before promotion. The qualified FPGA image must remain available.
+retry is in `integration-retry.log`. The candidate has not been loaded on the
+board. Require remaining RTL and appropriate mapped-primitive replay, board
+mapping, routed timing and physical qualification before promotion. Keep the
+qualified FPGA image available.
 
 ## List-equality gap
 
@@ -101,3 +113,18 @@ compressed with original/archive hashes recorded in
 `build/red2-burst-corpus-check/simulation-archives.json`. Keep all qualified build
 inputs intact; preserve historical intermediate artifacts through verified
 lossless archives when more space is needed.
+
+The next diagnostic is now running: driver PID 40245 and native child PID 40246,
+`build/red2-list-equality-state-probe/run-probe.py`. It uses **unmodified f97
+source and the original 626-bit ABI**. The public-port wrapper captures native
+registers and small RAM contents on the first fault into `fault-state.json` to
+locate the shared controller entry/PC. A reproduced fault is diagnostic evidence,
+not a parity pass. Inspect `progress.json`, `probe.log` and actual process
+identity. Do not launch a duplicate while this worker is live.
+
+Historical nonselected ablation JSON intermediates were losslessly compressed;
+`red2-ablation-archives.json` pins original/archive hashes and restore commands.
+Qualified dirty-writeback and board inputs were untouched. The completed archive
+saved 333,412,535 logical bytes. Guest cache references initially held reclaimed
+space; `podman machine ssh sudo sysctl -w vm.drop_caches=3` released those unused
+references without restarting active workers. No historical IL archive completed.

@@ -489,3 +489,36 @@ clocks. Its complete image uses 17,932 physical LUT sites and passes routed
 10 MHz timing; see [the burst evidence](../../../docs/handoffs/red2-burst-clock-results.json). The experimental top
 remains separate from maintained production source; the existing list-equality
 execution gap remains outside the passing profile.
+
+## Shared divider iteration
+
+Appending `MICRO_U64_DIV` to `RED2_CFG_PILOT_EXTRA_STATES` moves the integer
+long-division loop onto the existing fixed hardware control engine. Division
+and modulo remain available; this trades additional clocks for shared logic.
+The scalar fallback insertion preserves the original dispatch order even when
+the divider handler is extracted. The normal configuration still regenerates
+the qualified f97 core byte-for-byte.
+
+| Core measurement | Qualified datapath | Shared divider candidate |
+| --- | ---: | ---: |
+| LUTs including LUT RAM | 17,266 | **16,870** |
+| Flip-flops | 6,345 | 6,343 |
+| CARRY4 | 736 | 702 |
+| BRAM36 equivalents | 34.5 | 34.5 |
+| DSP48E1 | 20 | 20 |
+
+The candidate source is
+`e6a0dced233b5621f698e291d8662dc9a30912cdfef8a7e289a1c2a928e955ff`.
+Both measurements use the same enhanced compiler, Yosys/GHDL versions and area
+mapping scripts. Native validation passes 15,032 typed comparisons including
+152 mandatory integer corner witnesses, 699 complete-top boundary witnesses
+covering all 124 entries, lifecycle checks, and multiply/divide/modulo/exponent
+program parity. These are selected witnesses, not exhaustive coverage.
+
+The first five program traces also pass Verilator replay: **230,990 simulated
+clocks with every 626-bit output compared on every clock**. The remaining
+arithmetic replay is running. The smaller core has no complete-board mapping,
+routed timing or physical qualification yet and is not the default board
+candidate. See [the integration evidence](../../../docs/handoffs/red2-arithmetic-sharing-integration-results.json)
+and [resource attribution](../../../docs/handoffs/red2-shared-divider-resource-attribution.json).
+The existing list-equality gap remains unresolved.
