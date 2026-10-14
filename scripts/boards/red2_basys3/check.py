@@ -60,7 +60,7 @@ always @(posedge core_clock) core_ticks <= core_ticks + 1;
 """
 
 
-def uart_check(output):
+def uart_check(output, monitor=None):
     randomizer = random.Random(0x52454432)
     commands = [
         1,
@@ -180,14 +180,38 @@ end
 initial begin repeat(200000) @(posedge clk); $fatal(1,"test did not finish"); end
 endmodule
 """
-    run(output, "uart", [HERE / "uart.v", HERE / "monitor.v"], bench)
+    run(output, "uart", [HERE / "uart.v", monitor or HERE / "monitor.v"], bench)
 
 
-def core_check(output, top, vectors):
+def core_check(output, top, vectors, burst=False, monitor=None):
     metadata = json.loads(vectors.with_suffix(".json").read_text())
     verify_vectors(
         vectors, hashlib.sha256((top / "machine.py").read_bytes()).hexdigest()
     )
+    scan_format = "%h %h\\n"
+    scan_args = "incoming,expected"
+    scan_fields = 2
+    advance = "count=count+1; samples=samples+1;"
+    simulation_vectors = vectors
+    if burst:
+        from burst_monitor import burst_trace
+
+        rows = [
+            tuple(int(word, 16) for word in line.split())
+            for line in vectors.read_text().splitlines()
+        ]
+        packets = list(burst_trace(rows))
+        simulation_vectors = output / "burst-vectors.txt"
+        simulation_vectors.write_text(
+            "".join(
+                f"{command:X} {expected:X} {edges:X}\n"
+                for command, expected, edges in packets
+            )
+        )
+        scan_format = "%h %h %h\\n"
+        scan_args = "incoming,expected,edges"
+        scan_fields = 3
+        advance = "count=count+edges; samples=samples+1;"
     wrapper = (top / "rtl-netlist/wrapper.v").read_text()
     (output / "packed.v").write_text(wrapper)
     bench = f"""
@@ -206,16 +230,16 @@ replay_top core(.clk_25p0(core_clock),.incoming(command),.result(result));
 task send_byte(input [7:0] data);
   begin @(negedge clk); rx_data=data; rx_valid=1; end
 endtask
-integer fd,matched,count=0,j; reg [727:0] incoming;
+integer fd,matched,count=0,j,edges=1,samples=0; reg [727:0] incoming;
 reg [631:0] expected; reg [7:0] sequence_id, wanted;
 reg [15:0] request_crc, response_crc;
 initial begin
   repeat(6) @(negedge clk); reset=0;
-  fd=$fopen("{vectors}","r");
+  fd=$fopen("{simulation_vectors}","r");
   if(!fd) $fatal(1,"vectors missing");
   while(!$feof(fd)) begin
-    matched=$fscanf(fd,"%h %h\\n",incoming,expected);
-    if(matched!==2) $fatal(1,"bad trace row");
+    matched=$fscanf(fd,"{scan_format}",{scan_args});
+    if(matched!=={scan_fields}) $fatal(1,"bad trace row");
     sequence_id=count; request_crc=crc_byte(16'hffff,sequence_id);
     send_byte(8'ha5); send_byte(8'h5a); send_byte(sequence_id);
     for(j=0;j<91;j=j+1) begin
@@ -242,13 +266,14 @@ initial begin
       if(tx_data!==wanted) $fatal(1,"clock %d response byte %d actual %h expected %h",
                                   count,j,tx_data,wanted);
     end
-    count=count+1;
+    {advance}
     repeat(4) @(negedge clk);
     if(core_ticks!==count || error) $fatal(1,"core gating or protocol fault");
     if(count%1000==0) $display("BOARD_CORE_REPLAY_PROGRESS %d",count);
   end
   if(count!={metadata["cycles"]}) $fatal(1,"wrong trace count");
-  $display("BOARD_MONITOR_PASS actual RED2 application trace %d clocks",count);
+  $display("BOARD_MONITOR_PASS RED2 clocks=%d burst={burst} samples=%d",
+           count,samples);
   $finish;
 end
 initial begin repeat({metadata["cycles"] * 220 + 1000}) @(posedge clk);
@@ -258,7 +283,11 @@ endmodule
     run(
         output,
         "core",
-        [top / "rtl-netlist/clean.v", output / "packed.v", HERE / "monitor.v"],
+        [
+            top / "rtl-netlist/clean.v",
+            output / "packed.v",
+            monitor or HERE / "monitor.v",
+        ],
         bench,
     )
 
@@ -268,14 +297,27 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--core-top", type=Path)
     parser.add_argument("--vectors", type=Path)
+    parser.add_argument("--burst-clock", action="store_true")
     args = parser.parse_args()
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
     if bool(args.core_top) != bool(args.vectors):
         parser.error("core-top and vectors must be provided together")
-    uart_check(args.output)
+    monitor = None
+    if args.burst_clock:
+        from burst_monitor import burst_clock
+
+        monitor = args.output / "monitor.v"
+        monitor.write_text(burst_clock((HERE / "monitor.v").read_text()))
+    uart_check(args.output, monitor)
     if args.core_top:
-        core_check(args.output, args.core_top.resolve(), args.vectors.resolve())
+        core_check(
+            args.output,
+            args.core_top.resolve(),
+            args.vectors.resolve(),
+            args.burst_clock,
+            monitor,
+        )
 
 
 if __name__ == "__main__":

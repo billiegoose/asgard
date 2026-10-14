@@ -1,0 +1,335 @@
+{
+  "recorded_at_utc": "2026-10-14T00:08:28.319069+00:00",
+  "scope": "Optional counted CLOCK delivery in UART frontend; dedicated RED2 core unchanged; experimental until complete RED2 board replay passes",
+  "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+  "source_monitor_byte_identical_to_hardware_tested_fixture": true,
+  "mapped_core_byte_identical_to_previous_prepared_candidate": true,
+  "wire_protocol": {
+    "opcode": 10,
+    "core_opcode": 7,
+    "value_bit_range": [
+      311,
+      280
+    ],
+    "core_value": 0,
+    "minimum_count": 1,
+    "maximum_count": 1048575,
+    "returned_status": "last pre-edge output",
+    "invalid_count": "no response and no core edge"
+  },
+  "complete_RED2_monitor_simulation": {
+    "cases": {
+      "application": {
+        "executed_clocks": 10683,
+        "compared_endpoint_samples": 1354,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "ba38aaa2f076fef7d4b36fb32db9113c72ecd128021abe6830ac46e6f45b1a4c",
+        "grouped_vectors_sha256": "5e4846cab5874f237a0e1f1bc073d552daedec2eea324fd64cc51939227621fb",
+        "max_consecutive_burst_clocks": 4204
+      },
+      "lifecycle": {
+        "executed_clocks": 1018,
+        "compared_endpoint_samples": 21,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "249a35190350f8fba5f5bbe89591fecf8b6f954f019389c77c1f3baad6b0da96",
+        "grouped_vectors_sha256": "8c51d751978334b259c0952811b601cf499886e926e8204efd25e5feaee61a1a",
+        "max_consecutive_burst_clocks": 399
+      },
+      "structure": {
+        "executed_clocks": 123200,
+        "compared_endpoint_samples": 1445,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "07ff1e0bc605914d6c0bf205b97b7d6eef7c99a51d3122fdf635e035e1f70571",
+        "grouped_vectors_sha256": "36223183a97d989a3b0bc62790a32634d15790f10b3705704e989e265bfe455e",
+        "max_consecutive_burst_clocks": 31219
+      },
+      "add": {
+        "executed_clocks": 26226,
+        "compared_endpoint_samples": 1375,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "8ac87d3d5423abf825b2e14817f66f2f866b85f24f5918a1937431b2f59d9194",
+        "grouped_vectors_sha256": "3b577728f62868e2e02910fd77766c5fac2ba48e8ef7d4b5de991777c1ccbbf5",
+        "max_consecutive_burst_clocks": 12725
+      },
+      "signed-add": {
+        "executed_clocks": 26226,
+        "compared_endpoint_samples": 1375,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "d27a8de9ccc5d87f689a5425a980b3f2cd5189277b6c463fb0d781581829d6dc",
+        "grouped_vectors_sha256": "22b7a6141654de5d8bda5057af158e4d6572364d904c22501bdffc8514184f07",
+        "max_consecutive_burst_clocks": 12725
+      },
+      "even-negative": {
+        "executed_clocks": 44655,
+        "compared_endpoint_samples": 1357,
+        "output_bits_per_sample": 626,
+        "passed": true,
+        "original_vectors_sha256": "761b37685d9cf1bf70a781db0425aa16426d8700ee49dce9b97bfb5222d3bfcf",
+        "grouped_vectors_sha256": "bedbf524a11febb64a32f4bc05492397c8abe09ba25b9b773f016c207b53819e",
+        "max_consecutive_burst_clocks": 38748
+      }
+    },
+    "executed_clocks": 232008,
+    "compared_endpoint_samples": 6927,
+    "comparison_scope": "packet endpoints only; does not claim every intermediate output compared"
+  },
+  "controller_simulation": {
+    "counts": [
+      1,
+      2,
+      257,
+      65537,
+      1048575
+    ],
+    "contiguous_edges": true,
+    "TX_backpressure_stops_core": true,
+    "invalid_counts_rejected": [
+      0,
+      1048576,
+      4294967295
+    ],
+    "payload_and_CRC_checked": true,
+    "passed": true
+  },
+  "physical_counter_echo_fixture": {
+    "diagnostic_only": true,
+    "scope": "Physical opcode10 clock-delivery fixture; no RED2 core; 32-bit counter plus full payload echo; response is the last pre-edge value",
+    "image_sha256": "21ddc358d803d3fcad2ddb83f569fb9c7e057791d67c9e48924288b316020fd6",
+    "load_result_sha256": "1d5144d35dda7f05cf89c96b141ba5b64ad91526a27ae377f2531ca930e7a096",
+    "script_sha256": "ac2c39227f7660f13b840bf8aed64080dedff06c02bc300192a287e4caeaf22e",
+    "passed": true,
+    "cases": [
+      {
+        "kind": "burst",
+        "count": 1,
+        "sequence": 254,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00007",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00007",
+        "elapsed_seconds": 0.028383982134982944,
+        "passed": true
+      },
+      {
+        "kind": "burst",
+        "count": 2,
+        "sequence": 255,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00005",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00005",
+        "elapsed_seconds": 0.07791337394155562,
+        "passed": true
+      },
+      {
+        "kind": "burst",
+        "count": 257,
+        "sequence": 0,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00104",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC00104",
+        "elapsed_seconds": 0.017642830032855272,
+        "passed": true
+      },
+      {
+        "kind": "burst",
+        "count": 65537,
+        "sequence": 1,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC10103",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABC10103",
+        "elapsed_seconds": 0.03145942301489413,
+        "passed": true
+      },
+      {
+        "kind": "burst",
+        "count": 1048575,
+        "sequence": 2,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10104",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10104",
+        "elapsed_seconds": 0.1278390339575708,
+        "passed": true
+      },
+      {
+        "kind": "invalid_count_then_normal",
+        "invalid_count": 0,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10103",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10103",
+        "passed": true
+      },
+      {
+        "kind": "invalid_count_then_normal",
+        "invalid_count": 1048576,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10102",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10102",
+        "passed": true
+      },
+      {
+        "kind": "invalid_count_then_normal",
+        "invalid_count": 4294967295,
+        "expected": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10101",
+        "actual": "123456789ABCDEF000000000000FEDC0000000000000000000000000000000000000000000000000000000000000000000000ABD10101",
+        "passed": true
+      }
+    ]
+  },
+  "verified_RED2_image_restored": {
+    "started_at_utc": "2026-10-13T23:50:50.012767+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "dd259c97f70e3edfe084d7e48dd2a541174ae36bd3681c5be26e50853f5f5e37",
+    "build_result_sha256": "e2106c2bd526868d84430bca56256843be726d58174415b1d5728ac7f26224c6",
+    "program_script_sha256": "2bcbea565d93a8d328aa12faaebea96b4fce31a08ae41402875f0c2ad9313a8d",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-13T23:50:53.345100+00:00",
+    "load_log_sha256": "9cc9811d718174e174a985b391c1400212422a0be6856103360fb411f079ba44"
+  },
+  "mapped_board_resources": {
+    "top": "red2_basys3",
+    "lut": 17889,
+    "lut_memory": 326,
+    "lut_total": 18215,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 8545,
+    "bram18": 21,
+    "bram36": 24,
+    "bram36_equivalent": 34.5,
+    "dsp48": 20,
+    "carry4": 759,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 2,
+      "BUFGCE": 1,
+      "CARRY4": 759,
+      "DSP48E1": 20,
+      "FDCE": 2,
+      "FDRE": 8534,
+      "FDSE": 9,
+      "IBUF": 2,
+      "INV": 888,
+      "LUT2": 3332,
+      "LUT3": 3445,
+      "LUT4": 2709,
+      "LUT5": 3267,
+      "LUT6": 5136,
+      "MMCME2_ADV": 1,
+      "OBUF": 9,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "mapped_resource_change_vs_verified_image": {
+    "lut_total": 71,
+    "flipflops": 20,
+    "bram36_equivalent": 0,
+    "dsp48": 0
+  },
+  "tests": {
+    "focused_pytest_passed": 57,
+    "Ruff_passed": true,
+    "legacy_UART_simulation_passed": true,
+    "host_rejects_unsupported_or_modified_capability_before_serial": true,
+    "host_records_only_confirmed_endpoints": true
+  },
+  "active_build": {
+    "root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared",
+    "driver_pid": 74444,
+    "phase": "placement",
+    "loads_board_automatically": false
+  },
+  "burst_RED2_routed_timing_passed": false,
+  "burst_RED2_physical_replay_passed": false,
+  "limitations": [
+    "Counter/echo hardware fixture contains no RED2 core",
+    "Full burst-enabled RED2 design still requires routing, timing and physical replay",
+    "Burst replay compares endpoints only; use legacy per-clock replay for complete output comparison",
+    "Existing integer/256-word graph profile and list-equality execution gap remain unchanged"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/physical-result.json": "4044ee12fac6649291f52965ef4e249fd05867fe076aa0f63e36b7ea6d9c0f5d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/physical-check.log": "da9b51f6af3bf731511bb09536ec862792402c34bef6068523e409ba22b1385b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/check-physical.py": "ac2c39227f7660f13b840bf8aed64080dedff06c02bc300192a287e4caeaf22e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/check-and-restore.py": "33f056f052f6c36b700e24929430e9419d51ec08875e2973399797f796b28304",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/restore-working-image.log": "47b94911a75b2f9196b68783de4392f07dd5291badb8a0f58b180c59430f862f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/build-result.json": "56dd3033de05313c558e06b5771cc84e73e414c740f43c57cb86f4dc0b9b97b9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/fixture-provenance.json": "78cd425257fc99420b00541a2eabfe5b61cdcf9aaff16852f9c1d00c1cf75267",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/fixture.v": "1e9cf44403cac0f2608066a6b2caf120dbd6d06467a135cdd718903426090a61",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/board-timing.json": "089ecb84f05448f7e49475d1994452e16b90dc19587e3d75863b4845a4cf2bdf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/board-physical-lut-sites.json": "b043c8d3ddd5ab243510d51d7c7947f2b7303f35d4113934bba84ad8574efd9c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/load-result.json": "1d5144d35dda7f05cf89c96b141ba5b64ad91526a27ae377f2531ca930e7a096",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath/serializer-byte-move/load-after-burst-fixture-result.json": "e5b234850da848a4b3fcdf807ca31df8778ae7ab5f53d819454a492d542681d6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/provenance.json": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-resources.json": "aa743014caf93fac4cd4e88b5013ad2285107992ce6c73ed61e283e51b1867f7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-map.log": "fbb21562925b5b1468abda05ab71c2604e0b001030b3930ffa897d13d453a8d0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/run-physical.py": "be98b19f6a151a67310b1035ae6d388d54bf77bd8d6aaede44f488210810019d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/physical-launch.json": "76999dab0d7f8cb8a4fe88bf8a5c14c23fb67b81f9761ba5eed4c71eb5a4bf5d",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/burst_monitor.py": "51d8e8b0a0b7376470ad622350a7337921dcb493e2a1094a5b6dae7fe63acff4",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/check.py": "69b132a50ef6c9954b9d75689f23212a3c84ae9a56bd87417d4ec1cc516c553e",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/check_burst.py": "19cc179b565af013712c66e0d8cefb93f8b95feacf70a49c4a501eb4c9c04e45",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/burst_check.sv": "368925abf2546640fedae20ac4dafb4925df31b3fc002b45f85b0388628e93a8",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/prepare.py": "d88878e1b0445844985330850be618ac8bfc1b6b5368078467bacd0aacce29d7",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/host.py": "cd19e014ff1d0ff81fbf264f7e61d4f5b6c82d6a0c144d4810b5be6ac120144d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-controller-check/burst.log": "e8836c534e26a687a932facb2cce1e737dd94a5b97626562da3f3c2690b47210",
+    "/Users/billie/code/billiegoose/asgard/build/red2-legacy-uart-after-burst/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-core-check/core.log": "c53b1a11b28cfe7a738bedcf4166a0a8c5f666d4e17c89f211067e76e944d6ac",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-core-check/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-core-check/core.sv": "09840c22a3442d3abaf1bea44940826d4739788485a855bcb3f16ba7c46f3008",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-core-check/burst-vectors.txt": "5e4846cab5874f237a0e1f1bc073d552daedec2eea324fd64cc51939227621fb",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-core-check/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-application/vectors.txt": "ba38aaa2f076fef7d4b36fb32db9113c72ecd128021abe6830ac46e6f45b1a4c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-application/vectors.json": "904bf234c58bc63d6b649217e6a495f0eb2ed4f40f6472e535dd8b7063c281c3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/lifecycle/core.log": "b4648c74434c1bda6d4753ef4cb9e432f7101d1250baaf11e68bd609fb01a991",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/lifecycle/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/lifecycle/core.sv": "32d863cd5433b734f30d5a9d520ea7c3622ccaa79604072129c8f2fd5ddf0239",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/lifecycle/burst-vectors.txt": "8c51d751978334b259c0952811b601cf499886e926e8204efd25e5feaee61a1a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/lifecycle/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-lifecycle/vectors.txt": "249a35190350f8fba5f5bbe89591fecf8b6f954f019389c77c1f3baad6b0da96",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-lifecycle/vectors.json": "fdd62c77e2f8d5e0999a4dc38be61bf7be6f9392b04c6400ec5bdb7c90331c52",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/structure/core.log": "a534915800d0b81e0ef1fab3a9c4e667c07e07e31ea38e057e836c4f38cb44e8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/structure/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/structure/core.sv": "2f92677555f5e3540db7ae3b127d22c3587e02b7d7e14bd6ad557926a54acecf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/structure/burst-vectors.txt": "36223183a97d989a3b0bc62790a32634d15790f10b3705704e989e265bfe455e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/structure/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-structure/vectors.txt": "07ff1e0bc605914d6c0bf205b97b7d6eef7c99a51d3122fdf635e035e1f70571",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-structure/vectors.json": "705fc597cc2e009c87da85bc4876476479a7da4a8c9620b851899e976c46bb9f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/add/core.log": "2187c6ef83a25d79e7353b23b1bc5967d1cc4c48cd900544031585ce93dae873",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/add/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/add/core.sv": "09181c7eba080a049429264048d69597b12bb860a5eaf7d4900df36ce401129f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/add/burst-vectors.txt": "3b577728f62868e2e02910fd77766c5fac2ba48e8ef7d4b5de991777c1ccbbf5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/add/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-add/vectors.txt": "8ac87d3d5423abf825b2e14817f66f2f866b85f24f5918a1937431b2f59d9194",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-add/vectors.json": "070ab86f2b5b9cdb004789db4f6311fdc3cf6f132519eb00d18a95799de88d18",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/signed-add/core.log": "2187c6ef83a25d79e7353b23b1bc5967d1cc4c48cd900544031585ce93dae873",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/signed-add/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/signed-add/core.sv": "aa8c4bdd6b0e92b018bc61c17d848fa55c5ff85c7a07a10e9420ffe7483f01df",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/signed-add/burst-vectors.txt": "22b7a6141654de5d8bda5057af158e4d6572364d904c22501bdffc8514184f07",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/signed-add/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-signed-add/vectors.txt": "d27a8de9ccc5d87f689a5425a980b3f2cd5189277b6c463fb0d781581829d6dc",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-signed-add/vectors.json": "8fb1295a28c4b4d6c63c2bf999cf607dcd0a7c23253064c2b9c735dfe138ba9c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/core.log": "e7c6c04e7db5bccac302415705924c23743bc26d5c5e88be9401ee4a5393ffec",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/uart.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/core.sv": "549068af231e096d2119f303a5f772eb49ea735a2fb094011c904607756b98c9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/burst-vectors.txt": "bedbf524a11febb64a32f4bc05492397c8abe09ba25b9b773f016c207b53819e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-even-negative/vectors.txt": "761b37685d9cf1bf70a781db0425aa16426d8700ee49dce9b97bfb5222d3bfcf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-even-negative/vectors.json": "322dbba5862bfb8d028f89049048b1cdfcf15d54249eec73f4863511869f07dd"
+  }
+}

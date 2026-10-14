@@ -35,6 +35,11 @@ def main():
         action="store_true",
         help="Use the experimental immutable status snapshot and indexed bytes",
     )
+    parser.add_argument(
+        "--burst-clock",
+        action="store_true",
+        help="Enable experimental counted CLOCK delivery in the UART frontend",
+    )
     args = parser.parse_args()
     report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
@@ -96,6 +101,7 @@ def main():
         "clocks.py",
         "relocate_monitor.py",
         "snapshot_monitor.py",
+        "burst_monitor.py",
     ):
         shutil.copy2(HERE / name, output / name)
     if args.snapshot_response:
@@ -103,6 +109,11 @@ def main():
 
         monitor = output / "monitor.v"
         monitor.write_text(snapshot_response(monitor.read_text()))
+    if args.burst_clock:
+        from burst_monitor import burst_clock
+
+        monitor = output / "monitor.v"
+        monitor.write_text(burst_clock(monitor.read_text()))
     pins = {"clk_100p0": "W5", "RsRx": "B18", "RsTx": "A18"}
     pins.update(
         {
@@ -134,6 +145,7 @@ def main():
             {
                 "relocate_response_byte": args.relocate_response_byte,
                 "snapshot_response": args.snapshot_response,
+                "burst_clock": args.burst_clock,
             },
             indent=2,
         )

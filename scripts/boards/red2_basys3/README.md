@@ -202,7 +202,8 @@ The complete snapshot board maps to **17,786 LUTs**, saving **358 LUTs**, with t
 same 8,525 flip-flops, 34.5 BRAM36 equivalents and 20 DSPs. UART waveform/CRC/
 recovery/sequence-wrap simulation and the full 10,683-clock application monitor
 simulation pass. All 23 focused tests pass. Its placement passes the 10 MHz gate;
-routing and physical replay are pending. This is experimental, not the currently
+routing hit its one-hour limit with 4,338 overused wires and produced no bitstream.
+Physical replay remains unproven. This is experimental, not the currently
 verified FPGA image. See [the measured record](../../../docs/handoffs/red2-snapshot-serializer-results.json).
 
 ```sh
@@ -218,3 +219,58 @@ are recorded in [the structure evidence](../../../docs/handoffs/red2-physical-st
 After bootstrap, its host trace supplies only CLOCK/NOP commands; graph reduction
 and updates occur in the FPGA engine. The earlier interrupted attempt is retained
 separately and is not counted as a complete pass.
+
+
+## Complete physical corpus
+
+The verified shift-serializer image passes all five programs (application,
+structure creation/access, addition, signed addition and negative EVEN?) plus
+queued lifecycle handling: **232,008 physical clocks**, with all 626 output bits
+compared on every clock and a fresh SRAM load for each case. The image occupies
+17,997 physical LUT sites and passes the 10 MHz routed timing gate. See
+[the complete evidence](../../../docs/handoffs/red2-complete-physical-corpus-results.json).
+This qualifies the recorded integer/256-word graph profile and these traces;
+it does not establish exhaustive ISA coverage. The existing list-equality
+execution gap remains.
+
+## Experimental counted CLOCK delivery
+
+`prepare.py --burst-clock` adds a counted-clock controller to the UART frontend.
+The dedicated RED2 core is unchanged. Wire opcode 10 carries a 20-bit count in
+the 32-bit command value field (bits 311:280); valid counts are 1 through
+1,048,575. The frontend forwards exactly that many consecutive copies of core
+CLOCK (opcode 7, value zero), then returns the last **pre-edge** status, matching
+the existing trace convention. Zero counts and counts with nonzero upper bits
+are rejected without a reply or core edge. Normal requests retain their existing
+one-edge behavior. The option is off by default and can accompany the verified
+response-byte relocation recipe.
+
+The host's matching `--burst-clock` option requires a provenance-checked prepared
+image advertising this capability. It groups only adjacent identical, zero-value
+CLOCK commands; NOP observations, other commands and differing fields retain
+their individual transactions. Native opcode 10 is rejected before serial access
+on burst-capable images. Burst result files record `executed_clocks` and
+`compared_samples` separately: **only packet endpoints are compared**, unlike the
+complete per-clock physical corpus above. Interrupted replay still requires a
+fresh SRAM load; checkpoints cannot resume execution.
+
+```sh
+python3 scripts/boards/red2_basys3/check_burst.py \
+  --output build/red2-burst-check-next
+python3 scripts/boards/red2_basys3/check.py --burst-clock \
+  --output build/red2-burst-application-next \
+  --core-top build/red2-datapath-sharing/dirty-writeback/integrated-stream \
+  --vectors build/red2-datapath-sharing/dirty-writeback/rtl-application/vectors.txt
+python3 scripts/boards/red2_basys3/prepare.py \
+  --report docs/handoffs/synth-red2-datapath-sharing-results.json \
+  --variant dirty-writeback --relocate-response-byte --burst-clock \
+  --output build/red2-basys3-burst-next
+```
+
+Exact-count simulation checks the minimum, maximum and intermediate counts,
+contiguous core edges, the complete status payload and CRC, transmit stalls,
+and invalid-count recovery. A physical counter/echo fixture also passes these
+counts; that fixture contains no RED2 core and does not qualify RED2 at full speed.
+The complete burst-enabled RED2 image still needs routed timing and hardware
+replay before promotion. See
+[the burst evidence](../../../docs/handoffs/red2-burst-clock-results.json).

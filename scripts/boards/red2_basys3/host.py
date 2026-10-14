@@ -165,9 +165,37 @@ def main():
     parser.add_argument("--timeout", type=float, default=3)
     parser.add_argument("vectors", type=Path)
     parser.add_argument("--log", type=Path, required=True, help="new result JSON path")
+    parser.add_argument(
+        "--burst-clock",
+        action="store_true",
+        help="Combine identical CLOCKs on a burst-capable image; compare endpoints",
+    )
     args = parser.parse_args()
     preparation = json.loads((args.prepared / "provenance.json").read_text())
     metadata = verify_vectors(args.vectors, preparation["candidate_source_sha256"])
+    options_path = args.prepared / "board-placement-options.json"
+    burst_capable = False
+    if options_path.exists():
+        expected_hash = preparation["files_sha256"].get(options_path.name)
+        if hashlib.sha256(options_path.read_bytes()).hexdigest() != expected_hash:
+            raise ValueError("prepared monitor options differ from their provenance")
+        burst_capable = json.loads(options_path.read_text()).get("burst_clock", False)
+    if args.burst_clock and not burst_capable:
+        parser.error("--burst-clock requires a build prepared with --burst-clock")
+    packets = None
+    if burst_capable:
+        # Preflight the complete trace before touching hardware: opcode 10 belongs
+        # to the frontend on this image and must never arrive as a native command.
+        rows = [
+            tuple(int(word, 16) for word in row.split())
+            for row in args.vectors.read_text().splitlines()
+        ]
+        if any(command & 15 == 10 for command, _ in rows):
+            raise ValueError("native opcode 10 is reserved by the burst frontend")
+        if args.burst_clock:
+            from burst_monitor import burst_trace
+
+            packets = list(burst_trace(rows))
     if args.timeout <= 0:
         parser.error("timeout must be positive")
     started = time.monotonic()
@@ -182,6 +210,16 @@ def main():
         "completed_pass": False,
         "compared_clocks": 0,
     }
+    if args.burst_clock:
+        del record["compared_clocks"]
+        record.update(
+            burst_clock=True,
+            comparison_scope="packet endpoints only",
+            executed_clock_count_scope="confirmed packets; lower bound on failure",
+            executed_clocks=0,
+            compared_samples=0,
+            expected_samples=len(packets),
+        )
     # Reserve the result file before touching hardware; never erase earlier evidence.
     with args.log.open("x") as log:
         progress = ReplayProgress(args.log.with_suffix(".progress.json"))
@@ -189,24 +227,49 @@ def main():
         try:
             with contextlib.closing(SerialLink(args.port, args.timeout)) as link:
                 with args.vectors.open() as rows:
-                    for index, row in enumerate(rows):
-                        incoming, expected = (int(token, 16) for token in row.split())
+                    one_edge_packets = (
+                        (*[int(token, 16) for token in row.split()], 1) for row in rows
+                    )
+                    executed = 0
+                    for index, (incoming, expected, edges) in enumerate(
+                        packets if packets is not None else one_edge_packets
+                    ):
+                        endpoint = executed + edges - 1
                         actual = link.exchange(incoming, index % 256)
                         if actual != expected:
                             record.update(
-                                mismatch_clock=index,
+                                mismatch_clock=endpoint,
                                 actual=f"{actual:X}",
                                 expected=f"{expected:X}",
                             )
-                            raise ValueError(f"FPGA output mismatch at clock {index}")
-                        record["compared_clocks"] = index + 1
+                            raise ValueError(
+                                f"FPGA output mismatch at clock {endpoint}"
+                            )
+                        executed += edges
+                        if args.burst_clock:
+                            record.update(
+                                executed_clocks=executed,
+                                compared_samples=index + 1,
+                                last_compared_clock=endpoint,
+                            )
+                        else:
+                            record["compared_clocks"] = index + 1
                         if (index + 1) % 100 == 0:
                             progress.update(
                                 record, "running", time.monotonic() - started
                             )
-                            print("BOARD_REPLAY_PROGRESS", index + 1, flush=True)
+                            print("BOARD_REPLAY_PROGRESS", executed, flush=True)
             record["completed_pass"] = True
-            print("BOARD_REPLAY_PASS", metadata["cycles"], flush=True)
+            if args.burst_clock:
+                print(
+                    "BOARD_BURST_REPLAY_PASS",
+                    executed,
+                    "endpoint_samples",
+                    record["compared_samples"],
+                    flush=True,
+                )
+            else:
+                print("BOARD_REPLAY_PASS", metadata["cycles"], flush=True)
         except BaseException as exc:
             record["error"] = str(exc)
             raise
