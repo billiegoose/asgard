@@ -47,6 +47,23 @@ native product-controller witnesses, reset cancellation and constant protection
 also pass. Complete native boundaries and four equality programs are running;
 the exact-source RTL replay model is built. No new physical load has occurred.
 
+Focused equality checkpoint replay now passes all 626 output bits on every one
+of its 61,871 cycles in Verilator. An interactive RTL testbench links a small
+host port driver to the existing compiled model archive; it does not change
+the FPGA netlist. `build_interactive_rtl.py` records and verifies model/layout
+inputs. `check_interactive_vectors.py` verifies complete same-source native
+traces; it passes the same 61,871 cycles against the interactive driver.
+Set `RED2_CFG_PILOT_RTL_INTERACTIVE=1` for `check_integrated.py --program`,
+`--equality-checkpoint` or `--saved-if-fixtures`. Results have a distinct RTL
+environment/marker and cannot be recorded as native expected-output vectors.
+Twenty-one focused pytest cases pass, including nested port layout and trace
+format checks. Direct RTL prototypes pass complete application and equal/unequal
+one-element list programs; these compare architecture and expected mutations at
+commits and all RAM at termination, rather than every bit with native per cycle.
+Durable direct RTL corpus/nested/26 saved-IF gates are separate jobs below the
+corrected output root. Their terminal progress files must be checked before
+claiming completion. The original native full-program/boundary jobs continue.
+
 Compiler launchers now bootstrap installed setuptools' `distutils` compatibility
 instead of depending on `/tmp/red2-python-shims`, which disappeared during an
 earlier corpus run. The pinned enhanced compiler is unchanged. That bootstrap

@@ -62,12 +62,71 @@
     },
     "full_native_equality_programs_passed": false,
     "full_native_boundaries_lifecycle_passed": false,
-    "RTL_replay_passed": false,
     "physical_board_programmed": false,
     "native_emitted_controller_witnesses_passed": 123,
     "native_controller_reset_cancel_and_constant_protection_passed": true,
     "exact_enhanced_RTL_elaboration_passed": true,
-    "RTL_replay_model_built": true
+    "RTL_replay_model_built": true,
+    "focused_equality_checkpoint_native_and_RTL_replay": {
+      "environment": "native checkpoint parity followed by every-bit RTL replay in Verilator",
+      "scope": "Reachable state before commit 41 loaded through public ports; compare next commit architecture and every graph/control RAM word; no FPGA programming",
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "started_at_utc": "2026-10-14T05:09:41.624228+00:00",
+      "passed": true,
+      "pid": 6815,
+      "returncode": 0,
+      "RTL_replay_passed": true,
+      "output_bits_compared_each_clock": 626,
+      "binary_sha256": "07c638f9d5857a63bb3e691243e4868e7540176ffa124b31ace4c41fdaf7b4e1",
+      "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+      "replay_log_sha256": "1ee4ecdfc36661a29fc10480fc391cecd3756f023261c9e1e255eb77f2ec70ee",
+      "simulated_clocks": 61871,
+      "log_sha256": "9a0a1750b75140fe08f517f1f931635f58acad186c921ca817deb653be39caea",
+      "finished_at_utc": "2026-10-14T05:15:41.903031+00:00"
+    },
+    "interactive_transport_every_bit_native_trace_check": {
+      "environment": "Interactive Verilator model compared with native expected-output trace",
+      "scope": "Every exposed output bit on every cycle of this complete trace",
+      "passed": true,
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "compared_cycles": 61871,
+      "output_bits_compared_each_cycle": 626,
+      "vectors_sha256": "283251fca82ab0bfe89cbd8131587be2f01ec7d02145c6017c1b69430c57ee34",
+      "interactive_binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+      "seconds": 12.84557575196959
+    },
+    "full_program_direct_RTL_prototypes": [
+      {
+        "scope": "Generated RTL evaluated in Verilator, architectural checkpoints compared directly with Concrete RED2; no native every-output comparison claimed for this program and no FPGA programming",
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "program": "((LAMBDA (x) x) 7)",
+        "passed": true,
+        "checker_sha256": "c05b16fd4eee26473e2d87783e5cf72301b46c00c9570004975d751520d15590",
+        "interactive_binary_sha256": "54254a76aba4092970622aea1e93299bb9cc668639b893cb3c331773177102b8",
+        "simulated_clocks": 10688,
+        "seconds": 6.598659944022074
+      },
+      {
+        "scope": "Generated RTL evaluated in Verilator, architectural checkpoints compared directly with Concrete RED2; no native every-output comparison claimed for this program and no FPGA programming",
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+        "passed": true,
+        "checker_sha256": "c05b16fd4eee26473e2d87783e5cf72301b46c00c9570004975d751520d15590",
+        "interactive_binary_sha256": "54254a76aba4092970622aea1e93299bb9cc668639b893cb3c331773177102b8",
+        "simulated_clocks": 811553,
+        "seconds": 276.7140292811673
+      },
+      {
+        "scope": "Generated RTL evaluated in Verilator, architectural checkpoints compared directly with Concrete RED2; no native every-output comparison claimed for this program and no FPGA programming",
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "passed": true,
+        "checker_sha256": "c05b16fd4eee26473e2d87783e5cf72301b46c00c9570004975d751520d15590",
+        "interactive_binary_sha256": "54254a76aba4092970622aea1e93299bb9cc668639b893cb3c331773177102b8",
+        "simulated_clocks": 642136,
+        "seconds": 223.67373004881665
+      }
+    ]
   },
   "resources": {
     "top": "top",
@@ -106,7 +165,8 @@
   "limitations": [
     "Reachable checkpoint is one commit starting from a concrete-produced state; full hardware prefix remains a separate gate",
     "Typed handler oracle shares extraction machinery; original-source request regressions and independent architectural checkpoint additionally check correctness",
-    "No new FPGA behavior or routed timing claim"
+    "No new FPGA behavior or routed timing claim",
+    "Direct RTL prototype programs check committed architecture, expected mutations and final full RAM; they do not compare all 626 bits with native outputs every cycle"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/configuration.json": "17a163329f442ca921b0ac48d1cf3c0758d2f991dde1f1087d1a6d5919b90341",
@@ -131,7 +191,15 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resources.json": "52f2af8ca9edacb49f8343e1513eedd70c013cd0156d9900186b7e2b7c695d69",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/provenance.json": "96f930e451350fa5b878d14517c6835b346d56d41358e684e71ec61cd4c660f4",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.json": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.log": "819a34aad6b9bc3455b1520f6f4201acd811d901b0b237960916b05ecf174c5f"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.log": "819a34aad6b9bc3455b1520f6f4201acd811d901b0b237960916b05ecf174c5f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/checkpoint-rtl-progress.json": "7222337a72cec0b2c392aee2d1149ff4477b44fce00d4e8de02e997a99174d24",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint-rtl/native.log": "9a0a1750b75140fe08f517f1f931635f58acad186c921ca817deb653be39caea",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint-rtl/replay.log": "1ee4ecdfc36661a29fc10480fc391cecd3756f023261c9e1e255eb77f2ec70ee",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint-rtl/vectors.json": "067534bc73a98b8a0eb9b47a9217c02f69868f89030db9c5860d0871d51de56f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-complete-checkpoint-vector-result.json": "a97f5e464bc798fecf62feab41b63a0177385e5e65808c2f8ffa71f143bc31cb",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-application/result.json": "0e945622424da02b5f1c41d310c6482c8ca72a6873da240c625e51cf76e35839",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-equal-list/result.json": "4ede00b974bdfe9ea66f7e377807f7b02f6f3549179b702c1d6b1112f49571e7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/interactive-unequal-list/result.json": "595aab57027ce9c500eb9922b04bfab8e9313b966d6c8cc5e5f01ba55003e290"
   },
   "generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "a1e930167f9971da42a3145e89c9474158022f9468da689cacc2c64548d0a19c",
@@ -192,7 +260,7 @@
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
     "tests/test_red2_request_arms.py": "f8757e05f0cb3f557a1b7a51e8fa9909cfced3dec5010f21875969c367070bb7"
   },
-  "updated_at_utc": "2026-10-14T05:14:41.189489+00:00",
+  "updated_at_utc": "2026-10-14T05:21:23.511006+00:00",
   "mapping_provenance": {
     "enhanced_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
     "all_HDL_and_mapping_script_hashes_verified": true,

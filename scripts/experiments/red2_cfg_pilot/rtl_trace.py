@@ -3,16 +3,16 @@
 import hashlib
 import json
 import re
+from collections import namedtuple
+from functools import cache
 from pathlib import Path
 
 
-class Trace:
-    def __init__(self, top, destination):
+class PortLayout:
+    """Use the emitted VHDL record ordering for both trace and live RTL I/O."""
+
+    def __init__(self, top):
         self.top = Path(top)
-        self.destination = Path(destination)
-        self.destination.parent.mkdir(parents=True, exist_ok=True)
-        self.file = self.destination.open("x")
-        self.count = 0
         source = (self.top / "hdl/c_structs_pkg.pkg.vhd").read_text()
         self.records = {}
         for name, body in re.findall(
@@ -24,6 +24,7 @@ class Trace:
         ports = (self.top / "hdl/top/top.vhd").read_text()
         self.input_type = re.search(r"incoming_command\s*:\s*in (\w+)", ports)[1]
         self.output_type = re.search(r"return_output\s*:\s*out (\w+)", ports)[1]
+        self.schema = cache(self._schema)
 
     def pack(self, typ, value):
         scalar = re.fullmatch(r"unsigned\((\d+) downto 0\)", typ)
@@ -38,6 +39,39 @@ class Trace:
             result |= bits << width
             width += size
         return result, width
+
+    def _schema(self, typ):
+        scalar = re.fullmatch(r"unsigned\((\d+) downto 0\)", typ)
+        if scalar:
+            return int(scalar[1]) + 1, None, ()
+        fields = self.records[typ]
+        offset = 0
+        parts = []
+        for _, subtype in fields:
+            width, _, _ = self.schema(subtype)
+            parts.append((subtype, offset, (1 << width) - 1))
+            offset += width
+        return offset, namedtuple(typ, [name for name, _ in fields]), parts
+
+    def unpack(self, typ, bits):
+        width, cls, parts = self.schema(typ)
+        if cls is None:
+            return bits & ((1 << width) - 1)
+        return cls(
+            *(
+                self.unpack(subtype, (bits >> offset) & mask)
+                for subtype, offset, mask in parts
+            )
+        )
+
+
+class Trace(PortLayout):
+    def __init__(self, top, destination):
+        super().__init__(top)
+        self.destination = Path(destination)
+        self.destination.parent.mkdir(parents=True, exist_ok=True)
+        self.file = self.destination.open("x")
+        self.count = 0
 
     def append(self, command, output):
         incoming, self.input_width = self.pack(self.input_type, command)

@@ -8,6 +8,7 @@ IF cases, then compare four list programs at every architectural commit.
 # isort: skip_file
 # ruff: noqa: E402
 import sys
+import importlib
 from pathlib import Path
 
 project = Path(__file__).resolve().parents[1]
@@ -19,7 +20,7 @@ sys.path.insert(0, str(project / "scripts/experiments/red2_cfg_pilot"))
 from native_runtime import cache_scalar_types
 
 cache_scalar_types(py)
-from synthesizable_red2_machine import machine as hw
+hw = importlib.import_module("synthesizable_red2_machine.machine")
 import check_syn_sim as suite
 
 assert hw.GRAPH_WORDS == 256, "this fixture requires a 256-word graph"
@@ -180,13 +181,21 @@ for mode in ["equality", "ordinary"]:
                 )
 print("SAVED_IF_PARITY_ALL_PASS", count, flush=True)
 
-for source in [
-    "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
-    "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
-    "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
-    "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
-]:
+programs = (
+    []
+    if "--fixtures-only" in sys.argv
+    else [
+        "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+        "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+        "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+    ]
+)
+for source in programs:
     _, commits = suite._run_program_lockstep(source)
     assert commits > 0
     print("SYN_EQUALITY_PROGRAM_PASS", source, commits, flush=True)
-print("SYN_EQUALITY_IF_ALL_PASS", count, 4, flush=True)
+if "--fixtures-only" in sys.argv:
+    print("SYN_SAVED_IF_FIXTURES_ALL_PASS", count, flush=True)
+else:
+    print("SYN_EQUALITY_IF_ALL_PASS", count, len(programs), flush=True)

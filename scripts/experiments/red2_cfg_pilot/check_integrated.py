@@ -3,6 +3,7 @@
 
 import importlib.util
 import os
+import runpy
 import sys
 import time
 from paths import INTEGRATED, ROOT
@@ -24,7 +25,20 @@ spec = importlib.util.spec_from_file_location(name, INTEGRATED / "machine.py")
 hw = importlib.util.module_from_spec(spec)
 sys.modules[name] = hw
 spec.loader.exec_module(hw)
-raw = pypeline.sim_call
+transport = None
+environment = "native_hardware_source_simulation"
+if os.environ.get("RED2_CFG_PILOT_RTL_INTERACTIVE", "0") == "1":
+    from rtl_interactive import RTLServer
+
+    assert not os.environ.get("RED2_CFG_PILOT_TRACE"), (
+        "Interactive RTL results are observations, not native expected-output vectors"
+    )
+    transport = RTLServer(INTEGRATED)
+    raw = transport.call
+    pypeline.sim_reset = transport.reset
+    environment = "Verilator_RTL_compared_with_Concrete_RED2"
+else:
+    raw = pypeline.sim_call
 trace = None
 if os.environ.get("RED2_CFG_PILOT_TRACE"):
     from rtl_trace import Trace
@@ -110,6 +124,17 @@ def single_program():
     print("INTEGRATED_PROGRAM_PASS", source, flush=True)
 
 
+def saved_if_fixtures():
+    previous = sys.argv
+    try:
+        sys.argv = ["check_syn_equality_if.py", "--fixtures-only"]
+        runpy.run_path(
+            str(ROOT / "scripts/check_syn_equality_if.py"), run_name="__main__"
+        )
+    finally:
+        sys.argv = previous
+
+
 def equality_checkpoint():
     """Replay the saved IF transition that previously requested stack slot zero.
 
@@ -183,18 +208,33 @@ checks = {
     "--scalar-core": scalar_core_smoke,
     "--program": single_program,
     "--equality-checkpoint": equality_checkpoint,
+    "--saved-if-fixtures": saved_if_fixtures,
 }
 choice = sys.argv[1] if len(sys.argv) > 1 else "--full"
 assert choice in checks
+if transport is not None:
+    assert choice in {
+        "--application",
+        "--scalar-core",
+        "--program",
+        "--equality-checkpoint",
+        "--saved-if-fixtures",
+    }
 started = time.monotonic()
-checks[choice]()
+try:
+    checks[choice]()
+finally:
+    if transport is not None:
+        transport.close()
 if trace is not None:
     trace.close()
 print(
-    "INTEGRATED_NATIVE_PARITY_PASS",
+    "INTEGRATED_NATIVE_PARITY_PASS"
+    if transport is None
+    else "INTEGRATED_RTL_CONCRETE_PARITY_PASS",
     choice,
     "environment",
-    "native_hardware_source_simulation",
+    environment,
     "simulated_clocks",
     simulated_clocks,
     "admitted",

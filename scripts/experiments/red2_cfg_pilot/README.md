@@ -622,3 +622,45 @@ controller witnesses plus reset cancellation and constant protection. The
 request fix saves another 27 LUTs and 144 FFs against the frozen pre-fix product
 candidate by removing its retained shared request logic. No routed-board or
 physical qualification is implied by this core measurement.
+
+## Interactive RTL semantic checks
+
+`build_interactive_rtl.py` links a small host-side port driver to the already
+compiled Verilator model archive. It verifies source, coarse netlist, wrapper
+and VHDL layout hashes and records the archive, runtime object, C++ source,
+compiler command and resulting binary. It does not rebuild or change the FPGA
+design. The shared `PortLayout` retains native trace packing and also decodes
+RTL responses; focused tests pin nested field offsets, truncation and trace
+format. A fresh server instance implements simulation `sim_reset`; hardware
+`CMD_RESET` remains a separate command.
+
+After the normal exact-source RTL replay build, using the same configuration:
+
+```sh
+python3 scripts/experiments/red2_cfg_pilot/build_interactive_rtl.py
+python3 scripts/experiments/red2_cfg_pilot/check_interactive_vectors.py \
+  "$RED2_CFG_PILOT_OUT/equality-checkpoint-rtl/vectors.txt" \
+  --out "$RED2_CFG_PILOT_OUT/interactive-vector-check.json"
+RED2_CFG_PILOT_RTL_INTERACTIVE=1 \
+RED2_CFG_PILOT_PROGRAM='(EQUAL? (CONS 7 NIL) (CONS 7 NIL))' \
+  python3 scripts/experiments/red2_cfg_pilot/check_integrated.py --program
+```
+
+The vector check compares every exposed output bit on every cycle of a complete
+same-source native trace. The program check instead drives the RTL directly,
+compares architectural fields and expected graph/control mutations with Concrete
+RED2 at every committed reduction, then compares all graph/control words at
+termination. It emits `INTEGRATED_RTL_CONCRETE_PARITY_PASS` with an explicit RTL
+environment label. Native checks keep their own result marker. Interactive mode
+rejects native expected-output trace recording and only admits the public-port
+program/checkpoint gates. RTL simulation uses the optimized frontend netlist
+before technology mapping; mapped primitives, routing and physical behavior
+still need their own checks.
+
+For corrected source `89c7712c...`, the complete equality checkpoint passes both
+ordinary RTL replay and the interactive driver against its native trace: 61,871
+cycles, all 626 output bits each cycle. Direct RTL prototype application and
+equal/unequal one-element list programs also pass through termination, including
+final full-RAM equality. Their program results are distinct from the per-cycle
+native-output comparison. The durable driver is running the broader corpus and
+nested lists; see the separate validation scopes in the request-fix evidence.
