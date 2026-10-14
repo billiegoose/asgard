@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T10:07:40.056460+00:00",
-  "scope": "Optional extraction of IF EP-chase graph handler onto existing shared datapath; controlled complete-core area mapping, original-handler typed parity and actual emitted native controller witnesses pass; full native/RTL integration gates still running; no board preparation or hardware qualification",
+  "scope": "Optional IF EP-chase graph-handler extraction; controlled complete-core mapping, original-handler typed parity, 27 emitted native controller witnesses and 26 same-source RTL/Concrete saved-IF fixtures pass; full native boundaries and complete-program RTL gates running; no board qualification",
   "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
   "baseline_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "configuration": {
@@ -126,8 +126,53 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/provenance.json": "e3c34677c5b1f21f6c4d008e9b9cb2505f87e6a7babeadfbd31dbb0f46d8495c",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/if_ep_chase.py": "4f55fe4f57017b2f4b5232e31b4bd0978dc7598b94623a0ed6626869ab22b8d0",
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check.py": "23809be5800182ec904ecb11275c372fb2799b1573e80443cd804b77b4db7797",
-    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_hardware.py": "d2c07ee5c46d0358bbd92bfc45a3755d8512d372d20c93a4d7ecf78188ba91ce"
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_hardware.py": "d2c07ee5c46d0358bbd92bfc45a3755d8512d372d20c93a4d7ecf78188ba91ce",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/saved-if-rtl-progress.json": "a7ceef4f027e06970ac8a8280711a8951e217fdc825cde1ebe899ab9942081bf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/saved-if-fixtures.log": "c0b2ab2505c16f04d694e140ca47a82adbb4cee94db2efd866aaeac558b40e20",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/rtl-build-progress.json": "a75ba31152abb20b78cbe358c6285d9143265f5db46a61bf38c2337aa340ee3b"
   },
   "full_typed_comparisons_passed": 15624,
-  "complete_top_native_witnesses_pending": 847
+  "complete_top_native_witnesses_pending": 847,
+  "updated_at_utc": "2026-10-14T10:18:29.249411+00:00",
+  "same_source_RTL_Concrete_saved_IF_gate": {
+    "progress": {
+      "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
+      "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+      "passed": true,
+      "stages": [
+        {
+          "label": "build-interactive",
+          "pid": 3390,
+          "passed": true,
+          "log_sha256": "49a56ef9d7235e16a0820227e90a098b46877515561ea52691bc00b3e36fc67c"
+        },
+        {
+          "label": "saved-if-fixtures",
+          "pid": 3407,
+          "passed": true,
+          "log_sha256": "c0b2ab2505c16f04d694e140ca47a82adbb4cee94db2efd866aaeac558b40e20"
+        }
+      ],
+      "saved_IF_fixtures": 26,
+      "finished_at_utc": "2026-10-14T10:13:11.735107+00:00"
+    },
+    "simulated_clocks": 1342196,
+    "admitted_transitions": 2754,
+    "comparison_scope": "Concrete RED2 architecture and expected RAM mutations at each commit plus full graph/control RAM for all 26 saved-IF fixtures; actual same-source frontend RTL; no physical FPGA claim"
+  },
+  "complete_program_RTL_gates": {
+    "scope": "Actual same-source Verilator versus Concrete RED2 at commits and all final graph/control RAM; no expected-output vectors recorded; clock counts may differ from the earlier source",
+    "short": {
+      "progress": "build/red2-if-ep-sharing/if-ep-chase/direct-rtl-short-progress.json",
+      "driver_pid": 6684,
+      "exec_session": 59311
+    },
+    "lists": {
+      "progress": "build/red2-if-ep-sharing/if-ep-chase/direct-rtl-lists-progress.json",
+      "driver_pid": 6700,
+      "exec_session": 54246
+    },
+    "driver_sha256": "2def96b6d85a9aeaba7bd9752209dc82387d772c901e5475f2ff9dbd0cb0aeb5",
+    "all_passed": false
+  }
 }

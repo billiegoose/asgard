@@ -48,10 +48,17 @@ native witnesses**, including malformed addresses, EP hop limits, atomic words,
 closure continuation and unsupported forms. Reset and constant protection pass.
 Full native/product/lifecycle/metadata/poison qualification runs in exec **90523**,
 driver PID **3379**, `full-boundary-progress.json`. The same-source RTL replay
-model is built; 26 saved-IF RTL/Concrete fixtures run in exec **70543**, driver
-PID **3389**, `saved-if-rtl-progress.json`. Revalidate those processes and read
-their current progress. No board preparation or physical qualification is claimed
-for this separate extraction. See `red2-if-ep-sharing-results.json`.
+model is built; all **26 saved-IF RTL/Concrete fixtures pass** (exec 70543
+terminal PASS, 1,342,196 simulated clocks / 2,754 admissions). Full same-source
+complete-program RTL/Concrete checks are now live: short corpus exec **59311**,
+driver PID **6684**, `direct-rtl-short-progress.json`; four list programs exec
+**54246**, driver PID **6700**, `direct-rtl-lists-progress.json`. These do not
+record expected-output vectors. Source `7d...` changes some transition latencies
+(application 10,690 simulated clocks, structure 124,267), so do not relabel or
+replay earlier-source clock-aligned goldens as this source's own observations.
+Revalidate actual processes before waiting. No board preparation or physical
+qualification is claimed for this separate extraction. See
+`red2-if-ep-sharing-results.json`.
 
 ## Current qualified board: corrected shared multiplier (2026-10-14)
 
