@@ -82,7 +82,7 @@ class Trace(PortLayout):
         )
         self.count += 1
 
-    def close(self):
+    def close(self, *, rtl_model=None, checked_program=None):
         self.file.close()
         metadata = {
             "cycles": self.count,
@@ -94,7 +94,24 @@ class Trace(PortLayout):
                 (self.top / "machine.py").read_bytes()
             ).hexdigest(),
             "vectors_sha256": hashlib.sha256(self.destination.read_bytes()).hexdigest(),
+            "expected_output_origin": "native hardware-source simulation",
         }
+        if rtl_model is not None:
+            assert checked_program, "RTL observations require a completed program gate"
+            assert rtl_model["candidate_source_sha256"] == metadata["candidate_sha256"]
+            for key in ("binary_sha256", "manifest_sha256"):
+                assert re.fullmatch(r"[0-9a-f]{64}", rtl_model[key]), key
+            metadata.update(
+                expected_output_origin="Verilator RTL simulation",
+                rtl_model=rtl_model,
+                semantic_validation={
+                    "passed": True,
+                    "program": checked_program,
+                    "termination": "HALTED",
+                    "method": "Concrete RED2 architecture and expected RAM mutations "
+                    "at every commit; full graph/control RAM at termination",
+                },
+            )
         self.destination.with_suffix(".json").write_text(
             json.dumps(metadata, indent=2) + "\n"
         )

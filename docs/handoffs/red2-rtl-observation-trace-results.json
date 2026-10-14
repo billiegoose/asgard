@@ -1,0 +1,61 @@
+{
+  "recorded_at_utc": "2026-10-14T07:05:14.444296+00:00",
+  "scope": "Validated Verilator observation traces for separately labeled physical replay; no new HDL or bitstream change; no physical coverage implied by this record",
+  "validation": {
+    "focused_pytest_cases": 23,
+    "pytest_passed": true,
+    "ruff_passed": true,
+    "application_native_trace_byte_identity": {
+      "scope": "Exact recorded input/output bytes from validated RTL observations versus the complete same-source native application trace; expected-output origins remain separately labeled",
+      "passed": true,
+      "cycles": 10688,
+      "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+      "source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "metadata_origin": "Verilator RTL simulation",
+      "rtl_model": {
+        "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+        "binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+        "manifest_sha256": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf"
+      },
+      "semantic_validation": {
+        "passed": true,
+        "program": "((LAMBDA (x) x) 7)",
+        "termination": "HALTED",
+        "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+      }
+    }
+  },
+  "metadata": {
+    "cycles": 10688,
+    "input_type": "red2_command_t_from_machine_op_uint4_t_address_uint16_t_value_uint32_t_aux_uint64_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_control_red2_control_t_lo_uint64_t_hi_hb59b10f07d47_h251e9f4f3e93",
+    "output_type": "red2_status_t_from_machine_status_uint3_t_red2_fault_uint3_t_hw_fault_uint3_t_microstate_uint8_t_committed_uint1_t_pc_uint16_t_fsp_uint16_t_env_uint17_t_control_top_uint17_t_h5ae1651b4c85",
+    "input_width": 722,
+    "output_width": 626,
+    "candidate_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+    "vectors_sha256": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+    "expected_output_origin": "Verilator RTL simulation",
+    "rtl_model": {
+      "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+      "binary_sha256": "c02e27ecc436be4a126a98095d2207a4ffbdfbc05f335046b4e18f064d516674",
+      "manifest_sha256": "90ab3a828fb27967fd70f44b1488a904be8838bccd1d11c52ba881d8eb91ccbf"
+    },
+    "semantic_validation": {
+      "passed": true,
+      "program": "((LAMBDA (x) x) 7)",
+      "termination": "HALTED",
+      "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+    }
+  },
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/vectors.txt": "0760d11834d53d75588f7ba85c429653db30d99978ddbd758a098d22810ff427",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/vectors.json": "8db51c6ad558d368c2b985b3e4134e87de23c07f76b0603599b31c7234f42a45",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/check.log": "e91012fc2ce9b7664d2303544e71c1fde52e5afdcab798f21324c023c7810f5b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-application/origin-parity-result.json": "a82a61412dd055dbcc8fc51f7cac171bfdc8bd27ed2083f26e959aaa0854d14c",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/host.py": "12f4f3f2742a98a459a8674e66068a75542eb574717feff01a208256aa71fd61",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_integrated.py": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/rtl_interactive.py": "a0bf08da5ed0e6f0ba21bf3e56b8e7f5755216a79f7202a880dacc4274571697",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/rtl_trace.py": "814ea88b4c26b52e7057ade2f138b40c0614056cda7136d68b434b8dccc55488",
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_rtl_port_layout.py": "0aa0e2eb8f9b1dd8e5ff63bc29a6792ae9118401e9833f93cda45176663e852b",
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_trace_origins.py": "5039cef95fb0da77bf27ed6025090161a5b3c58368f968d2d9e84b20be386f12"
+  }
+}

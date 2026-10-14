@@ -706,3 +706,23 @@ uses those results plus the 15 independent full-program RTL/Concrete tests and
 26 saved-IF fixtures. The slower duplicate native list-program corpus remains
 separate corroboration. This gate permits experimental board preparation;
 routed timing and physical qualification remain separate.
+
+Interactive RTL can also record a trace for subsequent board comparison:
+
+```sh
+RED2_CFG_PILOT_RTL_INTERACTIVE=1 \
+RED2_CFG_PILOT_RTL_OBSERVATIONS="$RED2_CFG_PILOT_OUT/rtl-observed-application/vectors.txt" \
+RED2_CFG_PILOT_PROGRAM='((LAMBDA (x) x) 7)' \
+  python3 scripts/experiments/red2_cfg_pilot/check_integrated.py --program
+```
+
+This option requires the complete program gate, HALTED termination and no pending
+host operation. Metadata is published only after the architectural/memory checks
+and RTL process finish successfully. It labels the expected outputs as
+`Verilator RTL simulation`, retains the checked program and semantic scope, and
+pins the same-source model binary and manifest hashes. Native trace recording
+keeps its separate origin. The board host validates and carries this distinction
+into physical results; RTL observations do not constitute a native per-cycle
+comparison. The application observation trace matches all 10,688 cycles of the
+native trace byte for byte. See
+[the trace-origin evidence](../../../docs/handoffs/red2-rtl-observation-trace-results.json).

@@ -13,6 +13,13 @@ class RTLServer:
         self.layout = PortLayout(top)
         self.root = self.layout.top / "rtl-netlist/interactive-driver"
         manifest = json.loads((self.root / "provenance.json").read_text())
+        self.trace_provenance = {
+            "candidate_source_sha256": manifest["candidate_source_sha256"],
+            "binary_sha256": manifest["binary_sha256"],
+            "manifest_sha256": hashlib.sha256(
+                (self.root / "provenance.json").read_bytes()
+            ).hexdigest(),
+        }
         self.binary = self.root / "server"
         inputs = {
             **manifest["inputs_sha256"],

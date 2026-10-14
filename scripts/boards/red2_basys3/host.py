@@ -141,6 +141,33 @@ def verify_vectors(path: Path, candidate_sha: str) -> dict:
         raise ValueError("trace port layout differs from the board interface")
     if metadata["candidate_sha256"] != candidate_sha:
         raise ValueError("trace source differs from the prepared board candidate")
+    origin = metadata.get("expected_output_origin")
+    if origin not in {
+        None,
+        "native hardware-source simulation",
+        "Verilator RTL simulation",
+    }:
+        raise ValueError("unrecognized expected-output trace origin")
+    if origin == "Verilator RTL simulation":
+        validation = metadata.get("semantic_validation", {})
+        model = metadata.get("rtl_model", {})
+        if (
+            not isinstance(validation, dict)
+            or not isinstance(model, dict)
+            or validation.get("passed") is not True
+            or not validation.get("program")
+            or validation.get("termination") != "HALTED"
+            or model.get("candidate_source_sha256") != candidate_sha
+            or not all(
+                isinstance(model.get(key), str)
+                and len(model[key]) == 64
+                and set(model[key]) <= set("0123456789abcdef")
+                for key in ("binary_sha256", "manifest_sha256")
+            )
+        ):
+            raise ValueError(
+                "RTL observations lack a completed same-source semantic gate"
+            )
     if hashlib.sha256(path.read_bytes()).hexdigest() != metadata["vectors_sha256"]:
         raise ValueError("trace hash differs from its completed validation record")
     # Validate all rows before the first hardware command is sent.
@@ -206,10 +233,16 @@ def main():
             (args.prepared / "provenance.json").read_bytes()
         ).hexdigest(),
         "vectors_sha256": metadata["vectors_sha256"],
+        "expected_output_origin": metadata.get(
+            "expected_output_origin", "native hardware-source simulation (legacy trace)"
+        ),
         "expected_clocks": metadata["cycles"],
         "completed_pass": False,
         "compared_clocks": 0,
     }
+    if metadata.get("expected_output_origin") == "Verilator RTL simulation":
+        record["expected_rtl_model"] = metadata["rtl_model"]
+        record["expected_semantic_validation"] = metadata["semantic_validation"]
     if args.burst_clock:
         del record["compared_clocks"]
         record.update(

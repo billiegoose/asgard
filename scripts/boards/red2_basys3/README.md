@@ -147,6 +147,15 @@ completion/failure. It records trace identity, PID and the last confirmed clock
 count; a mismatch is never counted. After abrupt termination this is a lower
 bound, not a resume token: fresh SRAM is still required for another replay.
 
+Trace metadata also records where the expected outputs came from. Native
+hardware-source traces and validated Verilator observations remain separately
+labeled. RTL observations require a completed same-source Concrete RED2 program
+gate and HALTED termination, plus model binary/manifest fingerprints. The host
+rejects missing or inconsistent RTL validation metadata and preserves the origin
+and semantic scope in the physical result. In burst mode the reported executed
+clocks include intermediate cycles, while comparisons occur only at packet
+endpoints; `compared_samples` gives that smaller count.
+
 LD0 indicates MMCM lock, LD1 monitor readiness, LD2 core busy, LD3 core halted,
 LD4 a hardware/RED2 fault, LD5 a sticky transport error, LD6 an active response,
 and LD7 toggles for each executed command. Busy/halted/fault describe the core's

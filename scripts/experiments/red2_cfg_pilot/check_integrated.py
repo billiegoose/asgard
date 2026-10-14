@@ -40,14 +40,17 @@ if os.environ.get("RED2_CFG_PILOT_RTL_INTERACTIVE", "0") == "1":
 else:
     raw = pypeline.sim_call
 trace = None
-if os.environ.get("RED2_CFG_PILOT_TRACE"):
+observations = os.environ.get("RED2_CFG_PILOT_RTL_OBSERVATIONS")
+if observations:
+    assert transport is not None, "RTL observations require the interactive RTL backend"
+if observations or os.environ.get("RED2_CFG_PILOT_TRACE"):
     from rtl_trace import Trace
 
-    trace = Trace(INTEGRATED, os.environ["RED2_CFG_PILOT_TRACE"])
-    native_raw = raw
+    trace = Trace(INTEGRATED, observations or os.environ["RED2_CFG_PILOT_TRACE"])
+    observed_call = raw
 
     def raw(fn, command):
-        out = native_raw(fn, command)
+        out = observed_call(fn, command)
         if fn is hw.SynthesizableRED2Machine:
             trace.append(command, out)
         return out
@@ -119,8 +122,13 @@ def scalar_core_smoke():
 
 def single_program():
     source = os.environ["RED2_CFG_PILOT_PROGRAM"]
-    _, commits = suite._run_program_lockstep(source)
+    final, commits = suite._run_program_lockstep(source)
     assert commits > 0
+    if observations:
+        assert final.halted and not final.pending_host_op, (
+            "RTL observation traces require a halted complete program",
+            final,
+        )
     print("INTEGRATED_PROGRAM_PASS", source, flush=True)
 
 
@@ -212,6 +220,8 @@ checks = {
 }
 choice = sys.argv[1] if len(sys.argv) > 1 else "--full"
 assert choice in checks
+if observations:
+    assert choice == "--program", "RTL observations require the complete program gate"
 if transport is not None:
     assert choice in {
         "--application",
@@ -227,7 +237,13 @@ finally:
     if transport is not None:
         transport.close()
 if trace is not None:
-    trace.close()
+    if observations:
+        trace.close(
+            rtl_model=transport.trace_provenance,
+            checked_program=os.environ["RED2_CFG_PILOT_PROGRAM"],
+        )
+    else:
+        trace.close()
 print(
     "INTEGRATED_NATIVE_PARITY_PASS"
     if transport is None
