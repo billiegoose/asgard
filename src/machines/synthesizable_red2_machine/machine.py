@@ -336,6 +336,7 @@ MICRO_FLOAT_FLOOR_CEIL = 140
 MICRO_INT64_TO_FLOAT = 141
 MICRO_FLOAT_INC = 142
 MICRO_FLOAT_MUL_CHECKED = 143
+MICRO_JOIN_IF_INLINE_WRITE = 144
 
 U64_DIV_RESUME_NONE = 0
 U64_DIV_RESUME_SCALAR_MUL = 1
@@ -1394,6 +1395,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     join_equality_continue_literal_id: Reg[uint32_t]
     join_equal_stuck_literal_id: Reg[uint32_t]
     join_if_active: Reg[uint1_t]
+    join_equal_if_active: Reg[uint1_t]
     join_if_false_word: Reg[red2_word_t]
     join_if_true_word: Reg[red2_word_t]
     join_if_true_path: Reg[uint17_t]
@@ -1566,6 +1568,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
     micro_is_join_if_false_path_read: uint1_t = microstate == MICRO_JOIN_IF_FALSE_PATH_READ
     micro_is_join_if_path_clear: uint1_t = microstate == MICRO_JOIN_IF_PATH_CLEAR
     micro_is_join_if_select: uint1_t = microstate == MICRO_JOIN_IF_SELECT
+    micro_is_join_if_inline_write: uint1_t = microstate == MICRO_JOIN_IF_INLINE_WRITE
     micro_is_join_if_ep_chase: uint1_t = microstate == MICRO_JOIN_IF_EP_CHASE
     micro_is_join_io_cont_read: uint1_t = microstate == MICRO_JOIN_IO_CONT_READ
     micro_is_join_io_path_read: uint1_t = microstate == MICRO_JOIN_IO_PATH_READ
@@ -3084,6 +3087,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             if state_memory_req_enable:
                 clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
                 clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
+        if micro_is_join_if_inline_write:
+            state_memory_req_data: red2_word_t = join_if_false_word
+            state_memory_req_enable: uint1_t = 1
+            join_if_inline_address_req: uint17_t = join_parent_address - 2
+            memory_req.addr = join_if_inline_address_req[GRAPH_ADDR_BITS - 1:0]
+            memory_req.wr_en = 1
+            clock_memory_req_data.lo = clock_memory_req_data.lo | state_memory_req_data.lo
+            clock_memory_req_data.hi = clock_memory_req_data.hi | state_memory_req_data.hi
         if micro_is_join_if_ep_chase:
             memory_req.addr = join_ep_chase_target[GRAPH_ADDR_BITS - 1 : 0]
         if micro_is_join_ep_chase:
@@ -3623,6 +3634,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         prim0_y_target = 0
         prim0_y_scratch_word = red2_word_t(lo=0, hi=0)
         join_if_active = 0
+        join_equal_if_active = 0
         join_if_false_word = red2_word_t(lo=0, hi=0)
         join_if_true_word = red2_word_t(lo=0, hi=0)
         join_if_true_path = 0
@@ -4320,6 +4332,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 join_equality_continue_literal_id = 0
                 join_equal_stuck_literal_id = 0
                 join_if_active = 0
+                join_equal_if_active = 0
                 join_if_false_word = red2_word_t(lo=0, hi=0)
                 join_if_true_word = red2_word_t(lo=0, hi=0)
                 join_if_true_path = 0
@@ -7078,6 +7091,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 join_meta_is_bind: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_BIND
                 join_meta_is_then: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_THEN
                 join_meta_is_return: uint1_t = join_meta_prim0_role == PRIM0_ROLE_IO_RETURN
+                join_meta_equal_if: uint1_t = join_meta_special[4]
                 join_meta_equality: uint1_t = join_meta_special[5]
                 join_meta_equality_continue: uint1_t = join_meta_special[6]
                 join_meta_is_dec: uint1_t = join_meta_scalar == SCALAR_OP_DEC
@@ -7222,6 +7236,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     join_if_active = 1
                     join_true_literal_id = 0
                     join_false_literal_id = 0
+                    join_special_meta_cursor = 0
+                    microstate = MICRO_JOIN_SPECIAL_META_SCAN
+                elif (join_meta_equal_if and not direct_scalar_active and not ep_scalar_active):
+                    # Saved-JOIN equality IF selects without consuming quantum.
+                    # Reuse ordinary IF branch/path handling, including q==0.
+                    join_if_active = 1
+                    join_equal_if_active = 1
+                    join_true_literal_id = 0
+                    join_false_literal_id = 0
+                    join_equal_stuck_literal_id = 0
                     join_special_meta_cursor = 0
                     microstate = MICRO_JOIN_SPECIAL_META_SCAN
                 elif (join_meta_is_struct_selector_result):
@@ -8377,7 +8401,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_if_condition_true: uint1_t = join_publish_word.lo == join_true_literal_id
         join_if_condition_false: uint1_t = join_publish_word.lo == join_false_literal_id
         join_if_condition_bool: uint1_t = join_if_condition_sym and join_if_condition_literal
-        join_if_condition_bool = join_if_condition_bool and (join_if_condition_true or join_if_condition_false)
+        join_if_condition_stuck: uint1_t = join_equal_if_active and join_publish_word.lo == join_equal_stuck_literal_id
+        join_if_condition_bool = join_if_condition_bool and (join_if_condition_true or join_if_condition_false or join_if_condition_stuck)
         join_if_false_opcode: uint5_t = join_if_false_word.hi[25:21]
         join_if_true_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
         join_if_false_needs_path: uint1_t = join_if_false_opcode == MOP_APP
@@ -8397,9 +8422,12 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_if_path_count_next = join_if_path_count_next + 1
         join_if_q_nonzero: uint1_t = q != 0
         join_if_selected_unsupported: uint1_t = not join_if_selected_supported
-        join_if_unsupported_contract: uint1_t = join_if_q_nonzero and join_if_selected_unsupported
+        join_if_unsupported_contract: uint1_t = join_if_q_nonzero and join_if_selected_unsupported and not join_equal_if_active
         if not join_if_true_valid:
             red2_fault = FAULT_INVALID_ADDRESS
+            microstate = MICRO_FAULT
+        elif join_equal_if_active and not join_if_condition_bool:
+            red2_fault = FAULT_ILLEGAL_TRANSITION
             microstate = MICRO_FAULT
         elif (not join_if_condition_bool) or (join_if_unsupported_contract):
             hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
@@ -8487,9 +8515,11 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         clock_dispatch_handled = 1
         join_if_false_slot: uint17_t = join_parent_address - 2
         join_if_condition_true_sel: uint1_t = join_publish_word.lo == join_true_literal_id
-        if q == 0:
+        join_if_condition_stuck_sel: uint1_t = join_equal_if_active and join_publish_word.lo == join_equal_stuck_literal_id
+        if q == 0 and not join_equal_if_active:
             pc = join_if_false_slot - 1
             join_if_active = 0
+            join_equal_if_active = 0
             prim_id = 0
             fire = 0
             microstate = MICRO_COMMIT
@@ -8505,7 +8535,16 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_if_selected_is_app_exec: uint1_t = join_if_selected_opcode_exec == MOP_APP
             join_if_selected_is_ep_exec: uint1_t = join_if_selected_opcode_exec == MOP_EP
             join_if_selected_supported_exec: uint1_t = join_if_selected_is_app_exec or join_if_selected_is_ep_exec
-            if not join_if_selected_supported_exec:
+            if join_equal_if_active and (join_if_condition_stuck_sel or not join_if_selected_supported_exec):
+                # EQUAL_STUCK propagates; any other inline value keeps its
+                # opcode, data and definition bits, with the head bit set.
+                join_equal_if_inline: red2_word_t = red2_word_t(lo=join_if_selected_word.lo, hi=join_if_selected_word.hi | 1048576)
+                if join_if_condition_stuck_sel:
+                    join_equal_if_inline = red2_word_t(lo=join_equal_stuck_literal_id, hi=91619328)
+                # Stage the word before the RAM request is formed next clock.
+                join_if_false_word = join_equal_if_inline
+                microstate = MICRO_JOIN_IF_INLINE_WRITE
+            elif not join_if_selected_supported_exec:
                 hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
                 microstate = MICRO_FAULT
             elif (join_if_selected_kind != DATA_SIGNED) or (join_if_selected_negative):
@@ -8515,21 +8554,36 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 env = join_if_selected_path
                 join_ep_chase_target = join_if_selected_word.lo
                 join_ep_hops = 0
-                q = q - 1
+                if not join_equal_if_active:
+                    q = q - 1
                 prim_id = 0
                 fire = 0
                 join_if_active = 0
+                join_equal_if_active = 0
                 microstate = MICRO_JOIN_IF_EP_CHASE
             else:
                 fsp = join_if_false_slot - 1
                 env = join_if_selected_path
                 pc = join_if_selected_word.lo[15:0]
                 direction = DIRECTION_FORWARD
-                q = q - 1
+                if not join_equal_if_active:
+                    q = q - 1
                 prim_id = 0
                 fire = 0
                 join_if_active = 0
+                join_equal_if_active = 0
                 microstate = MICRO_COMMIT
+    if clock_dispatch_enable and micro_is_join_if_inline_write:
+        clock_dispatch_handled = 1
+        join_if_inline_address: uint17_t = join_parent_address - 2
+        fsp = join_if_inline_address[15:0]
+        pc = join_if_inline_address[15:0]
+        direction = DIRECTION_REVERSE
+        join_if_active = 0
+        join_equal_if_active = 0
+        prim_id = 0
+        fire = 0
+        microstate = MICRO_COMMIT
     if clock_dispatch_enable and micro_is_join_if_ep_chase:
         clock_dispatch_handled = 1
         join_if_ep_target_in_range: uint1_t = join_ep_chase_target[63:GRAPH_ADDR_BITS] == 0
@@ -8568,13 +8622,8 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         elif join_if_ep_atomic:
             join_if_ep_atomic_hi: uint64_t = memory_out.p0.rd_data.hi & 132644863
             join_if_ep_atomic_hi = join_if_ep_atomic_hi | 1048576
-            memory_req.addr = join_if_ep_false_slot[GRAPH_ADDR_BITS - 1 : 0]
-            memory_req.wr_data = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=join_if_ep_atomic_hi)
-            memory_req.wr_en = 1
-            fsp = join_if_ep_false_slot[15:0]
-            pc = join_if_ep_false_slot[15:0]
-            direction = DIRECTION_REVERSE
-            microstate = MICRO_COMMIT
+            join_if_false_word = red2_word_t(lo=memory_out.p0.rd_data.lo, hi=join_if_ep_atomic_hi)
+            microstate = MICRO_JOIN_IF_INLINE_WRITE
         elif join_if_ep_is_closure:
             fsp = join_if_ep_false_slot - 1
             pc = join_ep_chase_target[15:0]
@@ -9144,7 +9193,7 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                     control_top = join_frame_index - 2
                     direction = DIRECTION_REVERSE
                     q = equality_continue_saved_q
-                    argcnt = 2
+                    # Private equality continuation preserves the live argument count.
                     prim_id = 0
                     fire = 0
                     s_a = join_result_address + 1

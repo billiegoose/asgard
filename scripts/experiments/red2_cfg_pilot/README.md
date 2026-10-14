@@ -496,7 +496,7 @@ Appending `MICRO_U64_DIV` to `RED2_CFG_PILOT_EXTRA_STATES` moves the integer
 long-division loop onto the existing fixed hardware control engine. Division
 and modulo remain available; this trades additional clocks for shared logic.
 The scalar fallback insertion preserves the original dispatch order even when
-the divider handler is extracted. The normal configuration still regenerates
+the divider handler is extracted. Before the saved-equality revision below, the normal configuration regenerated
 the qualified f97 core byte-for-byte.
 
 | Core measurement | Qualified datapath | Shared divider candidate |
@@ -516,9 +516,35 @@ covering all 124 entries, lifecycle checks, and multiply/divide/modulo/exponent
 program parity. These are selected witnesses, not exhaustive coverage.
 
 The first five program traces also pass Verilator replay: **230,990 simulated
-clocks with every 626-bit output compared on every clock**. The remaining
-arithmetic replay is running. The smaller core has no complete-board mapping,
+clocks with every 626-bit output compared on every clock**. All 11 program traces now pass RTL replay: **518,097 simulated clocks**,
+plus **1,018 public lifecycle clocks**, comparing all 626 output bits per clock.
+Mapped-primitive application, lifecycle, division and modulo also pass; the
+large-magnitude division replay is still running. The smaller core has no complete-board mapping,
 routed timing or physical qualification yet and is not the default board
 candidate. See [the integration evidence](../../../docs/handoffs/red2-arithmetic-sharing-integration-results.json)
 and [resource attribution](../../../docs/handoffs/red2-shared-divider-resource-attribution.json).
 The existing list-equality gap remains unresolved.
+
+
+## Saved equality IF semantics
+
+The maintained hardware source now recognizes private `__EQUAL_IF__` at saved
+JOIN boundaries and shares ordinary IF branch/path handling. Private IF keeps
+quantum unchanged, accepts TRUE/FALSE/EQUAL_STUCK conditions, and handles inline,
+APP and EP branches. A separate clock stages inline and terminal EP writes before
+the RAM request. Equality completion preserves the live argument count instead
+of forcing it to two.
+
+The native regression gate is `scripts/check_syn_equality_if.py`, using the same
+pinned enhanced runtime as `check_syn_sim.py`. It passes 26 saved-IF fixtures
+(18 private and eight ordinary), comparing architectural fields and every graph
+and control RAM word. Four full list-equality programs also pass at every
+architectural commit, including equal and unequal nested lists. Fourteen focused
+static/fallback checks pass. See [the semantic evidence](../../../docs/handoffs/red2-equality-if-results.json).
+
+This is native evidence for the maintained source, not an RTL, area or board
+result. Direct/EP private primitive firing remains separate from saved JOIN.
+The qualified FPGA image and frozen shared-divider candidate still use their
+older sources. A combined candidate in `build/red2-equality-integrated/shared-divider`
+extracts the new write stage onto the existing dedicated control engine; its
+validation is in progress. No resource claim for that combined revision is made.

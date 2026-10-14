@@ -145,7 +145,7 @@ def test_task14_microstate_dispatch_stays_flat_for_pipelinec() -> None:
         for node in ast.walk(top)
     )
     assert "clock_dispatch_handled: uint1_t = 0" in source
-    assert source.count("clock_dispatch_handled = 1") == 145
+    assert source.count("clock_dispatch_handled = 1") == 146
 
 
 def test_task14_closure_code_validation_keeps_mixed_width_predicates_split() -> None:

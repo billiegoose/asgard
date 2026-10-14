@@ -79,10 +79,10 @@
   "complete_core_map_available": true,
   "candidate_loaded_on_board": false,
   "limitations": [
-    "Native typed, boundary/lifecycle and four arithmetic program checks pass; complete RTL corpus is still running",
+    "Native typed, boundary/lifecycle and all 11 RTL program checks pass; mapped-primitive suite remains in progress",
     "Complete core maps 396 LUTs smaller; complete-board mapping, routing and physical qualification remain outstanding",
     "The separate qualified burst image remains the last recorded FPGA load",
-    "Existing list-equality gap remains unresolved"
+    "This frozen divider candidate retains the earlier equality gap; a separate maintained-source fix now passes native checks"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/configuration.json": "f322d34bfc9e71c30137fcef3f63357aa4146c2124a0335ec07a98537b684cce",
@@ -138,9 +138,27 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/validation-progress.json": "7268b45db4c1ee024fee6e052fc5dd38994be26a0cba93c6cf3a2e96330bac07",
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/validation-driver.log": "e1dc4a41b071bb6b5cbe6f8b618ce359c86435f9ab9b8b266be2b9bb913f780b",
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-build-progress.json": "af00c6db7f7c0c14d4fd1b7ff905c6278919120645a04c410bc263cf68bebb6b",
-    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-build-driver.log": "49d4dac620e5d3338999b2f4536afbc596ac05ddb6459d856b5df222fe8950af"
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-build-driver.log": "49d4dac620e5d3338999b2f4536afbc596ac05ddb6459d856b5df222fe8950af",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply/native.log": "c0387a39fd2502e83c0455e1c3323580a7dbab64a631407a7cab6a4c966df8cf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply/replay.log": "e770ea56e940c20b18093ec85720c02b4feb1a431eaa20c7c48e86d93afa47d8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply/vectors.json": "687ed491ef5e4e8432afb7a4925290a975bbb44d12abcc52d9dc32845225d5de",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide/native.log": "9a0a2b3fbf32ac15f52c1adf2bbe5f795c383b3d1e1fa5343c6cd2011bae583e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide/replay.log": "1a5eb79f936796eb43fad13a03e8c525183eb5d5b3dc7aebf93a0a3c811fd2ae",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide/vectors.json": "04228e145341df959bdfdf79c859495e41c4bf572f69f837e5bf312f12a3eae1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-modulo/native.log": "9b3d48047be975c921e8c70e64c02910f24da051ad9c28dbd70082c02329ea4e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-modulo/replay.log": "3eeb87f17497033168a18d136a2a18549e3839645b094a40c1924ce65c0d16a8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-modulo/vectors.json": "bb35904dbecda07ff7c0422261cdaf74c3abfd57536a121004529d06e0b67ff9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-exponent/native.log": "8a2794928d806b0f0b05f9073b5ee903535adb55ac33a5e16e5d83c594cfcdbd",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-exponent/replay.log": "c1c38dfc9b51a2ec7ce49f1d29e85bb74f183af4250cd42310e50a8511d0632c",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-exponent/vectors.json": "b1a65c61f7d24481987d0062a4fdb9b2432618094f1fe7972f2c7590570ccc01",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply-signed-min/native.log": "2f350f8bc5b07aaa02f1a18331005fdd830a7d5c75c08795edd470d7080d60ca",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply-signed-min/replay.log": "8c1b3b0fdc0fcf8038d5d9dcb28cdb364f5faa677862bf62724e4c54c2f415dd",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply-signed-min/vectors.json": "2940004e39771f5e8f8a2874e19d06a38bf032ae260c77f2a34ce9f73a7cb969",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/native.log": "34d312a995c06c5b495721c2a3b1749ebd78ee3ec515ef08d8cf781ed26adffe",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/replay.log": "9990c080207e878faa0e5459a010c64fd022268bc5b8c113b9f451ec410f116d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/vectors.json": "7923042628aefe4e43a155b50768d35c3932756a7fee8d2c371fbacd70f6a9e5"
   },
-  "updated_at_utc": "2026-10-14T02:11:24.167097+00:00",
+  "updated_at_utc": "2026-10-14T02:41:35.510748+00:00",
   "complete_core_mapping": {
     "baseline_resources": {
       "top": "top",
@@ -294,10 +312,131 @@
         "native_log_sha256": "1d8e30b819acba4e337fa65ba8945aa454975dcaed2eb354e82a981baa960421",
         "replay_log_sha256": "6f4a60814bf43c4870e4eabf2d9b00a0ca599f496b0f4eb4106015bb48f2f33c",
         "metadata_sha256": "a17a1eec1125cc75226e714706717a326cf2d3aed6998e1526e1c3311f6145a1"
+      },
+      {
+        "label": "multiply",
+        "program": "(* -7 -3)",
+        "started_at_utc": "2026-10-14T02:09:42.328114+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 46363,
+        "vectors_sha256": "f5fff3230ad30468c8ba84ab290cb312e3a01a0021b00942e25a2ea34b0b5bd7",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:13:00.685907+00:00",
+        "native_log_sha256": "c0387a39fd2502e83c0455e1c3323580a7dbab64a631407a7cab6a4c966df8cf",
+        "replay_log_sha256": "e770ea56e940c20b18093ec85720c02b4feb1a431eaa20c7c48e86d93afa47d8",
+        "metadata_sha256": "687ed491ef5e4e8432afb7a4925290a975bbb44d12abcc52d9dc32845225d5de"
+      },
+      {
+        "label": "divide",
+        "program": "(/ -6 2)",
+        "started_at_utc": "2026-10-14T02:13:00.700012+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 46579,
+        "vectors_sha256": "810f127a1c3f097ef25167c675591328818eb3a6a3d1b451109f23ae273135f4",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:16:31.966290+00:00",
+        "native_log_sha256": "9a0a2b3fbf32ac15f52c1adf2bbe5f795c383b3d1e1fa5343c6cd2011bae583e",
+        "replay_log_sha256": "1a5eb79f936796eb43fad13a03e8c525183eb5d5b3dc7aebf93a0a3c811fd2ae",
+        "metadata_sha256": "04228e145341df959bdfdf79c859495e41c4bf572f69f837e5bf312f12a3eae1"
+      },
+      {
+        "label": "modulo",
+        "program": "(MOD -7 3)",
+        "started_at_utc": "2026-10-14T02:16:31.981497+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 51643,
+        "vectors_sha256": "4a8c5958238fffb91afd0b40a2752f926901368bb3eda79736f6bb1a43c75ada",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:20:42.473751+00:00",
+        "native_log_sha256": "9b3d48047be975c921e8c70e64c02910f24da051ad9c28dbd70082c02329ea4e",
+        "replay_log_sha256": "3eeb87f17497033168a18d136a2a18549e3839645b094a40c1924ce65c0d16a8",
+        "metadata_sha256": "bb35904dbecda07ff7c0422261cdaf74c3abfd57536a121004529d06e0b67ff9"
+      },
+      {
+        "label": "exponent",
+        "program": "(EXPT -2 3)",
+        "started_at_utc": "2026-10-14T02:20:42.491902+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 49954,
+        "vectors_sha256": "d7f605660a065b6c4a04a4fb529db7bd15649170ea560602205abfb2927ecd0d",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:25:12.725492+00:00",
+        "native_log_sha256": "8a2794928d806b0f0b05f9073b5ee903535adb55ac33a5e16e5d83c594cfcdbd",
+        "replay_log_sha256": "c1c38dfc9b51a2ec7ce49f1d29e85bb74f183af4250cd42310e50a8511d0632c",
+        "metadata_sha256": "b1a65c61f7d24481987d0062a4fdb9b2432618094f1fe7972f2c7590570ccc01"
+      },
+      {
+        "label": "multiply-signed-min",
+        "program": "(* -9223372036854775808 1)",
+        "started_at_utc": "2026-10-14T02:25:12.741260+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 46003,
+        "vectors_sha256": "8e4bd8b7e993b0ef07a95bac7405592674750e0e670c864d4397331310882f3c",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:29:33.596180+00:00",
+        "native_log_sha256": "2f350f8bc5b07aaa02f1a18331005fdd830a7d5c75c08795edd470d7080d60ca",
+        "replay_log_sha256": "8c1b3b0fdc0fcf8038d5d9dcb28cdb364f5faa677862bf62724e4c54c2f415dd",
+        "metadata_sha256": "2940004e39771f5e8f8a2874e19d06a38bf032ae260c77f2a34ce9f73a7cb969"
+      },
+      {
+        "label": "divide-high-magnitude",
+        "program": "(/ -9223372036854775808 -9223372036854775808)",
+        "started_at_utc": "2026-10-14T02:29:33.612844+00:00",
+        "passed": true,
+        "native_concrete_passed": true,
+        "cycles": 46565,
+        "vectors_sha256": "ecd5d1cabdcf8bd0a19d34aae86b2727e3c5e9d25c3c4ee973eab8fa4b311aef",
+        "all_output_bits_per_clock": 626,
+        "finished_at_utc": "2026-10-14T02:33:25.803984+00:00",
+        "native_log_sha256": "34d312a995c06c5b495721c2a3b1749ebd78ee3ec515ef08d8cf781ed26adffe",
+        "replay_log_sha256": "9990c080207e878faa0e5459a010c64fd022268bc5b8c113b9f451ec410f116d",
+        "metadata_sha256": "7923042628aefe4e43a155b50768d35c3932756a7fee8d2c371fbacd70f6a9e5"
       }
     ],
-    "compared_clocks_completed": 230990,
-    "complete_corpus_passed": false,
-    "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-corpus-progress.json"
+    "compared_clocks_completed": 518097,
+    "complete_corpus_passed": true,
+    "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-corpus-progress.json",
+    "public_lifecycle_clocks_passed": 1018
+  },
+  "mapped_primitive_validation": {
+    "environment": "Icarus simulation of the exact mapped Xilinx primitives",
+    "all_626_bits_per_clock": true,
+    "completed_programs": [
+      {
+        "label": "lifecycle",
+        "simulated_clocks": 1018,
+        "all_output_bits_per_clock": 626,
+        "vectors_sha256": "249a35190350f8fba5f5bbe89591fecf8b6f954f019389c77c1f3baad6b0da96",
+        "passed": true
+      },
+      {
+        "label": "application",
+        "simulated_clocks": 10683,
+        "all_output_bits_per_clock": 626,
+        "vectors_sha256": "ba38aaa2f076fef7d4b36fb32db9113c72ecd128021abe6830ac46e6f45b1a4c",
+        "passed": true
+      },
+      {
+        "label": "divide",
+        "simulated_clocks": 46579,
+        "all_output_bits_per_clock": 626,
+        "vectors_sha256": "810f127a1c3f097ef25167c675591328818eb3a6a3d1b451109f23ae273135f4",
+        "passed": true
+      },
+      {
+        "label": "modulo",
+        "simulated_clocks": 51643,
+        "all_output_bits_per_clock": 626,
+        "vectors_sha256": "4a8c5958238fffb91afd0b40a2752f926901368bb3eda79736f6bb1a43c75ada",
+        "passed": true
+      }
+    ],
+    "suite_complete": false,
+    "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/mapped-gates-progress.json"
   }
 }

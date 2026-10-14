@@ -1,0 +1,256 @@
+{
+  "recorded_at_utc": "2026-10-14T02:50:42.546185+00:00",
+  "scope": "Maintained dedicated RED2 hardware-source semantics: native concrete parity, no synthesis, RTL or physical qualification for this revision",
+  "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
+  "changes": [
+    "Recognize __EQUAL_IF__ in saved JOIN metadata dispatch and share ordinary IF branch/path handling",
+    "Private IF preserves quantum, handles inline and EQUAL_STUCK results and uses existing APP/EP paths",
+    "Stage inline and terminal EP result writes for one clock before issuing the RAM request",
+    "Preserve live argcnt when completing equality, matching the concrete machine"
+  ],
+  "validation": {
+    "environment": "Enhanced Pypeline native simulator compared with concrete RED2",
+    "saved_IF_cases_passed": 26,
+    "private_IF_cases_passed": 18,
+    "ordinary_IF_regressions_passed": 8,
+    "quantum_values": [
+      0,
+      9
+    ],
+    "private_conditions": [
+      "TRUE",
+      "FALSE",
+      "EQUAL_STUCK"
+    ],
+    "private_branch_kinds": [
+      "inline",
+      "APP",
+      "EP"
+    ],
+    "architectural_fields_and_all_256_graph_and_256_control_words_compared_per_fixture": true,
+    "fixtures": [
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 502,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 502,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 502,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 503,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 503,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 503,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 504,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 504,
+        "branch_kind": "app",
+        "transition_clocks": 209
+      },
+      {
+        "mode": "equality",
+        "quantum": 0,
+        "condition_literal_id": 504,
+        "branch_kind": "ep",
+        "transition_clocks": 209
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 502,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 502,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 502,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 503,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 503,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 503,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 504,
+        "branch_kind": "inline",
+        "transition_clocks": 203
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 504,
+        "branch_kind": "app",
+        "transition_clocks": 209
+      },
+      {
+        "mode": "equality",
+        "quantum": 9,
+        "condition_literal_id": 504,
+        "branch_kind": "ep",
+        "transition_clocks": 209
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 0,
+        "condition_literal_id": 502,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 0,
+        "condition_literal_id": 502,
+        "branch_kind": "ep",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 0,
+        "condition_literal_id": 503,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 0,
+        "condition_literal_id": 503,
+        "branch_kind": "ep",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 9,
+        "condition_literal_id": 502,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 9,
+        "condition_literal_id": 502,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 9,
+        "condition_literal_id": 503,
+        "branch_kind": "app",
+        "transition_clocks": 208
+      },
+      {
+        "mode": "ordinary",
+        "quantum": 9,
+        "condition_literal_id": 503,
+        "branch_kind": "ep",
+        "transition_clocks": 211
+      }
+    ],
+    "programs": [
+      {
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+        "architectural_commits": 55,
+        "native_concrete_passed": true
+      },
+      {
+        "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+        "architectural_commits": 44,
+        "native_concrete_passed": true
+      },
+      {
+        "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+        "architectural_commits": 94,
+        "native_concrete_passed": true
+      },
+      {
+        "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+        "architectural_commits": 83,
+        "native_concrete_passed": true
+      }
+    ],
+    "program_scope": "Every architectural commit and the expected changed graph/control words, using the existing lockstep checker",
+    "focused_static_and_scalar_fallback_pytest_passed": 14,
+    "ruff_check_passed": true
+  },
+  "limitations": [
+    "No RTL, area, routed timing or board replay claim for this semantic revision",
+    "The last loaded FPGA image and the frozen 16,870-LUT divider candidate still contain the older equality gap",
+    "Direct/EP private primitive firing remains a separate unsupported path; this change addresses saved-JOIN dispatch",
+    "Selected fixtures and programs, not exhaustive ISA parity"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/src/machines/synthesizable_red2_machine/machine.py": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
+    "/Users/billie/code/billiegoose/asgard/scripts/check_syn_equality_if.py": "fca4a435806a295fdea88bfe6448cf9175e64c72d302ecefa4069b89580c6f10",
+    "/Users/billie/code/billiegoose/asgard/tests/test_synthesizable_red2_static.py": "1c074faeb5a236b2fb762f82cab79091237730eb404be441992d930148debbdf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-if-candidate/maintained-source-regression.log": "2b8b3ba5d53c6263f5536c8fca2a4a8556114944a234b7a87b488c8af20bb645",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-if-candidate/maintained-source-regression-launch.json": "149576c031e0171c8b288ea2115d1017d57ff16f7dbce9fcc9f0f0b9ac8151d0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-if-candidate/saved-if-staged-write.log": "ce228490b75c4443f132a154a17c1bf39cbb956cfcf5d54d4bfd78456090f673",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-if-candidate/machine-before-saved-guard.py": "b784c49275246145eaf5978376756ffa39e3fbc9489053a8cb4c4314db37e80c"
+  }
+}

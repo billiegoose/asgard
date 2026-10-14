@@ -14,7 +14,7 @@
     "direction": 1,
     "instrumented_legacy_fault_site": 0
   },
-  "interpretation": "The fault is reproduced. The extra diagnostic register did not identify a retained legacy assignment; the emitting shared-control path still needs to be located.",
+  "interpretation": "The unchanged production source faults in MICRO_JOIN_PRIM_META_SCAN while dispatching saved primitive 49 (__EQUAL_IF__, special_flags=16). The saved-JOIN dispatcher does not handle special bit 4.",
   "limitations": [
     "Extra native-only register and status field; this diagnostic copy is never mapped or loaded",
     "No complete list-equality parity claim",
@@ -25,6 +25,51 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe.py": "1b1c519f3ed8443e35d248a38f94190ef9e0d2a636679638afcc5434c9521120",
     "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/integrated-stream/machine.py": "7aca35f8ddfdbfd5b7dd94b615e34b27e288360361208ca1a181a54e47e856a7",
     "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/diagnostic.json": "3196f75b56e0d72b28a4850c51b35b156ec4c2d7780624890790123fedd3ae89",
-    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe.log": "a16901f16b6492fa4a596d290967daf97a81d51a3eab62c7fd9016b410324d7f"
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe.log": "a16901f16b6492fa4a596d290967daf97a81d51a3eab62c7fd9016b410324d7f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/probe.py": "032954715793c6d1785df08713002c67027f61fc65a502b4af2d9e69d367c4e7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/probe.log": "a093fec5fc40574f404df8b2cc2f13f2dee8d87d9c9ec370712c57bed662f083",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/fault-state.json": "b002b3d1306a458b03128e02391e95cb12a204b0d927900510f5277a87647c3f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/launch.json": "33cc0bd8dfa920291760181fd201f1292040033f37bf725e3b38f8db54e22b3b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/wrong-status-constant.log": "1f7a97e034dfaef51bbddf84d89853eb9ebd867a83b6c3b22c2bba9f8d882d45",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-production-state/wrong-status-constant-launch.json": "71b4f592616bab4f3e3ec425db19b4c0a475ab16ceb0fe200f179b8d658939a0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/probe.py": "4a56a0d090fb7b28141ebde29417367c60c19fe799ef26219291104c2c2ddddd",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/run-probe.py": "257d6c6e974eb793841d26c56840b5178b4d687ae5e824644d6c431062076462",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/probe.log": "4847d398c42f02b7b1df67f14b8fbe0258b3372cc3c7795cfe0b6f1d2587581e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/fault-state.json": "9c6d11d63baebb927a813cbf02ce5174d259f4b134a4cd977e2f8111d71ef419",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/progress.json": "f9b0df9a1e5d597bba0cad8fba1cb34620c43689bf6b7f0a3f4a5c79669535a8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-state-probe/launch.json": "0d8281ab57db5e1678e5fa2a6f9a2c3ec6aa25dec5723389bdbf4fc333a75173"
+  },
+  "initial_probe_interpretation": "The fault is reproduced. The extra diagnostic register did not identify a retained legacy assignment; the emitting shared-control path still needs to be located.",
+  "production_state_capture": {
+    "environment": "Native simulation of unchanged original production hardware source",
+    "source_sha256": "93d11f0321303c3321e48f9df85c42d14c49e0021774338dd47a6ee5fae616f9",
+    "simulated_clocks": 1957,
+    "register_state_instrumentation": false,
+    "ABI_changed": false,
+    "before_microstate": 60,
+    "before_microstate_name": "MICRO_JOIN_PRIM_META_SCAN",
+    "saved_primitive_id": 49,
+    "saved_primitive_name": "__EQUAL_IF__",
+    "literal_metadata_special_flags": 16,
+    "fault_before_architectural_commit": 41,
+    "program_completed": false
+  },
+  "equality_fix_status": "Maintained source now passes native saved-IF and four list program regression checks; see red2-equality-if-results.json. RTL/area/board qualification of the fix remains outstanding.",
+  "updated_at_utc": "2026-10-14T02:50:42.610661+00:00",
+  "qualified_core_state_capture": {
+    "environment": "Native simulation of unchanged qualified f97 core",
+    "source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+    "ABI_width": 626,
+    "extra_registers_added": false,
+    "shared_entry": 60,
+    "shared_entry_name": "MICRO_JOIN_PRIM_META_SCAN",
+    "engine_PC_at_halt": 4447,
+    "scratch_payloads": {
+      "join_frame_prim_id": 49,
+      "join_prim_meta_cursor": 42,
+      "hw_fault": 3,
+      "microstate": 3
+    },
+    "fault_completed_not_parity_pass": true
   }
 }

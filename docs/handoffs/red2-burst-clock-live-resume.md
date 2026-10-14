@@ -78,53 +78,74 @@ poisoned queued-payload checks, then multiply/divide/modulo/exponent program
 parity. Selected witnesses do not establish exhaustive ISA coverage.
 
 The RTL model is built from the exact measured frontend. Driver PID 30841
-(`run-rtl-corpus.py`) is replaying 11 fresh native/concrete checked public-port
-traces through Verilator. The first five programs have passed: **230,990
-simulated clocks, every 626-bit output compared on every clock**. Arithmetic and
-signed-boundary multiplication/division follow. Its authoritative files are
-`rtl-corpus-progress.json`, `rtl-corpus-driver.log` and per-program native/replay
-logs. Revalidate process identity and actual logs before waiting or restarting.
+**finished successfully**: all 11 fresh native/concrete checked public-port
+program traces pass Verilator replay, **518,097 simulated clocks with every
+626-bit output compared on every clock**. The public lifecycle trace adds
+1,018 clocks with the same comparison scope.
+
+Mapped-primitive driver PID 42732 (`run-mapped-gates.py`) has passed lifecycle,
+application, divide and modulo. The large-magnitude divide is running; inspect
+`mapped-gates-progress.json`, driver/per-case logs and the actual live process.
+Board watcher PID 43260 (`build-board-after-gates.py`) waits for all five mapped
+replays, verifies exact-source native/RTL receipts, writes
+`synth-red2-shared-divider-results.json`, then prepares and builds the optional
+burst image at `build/red2-basys3-shared-divider`. It does **not** program the
+board. It must not mark the candidate usable or build while a gate is incomplete.
 
 See `red2-arithmetic-sharing-integration-results.json` and
 `red2-shared-divider-resource-attribution.json`. Generation's first
-`progress.json` describes the preserved failed anchor attempt; the successful
-retry is in `integration-retry.log`. The candidate has not been loaded on the
-board. Require remaining RTL and appropriate mapped-primitive replay, board
-mapping, routed timing and physical qualification before promotion. Keep the
-qualified FPGA image available.
+`progress.json` describes the preserved failed anchor attempt; successful
+integration is in `integration-retry.log`. No new routed or physical result is
+established for this candidate yet. Keep the qualified image available.
 
-## List-equality gap
+## Saved equality semantics
 
-The native-only diagnostic PID 79880 has **finished**. It reproduced the fault
-before architectural commit 41: red2=0, hw=3, microstate=3, PC=62, direction=1.
-Its extra diagnostic register stayed zero, so it did not locate the retained
-legacy assignment that emitted the fault. The shared-control path needs further
-location work. See `red2-list-equality-diagnostic-results.json`.
+The original instrumented probe finished without localizing its fault. The
+unmodified qualified-core state probe (driver 40245, child 40246) has now also
+**finished** and captured the exact state: shared entry 60
+(`MICRO_JOIN_PRIM_META_SCAN`), halted engine PC 4447, scratch slot 68 value 49
+(`__EQUAL_IF__`), metadata cursor 42, dirty hw_fault/microstate payloads both 3.
+The unchanged production-source probe independently captured the same primitive
+in microstate 60 immediately before the fault at architectural commit 41.
+The cause is missing saved-JOIN dispatch for special bit 4. See
+`red2-list-equality-diagnostic-results.json`.
 
-The instrumented copy and `probe-site.log` are in
-`build/red2-list-equality-diagnostic`. It was never synthesized or loaded; its
-extra register/status field is diagnostic only. The earlier dynamic-print
-attempt was rejected during native pipeline elaboration and is not a semantic
-reproduction. The unqualified expression is
-`(EQUAL? (CONS 7 NIL) (CONS 7 NIL))`. Passing other programs does not close this gap.
+The maintained source is now
+`75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651`.
+It shares ordinary IF handling for saved private equality IF, stages inline and
+terminal EP RAM writes through new microstate 144, and preserves live argcnt on
+equality completion. The dedicated gate `scripts/check_syn_equality_if.py`
+passes 26 saved-IF fixtures and four full list-equality programs. All graph and
+control RAM words are compared for every fixture; full programs compare every
+architectural commit and expected changed RAM words. Fourteen focused static/
+scalar-fallback tests and Ruff pass. `red2-equality-if-results.json` pins evidence.
 
-Disk space remains tight. Completed simulation binaries were losslessly
-compressed with original/archive hashes recorded in
-`build/red2-burst-corpus-check/simulation-archives.json`. Keep all qualified build
-inputs intact; preserve historical intermediate artifacts through verified
-lossless archives when more space is needed.
+These are **native** semantic results; no RTL, area or board qualification exists
+for the maintained-source revision. Direct/EP private primitive firing remains
+separate and unsupported. The f97 loaded image and frozen e6 divider candidate
+still retain the earlier equality gap. Do not merge their resource/physical
+receipts with this semantic revision.
 
-The next diagnostic is now running: driver PID 40245 and native child PID 40246,
-`build/red2-list-equality-state-probe/run-probe.py`. It uses **unmodified f97
-source and the original 626-bit ABI**. The public-port wrapper captures native
-registers and small RAM contents on the first fault into `fault-state.json` to
-locate the shared controller entry/PC. A reproduced fault is diagnostic evidence,
-not a parity pass. Inspect `progress.json`, `probe.log` and actual process
-identity. Do not launch a duplicate while this worker is live.
+A combined candidate is being generated in
+`build/red2-equality-integrated/shared-divider`; configuration starts with the
+shared-divider flags and additionally extracts `MICRO_JOIN_IF_INLINE_WRITE`
+onto the fixed hardware control engine. Driver PID 60899
+(`run-generate-typed.py`) pins maintained source 75cc, runs oracle/emit/integration,
+then typed checking with mandatory integer corners. Oracle, emit and integration pass: 125 entries, 14982 compact rows,
+200 private and 176 shared words. Typed integer-corner checking is running.
+Combined source SHA256: `202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b`. Inspect `progress.json`, stage logs and actual process
+identity before waiting or retrying. No map or replay is claimed yet. Next gates
+are complete native boundaries/lifecycle, list and arithmetic public-port traces,
+enhanced-compiler RTL, complete map and board qualification.
 
-Historical nonselected ablation JSON intermediates were losslessly compressed;
+## Artifact storage
+
+Completed simulation binaries were losslessly compressed with original/archive
+hashes in `build/red2-burst-corpus-check/simulation-archives.json`. Historical
+nonselected ablation JSON intermediates were also archived;
 `red2-ablation-archives.json` pins original/archive hashes and restore commands.
-Qualified dirty-writeback and board inputs were untouched. The completed archive
+Qualified dirty-writeback and board inputs were untouched. The JSON archive
 saved 333,412,535 logical bytes. Guest cache references initially held reclaimed
-space; `podman machine ssh sudo sysctl -w vm.drop_caches=3` released those unused
+space; `podman machine ssh sudo sysctl -w vm.drop_caches=3` released unused
 references without restarting active workers. No historical IL archive completed.
+Keep qualified inputs intact and verify archive hashes before restoration.
