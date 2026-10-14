@@ -27,7 +27,7 @@ def register_names(tree, function):
     }
 
 
-def attribute(source, mapped, module):
+def attribute(source, mapped, module, *, lut_cones=False):
     tree = ast.parse(source.read_text())
     root_registers = register_names(tree, "SynthesizableRED2Machine")
     engine_registers = register_names(tree, "cfg_red2_app_lambda_cfg")
@@ -88,7 +88,7 @@ def attribute(source, mapped, module):
             )
             multipliers[instance] += 1
 
-    return {
+    result = {
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "mapped_core_sha256": hashlib.sha256(mapped.read_bytes()).hexdigest(),
         "module": module,
@@ -110,6 +110,11 @@ def attribute(source, mapped, module):
         "dsp48_by_multiplier_instance": dict(sorted(multipliers.items())),
         "primitives": dict(sorted(primitives.items())),
     }
+    if lut_cones:
+        from lut_cones import endpoint_cones
+
+        result["lut_endpoint_cones"] = endpoint_cones(design, owners)
+    return result
 
 
 def main():
@@ -117,8 +122,14 @@ def main():
     parser.add_argument("source", type=Path)
     parser.add_argument("mapped", type=Path)
     parser.add_argument("--module", default="red2_core")
+    parser.add_argument("--lut-cones", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(attribute(args.source, args.mapped, args.module), indent=2))
+    print(
+        json.dumps(
+            attribute(args.source, args.mapped, args.module, lut_cones=args.lut_cones),
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

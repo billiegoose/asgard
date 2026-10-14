@@ -726,3 +726,25 @@ into physical results; RTL observations do not constitute a native per-cycle
 comparison. The application observation trace matches all 10,688 cycles of the
 native trace byte for byte. See
 [the trace-origin evidence](../../../docs/handoffs/red2-rtl-observation-trace-results.json).
+
+For further area work, `attribute_resources.py --lut-cones` additionally walks
+mapped combinational connectivity to register/memory/DSP inputs and public
+outputs. It reports overlapping cones and disjoint sets of endpoint groups.
+Registers, RAM and DSPs are traversal boundaries; multi-output combinational
+primitives conservatively traverse all input pins. Clock pins are excluded,
+while DSP C remains a data input. LUT RAM is reported as memory separately.
+These sets are not source-function ownership or estimates of removable area.
+
+```sh
+python3 scripts/experiments/red2_cfg_pilot/attribute_resources.py \
+  "$RED2_CFG_PILOT_OUT/integrated-stream/machine.py" \
+  "$RED2_CFG_PILOT_OUT/integrated-stream/baseline-area.json" \
+  --module top --lut-cones
+```
+
+The corrected shared-multiplier core partitions all 15,477 combinational LUTs.
+The two largest exclusive sets feed remaining core state (3,501) and shared
+scratch-memory inputs (2,979). The latter includes ALU, result masking/selection
+and write steering; it is not the RAM's own area. Five connectivity regressions
+pass and storage/DSP attribution is unchanged. See
+[the endpoint attribution](../../../docs/handoffs/red2-lut-endpoint-attribution-results.json).

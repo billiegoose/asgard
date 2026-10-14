@@ -1,0 +1,888 @@
+{
+  "recorded_at_utc": "2026-10-14T07:15:55.053294+00:00",
+  "scope": "Mapped core connectivity attribution only; no source, RTL, mapping or bitstream change; not a removable-area estimate",
+  "candidate_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+  "mapped_core_sha256": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
+  "validation": {
+    "focused_regressions_passed": 5,
+    "ruff_passed": true,
+    "existing_storage_DSP_attribution_unchanged": true,
+    "disjoint_LUT_partition_total": 15477
+  },
+  "lut_endpoint_cones": {
+    "method": "Conservative primitive-level combinational fan-in through LUT/INV/CARRY4/MUXF7/MUXF8 to sequential data/control inputs and public outputs; stop at every register, memory and DSP primitive; exclude clock pins",
+    "limitation": "Reachability is not source-function ownership or predicted removable area. Multi-output primitives traverse all input pins. Overlapping cones must not be summed. Disjoint sets partition combinational LUTs only; LUT RAM is reported separately.",
+    "combinational_luts": 15477,
+    "sequential_endpoint_counts": {
+      "DSP_inputs": 10,
+      "integer_arithmetic": 532,
+      "memory:cfg_control_index_rom": 6,
+      "memory:cfg_control_rom": 9,
+      "memory:cfg_plan_rom": 3,
+      "memory:cfg_scratch_ram": 2,
+      "memory:control_ram": 2,
+      "memory:graph_ram": 2,
+      "memory:literal_meta_ram": 126,
+      "memory:promote_forward_ram": 50,
+      "memory:promote_mat_ram": 2,
+      "memory:pub_mat_ram": 5,
+      "memory:pub_patch_addr_ram": 1,
+      "memory:pub_patch_ram": 5,
+      "memory:pub_root_ram": 1,
+      "memory:pub_task_ram": 7,
+      "microengine": 1053,
+      "remaining_core_state": 2695,
+      "transfer_bridge": 1723,
+      "unattributed_register": 167
+    },
+    "overlapping_lut_cones": {
+      "DSP_inputs": 80,
+      "integer_arithmetic": 2587,
+      "memory:cfg_control_index_rom": 0,
+      "memory:cfg_control_rom": 12,
+      "memory:cfg_plan_rom": 0,
+      "memory:cfg_scratch_ram": 3368,
+      "memory:control_ram": 441,
+      "memory:graph_ram": 1036,
+      "memory:literal_meta_ram": 347,
+      "memory:promote_forward_ram": 151,
+      "memory:promote_mat_ram": 521,
+      "memory:pub_mat_ram": 532,
+      "memory:pub_patch_addr_ram": 242,
+      "memory:pub_patch_ram": 529,
+      "memory:pub_root_ram": 349,
+      "memory:pub_task_ram": 454,
+      "microengine": 1229,
+      "public_outputs": 4653,
+      "remaining_core_state": 7613,
+      "transfer_bridge": 3214,
+      "unattributed_register": 215
+    },
+    "disjoint_endpoint_sets": [
+      {
+        "endpoint_groups": [
+          "remaining_core_state"
+        ],
+        "luts": 3501
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram"
+        ],
+        "luts": 2979
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 1221
+      },
+      {
+        "endpoint_groups": [
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 1194
+      },
+      {
+        "endpoint_groups": [
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 1023
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic"
+        ],
+        "luts": 981
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram"
+        ],
+        "luts": 565
+      },
+      {
+        "endpoint_groups": [
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 399
+      },
+      {
+        "endpoint_groups": [
+          "public_outputs"
+        ],
+        "luts": 378
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_mat_ram"
+        ],
+        "luts": 244
+      },
+      {
+        "endpoint_groups": [
+          "unattributed_register"
+        ],
+        "luts": 215
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_ram",
+          "microengine"
+        ],
+        "luts": 174
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_mat_ram",
+          "microengine"
+        ],
+        "luts": 173
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_mat_ram"
+        ],
+        "luts": 169
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_ram"
+        ],
+        "luts": 169
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "microengine"
+        ],
+        "luts": 145
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram"
+        ],
+        "luts": 143
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "microengine"
+        ],
+        "luts": 140
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_mat_ram",
+          "remaining_core_state"
+        ],
+        "luts": 138
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 136
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_task_ram"
+        ],
+        "luts": 127
+      },
+      {
+        "endpoint_groups": [
+          "microengine"
+        ],
+        "luts": 122
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:graph_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 96
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 83
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_root_ram",
+          "microengine"
+        ],
+        "luts": 82
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 78
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_root_ram"
+        ],
+        "luts": 77
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "remaining_core_state"
+        ],
+        "luts": 76
+      },
+      {
+        "endpoint_groups": [
+          "DSP_inputs",
+          "memory:cfg_scratch_ram"
+        ],
+        "luts": 60
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 59
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_forward_ram"
+        ],
+        "luts": 48
+      },
+      {
+        "endpoint_groups": [
+          "memory:literal_meta_ram"
+        ],
+        "luts": 43
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_mat_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 36
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:literal_meta_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 32
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 30
+      },
+      {
+        "endpoint_groups": [
+          "transfer_bridge"
+        ],
+        "luts": 29
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_addr_ram",
+          "microengine"
+        ],
+        "luts": 28
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "microengine"
+        ],
+        "luts": 26
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_addr_ram"
+        ],
+        "luts": 26
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 23
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram"
+        ],
+        "luts": 22
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "remaining_core_state"
+        ],
+        "luts": 21
+      },
+      {
+        "endpoint_groups": [
+          "DSP_inputs"
+        ],
+        "luts": 17
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram",
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 13
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 12
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_control_rom"
+        ],
+        "luts": 12
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 12
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 11
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 11
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram"
+        ],
+        "luts": 9
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:literal_meta_ram"
+        ],
+        "luts": 7
+      },
+      {
+        "endpoint_groups": [
+          "memory:literal_meta_ram",
+          "microengine"
+        ],
+        "luts": 7
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram"
+        ],
+        "luts": 7
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 6
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram",
+          "remaining_core_state"
+        ],
+        "luts": 5
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine",
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "transfer_bridge"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:literal_meta_ram",
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "remaining_core_state"
+        ],
+        "luts": 2
+      },
+      {
+        "endpoint_groups": [
+          "DSP_inputs",
+          "integer_arithmetic",
+          "memory:cfg_scratch_ram",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "DSP_inputs",
+          "memory:cfg_scratch_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "DSP_inputs",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "integer_arithmetic",
+          "memory:graph_ram",
+          "memory:promote_forward_ram",
+          "memory:promote_mat_ram",
+          "public_outputs",
+          "remaining_core_state",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:cfg_scratch_ram",
+          "microengine",
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine",
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:graph_ram",
+          "public_outputs",
+          "remaining_core_state"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_root_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_root_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:control_ram",
+          "memory:pub_root_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_root_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:graph_ram",
+          "memory:pub_patch_addr_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:literal_meta_ram",
+          "memory:pub_mat_ram",
+          "memory:pub_patch_addr_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_root_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "memory:pub_patch_addr_ram",
+          "memory:pub_patch_ram",
+          "memory:pub_task_ram",
+          "microengine"
+        ],
+        "luts": 1
+      },
+      {
+        "endpoint_groups": [
+          "microengine",
+          "public_outputs",
+          "transfer_bridge"
+        ],
+        "luts": 1
+      }
+    ]
+  },
+  "flipflops_by_named_register_owner": {
+    "integer_arithmetic": 532,
+    "microengine": 1053,
+    "remaining_core_state": 2695,
+    "transfer_bridge": 1723,
+    "unattributed": 167
+  },
+  "memories_by_instance": {
+    "cfg_control_index_rom": {
+      "RAMB36E1": 6
+    },
+    "cfg_control_rom": {
+      "RAMB36E1": 9
+    },
+    "cfg_plan_rom": {
+      "RAMB18E1": 3
+    },
+    "cfg_scratch_ram": {
+      "RAMB36E1": 2
+    },
+    "control_ram": {
+      "RAMB36E1": 2
+    },
+    "graph_ram": {
+      "RAMB36E1": 2
+    },
+    "literal_meta_ram": {
+      "RAM64X1S": 126
+    },
+    "promote_forward_ram": {
+      "RAM256X1S": 50
+    },
+    "promote_mat_ram": {
+      "RAMB36E1": 2
+    },
+    "pub_mat_ram": {
+      "RAMB18E1": 5
+    },
+    "pub_patch_addr_ram": {
+      "RAMB18E1": 1
+    },
+    "pub_patch_ram": {
+      "RAMB18E1": 5
+    },
+    "pub_root_ram": {
+      "RAMB36E1": 1
+    },
+    "pub_task_ram": {
+      "RAMB18E1": 7
+    }
+  },
+  "dsp48_by_multiplier_instance": {
+    "bin_op_inferred_mult_machine_py_l1181_c17_ec22": 10
+  },
+  "interpretation": [
+    "The largest exclusive endpoint sets are 3501 LUTs feeding remaining core state and 2979 feeding shared-engine scratch memory inputs.",
+    "Scratch-memory input logic includes the shared ALU, result selection/masking and setup/write steering; it is not a scratch RAM cost.",
+    "Overlapping endpoint cones must not be summed. Registers, memory and DSP primitives are traversal boundaries; multi-output combinational primitives conservatively traverse all input pins.",
+    "A useful next experiment is sharing left/right variable-shift hardware in the scratch-write datapath; any savings require a separate corrected-source mapping and full semantic validation."
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resource-attribution-cones.json": "0478ed5f359c63221232203ac87afb1369158591d980d8a9180de8201b65cb94",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/attribute_resources.py": "876b9c4302afa61dd9f6a9ac7e3fa9e727b67a9d202daf4d67eb1a24bdeac0f3",
+    "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/lut_cones.py": "6972883e0a13285b66cc1abdcbb22773abe46607efc7506dbbc10ef8ea9db9c0",
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_lut_cones.py": "3da171c8861de0137e14feb57ec13e028a3a1622d5b0e87e031c278f64294920"
+  }
+}
