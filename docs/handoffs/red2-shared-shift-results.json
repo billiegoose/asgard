@@ -223,7 +223,7 @@
     },
     "finished_at_utc": "2026-10-14T07:35:52.282886+00:00"
   },
-  "complete_controller_RTL_replay_passed": false,
+  "complete_controller_RTL_replay_passed": true,
   "routed": false,
   "loaded_on_board": false,
   "artifacts_sha256": {
@@ -249,7 +249,8 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/rtl-build-progress.json": "5ceae6e5f6eaee17469625b796041f87a8cee089e65300e6dfbb0c29cfe617c4",
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/check-reference-traces.py": "67332fc51257c48e8d314a839ab6b7160f09021e5aabd4d55c59f57706c6e8ab",
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/provenance.json": "5d71033e2e0c1c5fbfb47e8b701f6139ec3e4a5c8f075f5c70587741cc7997ab",
-    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/obj/Vreplay_top": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb"
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/rtl-netlist/obj/Vreplay_top": "af7ce7c4650d85fc74cacbcd907d1e0ed8fd3f19be78bf95f6d5fa13b1ac3dfb",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/reference-rtl-replay-progress.json": "164fcd592588526f4ed62a297a3441b71257a3b1ca5827d0aa84cb7c95c94740"
   },
   "controlled_LUT_saving": 288,
   "controlled_mapping_recipe": {
@@ -465,17 +466,183 @@
         "reference_metadata_sha256": "f8e200322624d73b5c435c9388faa054734f4d44e3593091aab7eb0da96da619",
         "expected_output_origin": "Verilator RTL simulation",
         "simulated_clocks": 26365,
-        "passed": false,
+        "passed": true,
         "reference_semantic_validation": {
           "passed": true,
           "program": "(+ -9223372036854775808 1)",
           "termination": "HALTED",
           "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
         },
-        "pid": 56971
+        "pid": 56971,
+        "returncode": 0,
+        "log_sha256": "07a737c7b17c5b1a0a6ba6ad51a56f0da921affcccccb549276c433b7ba4d15c"
+      },
+      {
+        "label": "even-negative",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-even-negative/vectors.txt",
+        "vectors_sha256": "ef9c2398a06d89af3f172f43345d793893bd1ab2f9fd00fb454cfe032a48d575",
+        "reference_metadata_sha256": "33858e4897774f4cec295ed8f137f76b35138bb96c738e8e3f7e3825543883d3",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 44745,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(EVEN? -2)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 56994,
+        "returncode": 0,
+        "log_sha256": "4f99a197968d7865d495953300615d54c580a0ac7b310f4c617d721485702847"
+      },
+      {
+        "label": "divide",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide/vectors.txt",
+        "vectors_sha256": "af46023854a16f90a8dd223d31242980042d89e559697cca667b906c78af0eaf",
+        "reference_metadata_sha256": "0d262e20735904f47bd7e32dfa156e346ec72d34a07faaaf4ea8ee30d3c1811c",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 47108,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(/ -6 2)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 57001,
+        "returncode": 0,
+        "log_sha256": "a65e10f2245acec17b996082a9bf7ff182f81a10296f5006aa5916f6cbd8b53c"
+      },
+      {
+        "label": "modulo",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-modulo/vectors.txt",
+        "vectors_sha256": "9d4a496e1e9430e7f80c0013b31a0edd1ee10ce6fe7d23d1f0cf259eeae2a255",
+        "reference_metadata_sha256": "559209d10e59b680bc9a2fbe2d8e84d784163559fe8ac8cc4494186d42c7d93e",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 52241,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(MOD -7 3)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 57012,
+        "returncode": 0,
+        "log_sha256": "85ea1388228dd0ed03f4cfa891c63c11987940bf860016fadba9b7b564b48b37"
+      },
+      {
+        "label": "exponent",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-exponent/vectors.txt",
+        "vectors_sha256": "c59269ddae5d9719217e8a879ef575d82d4c720a793517887a112d8346959f15",
+        "reference_metadata_sha256": "a50f6b32c9b28fb2803a0e056c1d9ed63027bcc399d4cf3443f23e49f8540c57",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 51368,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(EXPT -2 3)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 57021,
+        "returncode": 0,
+        "log_sha256": "c2eb36e77e75487c1bbd2eceb95a8a7912fd681665caf355bd6eeb103ba2af0a"
+      },
+      {
+        "label": "multiply-signed-min",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-multiply-signed-min/vectors.txt",
+        "vectors_sha256": "4ea49c8bd26760484ed8bed1720d0c340e3a75e1795e046a58c716ce16a40f3f",
+        "reference_metadata_sha256": "f27a11c4c3b70bc12c7633344badba5e0e7e30c344317518c7cfc70849b601e1",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 46501,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(* -9223372036854775808 1)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 58130,
+        "returncode": 0,
+        "log_sha256": "a409d2cc32a256b1bd66c84ea9170016cdc37d5f4512dbb94eb61cbe8d2f6ea1"
+      },
+      {
+        "label": "divide-high-magnitude",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-divide-high-magnitude/vectors.txt",
+        "vectors_sha256": "e632dc87934164f6604008509482f119eb4abb6e35ad93d9c5011d68d2427dd9",
+        "reference_metadata_sha256": "449e150102bf1ece1e45e78642bdebe5d0373cedf32486cfdfc25eb8e63996a8",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 47088,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(/ -9223372036854775808 -9223372036854775808)",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 58504,
+        "returncode": 0,
+        "log_sha256": "82ddbdc7910ad716306bf01c809609e0540559a5ba722ec84c81609e8de67c7b"
+      },
+      {
+        "label": "unequal-list",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-list/vectors.txt",
+        "vectors_sha256": "56a84d824f01d3b3a9b5e82ec164e43776fcd3b7cabc8528de74a353f8c72885",
+        "reference_metadata_sha256": "54ab0a10d545aa72179502bf5936809fd044aa241ae2d597017e210379d511d1",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 642136,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 58565,
+        "returncode": 0,
+        "log_sha256": "85d5b79a2e81dd97d8c1164536d22d3499ba867dabc58ccb2720a8e0778c5560"
+      },
+      {
+        "label": "equal-nested",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-equal-nested/vectors.txt",
+        "vectors_sha256": "02ffde5886c823800ffc8a6b76bf0b76ebf96c7d0be3d5843dd2d53568f9e887",
+        "reference_metadata_sha256": "d99cdf77a520db807c76c39b34af4776d9ba42cd33f41bcf097acefa578ac029",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 1380140,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 58795,
+        "returncode": 0,
+        "log_sha256": "82ab3c7736feb2a2c5291b1393e6a19b1206604d1b45b0b26a81db3ca359888d"
+      },
+      {
+        "label": "unequal-nested",
+        "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-observed-unequal-nested/vectors.txt",
+        "vectors_sha256": "9b5f975740afdf3d4ad6e6ef446bdec9cc2bdbeb282857bdce0cb6017ab8ba29",
+        "reference_metadata_sha256": "81b5402c86534dae408e276309055d5bd7ccdc7d4d823fc275697f30f929398d",
+        "expected_output_origin": "Verilator RTL simulation",
+        "simulated_clocks": 1210699,
+        "passed": true,
+        "reference_semantic_validation": {
+          "passed": true,
+          "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+          "termination": "HALTED",
+          "method": "Concrete RED2 architecture and expected RAM mutations at every commit; full graph/control RAM at termination"
+        },
+        "pid": 60285,
+        "returncode": 0,
+        "log_sha256": "6210bbb78edf45211a4dd43b1d1005e33017640a6f428a2ca254bcc9205e2fae"
       }
     ],
-    "passed": false
+    "passed": true,
+    "total_simulated_clocks": 4631059,
+    "finished_at_utc": "2026-10-14T07:54:01.905379+00:00"
   },
-  "current_reference_RTL_replay_snapshot_at_utc": "2026-10-14T07:42:48.576706+00:00"
+  "current_reference_RTL_replay_snapshot_at_utc": "2026-10-14T08:09:44.109404+00:00"
 }

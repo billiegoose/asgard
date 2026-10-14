@@ -765,5 +765,8 @@ controller native witnesses, reset cancellation and constant protection. Full
 core mapping uses **15,515 LUTs**, saving **288** against the same-recipe
 15,803-LUT reference. FFs, BRAMs and DSPs are unchanged; CARRY4 increases by 16.
 See [the shifter experiment](../../../docs/handoffs/red2-shared-shift-results.json).
-This is not complete-controller RTL or physical qualification. The qualified
-shared-multiplier board source and image are unaffected.
+The complete candidate frontend RTL now passes all 17 reference traces: all 626
+public bits on every one of 4,631,059 simulated cycles. These deliberately use
+earlier-source native/validated-RTL expected outputs, retaining both source IDs
+and origins. Routing and physical qualification remain separate. The flag stays
+off by default; the qualified board still uses the shared-multiplier source.
