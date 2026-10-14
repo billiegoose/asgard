@@ -129,11 +129,14 @@
     "/Users/billie/code/billiegoose/asgard/scripts/experiments/red2_cfg_pilot/check_hardware.py": "d2c07ee5c46d0358bbd92bfc45a3755d8512d372d20c93a4d7ecf78188ba91ce",
     "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/saved-if-rtl-progress.json": "a7ceef4f027e06970ac8a8280711a8951e217fdc825cde1ebe899ab9942081bf",
     "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/saved-if-fixtures.log": "c0b2ab2505c16f04d694e140ca47a82adbb4cee94db2efd866aaeac558b40e20",
-    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/rtl-build-progress.json": "a75ba31152abb20b78cbe358c6285d9143265f5db46a61bf38c2337aa340ee3b"
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/rtl-build-progress.json": "a75ba31152abb20b78cbe358c6285d9143265f5db46a61bf38c2337aa340ee3b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/integration.json": "465b948ff0229fbc0bbfbe2b5848da7d955a5c2847bc6d6995ba8c0ec540da4b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/integration.json": "ec565ed2b5c00c94b61bbd4ed336a29a6be38d8a274c9378f054e3b8d0c45534",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/resource-attribution-cones.json": "66e8cab54287ccd1f4288a928c63892c1eb968551d78cf2c2fc00a99f50eac65"
   },
   "full_typed_comparisons_passed": 15624,
   "complete_top_native_witnesses_pending": 847,
-  "updated_at_utc": "2026-10-14T10:23:34.648401+00:00",
+  "updated_at_utc": "2026-10-14T10:32:17.158763+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "progress": {
       "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
@@ -288,5 +291,25 @@
     },
     "driver_sha256": "2def96b6d85a9aeaba7bd9752209dc82387d772c901e5475f2ff9dbd0cb0aeb5",
     "all_passed": false
+  },
+  "storage_ownership_change": {
+    "new_private_fields": [
+      "join_ep_chase_target",
+      "join_ep_hops"
+    ],
+    "new_private_bits": 80,
+    "private_bits_before": 6260,
+    "private_bits_after": 6340,
+    "bridge_words_before": 171,
+    "bridge_words_after": 169,
+    "proof": "No remaining legacy AST reference after lifecycle-zero writes and Reg declarations removed",
+    "mapped_flipflops_by_named_register_owner": {
+      "integer_arithmetic": 532,
+      "microengine": 1053,
+      "remaining_core_state": 2615,
+      "transfer_bridge": 1723,
+      "unattributed": 167
+    },
+    "interpretation": "Removing the final legacy IF EP-chase consumer permits the 64-bit target and 16-bit hop counter to live exclusively in existing scratch RAM; exactly 80 remaining-core flip-flops disappear. No mapped BRAM/DSP increase. LUT endpoint reachability is not a per-function or removable-area budget."
   }
 }

@@ -776,8 +776,11 @@ The next optional graph extraction adds `MICRO_JOIN_IF_EP_CHASE` to
 `RED2_CFG_PILOT_EXTRA_STATES` in the shared-shifter configuration. With the same
 enhanced compiler and byte-identical mapper scripts/backend, its complete core
 maps at 15,181 LUTs and 6,090 FFs (334 LUTs and 80 FFs fewer). It adds 88 control
-rows without increasing scratch depth or mapped BRAM/DSP use. This area result
-has not established complete RTL or physical qualification.
+rows without increasing scratch depth or mapped BRAM/DSP use. The ownership
+proof moves the 64-bit EP target and 16-bit hop counter entirely into existing
+scratch RAM; mapped remaining-core flip-flops fall by exactly 80. Full native
+boundaries and complete-program RTL gates are still required before physical
+qualification.
 
 `check.py --integer-corners --shared-multiply-corners` includes 27 explicit IF
 EP-chase witnesses when that state is selected. They cover all 88 lowered rows,
