@@ -1,5 +1,45 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Latest: scalar state reproducer and two-capture results (2026-10-14)
+
+This section supersedes current-board and next-experiment claims below.
+The qualified `a0ef3f44...` image was freshly restored at **11:55:08 UTC**.
+No program has run since restoration; no UART diagnostic remains live. All
+programming used volatile SRAM.
+
+Moving only the two affected capture FF placements, then globally rerouting,
+produces bitstream `912e9afc...`: still 16,223 physical LUT sites and passing
+10 MHz (12.76/12.62 MHz estimated maxima). It passes **131 RAM patterns** and
+the physical application replay (10,688 delivered clocks, 1,354 endpoint
+comparisons). It **fails structure setup at endpoint 461**, before START:
+`fsp` is 515 instead of 11. A separate live structure diagnostic reports
+FAULT_GRAPH_ENV_COLLISION rather than a result. This image is unqualified.
+
+New `scripts/boards/red2_basys3/diagnose_state.py` isolates the problem without
+starting reductions. All **348 scalar-state patterns pass same-source RTL**.
+The physical candidate fails **11/348**, while qualified `a0` passes all 348
+using the identical diagnostic (1,392 packet endpoints per image). Examples:
+`fsp=2` reads as 514; `fsp=8`, 128 and 2048 read as zero. Some halted/host-op
+patterns spuriously set `pc` bit 15. Corruption could still be in input
+transport, core state path or output transport; this is not a root-cause claim.
+
+Actual bitstream decoding retains all **21,543 intended LUT/BRAM initializer
+fields** and passes the **19,979-LUT truth-table audit**. All 150,683 absent
+intended scalar FASM labels classify as database pseudo always/default edges,
+with no unclassified missing configurable feature. A direct fixed-edge audit
+over 739,618 occupied external wires finds no unexpected conflicts (three
+expected BUFG cell input/output transitions). All 4,082 paired LUT input sets
+agree. These are bounded checks, not a complete physical connectivity proof.
+The native / frontend RTL / vendor mapped core also pass the identical raw
+graph sequence: 131 patterns, 393 simulated clocks, all 626 outputs compared.
+
+See `red2-two-capture-physical-diagnostic-results.json` for receipts, failed
+patterns, hashes, and diagnostic scope. The test harness preflight corrected
+a bridge-completion wait and CLOCK opcode before physical use; earlier failed
+harness logs remain in the build directory. Next: trace the compact scalar
+reproducer through actual register input/output selection and state storage.
+IF EP-chase source `7d965e66...` still requires its own mapped and board gates.
+
 ## Latest: snapshot readback diagnosis and completed IF logic gates (2026-10-14)
 
 This section supersedes all running-process and current-board claims below.

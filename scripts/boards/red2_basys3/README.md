@@ -303,6 +303,27 @@ unchanged; the exact underlying backend failure remains unidentified.
 
 ## Experimental snapshot serializer
 
+`diagnose_state.py` separately checks scalar state transport using zero, all ones
+and each of the 346 walking bits. It first verifies those 348 patterns against
+the prepared image's actual RTL model, waiting for the LOAD_STATE bridge to
+finish. Physical mode delivers the RTL-derived settling clocks as one burst,
+then compares each named state field at a packet endpoint:
+
+```sh
+python3 scripts/boards/red2_basys3/diagnose_state.py \
+  --prepared build/red2-basys3-snapshot-relocated \
+  --port /dev/cu.usbserial-2101837357871 \
+  --image build/red2-basys3-snapshot-relocated/red2_basys3.bit \
+  --load-result build/red2-basys3-snapshot-relocated/load-state-walk-candidate-result.json \
+  --log build/red2-basys3-snapshot-relocated/new-state-diagnostic.json
+```
+
+Omit `--port`, `--image` and `--load-result` for RTL-only preflight. The script
+does not program SRAM or start reductions. Physical mode requires a freshly
+loaded burst-capable image and matching build/load receipts. Reload SRAM after
+this diagnostic before independent program qualification. A nonzero result
+indicates a mismatch or an operational failure, never a successful timeout.
+
 `prepare.py --snapshot-response` captures the 626-bit status once per command and
 selects each payload byte by index. It preserves the request/response format,
 CRC, padding and one core edge per accepted command. The legacy monitor source
