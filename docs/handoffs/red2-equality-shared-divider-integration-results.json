@@ -1,0 +1,76 @@
+{
+  "recorded_at_utc": "2026-10-14T02:57:40.542830+00:00",
+  "scope": "Combine maintained saved-equality semantics with shared divider and extract inline-write stage onto the dedicated control engine; generated and typed checked, no complete-top/RTL/area/board claim",
+  "production_source_sha256": "75ccb12f1bb8669e54c28f21ffdf3d2fa41c94da3bf49400afac3acaafebb651",
+  "candidate_source_sha256": "202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b",
+  "configuration": {
+    "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider",
+    "RED2_CFG_PILOT_GRAPH": "1",
+    "RED2_CFG_PILOT_LOOKUP": "1",
+    "RED2_CFG_PILOT_COMPACT": "1",
+    "RED2_CFG_PILOT_OWNED": "1",
+    "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+    "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE",
+    "RED2_CFG_PILOT_DICTIONARY": "1",
+    "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+    "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+    "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+    "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+    "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+    "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+    "RED2_CFG_PILOT_SCALAR_CORE": "1",
+    "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+    "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+    "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+    "RED2_CFG_PILOT_INTEGER_JOINS": "1",
+    "RED2_SYN_FLOAT": "0",
+    "RED2_SYN_GRAPH_WORDS": "256",
+    "RED2_CFG_PILOT_SHARED_RESPONSE": "1",
+    "RED2_CFG_PILOT_COMPACT_PENDING": "1",
+    "RED2_CFG_PILOT_REVERSE_CONTROL": "1",
+    "RED2_CFG_PILOT_DIRTY_WRITEBACK": "1"
+  },
+  "entry_count": 125,
+  "compact_rows": 14982,
+  "scratch_words": 1024,
+  "validation": {
+    "typed_comparisons_passed": 15152,
+    "mandatory_integer_corners_enabled": true,
+    "complete_top_boundary_and_programs_passed": false,
+    "RTL_replay_passed": false,
+    "core_synthesis_available": false,
+    "board_programmed": false
+  },
+  "live_jobs": {
+    "frontend": {
+      "pid": 62772,
+      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py",
+      "mode": "frontend"
+    },
+    "native_boundaries_then_four_list_program_traces": {
+      "pid": 62773,
+      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py",
+      "mode": "native"
+    }
+  },
+  "limitations": [
+    "No source-level fit inference from the frozen 16870-LUT candidate",
+    "Selected typed comparisons, not exhaustive semantic coverage",
+    "Complete-top native traces, exact enhanced RTL, map and board qualification remain outstanding"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/configuration.json": "b29ca36466c18f915a571f2c435aab58a8237c755dd6d766fbe7e329b1c4be00",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/progress.json": "b7688b4656f4b4adcc56bc7f2c6066382836ed3b07f27c36c48c418413da503f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/oracle.log": "4522d7f512f63b5f4d492681e12ae63a91c73e8d0f9857375e00ad30b1d47b6f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/emit.log": "c53f7f7eb31752c3bb5978b6d3985c620a6ce7741b49ed6ac1156a564620578f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrate.log": "394a1f636c7735edb584731076471e43e7daab26d24720c1ea5f797d7f69376a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/typed-integer-corners.log": "b526a79ed488a4b2f2e8a91135c58c639f51b17ddda4d2e08f5d6f1e6837ee6a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/control.json": "44a084f2d08c98941707d44e957194988c999fea1b13c71786b45d2c3aa3a00a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/native-cases.json": "5f174ac6bd0da06d29d5f9e0ed378e62400e0347c6d18750f8cac9a7db02a650",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/native-coverage.json": "90c4f16c5865326e66eee43cbeb8cd0e23b7d662c4895ff5248963985a8091e9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/machine.py": "202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/integration.json": "0f8cc947effa7b528ba62d58877ec43319a2a07c93d7591e5da93a29fcec95f8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-generate-typed.py": "5ec14c5cdc1ec1fea1ff352d48f9a04c3c807d54370a368741e6abd3cca723e7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py": "287598d6168be7650ff1238a0d0c68ea41aeb5895879ccb7984ff42f55faacd1"
+  }
+}

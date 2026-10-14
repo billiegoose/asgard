@@ -496,8 +496,8 @@ Appending `MICRO_U64_DIV` to `RED2_CFG_PILOT_EXTRA_STATES` moves the integer
 long-division loop onto the existing fixed hardware control engine. Division
 and modulo remain available; this trades additional clocks for shared logic.
 The scalar fallback insertion preserves the original dispatch order even when
-the divider handler is extracted. Before the saved-equality revision below, the normal configuration regenerated
-the qualified f97 core byte-for-byte.
+the divider handler is extracted. Before the saved-equality revision below, the
+normal configuration regenerated the qualified f97 core byte-for-byte.
 
 | Core measurement | Qualified datapath | Shared divider candidate |
 | --- | ---: | ---: |
@@ -515,15 +515,17 @@ mapping scripts. Native validation passes 15,032 typed comparisons including
 covering all 124 entries, lifecycle checks, and multiply/divide/modulo/exponent
 program parity. These are selected witnesses, not exhaustive coverage.
 
-The first five program traces also pass Verilator replay: **230,990 simulated
-clocks with every 626-bit output compared on every clock**. All 11 program traces now pass RTL replay: **518,097 simulated clocks**,
-plus **1,018 public lifecycle clocks**, comparing all 626 output bits per clock.
-Mapped-primitive application, lifecycle, division and modulo also pass; the
-large-magnitude division replay is still running. The smaller core has no complete-board mapping,
-routed timing or physical qualification yet and is not the default board
-candidate. See [the integration evidence](../../../docs/handoffs/red2-arithmetic-sharing-integration-results.json)
+All 11 program traces pass RTL replay: **518,097 simulated clocks**, plus
+**1,018 public lifecycle clocks**, comparing all 626 output bits per clock.
+Mapped-primitive application, lifecycle, division, modulo and large-magnitude
+division also pass. The complete burst board maps to **17,819 LUTs**, 8,543 FF,
+34.5 BRAM36 equivalents and 20 DSPs, saving the same 396 LUTs versus the qualified
+burst image. Placement is running; routed timing and physical qualification
+remain pending. This is not the default board candidate. See
+[the integration evidence](../../../docs/handoffs/red2-arithmetic-sharing-integration-results.json),
+[the frozen simulation/fit gate](../../../docs/handoffs/synth-red2-shared-divider-results.json)
 and [resource attribution](../../../docs/handoffs/red2-shared-divider-resource-attribution.json).
-The existing list-equality gap remains unresolved.
+This frozen candidate still retains the earlier list-equality gap.
 
 
 ## Saved equality IF semantics
@@ -546,5 +548,9 @@ This is native evidence for the maintained source, not an RTL, area or board
 result. Direct/EP private primitive firing remains separate from saved JOIN.
 The qualified FPGA image and frozen shared-divider candidate still use their
 older sources. A combined candidate in `build/red2-equality-integrated/shared-divider`
-extracts the new write stage onto the existing dedicated control engine; its
-validation is in progress. No resource claim for that combined revision is made.
+extracts the new write stage onto the existing dedicated control engine. It
+generates 125 entries and 14,982 compact rows and passes 15,152 typed comparisons
+with mandatory integer corners. Complete-top native validation and exact-source
+enhanced RTL elaboration are running; see
+[the combined candidate record](../../../docs/handoffs/red2-equality-shared-divider-integration-results.json).
+No resource claim for that combined revision is made.

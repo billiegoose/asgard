@@ -83,14 +83,21 @@ program traces pass Verilator replay, **518,097 simulated clocks with every
 626-bit output compared on every clock**. The public lifecycle trace adds
 1,018 clocks with the same comparison scope.
 
-Mapped-primitive driver PID 42732 (`run-mapped-gates.py`) has passed lifecycle,
-application, divide and modulo. The large-magnitude divide is running; inspect
-`mapped-gates-progress.json`, driver/per-case logs and the actual live process.
-Board watcher PID 43260 (`build-board-after-gates.py`) waits for all five mapped
-replays, verifies exact-source native/RTL receipts, writes
-`synth-red2-shared-divider-results.json`, then prepares and builds the optional
-burst image at `build/red2-basys3-shared-divider`. It does **not** program the
-board. It must not mark the candidate usable or build while a gate is incomplete.
+Mapped-primitive driver PID 42732 **finished successfully**: lifecycle,
+application, division, modulo and large-magnitude division all pass, comparing
+all 626 output bits on every recorded clock. Board watcher PID 43260 verified
+all exact-source receipts and wrote the immutable, provenance-pinned
+`synth-red2-shared-divider-results.json`. Do not edit that report while its build
+is running: preparation and build pin its SHA256.
+
+The fresh optional burst build is in `build/red2-basys3-shared-divider`. Board
+build driver PID 61335 (`run-physical.py`) maps the complete board to **17,819
+LUTs**, 8,543 FF, 34.5 BRAM36 equivalents and 20 DSPs. That saves 396 mapped LUTs
+and two FF versus the qualified burst image. Placement is running with the same
+pinned backend and response-byte relocation. Routing/timing and physical replay
+remain unproven. Inspect `physical-progress.json`, `build-driver.log`, backend
+logs and actual process/container state. The watcher/build does **not** program
+the board. SRAM replay remains authorized after successful fit/timing gates.
 
 See `red2-arithmetic-sharing-integration-results.json` and
 `red2-shared-divider-resource-attribution.json`. Generation's first
@@ -126,17 +133,24 @@ separate and unsupported. The f97 loaded image and frozen e6 divider candidate
 still retain the earlier equality gap. Do not merge their resource/physical
 receipts with this semantic revision.
 
-A combined candidate is being generated in
-`build/red2-equality-integrated/shared-divider`; configuration starts with the
-shared-divider flags and additionally extracts `MICRO_JOIN_IF_INLINE_WRITE`
-onto the fixed hardware control engine. Driver PID 60899
-(`run-generate-typed.py`) pins maintained source 75cc, runs oracle/emit/integration,
-then typed checking with mandatory integer corners. Oracle, emit and integration pass: 125 entries, 14982 compact rows,
-200 private and 176 shared words. Typed integer-corner checking is running.
-Combined source SHA256: `202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b`. Inspect `progress.json`, stage logs and actual process
-identity before waiting or retrying. No map or replay is claimed yet. Next gates
-are complete native boundaries/lifecycle, list and arithmetic public-port traces,
-enhanced-compiler RTL, complete map and board qualification.
+The combined candidate is in `build/red2-equality-integrated/shared-divider`.
+Its configuration starts with shared-divider flags and also extracts
+`MICRO_JOIN_IF_INLINE_WRITE` onto the fixed hardware engine. Generation/typed
+driver PID 60899 **finished successfully**: 125 entries, 14,982 compact rows,
+1,024 scratch words, 200 private and 176 shared words; **15,152 typed comparisons
+with mandatory integer corners pass**. Combined source SHA256:
+`202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b`.
+See `red2-equality-shared-divider-integration-results.json`.
+
+Two exact-source gates are running via `run-next-gates.py`: enhanced RTL frontend
+driver PID 62772 (mode `frontend`) and complete-top native driver PID 62773 (mode
+`native`). The latter runs all boundary/lifecycle witnesses, then records fresh
+public-port native/concrete traces for equal/unequal simple and nested lists.
+Inspect `frontend-progress.json`, `native-progress.json`, driver/stage logs and
+actual process identity before waiting or retrying. Program traces require a
+successful exact-source frontend. No new RTL replay, area map or board result is
+claimed for this combined source. It still needs appropriate arithmetic/public
+lifecycle traces, RTL/mapped replay, complete map and physical qualification.
 
 ## Artifact storage
 

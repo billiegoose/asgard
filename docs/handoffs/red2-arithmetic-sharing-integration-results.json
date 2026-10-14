@@ -79,10 +79,10 @@
   "complete_core_map_available": true,
   "candidate_loaded_on_board": false,
   "limitations": [
-    "Native typed, boundary/lifecycle and all 11 RTL program checks pass; mapped-primitive suite remains in progress",
-    "Complete core maps 396 LUTs smaller; complete-board mapping, routing and physical qualification remain outstanding",
+    "All recorded native, RTL and mapped-primitive simulation gates pass",
+    "Complete board maps 396 LUTs smaller; placement, routing and physical qualification remain outstanding",
     "The separate qualified burst image remains the last recorded FPGA load",
-    "This frozen divider candidate retains the earlier equality gap; a separate maintained-source fix now passes native checks"
+    "Frozen divider candidate retains the earlier equality gap; maintained-source equality fix has native parity but separate RTL/board qualification is pending"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/configuration.json": "f322d34bfc9e71c30137fcef3f63357aa4146c2124a0335ec07a98537b684cce",
@@ -156,9 +156,13 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-multiply-signed-min/vectors.json": "2940004e39771f5e8f8a2874e19d06a38bf032ae260c77f2a34ce9f73a7cb969",
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/native.log": "34d312a995c06c5b495721c2a3b1749ebd78ee3ec515ef08d8cf781ed26adffe",
     "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/replay.log": "9990c080207e878faa0e5459a010c64fd022268bc5b8c113b9f451ec410f116d",
-    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/vectors.json": "7923042628aefe4e43a155b50768d35c3932756a7fee8d2c371fbacd70f6a9e5"
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/rtl-divide-high-magnitude/vectors.json": "7923042628aefe4e43a155b50768d35c3932756a7fee8d2c371fbacd70f6a9e5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/mapped-gates-progress.json": "13a668cfc086012d2cbfeb73acce709268694f9ecd904c14df578957027b3254",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board-resources.json": "659713db69ba2f30819188b48ec4b5e6fd3fafa265c723d21516aab52de8ef24",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board-map.log": "7dbc3092de0a9c0946f737056fbf484d7b99849202f91861a2a40f1a0a7e6596",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/provenance.json": "aaac40e15af226002a00c7d0c0b0956a1c866b3d358b63857ead183b516bcf71"
   },
-  "updated_at_utc": "2026-10-14T02:41:35.510748+00:00",
+  "updated_at_utc": "2026-10-14T02:57:40.444000+00:00",
   "complete_core_mapping": {
     "baseline_resources": {
       "top": "top",
@@ -434,9 +438,63 @@
         "all_output_bits_per_clock": 626,
         "vectors_sha256": "4a8c5958238fffb91afd0b40a2752f926901368bb3eda79736f6bb1a43c75ada",
         "passed": true
+      },
+      {
+        "label": "divide-high-magnitude",
+        "simulated_clocks": 46565,
+        "all_output_bits_per_clock": 626,
+        "vectors_sha256": "ecd5d1cabdcf8bd0a19d34aae86b2727e3c5e9d25c3c4ee973eab8fa4b311aef",
+        "passed": true
       }
     ],
-    "suite_complete": false,
+    "suite_complete": true,
     "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-arithmetic-sharing/div-loop/mapped-gates-progress.json"
+  },
+  "complete_board_mapping": {
+    "resources": {
+      "top": "red2_basys3",
+      "lut": 17493,
+      "lut_memory": 326,
+      "lut_total": 17819,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 8543,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 20,
+      "carry4": 725,
+      "muxf7": 0,
+      "muxf8": 0,
+      "primitives": {
+        "BUFG": 2,
+        "BUFGCE": 1,
+        "CARRY4": 725,
+        "DSP48E1": 20,
+        "FDCE": 2,
+        "FDRE": 8532,
+        "FDSE": 9,
+        "IBUF": 2,
+        "INV": 881,
+        "LUT2": 2885,
+        "LUT3": 3349,
+        "LUT4": 2459,
+        "LUT5": 3608,
+        "LUT6": 5192,
+        "MMCME2_ADV": 1,
+        "OBUF": 9,
+        "RAM256X1S": 50,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "mapped_LUT_saving_against_qualified_burst_image": 396,
+    "mapped_flipflop_saving": 2,
+    "placement_and_routing_complete": false,
+    "physical_replay_passed": false,
+    "output": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider"
   }
 }
