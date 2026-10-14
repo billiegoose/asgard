@@ -614,3 +614,11 @@ setup and full memory readback. All architectural fields and all 256 graph and
 256 control words match Concrete RED2 at that next commit. Full program and
 RTL validation, mapping, routing and physical qualification remain separate.
 See [the corrected request evidence](../../../docs/handoffs/red2-shared-request-guards-results.json).
+
+Its completed enhanced core map uses **15,803 LUTs**, 6,170 FFs, 34.5 BRAM36
+equivalents, ten DSPs and 534 CARRY4 cells, with zero structural problems and
+verified HDL/script provenance. It also passes the 123 selected native product
+controller witnesses plus reset cancellation and constant protection. The
+request fix saves another 27 LUTs and 144 FFs against the frozen pre-fix product
+candidate by removing its retained shared request logic. No routed-board or
+physical qualification is implied by this core measurement.

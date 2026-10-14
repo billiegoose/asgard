@@ -40,6 +40,12 @@ The corrected checkpoint now passes: 61,871 native simulated cycles including
 setup/readback, with next-commit architecture and all graph/control words
 matching Concrete RED2. Corrected typed validation passes 15,504 comparisons.
 See [the request-fix evidence](red2-shared-request-guards-results.json).
+The corrected enhanced core map is complete at **15,803 LUTs**, 6,170 FFs,
+34.5 BRAM36 equivalents, ten DSPs and 534 CARRY4 cells. HDL and mapping-script
+hashes verify; synthesis reports zero structural problems. The 123 selected
+native product-controller witnesses, reset cancellation and constant protection
+also pass. Complete native boundaries and four equality programs are running;
+the exact-source RTL replay model is built. No new physical load has occurred.
 
 Compiler launchers now bootstrap installed setuptools' `distutils` compatibility
 instead of depending on `/tmp/red2-python-shims`, which disappeared during an

@@ -63,13 +63,49 @@
     "full_native_equality_programs_passed": false,
     "full_native_boundaries_lifecycle_passed": false,
     "RTL_replay_passed": false,
-    "physical_board_programmed": false
+    "physical_board_programmed": false,
+    "native_emitted_controller_witnesses_passed": 123,
+    "native_controller_reset_cancel_and_constant_protection_passed": true,
+    "exact_enhanced_RTL_elaboration_passed": true,
+    "RTL_replay_model_built": true
   },
-  "resources": null,
+  "resources": {
+    "top": "top",
+    "lut": 15477,
+    "lut_memory": 326,
+    "lut_total": 15803,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 6170,
+    "bram18": 21,
+    "bram36": 24,
+    "bram36_equivalent": 34.5,
+    "dsp48": 10,
+    "carry4": 534,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "BUFG": 1,
+      "CARRY4": 534,
+      "DSP48E1": 10,
+      "FDRE": 6170,
+      "INV": 649,
+      "LUT2": 2341,
+      "LUT3": 2671,
+      "LUT4": 2299,
+      "LUT5": 3523,
+      "LUT6": 4643,
+      "RAM256X1S": 50,
+      "RAM64X1S": 126,
+      "RAMB18E1": 21,
+      "RAMB36E1": 24
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
   "limitations": [
     "Reachable checkpoint is one commit starting from a concrete-produced state; full hardware prefix remains a separate gate",
     "Typed handler oracle shares extraction machinery; original-source request regressions and independent architectural checkpoint additionally check correctness",
-    "Pre-fix 15830-LUT figure does not measure this corrected source",
     "No new FPGA behavior or routed timing claim"
   ],
   "artifacts_sha256": {
@@ -85,7 +121,17 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/integration.json": "465b948ff0229fbc0bbfbe2b5848da7d955a5c2847bc6d6995ba8c0ec540da4b",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/checkpoint-progress.json": "061cf894762b0212f1b4a7d5d5383f6ab58eefcd623c21069efbe70b481e1950",
     "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/equality-checkpoint/native.log": "c8a19e0d97aad26a4b477bb2920a92eaca625fa6e1d7c92bb2be9eeaec249128",
-    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/run-checkpoint.py": "bf9405f2aec2779b5691d541e2ce6871dc5a2e41b0d03b5b590812ced6583d5a"
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/run-checkpoint.py": "bf9405f2aec2779b5691d541e2ce6871dc5a2e41b0d03b5b590812ced6583d5a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/map-progress.json": "32c526ff93b3a78113ef2a29af594b3558129aca3b33849578e8c704d5caebff",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/product-corner-progress.json": "d5d036acf6f220edd093be5eb31331dff0a4a9502885da88a4f88f6ae47bf960",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/controller-product-corners.log": "05a3730a35f41008404066a7715eeb78ade6019458493117211a9b393c6aa236",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-cases.json": "c9fb6999496dd2c3cf3d7c997caae9254bf8e877ac337bc4278ad9f9026f67d1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/native-coverage.json": "8cd940598468d86163784b9831df605513cd99b1bf146b78563280319b3b0e1d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-build-progress.json": "e8fc6aeac45c64cd79dde5dd662f2ed202e3db8220b1c6d9dec2dc9a89d751ef",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/resources.json": "52f2af8ca9edacb49f8343e1513eedd70c013cd0156d9900186b7e2b7c695d69",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/provenance.json": "96f930e451350fa5b878d14517c6835b346d56d41358e684e71ec61cd4c660f4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.json": "72029f09079e4c4dfe640d87a47c58b90cae033fd680177f907c5a90d87ffedf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/integrated-stream/baseline-area.log": "819a34aad6b9bc3455b1520f6f4201acd811d901b0b237960916b05ecf174c5f"
   },
   "generator_scripts_sha256": {
     "scripts/experiments/red2_cfg_pilot/rtl_trace.py": "a1e930167f9971da42a3145e89c9474158022f9468da689cacc2c64548d0a19c",
@@ -145,5 +191,16 @@
     "scripts/experiments/red2_cfg_pilot/catalogue.py": "d5b6649f7bc1ee95cc94ce9c1b590ae4da119efc7af090a2bab7386d13b308ee",
     "scripts/experiments/red2_cfg_pilot/prepare_rtl.py": "7fabf6f9d9452543fba6036e414ea0aa990a089c21c6345f38ad6261383ec8ae",
     "tests/test_red2_request_arms.py": "f8757e05f0cb3f557a1b7a51e8fa9909cfced3dec5010f21875969c367070bb7"
+  },
+  "updated_at_utc": "2026-10-14T05:14:41.189489+00:00",
+  "mapping_provenance": {
+    "enhanced_compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "all_HDL_and_mapping_script_hashes_verified": true,
+    "zero_structural_problems": true
+  },
+  "reductions_against_pre_request_fix_shared_multiplier": {
+    "LUTs": 27,
+    "flipflops": 144,
+    "CARRY4": 18
   }
 }
