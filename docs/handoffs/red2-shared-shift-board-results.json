@@ -111,11 +111,11 @@
   "built": false,
   "loaded_on_board": false,
   "qualified_on_hardware": false,
-  "current_stage": "place",
+  "current_stage": "place: parallel refinement",
   "process_at_checkpoint": {
     "driver_pid": 86470,
     "container": "red2-shift-place",
-    "verified_live_at_utc": "2026-10-14T09:24:14.860327+00:00"
+    "verified_live_at_utc": "2026-10-14T09:39:29.104984+00:00"
   },
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/provenance.json": "e0a985f7033b2a20d3f5a55401a19cb704dfc4a362f57d89c73e7d41070deb37",
@@ -128,7 +128,21 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/mapped-board-sim/extraction.json": "2055bf0eb24ca0d5a1d2048b4345f989a98d1d4c5f2ee0ff54e0e98269ec0b21",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/core-identity.log": "60d105fdc5d08a2e14cd19164fa727f389882c6b1d137086a1189effaf7d81de",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/run-physical.py": "f615607ac878077bcebc7e005023f64b386d1426f2955c17a2a610ca4c635c74",
-    "/Users/billie/code/billiegoose/asgard/docs/handoffs/synth-red2-shared-shift-results.json": "cd24327fcb63f4136dc7961bb9179fd3b79c07955d4beafbf6fdf2a3c5824623"
+    "/Users/billie/code/billiegoose/asgard/docs/handoffs/synth-red2-shared-shift-results.json": "cd24327fcb63f4136dc7961bb9179fd3b79c07955d4beafbf6fdf2a3c5824623",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/qualify-when-built.py": "feedc799ce670b09fae420997f7202d58282e09a000035484946c52d03f4d8ca",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/qualify-rtl-corpus.py": "d2e80d557b9a5f98d1561ef3fbac149a0c4ca2701178cb134817c97e8cc5210e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/extract-core.py": "72b395521854c91c99feb735b61df328164c0670683f9b5f85301378077f5d1a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift/check-core-identity.py": "2d2b734682eac5228353d3909d28c75c314351f26b8442bb1797ad0998b078b2"
   },
-  "fallback_qualified_bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e"
+  "fallback_qualified_bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+  "updated_at_utc": "2026-10-14T09:39:29.104984+00:00",
+  "qualification_supervisor": {
+    "pid": 94228,
+    "exec_session": 58124,
+    "state": "waiting for successful complete build",
+    "driver": "build/red2-basys3-shared-shift/qualify-when-built.py",
+    "qualification_driver": "build/red2-basys3-shared-shift/qualify-rtl-corpus.py",
+    "progress": "build/red2-basys3-shared-shift/qualification-supervisor.json",
+    "scope": "Loads fresh volatile SRAM per case only after map/place/route/timing/audits/bitstream complete, then compares same-source actual RTL observations; restores qualified a0 image on physical test failure"
+  }
 }

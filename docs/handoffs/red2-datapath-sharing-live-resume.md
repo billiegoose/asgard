@@ -127,13 +127,17 @@ physical qualification are pending. See `red2-shared-shift-board-results.json`.
 Additional same-source RTL/Concrete complete-program observation recording is
 running for the candidate. All eleven shorter programs **pass** (523,617
 simulated clocks); their actual RTL traces have completed independent semantic
-checks and retain distinct same-source metadata. Four list programs are running
-under driver PID 89691 (exec 64092), progress
+checks and retain distinct same-source metadata. Equal-list also passes (811,553 simulated clocks). The other three list
+programs are running under driver PID 89691 (exec 64092), progress
 `board-rtl-traces-lists-progress.json`; revalidate that process before waiting.
 Prepared `build/red2-basys3-shared-shift/qualify-rtl-corpus.py` will use these
 same-source observations, fresh SRAM per program, all 626 bits per packet
 endpoint and restoration of qualified `a0ef3f44...` on failure. It has not run;
-board timing and bitstream generation must pass first.
+board timing and bitstream generation must pass first. A supervisor is live
+in exec 58124, PID 94228, `qualify-when-built.py`; it verifies the actual build
+process and starts the physical driver only after successful audited build
+completion. `qualification-supervisor.json` records that state. Revalidate this
+process/session before waiting; do not launch a duplicate UART client.
 
 Live execution is now implemented in `scripts/boards/red2_basys3/run.py`.
 It compiles THOR on the host, loads fresh volatile SRAM, sends public-port

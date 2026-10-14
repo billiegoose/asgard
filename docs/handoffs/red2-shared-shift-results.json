@@ -818,7 +818,7 @@
     },
     "finished_at_utc": "2026-10-14T08:55:12.965823+00:00"
   },
-  "updated_at_utc": "2026-10-14T09:34:36.953679+00:00",
+  "updated_at_utc": "2026-10-14T09:39:29.104984+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
     "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
@@ -1003,6 +1003,36 @@
     "artifacts_sha256": {
       "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-traces-short-progress.json": "94c635ce2331ffa6972f4c45f297698b3418df692e0f737d3abdc7189e82ac9a",
       "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/record-board-rtl-traces.py": "087649cd81c0dcd6ad42533e4dac65868fde73078d040a1144b73b4f1e14b010"
-    }
+    },
+    "list_programs_progress_snapshot": {
+      "scope": "Same-source actual Verilator observations, emitted only after Concrete RED2 architecture and RAM comparison at every commit, final complete graph/control RAM comparison and HALTED termination; no FPGA programming",
+      "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+      "checker_sha256": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
+      "started_at_utc": "2026-10-14T09:26:22.750362+00:00",
+      "group": "lists",
+      "programs": [
+        {
+          "label": "equal-list",
+          "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+          "passed": true,
+          "pid": 89693,
+          "returncode": 0,
+          "deduplicated_identical_data_with": "/Users/billie/code/billiegoose/asgard/build/red2-request-guards/shared-multiply/rtl-equal-list/vectors.txt",
+          "simulated_clocks": 811553,
+          "vectors": "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/board-rtl-equal-list/vectors.txt",
+          "vectors_sha256": "58b8d79b8713601fc381cb80e07742d838511e370688bdce7e7ef55048459c08",
+          "metadata_sha256": "8e599d2ed1167eac077a60e62097ae8b56e5f53f56d0d482f86cf547da5eaf59",
+          "log_sha256": "93edb9c1de44be22ade924e41750ec29acc9648cefaf1937792e2d82711fa5a3"
+        },
+        {
+          "label": "unequal-list",
+          "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+          "passed": false,
+          "pid": 92787
+        }
+      ],
+      "passed": false
+    },
+    "list_programs_snapshot_at_utc": "2026-10-14T09:39:29.104984+00:00"
   }
 }
