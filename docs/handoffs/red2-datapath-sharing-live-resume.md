@@ -1,5 +1,48 @@
 # RED2 datapath-sharing pass — live checkpoint
 
+## Latest: snapshot readback diagnosis and completed IF logic gates (2026-10-14)
+
+This section supersedes all running-process and current-board claims below.
+The board was restored to qualified `a0ef3f44...` at **10:55:35 UTC** after the
+latest read-only diagnostic. No flash writes occurred; no program has run since
+that restoration. There is currently no live UART client.
+
+The indexed-snapshot board **builds and routes**: 16,108 mapped LUTs,
+**16,223 physical LUT sites** (4,577 spare), 12.84/12.65 MHz estimated core /
+monitor maxima, passing 10 MHz. All 19,979 LUT truth tables and all BRAM audits
+pass. However its bitstream `1b60187e...` **fails the 131-word physical RAM gate
+on five words**, so no program qualification ran. The supervisor is terminal
+failed and restored `a0`. Do not restart it or claim the snapshot image works.
+
+The five mismatches affect graph bits 69 and 77, which appear to copy graph bits
+37 and 45. The exact mapped TX-byte combinational cone passes **10,349 checks**
+with actual vendor primitives and graph-pattern snapshots injected at cut
+sequential outputs. A diagnostic 8.333333-MHz image changes only six MMCM divider
+frame bits; it produces the **same five errors**. A second diagnostic changes
+only **312 graph INIT frame bits** to preload the walking-bit patterns, then
+issues only NOP reads and **no UART memory writes**. Its vendor BRAM simulation
+and FASM initialization audit pass; its physical readback has the **same five
+errors**. This independently reproduces a read/capture/response-path fault;
+precise physical cause remains unresolved. See
+`red2-snapshot-readback-diagnostic-results.json` and the updated snapshot board
+report. Both probes restored qualified `a0`. Probe paths are
+`build/red2-basys3-shared-shift-snapshot/{mapped-byte-mux,slow-clock,graph-init-probe}`.
+
+Separately, IF EP-chase source `7d965e66...` at **15,181 core LUTs / 6,090 FFs**
+now passes **all 15 complete RTL/Concrete programs** (4,567,349 simulated clocks),
+all 26 saved-IF RTL/Concrete fixtures, and the **entire native 847-boundary /
+lifecycle / metadata / poison suite** (exec 90523 terminal PASS). Full-program
+execs 59311 and 54246 are terminal PASS. All 15,624 typed comparisons and 27
+targeted emitted native witnesses pass. Mapped-primitive and physical board
+gates are still required; no board qualification is claimed for this source.
+No listed native/RTL process remains live. Exact storage ownership attributes
+the 80-FF saving to the 64-bit EP target and 16-bit hop counter, now exclusively
+in existing scratch RAM. See `red2-if-ep-sharing-results.json`.
+
+Next controlled physical experiment: relocate only the two affected snapshot
+response capture FFs (public bits 433 and 441), keeping every other cell
+placement and all logic unchanged, then reroute and repeat the RAM gate.
+
 ## Latest continuation: failed wrapper and next area pass (2026-10-14)
 
 This section supersedes running-job, build and current-board statuses below.

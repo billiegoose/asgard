@@ -1,0 +1,243 @@
+{
+  "recorded_at_utc": "2026-10-14T11:02:24.411954+00:00",
+  "scope": "Controlled diagnostics of failed snapshot-wrapper readback; no FPGA program/RED2 qualification",
+  "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
+  "base_bitstream_sha256": "1b60187e50d883420691a6d78e34df2e1eea48336bb0af653ffe1df7d5a8e9e0",
+  "physical_10_MHz_RAM_pattern": {
+    "passed": false,
+    "checked_words": 131,
+    "errors": [
+      {
+        "address": 2,
+        "expected": "0123456789ABCDEF0011223344556677",
+        "actual": "0123456789ABEDEF0011223344556677",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 40,
+        "expected": "00000000000000000000002000000000",
+        "actual": "00000000000000200000002000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 48,
+        "expected": "00000000000000000000200000000000",
+        "actual": "00000000000020000000200000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 72,
+        "expected": "00000000000000200000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 80,
+        "expected": "00000000000020000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      }
+    ],
+    "differing_response_byte_lanes": {
+      "1": 5
+    }
+  },
+  "apparent_data_aliases": {
+    "observed_graph_bit_69": "expected_graph_bit_37",
+    "observed_graph_bit_77": "expected_graph_bit_45"
+  },
+  "mapped_UART_byte_cone": {
+    "scope": "Exact mapped combinational cone feeding UART TX-byte FF data/enable/reset; all sequential outputs are cut and reachable SEND/ready state supplied; graph-word pattern response snapshots injected; no physical, BRAM, input transport, frame-clock or RED2 execution claim",
+    "source_mapped_board_sha256": "8bb89a88d1ec4aff2253b0cb96d19814802293f2383a90d2774a9a1729b1e3e9",
+    "patterns": 131,
+    "payload_bytes_per_pattern": 79,
+    "compared_byte_loads": 10349,
+    "boundary_bits": 688,
+    "cells": 294,
+    "primitive_types": {
+      "LUT6": 203,
+      "INV": 6,
+      "LUT3": 22,
+      "LUT4": 13,
+      "LUT2": 11,
+      "LUT5": 37,
+      "CARRY4": 2
+    },
+    "returncode": 0,
+    "passed": true,
+    "artifacts_sha256": {
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/cone.json": "7b632e42d0dd850516c643945a1d71f4dcd5b8bb43c84f9469ab8f14175374e6",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/cone.v": "b686d6608555c15cdd7797fcbc3d5cde75475f7517ba35f31634522517e1f3a9",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/test.sv": "23ff9b5194f9633f33fe8139ce462d7413bb067f9e13e4abef79f126c3e3db33",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/vectors.txt": "7d2e4ec96f075644df1e51aa303d5f69e2fef447a5a8d7e5fb04bcc938cf93f1",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/run.log": "e707f5d11285c93e585142747e1b5c65207f169c32dade4990748d19b570163c"
+    }
+  },
+  "lower_clock_probe": {
+    "scope": "Diagnostic-only same placed/routed snapshot board with only six MMCM clock-divider frame bits changed: 8.333333 MHz, 96000 UART baud; RAM pattern check only, no RED2 qualification",
+    "started_at_utc": "2026-10-14T10:46:42.323994+00:00",
+    "probe_image_sha256": "1a8dff8cb81ab21a39d5d8a354df5447e6409421ac0d79c6a79c80d18d8ae049",
+    "reference_image_sha256": "1b60187e50d883420691a6d78e34df2e1eea48336bb0af653ffe1df7d5a8e9e0",
+    "frame_changes": [
+      {
+        "frame": "0x40151c",
+        "word": 29,
+        "before": "0xb4000000",
+        "after": "0x6c000000",
+        "xor": "0xd8000000"
+      },
+      {
+        "frame": "0x40151d",
+        "word": 29,
+        "before": "0x26009010",
+        "after": "0x6e009010",
+        "xor": "0x48000000"
+      }
+    ],
+    "passed": false,
+    "load_result_sha256": "542acb65e7c90a90ecee40eb26c819a65f972afd3b3f7f2c1b72a61a432c7351",
+    "pid": 16278,
+    "returncode": 1,
+    "memory_result_sha256": "f5c6f64cda2b69a45797fa46bb92c8ded6282ad2f10b4eb9528802644fddfbe0",
+    "restored_qualified_image": {
+      "started_at_utc": "2026-10-14T10:46:59.973581+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+      "program_script_sha256": "99da0026229100a16c5a4af5391697ca33bf00bb098a38dc3c8c4bd3246eb5e3",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-14T10:47:03.231965+00:00",
+      "load_log_sha256": "a57e14955345b4d7ed808158f4e710a74c9bbb7e91a777a13d536e994ebc650e"
+    },
+    "finished_at_utc": "2026-10-14T10:47:03.280538+00:00"
+  },
+  "lower_clock_RAM_errors_identical": true,
+  "BRAM_initialization_probe": {
+    "scope": "Physical read-only graph RAM initialized through bitstream; no LOAD_MEMORY or RED2 execution; same snapshot placement/routes and 10 MHz clock; only 312 graph INIT bits differ",
+    "vendor_model": {
+      "scope": "Actual vendor RAMB36E1 simulation of encoded graph INIT data and mapped graph output bit order; independent of UART and board; not physical qualification",
+      "words": 131,
+      "returncode": 0,
+      "passed": true,
+      "artifacts_sha256": {
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/model.json": "aaa5aaaca8e1980eb473114b1971c2ceae68b97fced90d6f6168407de9a5fe5f",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/model.v": "63136e2837483085434ef41d56261b23700103a6b223efd7518cfc500ea34ee7",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/model-test.sv": "897d19a73197e577c5c21bbc6f251cbedd00df82c237812ba88787e13719cd79",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/model-run.log": "101d2d431b3fdb866f20280bb2c6eb391d3fb651f59dea0eee2789b6712fbd85",
+        "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/mapped-sim/RAMB36E1.v": "b6153b595696f7eebe6840b2b8d518e32df698cb8e8b2730c8838648ceec72fb"
+      }
+    },
+    "changed_graph_INIT_bits": 312,
+    "physical_passed": false,
+    "physical_errors_identical_to_UART_loaded_pattern": true,
+    "physical_errors": [
+      {
+        "address": 2,
+        "expected": "0123456789ABCDEF0011223344556677",
+        "actual": "0123456789ABEDEF0011223344556677",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 40,
+        "expected": "00000000000000000000002000000000",
+        "actual": "00000000000000200000002000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 48,
+        "expected": "00000000000000000000200000000000",
+        "actual": "00000000000020000000200000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 72,
+        "expected": "00000000000000200000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 80,
+        "expected": "00000000000020000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      }
+    ]
+  },
+  "conclusions": [
+    "The exact mapped TX-byte data/enable/reset cone passes 10,349 checks over 131 graph patterns with actual vendor primitives; sequential outputs were cut and supplied, so this does not prove capture or RAM routing.",
+    "The same five errors occur at 8.333333 MHz after changing only six MMCM divider frame bits; this probe did not fix the failure. It does not exclude all timing issues.",
+    "The same five errors occur without UART graph writes, after changing only 312 graph INIT frame bits. The preload data/order independently pass actual vendor BRAM simulation and the routed FASM audit. A read/capture/response-path fault is independently reproducible.",
+    "The precise physical cause remains unresolved; neither smaller image is qualified."
+  ],
+  "current_board": {
+    "started_at_utc": "2026-10-14T10:55:31.872899+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+    "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+    "program_script_sha256": "3ec9d8271dc8dabcfa821d959928d544e99e6682a2ddb18ee859b38303d9e818",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-14T10:55:35.115770+00:00",
+    "load_log_sha256": "8977279cc75074a36719eccc5357c8787733d26f49ddef6e9a5591a19e186ba5"
+  },
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/memory-pattern.json": "1f1639428a7efd9e1c3f669a73367d8a86f995f6d467b031c119fbdebc063cfa",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/mapped-byte-mux/result.json": "612c7bc232d23a24ed3048834d070a8aed5fe75c08cea7b254b77268587e86af",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/probe-mapped-byte-mux.py": "199671f3dadbc145530b1392666ad98a719800a26e0b18e9857c7b9475a79753",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/slow-clock/physical-diagnostic.json": "eab8d97d4f2c847e1c28dc3f2ddc2f939db7cd46507eff3d7313b2630d088b73",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/slow-clock/memory-pattern.json": "f5c6f64cda2b69a45797fa46bb92c8ded6282ad2f10b4eb9528802644fddfbe0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/slow-clock/frame-changes.json": "93def82a63eefb06c7df4761ee2229e8f5cd534bd386512c9c2f618476764abc",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/probe.json": "206c7798a5a518ce7f9e639527e4dd50f7849e29c2bbff2fcf5a60b4706f2442",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/model-result.json": "94fe6555eae3834eea1d3d2741e6f1a5b055bf126086b9473aa4847ba0f57191",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/frame-changes.json": "dcfdc0508864d024129d76f3ee35bd39fc3859c41b16846c06a6ffff280251c3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/physical-result.json": "c19995e68837c66c781a8d79d9652cd0f0457353bbb76a27831e0412044d0c0a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/prepare-init-probe.py": "b6be2c2d336f768286c514a6a3477f4a269d2011d2589b2cb30bd6d1edde39d2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/check-init-model.py": "c2453428b72642f4bfeb4d30fe52e62c1fa5a26e67fab6cf83645be67917c52b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/graph-init-probe/test-read-only.py": "282674799da68a6cb08913d3d39ad8a119d1626e4819abf6f5257e036038023c"
+  }
+}

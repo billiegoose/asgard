@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T10:07:40.056460+00:00",
-  "scope": "Optional IF EP-chase graph-handler extraction; controlled complete-core mapping, original-handler typed parity, 27 emitted native controller witnesses and 26 same-source RTL/Concrete saved-IF fixtures pass; full native boundaries and complete-program RTL gates running; no board qualification",
+  "scope": "IF EP-chase extraction: controlled area mapping, 15,624 typed comparisons, 27 targeted emitted native witnesses, all 847 complete-top native boundary/lifecycle/metadata/poison checks, all 26 saved-IF RTL/Concrete fixtures and all 15 complete RTL/Concrete programs pass; mapped-primitive and board qualification remain pending",
   "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
   "baseline_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "configuration": {
@@ -132,11 +132,17 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/rtl-build-progress.json": "a75ba31152abb20b78cbe358c6285d9143265f5db46a61bf38c2337aa340ee3b",
     "/Users/billie/code/billiegoose/asgard/build/red2-shared-shift/shared-shift/integrated-stream/integration.json": "465b948ff0229fbc0bbfbe2b5848da7d955a5c2847bc6d6995ba8c0ec540da4b",
     "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/integration.json": "ec565ed2b5c00c94b61bbd4ed336a29a6be38d8a274c9378f054e3b8d0c45534",
-    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/resource-attribution-cones.json": "66e8cab54287ccd1f4288a928c63892c1eb968551d78cf2c2fc00a99f50eac65"
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/integrated-stream/resource-attribution-cones.json": "66e8cab54287ccd1f4288a928c63892c1eb968551d78cf2c2fc00a99f50eac65",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/direct-rtl-short-progress.json": "0a3f76c4f6ce1c134d9de0ad9196dafe1c4dd74876b8634ddfdd5602e3a86638",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/direct-rtl-lists-progress.json": "85dc4e736642ca59125ab1adf4d3768bea406c15eb9e6fdf2f3c36dfb2006c13",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/run-direct-rtl-programs.py": "2def96b6d85a9aeaba7bd9752209dc82387d772c901e5475f2ff9dbd0cb0aeb5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/full-boundary-progress.json": "7e599e123a86a9e7b5e06d38552d974d0ac4e3508d9e64861d5c4a01943a897e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/native-boundaries.log": "52f4742e96788000765fb004d0ed1227bbadb3c3efba6070249e74aaa9e27ce7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-if-ep-sharing/if-ep-chase/full-typed.log": "94c24ddbe56044edf863452c284db492eecca2b8a4cd28176543a2f64122b1be"
   },
   "full_typed_comparisons_passed": 15624,
-  "complete_top_native_witnesses_pending": 847,
-  "updated_at_utc": "2026-10-14T10:32:17.158763+00:00",
+  "complete_top_native_witnesses_pending": 0,
+  "updated_at_utc": "2026-10-14T11:04:52.491135+00:00",
   "same_source_RTL_Concrete_saved_IF_gate": {
     "progress": {
       "scope": "Same-source interactive frontend RTL versus independent Concrete RED2 saved-IF fixture architecture and all graph/control RAM; no physical programming",
@@ -287,10 +293,62 @@
     "lists": {
       "progress": "build/red2-if-ep-sharing/if-ep-chase/direct-rtl-lists-progress.json",
       "driver_pid": 6700,
-      "exec_session": 54246
+      "exec_session": 54246,
+      "completed_result": {
+        "scope": "Actual same-source Verilator RTL compared with independent Concrete RED2 at every architectural commit and all final graph/control RAM; each program must HALT; no recorded expected-output trace or FPGA qualification",
+        "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+        "RTL_model_manifest_sha256": "1fe688f3cf98800a701a794eedc342f213b3de3303ee47d8a77848728aa32787",
+        "RTL_binary_sha256": "f88b8155837ca33deb1a5c237273a273f54d7818befefa3ca484e776ade58d44",
+        "checker_sha256": "16b11228e197494a44f1fdeb5de2c15e2804a8510d50a97620a4a2310f4e353b",
+        "started_at_utc": "2026-10-14T10:15:41.327653+00:00",
+        "group": "lists",
+        "programs": [
+          {
+            "label": "equal-list",
+            "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+            "passed": true,
+            "pid": 6701,
+            "returncode": 0,
+            "simulated_clocks": 811443,
+            "log_sha256": "979dea33887c45ff105b0d22d1f9cc562e3a2bd1c85b722c6a1be0b13931786d"
+          },
+          {
+            "label": "unequal-list",
+            "program": "(EQUAL? (CONS 7 NIL) (CONS 8 NIL))",
+            "passed": true,
+            "pid": 8406,
+            "returncode": 0,
+            "simulated_clocks": 642054,
+            "log_sha256": "368c2fdfaf8d9af83a6c46798989911277283ceabba463c339d48ebaf1bd5cf3"
+          },
+          {
+            "label": "equal-nested",
+            "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 8 NIL)))",
+            "passed": true,
+            "pid": 10031,
+            "returncode": 0,
+            "simulated_clocks": 1379946,
+            "log_sha256": "3c69a40c8f6249242150ef8622f9897ae25546de2f538896361f87ba14783d93"
+          },
+          {
+            "label": "unequal-nested",
+            "program": "(EQUAL? (CONS 7 (CONS 8 NIL)) (CONS 7 (CONS 9 NIL)))",
+            "passed": true,
+            "pid": 12981,
+            "returncode": 0,
+            "simulated_clocks": 1210533,
+            "log_sha256": "4d63b2cb53b432e878048ae0ab8724bbcd6b6e455f9c753cf5258b03c9702ed3"
+          }
+        ],
+        "passed": true,
+        "total_simulated_clocks": 4043976,
+        "finished_at_utc": "2026-10-14T10:39:30.272959+00:00"
+      }
     },
     "driver_sha256": "2def96b6d85a9aeaba7bd9752209dc82387d772c901e5475f2ff9dbd0cb0aeb5",
-    "all_passed": false
+    "all_passed": true,
+    "total_programs": 15,
+    "total_simulated_clocks": 4567349
   },
   "storage_ownership_change": {
     "new_private_fields": [
@@ -311,5 +369,31 @@
       "unattributed": 167
     },
     "interpretation": "Removing the final legacy IF EP-chase consumer permits the 64-bit target and 16-bit hop counter to live exclusively in existing scratch RAM; exactly 80 remaining-core flip-flops disappear. No mapped BRAM/DSP increase. LUT endpoint reachability is not a per-function or removable-area budget."
+  },
+  "native_boundary_milestone_847_passed": true,
+  "full_native_boundary_lifecycle_gate": {
+    "scope": "Full same-source native controller boundaries with integer/product/IF EP corners, complete-top lifecycle/metadata/poison checks; no RTL or FPGA claim",
+    "candidate_source_sha256": "7d965e6696d0a2f0ebaa120bceaa1b1efdbdfdd273f29082e39ee1f1a08cd4e4",
+    "started_at_utc": "2026-10-14T10:05:11.313284+00:00",
+    "stages": [
+      {
+        "label": "full-typed",
+        "passed": true,
+        "pid": 3382,
+        "returncode": 0,
+        "log_sha256": "94c24ddbe56044edf863452c284db492eecca2b8a4cd28176543a2f64122b1be"
+      },
+      {
+        "label": "native-boundaries",
+        "passed": true,
+        "pid": 3598,
+        "returncode": 0,
+        "log_sha256": "52f4742e96788000765fb004d0ed1227bbadb3c3efba6070249e74aaa9e27ce7"
+      }
+    ],
+    "passed": true,
+    "boundary_witnesses": 847,
+    "cases_sha256": "67c01babf320995b2d3c4f87cb41f7ae0529f64ec4b315ad5b72623e23d2cd61",
+    "finished_at_utc": "2026-10-14T11:02:07.732183+00:00"
   }
 }

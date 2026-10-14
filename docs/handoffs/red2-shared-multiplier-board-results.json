@@ -792,7 +792,7 @@
     "other_setup_control_NOP_commands": 22479
   },
   "preferred_fallback_for_future_experiments": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
-  "updated_at_utc": "2026-10-14T10:07:40.056460+00:00",
+  "updated_at_utc": "2026-10-14T11:02:24.411954+00:00",
   "latest_live_execution": {
     "scope": "Fresh compiled THOR using the live runner; distinct from the original prerecorded replay counts",
     "source": "\nfib == (lambda (n)\n  (letrec ((fib-iter\n            (lambda (i current next)\n              (if (= i 0)\n                  current\n                  (fib-iter (1- i) next (+ current next))))))\n    (fib-iter n 0 1)))\n\nfib-six == (fib 6)\n\nfib-six\n",
@@ -805,7 +805,7 @@
     "eight_live_programs_passed": true
   },
   "current_board_after_experiment": {
-    "started_at_utc": "2026-10-14T09:56:34.510493+00:00",
+    "started_at_utc": "2026-10-14T10:55:31.872899+00:00",
     "command": [
       "openFPGALoader",
       "--board",
@@ -820,14 +820,14 @@
     "target": "volatile FPGA SRAM",
     "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
     "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
-    "program_script_sha256": "3376f7371744b7998862fc51ba5e78cee03bc934d718326fa9e921e14b6ecaee",
+    "program_script_sha256": "3ec9d8271dc8dabcfa821d959928d544e99e6682a2ddb18ee859b38303d9e818",
     "loader_version": "openFPGALoader v1.1.1",
     "returncode": 0,
     "loaded_on_board": true,
-    "finished_at_utc": "2026-10-14T09:56:37.683069+00:00",
-    "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    "finished_at_utc": "2026-10-14T10:55:35.115770+00:00",
+    "load_log_sha256": "8977279cc75074a36719eccc5357c8787733d26f49ddef6e9a5591a19e186ba5"
   },
-  "current_board_state": "Freshly restored qualified a0 SRAM image after paired RAM diagnostics; no program execution since that restoration",
+  "current_board_state": "Freshly restored qualified a0 SRAM image after read-only preinitialized graph diagnosis; no program execution since restoration",
   "native_list_corroboration": {
     "passed": true,
     "programs": 4,

@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T10:07:40.056460+00:00",
-  "scope": "Same shared-shifter RED2 core with existing immutable indexed response snapshot; complete board mapping and exact core identity pass; placement running; routed/physical qualification pending",
+  "scope": "Snapshot-wrapper board built, routed and passed 10 MHz timing and initialization audits; failed physical graph RAM pattern gate; program qualification was not started; qualified a0 image restored",
   "candidate_source_sha256": "60da01472df92863a3bd50878cbcea92d6c39542b66ca4122e6e244b49ed6271",
   "frozen_fit_gate": "docs/handoffs/synth-red2-shared-shift-results.json",
   "output_directory": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot",
@@ -73,21 +73,48 @@
   "mapped_LUT_saving_vs_qualified_board": 644,
   "UART_and_burst_RTL_tests_passed": true,
   "focused_snapshot_burst_memory_pytest_cases_passed": 38,
-  "built": false,
+  "built": true,
   "loaded_on_board": false,
   "qualified_on_hardware": false,
-  "current_stage": "place",
-  "process_at_checkpoint": {
-    "driver_pid": 1819,
-    "exec_session": 57133,
-    "container": "red2-shift-snapshot-place",
-    "verified_live_at_utc": "2026-10-14T10:07:40.056460+00:00"
-  },
+  "current_stage": "physical RAM gate failed; controlled read-path diagnosis ongoing",
   "qualification_supervisor": {
-    "pid": 2001,
-    "exec_session": 3719,
-    "progress": "build/red2-basys3-shared-shift-snapshot/qualification-supervisor.json",
-    "barrier": "Completed audited timing-passing build, then 131-word physical RAM walking-bit pass before fresh-SRAM program replay; restore qualified a0 on failure"
+    "scope": "Wait for actual live board build; qualify only a completed audited timing-passing build; no restart of build or trace producers",
+    "started_at_utc": "2026-10-14T10:03:18.632061+00:00",
+    "build_driver_pid": 1819,
+    "state": "failed",
+    "qualified": false,
+    "LUT_truth_table_audit": {
+      "checked_luts": 19979,
+      "mismatch_count": 0,
+      "mismatches": []
+    },
+    "memory_pattern_pid": 13035,
+    "memory_pattern_returncode": 1,
+    "restored_qualified_image": {
+      "started_at_utc": "2026-10-14T10:34:54.436211+00:00",
+      "command": [
+        "openFPGALoader",
+        "--board",
+        "basys3",
+        "--ftdi-serial",
+        "210183735787",
+        "--write-sram",
+        "--bitstream",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+      ],
+      "usb_serial": "210183735787",
+      "target": "volatile FPGA SRAM",
+      "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+      "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+      "program_script_sha256": "846c5dd112d4ba7e6c57105126d4153d5a155987bd8e3a83dd35ffb5b2f011c2",
+      "loader_version": "openFPGALoader v1.1.1",
+      "returncode": 0,
+      "loaded_on_board": true,
+      "finished_at_utc": "2026-10-14T10:34:57.599692+00:00",
+      "load_log_sha256": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6"
+    },
+    "error": "('physical memory-pattern gate failed', 1)",
+    "finished_at_utc": "2026-10-14T10:34:57.693567+00:00"
   },
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/provenance.json": "a6124f845007560834cb8c30816efcdb9607a6ffb300c89bf3e641bc0546323f",
@@ -97,6 +124,142 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/qualify-when-built.py": "fd26466ccd38ee554b1c1e62a3abebd8f74fb6df99a6f8e4388300edbb225241",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/qualify-rtl-corpus.py": "2fa7cbb6787ad6f63944ea4fe4d669d3f64c25361698eb3992e64e82e9cc7bf5",
     "/Users/billie/code/billiegoose/asgard/build/red2-shift-snapshot-uart-check.log": "0902bf439d05cac506d226ef769e95c185047d7013986ed24144f71c35b6f3a6",
-    "/Users/billie/code/billiegoose/asgard/build/red2-shift-snapshot-burst-check.log": "e8836c534e26a687a932facb2cce1e737dd94a5b97626562da3f3c2690b47210"
+    "/Users/billie/code/billiegoose/asgard/build/red2-shift-snapshot-burst-check.log": "e8836c534e26a687a932facb2cce1e737dd94a5b97626562da3f3c2690b47210",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/build-result.json": "4602c658d78898d249979fe2084134ceaa5cc1edf4746dcb43921ae6ae4a012e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/physical-progress.json": "fcde413b4ac4e2ccb567b523d54cd3b2544c3f5f70c2113662be760ff26f3f17",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/red2_basys3.bit": "1b60187e50d883420691a6d78e34df2e1eea48336bb0af653ffe1df7d5a8e9e0",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/board-timing.json": "d140b7f940849f937c44c0dc2ada0bcb713e212f84c0396fd3dad393c0a30f4d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/board-physical-lut-sites.json": "8c39e228ea867fc83732b9e572ab0e9086ee57e4a9fbd445ea4120624953d9c4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/board-bram-audit.json": "f1f7032e91ff829b31cc5f8d2852fc06bf0f482e0585c32e61b88975540a843d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/lut-init-audit.json": "06494fa07b0e2fef70860759fe3633a3bad1f7c11ce7f5ec3df46f2c8ed4b6cb",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/memory-pattern.json": "1f1639428a7efd9e1c3f669a73367d8a86f995f6d467b031c119fbdebc063cfa",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-shift-snapshot/qualification-supervisor.json": "a6615d9c9cb03be859923a7bb16271987ea4356340f7021105e235cf2e6fdd7c"
+  },
+  "updated_at_utc": "2026-10-14T11:02:24.411954+00:00",
+  "ever_loaded_on_board": true,
+  "bitstream_sha256": "1b60187e50d883420691a6d78e34df2e1eea48336bb0af653ffe1df7d5a8e9e0",
+  "physical_resources": {
+    "placed_netlist_sha256": "d2363d9f8fca1bac63971574c84209e276b9080df599ce5570f44b9be88a4328",
+    "routed_netlist_sha256": "274470ac5e1895dd49e233e0f2d57972084ea6af2758aa982ad35593f0f9841d",
+    "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+    "preserved_cell_placements": 29483,
+    "lut_half_cells": 20305,
+    "unique_physical_lut_sites": 16223,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+  },
+  "routed_clocks": {
+    "core_clock": {
+      "achieved_mhz": 12.84,
+      "status": "PASS",
+      "required_mhz": 10.0
+    },
+    "clock": {
+      "achieved_mhz": 12.65,
+      "status": "PASS",
+      "required_mhz": 10.0
+    }
+  },
+  "LUT_truth_table_audit": {
+    "checked_luts": 19979,
+    "mismatch_count": 0,
+    "mismatches": []
+  },
+  "BRAM_FASM_audit": {
+    "scope": "Routed BRAM known init bits and intended FASM configuration; not frame conversion, connectivity, timing, or physical behavior",
+    "passed": true,
+    "BRAM_cells": 45,
+    "BRAM18_halves": 69,
+    "initialization_words_checked": 4968,
+    "known_initialization_bits_checked": 962048,
+    "configuration_flags_checked": 855,
+    "width_marker_sets_checked": 69,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "artifacts_sha256": {
+      "board-routed.json": "274470ac5e1895dd49e233e0f2d57972084ea6af2758aa982ad35593f0f9841d",
+      "board.fasm": "ceded6858f371f5249cbb4ea6bf9634c2c02e8f45752476dc9060908d96c761d",
+      "/nix/store/y8w2pcqwz7zpvfyr4g6hb3ms6k57kmb1-nextpnr-1.0.0/share/nextpnr/external/prjxray-db/artix7/xc7a50t/tilegrid.json": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e"
+    }
+  },
+  "current_board": {
+    "started_at_utc": "2026-10-14T10:55:31.872899+00:00",
+    "command": [
+      "openFPGALoader",
+      "--board",
+      "basys3",
+      "--ftdi-serial",
+      "210183735787",
+      "--write-sram",
+      "--bitstream",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-multiplier/red2_basys3.bit"
+    ],
+    "usb_serial": "210183735787",
+    "target": "volatile FPGA SRAM",
+    "bitstream_sha256": "a0ef3f4463c8d50f37cc5bc1ba5fab205f4665b000c4a7fc1998c5864266795e",
+    "build_result_sha256": "95e19826bb082ef831134a3cd5958c1512e29b7e895219a92a64c1e914900eef",
+    "program_script_sha256": "3ec9d8271dc8dabcfa821d959928d544e99e6682a2ddb18ee859b38303d9e818",
+    "loader_version": "openFPGALoader v1.1.1",
+    "returncode": 0,
+    "loaded_on_board": true,
+    "finished_at_utc": "2026-10-14T10:55:35.115770+00:00",
+    "load_log_sha256": "8977279cc75074a36719eccc5357c8787733d26f49ddef6e9a5591a19e186ba5"
+  },
+  "physical_results": "docs/handoffs/red2-snapshot-readback-diagnostic-results.json",
+  "completed_build_process": {
+    "driver_pid": 1819,
+    "exec_session": 57133,
+    "container": "red2-shift-snapshot-place",
+    "verified_live_at_utc": "2026-10-14T10:07:40.056460+00:00"
+  },
+  "physical_RAM_gate": {
+    "passed": false,
+    "checked_words": 131,
+    "errors": [
+      {
+        "address": 2,
+        "expected": "0123456789ABCDEF0011223344556677",
+        "actual": "0123456789ABEDEF0011223344556677",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 40,
+        "expected": "00000000000000000000002000000000",
+        "actual": "00000000000000200000002000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 48,
+        "expected": "00000000000000000000200000000000",
+        "actual": "00000000000020000000200000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      },
+      {
+        "address": 72,
+        "expected": "00000000000000200000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          69
+        ]
+      },
+      {
+        "address": 80,
+        "expected": "00000000000020000000000000000000",
+        "actual": "00000000000000000000000000000000",
+        "differing_graph_bits": [
+          77
+        ]
+      }
+    ],
+    "differing_response_byte_lanes": {
+      "1": 5
+    }
   }
 }
