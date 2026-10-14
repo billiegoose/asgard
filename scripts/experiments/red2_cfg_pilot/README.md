@@ -476,5 +476,14 @@ checks and 69 mutation guards pass. Five native/concrete program traces pass
 simulation passes application and lifecycle. Fresh regeneration reproduces both
 the default baseline and candidate exactly. Evidence and artifact hashes are in
 [the results record](../../../docs/handoffs/synth-red2-datapath-sharing-results.json).
-These are core measurements; new physical-board replay is still pending. The
-existing list-equality execution gap remains outside the passing profile.
+These are core measurements. The complete board with the shift serializer and
+verified eight-bit response placement recipe now routes at 17,997 physical LUT
+sites and passes the 10 MHz timing gate. All five programs plus queued lifecycle
+pass on the Basys 3: 232,008 clocks, comparing every 626-bit output, with a fresh
+SRAM load per case. See
+[the complete physical corpus](../../../docs/handoffs/red2-complete-physical-corpus-results.json)
+and [the board build instructions](../../boards/red2_basys3/README.md).
+The optional burst-clock frontend has separate endpoint-only validation and
+still requires qualification of its complete FPGA image. The experimental top
+remains separate from maintained production source; the existing list-equality
+execution gap remains outside the passing profile.

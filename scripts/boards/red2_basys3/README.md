@@ -12,15 +12,16 @@ The dedicated core maps to **17,266 LUTs**; the complete board maps to
 The working image uses **17,997 physical LUT sites**, leaving **2,803 spare**.
 Both domains pass the 10 MHz gate: core 10.05 MHz and monitor 10.51 MHz.
 
-The FPGA now passes all **10,683 clocks and 626 output bits** of the dedicated
-RED2 function-application trace `((LAMBDA (x) x) 7)`, **123,200 clocks** of graph
-construction/access `(CAR (CONS 7 (CONS 8 NIL)))`, plus 1,018 queued lifecycle
-clocks and 131 graph-memory patterns. A controlled move of the final
-eight response-byte LUT/register pairs removes the three missing serializer
-lanes seen in the original placement. All core logic and placements are
-unchanged. The exact backend cause is unresolved; the opt-in build recipe
-reproduces the selected placement byte-for-byte. Broader physical arithmetic checks continue. See
-[the working-image record](../../../docs/handoffs/synth-red2-basys3-working-application-results.json).
+The FPGA passes all five recorded programs—function application, graph
+construction/access, addition, signed-boundary addition and negative EVEN?—plus
+queued lifecycle handling: **232,008 clocks, every 626-bit output compared**,
+with a fresh SRAM load per case. It also passes 131 graph-memory patterns.
+A controlled move of the final eight response-byte LUT/register pairs removes
+the three missing serializer lanes seen in the original placement. All core
+logic and placements are unchanged. The exact backend cause is unresolved;
+the default build recipe uses the verified adjustment and fails closed if its
+load-mux or placement assumptions change. See
+[the complete hardware evidence](../../../docs/handoffs/red2-complete-physical-corpus-results.json).
 Earlier failed images and diagnostics remain preserved in their dated reports.
 
 This is a processor monitor for bring-up. It does not execute RED2 in host
@@ -40,18 +41,24 @@ all logic and memory cells are preserved. It does not rerun a different compiler
 
 ```sh
 python3 scripts/boards/red2_basys3/prepare.py \
-  --report docs/handoffs/synth-red2-datapath-sharing-results.json \
-  --variant dirty-writeback --relocate-response-byte \
   --output build/red2-basys3-next
 bash build/red2-basys3-next/build.sh > build/red2-basys3-next/build-driver.log 2>&1
 ```
 
-Defaults still select the older scalar-core record; use the explicit report,
-variant and placement flag above for the recorded working recipe. The flag
-moves only the eight final response-byte LUT/FF pairs after placement, preserves
-the original placement, records every move and routes/audits the selected copy.
-All ordinary resource, placement-preservation and timing gates still apply.
-A fresh full build through this flag has not yet been physically replayed.
+Defaults select the validated `dirty-writeback` candidate and the eight-bit
+response-byte relocation recipe. `--report` and `--variant` select another
+measured candidate; `--no-relocate-response-byte` explicitly disables the
+adjustment. `--snapshot-response` selects the experimental snapshot serializer
+and disables relocation. Burst delivery remains off by default.
+
+Relocation moves only the eight final response-byte LUT/FF pairs after
+placement, preserves the original placement, records every move and routes and
+audits the selected copy. All resource, placement-preservation and timing gates
+still apply. Default preparation reproduces the verified image's eight hardware
+inputs byte-for-byte; the selected-placement recipe has separately reproduced
+the verified placement byte-for-byte. A fresh full build through this recipe
+still needs its own completed routing and hardware replay. The input-identity
+check is recorded in [the default-recipe evidence](../../../docs/handoffs/red2-basys3-default-recipe-results.json).
 
 Choose a fresh `--output` directory for each attempt; output directories are
 not overwritten. The generated build runs the pinned fpgatool

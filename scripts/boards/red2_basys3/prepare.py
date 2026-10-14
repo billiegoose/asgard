@@ -21,14 +21,15 @@ def main():
     parser.add_argument(
         "--report",
         type=Path,
-        default=ROOT / "docs/handoffs/synth-red2-cfg-scalar-core-results.json",
+        default=ROOT / "docs/handoffs/synth-red2-datapath-sharing-results.json",
     )
-    parser.add_argument("--variant", default="cfg-integer-joins-regfix")
+    parser.add_argument("--variant", default="dirty-writeback")
     serializer = parser.add_mutually_exclusive_group()
     serializer.add_argument(
         "--relocate-response-byte",
-        action="store_true",
-        help="Move only the final response-byte LUT/FF pairs after placement",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Move final response-byte LUT/FF pairs (default, except with snapshot)",
     )
     serializer.add_argument(
         "--snapshot-response",
@@ -41,6 +42,8 @@ def main():
         help="Enable experimental counted CLOCK delivery in the UART frontend",
     )
     args = parser.parse_args()
+    if args.relocate_response_byte is None:
+        args.relocate_response_byte = not args.snapshot_response
     report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
     candidate = report["variants"][args.variant]

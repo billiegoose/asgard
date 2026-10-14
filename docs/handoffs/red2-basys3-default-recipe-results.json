@@ -1,0 +1,36 @@
+{
+  "recorded_at_utc": "2026-10-14T00:15:49.640860+00:00",
+  "scope": "Default Basys 3 preparation selects fully qualified dedicated RED2 candidate and verified eight-bit response placement recipe; production machine source unchanged",
+  "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+  "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+  "prepared_root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-default-qualified-reproduction",
+  "verified_hardware_input_root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-datapath",
+  "byte_identical_hardware_inputs": {
+    "core.json": "ad982db4bfe56f6eebf6513d8a53d0b47360485851db43f7dd26323da65c0426",
+    "packed.v": "fe33c6a2552f9ce06200c540151df94713b92a93aa83ef55ccfaf79d4a3313ce",
+    "monitor.v": "a0e6148f7c1dec227bf001fa719b4188e46363b6b136ae7c0943c17d8ff8e4b4",
+    "uart.v": "e732f8b096eb487f949d99275d89775a5fc602619dfb53505e9e33584a273d89",
+    "board.v": "a8ceb22037da7e27cc480049cdcec7e88b61ecac2aae5aad6b145dc67a0d7633",
+    "board.xdc": "58c29c117a3a6f28ed535f8928f598116ed126fd86b1a2546026b160b10f8b1e",
+    "board.ys": "1192c9fe53ee7f5ef372a04db8879443e762199251076951bff6019deac00e0d",
+    "area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737"
+  },
+  "placement_options": {
+    "relocate_response_byte": true,
+    "snapshot_response": false,
+    "burst_clock": false
+  },
+  "all_preparation_hashes_verified": true,
+  "complete_physical_corpus_report": "docs/handoffs/red2-complete-physical-corpus-results.json",
+  "limits": [
+    "Exact preparation-input identity and previously verified placement recipe; no new full default build is claimed",
+    "Existing integer/256-word graph profile and list-equality execution gap remain",
+    "Burst and snapshot frontend variants remain optional experiments"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-default-qualified-reproduction/provenance.json": "1e62b8b9113a7320ae6924386f67def1e0777225841ebbf1bdcd6e51a6d94220",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-default-qualified-reproduction/board-placement-options.json": "e71f0e522bff81e8d3460061732c59b2cfb820998d70dfb71e8c5fe4a29612f8",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/prepare.py": "71b00785d3b6b384926b26dc311020b9b1517ac8aa25e9c55b479c1830f71d4a",
+    "/Users/billie/code/billiegoose/asgard/docs/handoffs/red2-complete-physical-corpus-results.json": "d484c81354fe0518857878d053b84846e01c7136dc5f6c42d1577485cc0064cc"
+  }
+}
