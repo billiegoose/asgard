@@ -18,7 +18,9 @@ floating arithmetic omitted, division retained, enhanced compiler unchanged.
   lifecycle, equality checkpoint and signed multiply pass every-bit native
   expected-output replay in frontend RTL and Xilinx primitives. The first full
   native equal-list program also passes 811,553-cycle every-626-bit RTL replay.
-  The remaining three duplicate native list programs continue as corroboration.
+  Native unequal-list also passes 642,136-cycle every-bit frontend RTL replay.
+  Its new RTL observation trace is byte-identical to native. The remaining two
+  duplicate native nested-list programs continue as corroboration.
 
 The immutable preparation gate is
 `docs/handoffs/synth-red2-shared-multiplier-results.json` (variant
@@ -33,13 +35,53 @@ wrapper adds exactly 949 LUTs and 2,200 FFs. Exact backward-cone identity matche
 23,061 original core primitives, all parameters, 30,767 bijective nets and all
 32 packed public fields after only cutting the core clock/command boundary.
 
-Build exec session **56972**, driver `run-physical.py`, progress
-`physical-progress.json`; map passed and placement is live in container
-`red2-multiplier-place`. Revalidate the actual session/container before waiting.
-It uses the existing pinned backend `e9fd42e7...`, chipdb alias, 10 MHz target,
-seed 1, four-thread analytical placement, eight serializer-pair relocation and
-router2 hold-fix=8. No automatic physical loader was started. The last confirmed
-board image remains the qualified f97 burst image `5e88122c...`.
+Mapping, placement, routing and bitstream generation have **completed**. The
+board uses **16,368 physical LUT sites**, leaving **4,432 spare**. Both domains
+pass the 10 MHz requirement: core 12.82 MHz, monitor 12.76 MHz estimated maximum.
+All 29,914 cell placements are preserved. It uses the existing pinned backend
+`e9fd42e7...`, chipdb alias, seed 1, four-thread analytical placement, eight
+serializer-pair relocation and router2 hold-fix=8. LUT INIT audit passes 20,428
+truth tables; the BRAM audit also passes.
+
+The new image `a0ef3f44...` is loaded in **volatile SRAM** on Basys 3 serial
+`210183735787`. Physical application replay passes **10,688 executed clocks /
+1,354 compared packet endpoints**, lifecycle passes **1,043 / 21**, signed
+multiply passes **46,855 / 1,375**, and the equality checkpoint passes
+**61,871 / 828**. Each endpoint compares all 626 public output bits with the
+native hardware-source trace. No every-cycle observation is claimed for burst
+replay. Each case starts from a fresh SRAM load; no UART retry/resume occurs.
+Full equal-list physical replay also **passes: 811,553 / 1,631**. Exec **6556**
+completed successfully, with `native-corpus-qualification.json` terminal PASS.
+The older f97 image `5e88122c...` remains the preserved fallback and is
+automatically restored on a physical replay failure.
+
+Validated RTL observation recording now retains a distinct expected-output
+origin, same-source binary/manifest hashes and completed Concrete RED2 semantic
+gate. Application observations exactly match all 10,688 native trace rows.
+Twenty-three focused regressions and Ruff pass. The wider observation corpus
+is live in exec **14079**, `run-observed-rtl-corpus.py`, with
+`rtl-observation-corpus-progress.json`; these are RTL observations rather than
+native expected-output traces. See `red2-rtl-observation-trace-results.json`.
+
+Physical replay against those validated observations is live in exec **84822**,
+`check-observed-corpus.py`, progress `observed-corpus-qualification.json`.
+It passes structure, add, signed-add, negative EVEN?, divide, modulo, exponent,
+signed-minimum multiply, high-magnitude divide and unequal-list. Only the two
+nested-list cases remain; the driver waits for each completed semantic trace
+gate before loading fresh SRAM and sending UART commands. Confirm the actual
+generator/replay child PID before waiting; do not restart an interrupted stream.
+
+The new optional `attribute_resources.py --lut-cones` report partitions all
+15,477 combinational LUTs by conservative endpoint reachability. The largest
+exclusive sets feed remaining core state (3,501) and scratch-memory inputs
+(2,979). These are not removable-area estimates. Five regressions pass; storage
+and DSP attribution remain unchanged. See `red2-lut-endpoint-attribution-results.json`.
+An optional shared left/right shifter experiment is being generated in
+`build/red2-shared-shift/shared-shift`, exec **88979**, progress `progress.json`.
+The current board source/image is unchanged. Exactly emitted shifter expressions
+pass 3,406 actual typed native comparisons; 9,694 independent Python comparisons
+also pass. With the flag disabled, emitted source and control tables remain byte
+identical to the measured baseline. No new area or RTL result is claimed yet.
 
 `audit_bram.py` is now copied and run after routing before frame generation.
 Eight regressions and a real preparation smoke pass. Both saved working/failed

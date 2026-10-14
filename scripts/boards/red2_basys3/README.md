@@ -8,37 +8,38 @@ edges. This preserves
 the public-port trace contract; continuously issuing CMD_NOP would still clock
 synchronous RAM reads and would not reproduce the same trace.
 
-The dedicated core maps to **17,266 LUTs**; the complete board maps to
-**18,144 LUTs**, with 8,525 flip-flops, 34.5 BRAM36 equivalents and 20 DSPs.
-The verified single-clock image uses **17,997 physical LUT sites**, leaving **2,803 spare**.
-Both domains pass the 10 MHz gate: core 10.05 MHz and monitor 10.51 MHz.
+The current dedicated core maps to **15,803 LUTs**, 6,170 flip-flops, 34.5
+BRAM36 equivalents and ten DSPs. The complete burst board maps to **16,752
+LUTs** and 8,370 flip-flops. Routing uses **16,368 physical LUT sites**, leaving
+**4,432 spare**. Both domains pass the 10 MHz requirement: estimated maximum
+12.82 MHz core and 12.76 MHz monitor.
 
-The FPGA passes all five recorded programs—function application, graph
-construction/access, addition, signed-boundary addition and negative EVEN?—plus
-queued lifecycle handling: **232,008 clocks, every 626-bit output compared**,
-with a fresh SRAM load per case. It also passes 131 graph-memory patterns.
-A controlled move of the final eight response-byte LUT/register pairs removes
-the three missing serializer lanes seen in the original placement. All core
-logic and placements are unchanged. The exact backend cause is unresolved;
-the default build recipe uses the verified adjustment and fails closed if its
-load-mux or placement assumptions change. See
-[the complete hardware evidence](../../../docs/handoffs/red2-complete-physical-corpus-results.json).
-Earlier failed images and diagnostics remain preserved in their dated reports.
+The new image has passed physical function application, lifecycle handling,
+signed multiplication, the equality checkpoint, full one-element list equality,
+and graph construction/access. The wider arithmetic/nested-list corpus is still
+being qualified. Every case starts with a fresh volatile SRAM load. Burst
+replay compares all 626 public output bits at packet endpoints; intermediate
+cycles are not individually observed. Expected-output origin and exact counts
+are recorded in [the current board evidence](../../../docs/handoffs/red2-shared-multiplier-board-results.json).
+
+The frozen [preparation gate](../../../docs/handoffs/synth-red2-shared-multiplier-results.json)
+records 820 native boundary/lifecycle witnesses, 15 complete RTL/Concrete
+programs, 26 saved-IF fixtures and four every-bit native-expected RTL/primitive
+replays. Full duplicate native list traces remain independently tracked. The
+current image uses corrected shared RAM requests and shared product hardware.
+
+The earlier f97 image remains a preserved fallback: its single-clock board uses
+17,997 physical LUT sites, and its burst board uses 17,932. It passed five
+programs plus lifecycle handling. See [the earlier hardware evidence](../../../docs/handoffs/red2-complete-physical-corpus-results.json).
+The final eight response-byte LUT/register pairs still use the verified
+placement adjustment; earlier failures and their diagnostics remain preserved.
 
 This is a processor monitor for bring-up. It does not execute RED2 in host
 software, and it does not yet provide an interactive THOR CLI on the board.
-The host sends previously compiled command vectors and compares every output
-bit. The existing supported-profile limitations still apply, including the
-recorded list-equality execution gap.
-
-The latest experimental core is separate from that qualified board image. It
-maps at **15,803 LUTs**, 6,170 FFs, 34.5 BRAM36 equivalents and ten DSPs, with
-corrected shared RAM requests and shared product hardware. Its
-[frozen preparation gate](../../../docs/handoffs/synth-red2-shared-multiplier-results.json)
-records 820 native boundary/lifecycle witnesses, 15 complete RTL/Concrete
-programs, 26 saved-IF fixtures and four every-bit native-expected RTL/primitive
-replays. Full duplicate native list traces remain independently tracked. A
-preparation gate does not establish a routed or working physical board.
+Floating arithmetic is omitted and division is retained. Saved-JOIN list
+equality is supported; direct/EP private primitive firing remains outside that
+support. Finite graph/control memory and the other recorded profile limits
+still apply.
 
 New builds run `audit_bram.py` after routing and before frame generation. The
 audit compares mapped known initialization bits, RAMB36 even/odd splitting,
