@@ -237,6 +237,8 @@ def main():
             "expected_output_origin", "native hardware-source simulation (legacy trace)"
         ),
         "expected_clocks": metadata["cycles"],
+        "comparison_scope": "every engine clock",
+        "output_bits_per_sample": metadata["output_width"],
         "completed_pass": False,
         "compared_clocks": 0,
     }
@@ -291,18 +293,33 @@ def main():
                             progress.update(
                                 record, "running", time.monotonic() - started
                             )
-                            print("BOARD_REPLAY_PROGRESS", executed, flush=True)
+                            print(
+                                "BOARD_REPLAY_PROGRESS",
+                                "executed_engine_clocks",
+                                executed,
+                                "compared_endpoint_samples"
+                                if args.burst_clock
+                                else "compared_engine_clocks",
+                                index + 1,
+                                flush=True,
+                            )
             record["completed_pass"] = True
             if args.burst_clock:
                 print(
                     "BOARD_BURST_REPLAY_PASS",
+                    "executed_engine_clocks",
                     executed,
-                    "endpoint_samples",
+                    "compared_endpoint_samples",
                     record["compared_samples"],
                     flush=True,
                 )
             else:
-                print("BOARD_REPLAY_PASS", metadata["cycles"], flush=True)
+                print(
+                    "BOARD_REPLAY_PASS",
+                    "compared_engine_clocks",
+                    metadata["cycles"],
+                    flush=True,
+                )
         except BaseException as exc:
             record["error"] = str(exc)
             raise

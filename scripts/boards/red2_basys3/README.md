@@ -156,6 +156,9 @@ rejects missing or inconsistent RTL validation metadata and preserves the origin
 and semantic scope in the physical result. In burst mode the reported executed
 clocks include intermediate cycles, while comparisons occur only at packet
 endpoints; `compared_samples` gives that smaller count.
+Console progress now explicitly labels `executed_engine_clocks` and either
+`compared_endpoint_samples` or `compared_engine_clocks`. New result records
+include `comparison_scope` and `output_bits_per_sample` in both modes.
 
 LD0 indicates MMCM lock, LD1 monitor readiness, LD2 core busy, LD3 core halted,
 LD4 a hardware/RED2 fault, LD5 a sticky transport error, LD6 an active response,
