@@ -1,94 +1,98 @@
 # RED2 current hardware checkpoint
 
-The objective remains active: improve the dedicated RED2 implementation while
-preserving RED2 semantics. Extra cycles and a fixed hardware control ROM are
-acceptable; another CPU running RED2 firmware is not. Use the enhanced PipelineC
-compiler. Do not confuse endpoint sampling with complete per-clock comparison.
+The objective remains active: improve dedicated RED2 hardware while preserving
+its semantics. More cycles and fixed hardware control ROMs are acceptable; a
+general-purpose CPU running RED2 firmware is not. Use enhanced PipelineC.
 
-The verified integer/256-word graph core source SHA256 is
+## Qualified hardware
+
+The core source remains
 `f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8`.
-Its working FPGA image SHA256 is
-`dd259c97f70e3edfe084d7e48dd2a541174ae36bd3681c5be26e50853f5f5e37`.
-It uses 17,997 physical LUT sites, leaving 2,803 spare, and passes routed 10 MHz
-timing. All five programs and queued lifecycle pass on the Basys 3: 232,008
-physical clocks, comparing every 626-bit output, fresh SRAM per case. See
-`red2-complete-physical-corpus-results.json`. The existing list-equality gap is
-not qualified by those passing programs.
+The new optional burst-clock image is built, routed, physically qualified and
+**loaded on the Basys 3**. Bitstream SHA256:
+`5e88122cefd085717d63258192d5fd60f3b9ab10e2ed8bc0e71d5c088b8a8df5`.
 
-The standard Basys preparation now defaults to the measured `dirty-writeback`
-core and the guarded eight-pair response-byte relocation recipe. Eight hardware
-inputs reproduce the verified preparation byte-for-byte. `--no-relocate-response-byte`
-disables relocation; snapshot response selects its alternative serializer;
-burst CLOCK remains optional. See `red2-basys3-default-recipe-results.json`.
-The maintained production machine source remains a separate reference. A fresh
-full default build is not claimed; the verified image used the recorded cached
-route and reproduced placement recipe.
+It uses 17,932 physical LUT sites (2,868 spare). Routed timing passes the 10 MHz
+target at 10.45 MHz core and 10.67 MHz monitor, with no hold violations. Mapping
+is 18,215 LUTs, 8,545 FF, 34.5 BRAM36 equivalents and 20 DSPs. The frontend adds
+71 mapped LUTs and 20 FF; the routed site count also reflects packing/placement.
+All 33,222 cell placements survive routing.
 
-Optional `--burst-clock` adds a UART frontend counter, keeping the core unchanged.
-Wire opcode 10 repeats core CLOCK/value zero 1 through 1,048,575 times, returning
-the last pre-edge status. The host groups only adjacent identical zero-value
-CLOCK commands, rejects native opcode 10 before serial access on this image,
-and records executed clocks and compared endpoint samples separately. Invalid
-counts, contiguous edges, TX stalls, complete payload and CRC pass simulation.
-A counter/echo FPGA fixture also passes; it contains no RED2 engine. The verified
-RED2 image was restored afterward. All five RED2 programs plus lifecycle pass
-burst monitor simulation: 232,008 clocks and 6,927 endpoint samples. There are
-57 passing focused tests. Source and evidence were pushed in `017c5bd`;
-default-recipe adoption was pushed in `2ae0a20`.
+All five programs plus queued lifecycle passed after a fresh SRAM load per case:
+232,008 executed clocks, comparing all 626 bits at 6,927 packet endpoints. The
+last load is `load-even-negative-result.json`. Host replay elapsed was 159.554
+seconds total versus 5,689.291 seconds for the earlier per-clock checks. This is
+a sampling/transport improvement; the configured kernel clock remains 10 MHz.
+The independent prior image compared every output on every clock for this same
+corpus. Do not claim burst endpoints establish intermediate-output comparison.
 
-The complete burst image is in `build/red2-basys3-burst-prepared`. It maps to
-18,215 LUTs (+71), 8,545 FF (+20), unchanged 34.5 BRAM36 equivalents and 20 DSPs.
-Placement and its guarded eight-pair relocation passed; estimated clocks are
-12.30 MHz core and 12.51 MHz monitor. Selected placement SHA256 is
-`631d624920ead748b3df86e6f175c8d76ef605a1af978ed39b941b733c1b9060`.
-Routing is running in Podman `red2-burst-route`, supervised by local PID 74444
-(`run-physical.py`). **Revalidate process identity, container and actual logs**
-before waiting, restarting or declaring completion. A timeout in observation is
-not a failed build. The existing stage has a one-hour route bound and unchanged
-fit, placement-preservation and 10 MHz timing gates before bitstream generation.
-Do not load an ungated or incomplete image.
+Everything is in `build/red2-basys3-burst-prepared`. Build driver PID 74444 and
+qualification watcher PID 84024 have **finished**. Their progress, driver logs,
+build manifest, final timing/fit audit and all six physical result/load/replay
+records confirm success. No serial replay client remains from this suite.
+`red2-burst-clock-results.json` records verified artifacts and result scopes.
 
-A separate qualification runner, PID 84024 (`qualify-after-build.py`), waits for
-that exact existing builder to end. It never restarts the build. Only after a
-completed gated build and an unused UART does it run `run-physical-suite.py`.
-The suite independently verifies every build artifact, copies host/helper source
-into immutable replay-tools, freshly loads SRAM for each of the six cases, and
-compares all 626 bits at each packet endpoint. It aborts on the first error,
-without UART retries, and restores the known working SRAM image on failure.
-The normal board UART is `/dev/cu.usbserial-2101837357871`, serial
-`210183735787`; SRAM writes only, never persistent flash. Do not start a second
-serial client while qualification is running.
+The default Basys recipe selects the qualified shared datapath with the guarded
+eight-pair response-byte relocation. Burst delivery remains optional. Default
+preparation reproduces eight hardware inputs from the prior single-clock image
+byte-for-byte; see `red2-basys3-default-recipe-results.json`. The maintained
+production machine source remains a separate reference. A fresh default full
+build is not claimed; the complete optional burst build is now qualified.
 
-Authoritative files in that build directory:
+Use `/dev/cu.usbserial-2101837357871`, board serial `210183735787`. SRAM only,
+never flash. Before any new hardware work, inspect current processes and image
+load records; do not infer external board state solely from this checkpoint.
 
-- `physical-progress.json`, `physical-driver.log`, `board-route.log`;
-- `qualification-progress.json`, `qualification-driver.log`;
-- after replay begins: `physical-suite-progress.json`,
-  `physical-suite-driver.log`, individual load/results/replay logs;
-- `build-result.json` exists only after the build gates complete.
+## Arithmetic sharing experiment
 
-`red2-burst-clock-results.json` records completed mapping, simulation, fixture and
-placement evidence plus the armed qualification runner. Routed timing and actual
-RED2 burst hardware replay remain unproven at this checkpoint. The earlier
-snapshot serializer saved 358 mapped LUTs but hit its one-hour route limit;
-no bitstream was generated and it did not replace the verified image.
+An isolated compare/subtract fusion proved equivalent for all 128 input bits
+using Yosys SAT. It saved one LUT and 15 CARRY4 blocks. This is not a substantial
+LUT reduction; no qualified source changed. See
+`red2-divider-subtract-probe-results.json` and its preserved RTL/log artifacts.
 
-A native-only list-equality diagnostic is also running, PID 79880, in
-`build/red2-list-equality-diagnostic/probe.py`. It loads a separate copy of the
-frozen candidate, adding a 16-bit diagnostic register/output that records the
-original generated-source line when a legacy unsupported-execution assignment
-fires. This copy is never synthesized or loaded on the FPGA; production,
-compiler and qualified core sources are unchanged. `probe-site.log` is the live
-result. The initial attempt to insert dynamic print calls was rejected during
-native pipeline elaboration and is retained in `probe.log`; it did not reproduce
-the semantic fault. The typed-register probe is still advancing and has not yet
-reported a fault location. Its test expression is
-`(EQUAL? (CONS 7 NIL) (CONS 7 NIL))`, historically faulting at commit 41 on both
-the old candidate and maintained production. Revalidate that process and inspect
-its final result before drawing a new conclusion.
+The larger candidate is `build/red2-arithmetic-sharing/div-loop`, with
+`MICRO_U64_DIV` appended to the existing extra-state configuration. It moves the
+divider iteration onto the existing shared hardware engine, preserving source
+operations and accepting additional physical cycles. Oracle and controller
+generation passed. Initial integration failed because `scalar_core.py` used the
+removed divider handler as an insertion anchor. The helper now locates the next
+retained source-ordered dispatch handler. Three regression tests and the existing
+18 partition checks pass. Regeneration of the normal configuration reproduces
+**exactly** the qualified f97 source; see `default-identity/integrated-stream`.
 
-Disk space is tight. Completed burst simulation binaries were losslessly
-compressed after explicit success; their original/archive hashes are recorded
-in `build/red2-burst-corpus-check/simulation-archives.json`. No active build
-inputs or qualification artifacts were removed. Podman free-block trimming
-also recovered space. Keep the verified image and all gate inputs intact.
+The new divider candidate successfully integrates with 124 entries, 14,893
+compact rows, 1,024 scratch words and 16,384 control-index words. The prior
+configuration has 123 entries and 14,846 rows with the same capacities. Both have
+200 private and 175 shared words. No complete-core LUT saving or RTL/physical
+parity is established for the new candidate yet.
+
+Typed checking is running as PID 2300 at this checkpoint, through
+`scripts/experiments/red2_cfg_pilot/check.py`, with `typed-check.log` in the
+candidate directory. **Revalidate the process and actual log** before waiting or
+restarting. `generation.log` preserves the initial anchor failure;
+`integration-retry.log` records successful integration. The initial
+`progress.json` only describes the failed generation wrapper, not the retry.
+After typed checks, require complete-top boundary/lifecycle checks, arithmetic
+program parity, enhanced-compiler RTL and a complete-core map before promotion.
+The qualified FPGA image must remain available throughout.
+
+## List-equality gap
+
+The native-only diagnostic PID 79880 has **finished**. It reproduced the fault
+before architectural commit 41: red2=0, hw=3, microstate=3, PC=62, direction=1.
+Its extra diagnostic register stayed zero, so it did not locate the retained
+legacy assignment that emitted the fault. The shared-control path needs further
+location work. See `red2-list-equality-diagnostic-results.json`.
+
+The instrumented copy and `probe-site.log` are in
+`build/red2-list-equality-diagnostic`. It was never synthesized or loaded; its
+extra register/status field is diagnostic only. The earlier dynamic-print
+attempt was rejected during native pipeline elaboration and is not a semantic
+reproduction. The unqualified expression is
+`(EQUAL? (CONS 7 NIL) (CONS 7 NIL))`. Passing other programs does not close this gap.
+
+Disk space remains tight. Completed simulation binaries were losslessly
+compressed with original/archive hashes recorded in
+`build/red2-burst-corpus-check/simulation-archives.json`. Keep all qualified build
+inputs intact; preserve historical intermediate artifacts through verified
+lossless archives when more space is needed.

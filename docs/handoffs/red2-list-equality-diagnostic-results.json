@@ -1,0 +1,30 @@
+{
+  "recorded_at_utc": "2026-10-14T00:58:16.912926+00:00",
+  "scope": "Native-only instrumented copy of the frozen candidate; no compiler, qualified source or FPGA image changed",
+  "program": "(EQUAL? (CONS 7 NIL) (CONS 7 NIL))",
+  "original_candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+  "reproduced_existing_fault": true,
+  "program_completed": false,
+  "fault": {
+    "before_architectural_commit": 41,
+    "red2_fault": 0,
+    "hw_fault": 3,
+    "microstate": 3,
+    "pc": 62,
+    "direction": 1,
+    "instrumented_legacy_fault_site": 0
+  },
+  "interpretation": "The fault is reproduced. The extra diagnostic register did not identify a retained legacy assignment; the emitting shared-control path still needs to be located.",
+  "limitations": [
+    "Extra native-only register and status field; this diagnostic copy is never mapped or loaded",
+    "No complete list-equality parity claim",
+    "The first dynamic-print instrumentation was rejected by native pipeline elaboration and is not a semantic-fault reproduction"
+  ],
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe-site.log": "6bcbab02ba74c6b053b0a09708922823b434a3c743de63af70f1455771a2d492",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe.py": "1b1c519f3ed8443e35d248a38f94190ef9e0d2a636679638afcc5434c9521120",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/integrated-stream/machine.py": "7aca35f8ddfdbfd5b7dd94b615e34b27e288360361208ca1a181a54e47e856a7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/diagnostic.json": "3196f75b56e0d72b28a4850c51b35b156ec4c2d7780624890790123fedd3ae89",
+    "/Users/billie/code/billiegoose/asgard/build/red2-list-equality-diagnostic/probe.log": "a16901f16b6492fa4a596d290967daf97a81d51a3eab62c7fd9016b410324d7f"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "recorded_at_utc": "2026-10-14T00:47:24.906697+00:00",
+  "scope": "Isolated unsigned 64-bit compare/subtract lane; structural arithmetic hypothesis, no complete RED2 change",
+  "frontend": "Standalone Verilog matching the existing arithmetic expressions; qualified RED2 source and enhanced PipelineC compiler unchanged",
+  "equivalence": {
+    "all_128_input_bits_unconstrained": true,
+    "outputs_proven": [
+      "unsigned greater-or-equal",
+      "conditional subtraction result"
+    ],
+    "method": "Yosys SAT, positive SUCCESS marker; no timeout counted as success",
+    "passed": true
+  },
+  "baseline_resources": {
+    "top": "baseline",
+    "lut": 129,
+    "lut_memory": 0,
+    "lut_total": 129,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 0,
+    "bram18": 0,
+    "bram36": 0,
+    "bram36_equivalent": 0.0,
+    "dsp48": 0,
+    "carry4": 32,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "CARRY4": 32,
+      "LUT2": 64,
+      "LUT3": 64,
+      "LUT4": 1
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "fused_resources": {
+    "top": "fused",
+    "lut": 128,
+    "lut_memory": 0,
+    "lut_total": 128,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 0,
+    "bram18": 0,
+    "bram36": 0,
+    "bram36_equivalent": 0.0,
+    "dsp48": 0,
+    "carry4": 17,
+    "muxf7": 0,
+    "muxf8": 0,
+    "primitives": {
+      "CARRY4": 17,
+      "INV": 1,
+      "LUT2": 64,
+      "LUT3": 64
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "lut_saving": 1,
+  "CARRY4_saving": 15,
+  "decision": "Do not pursue this as a substantial LUT optimization; investigate placing the divider loop on the existing shared hardware engine",
+  "limitations": [
+    "Isolated map, not an additive complete-core resource saving",
+    "No new RED2 source, routed image or physical arithmetic qualification is claimed"
+  ],
+  "verilog_source": "module baseline(input [63:0] remainder, divisor,\n                output [63:0] result, output ge);\n    wire [63:0] low_delta = (remainder & 64'h7fffffffffffffff)\n                         - (divisor & 64'h7fffffffffffffff);\n    assign ge = remainder[63] == divisor[63] ? !low_delta[63] : remainder[63];\n    assign result = ge ? remainder - divisor : remainder;\nendmodule\nmodule fused(input [63:0] remainder, divisor,\n             output [63:0] result, output ge);\n    wire [64:0] delta = {1'b0, remainder} - {1'b0, divisor};\n    assign ge = !delta[64];\n    assign result = ge ? delta[63:0] : remainder;\nendmodule\nmodule miter(input [63:0] remainder, divisor, output equivalent);\n    wire [63:0] original_result, fused_result;\n    wire original_ge, fused_ge;\n    baseline a(remainder, divisor, original_result, original_ge);\n    fused b(remainder, divisor, fused_result, fused_ge);\n    assign equivalent = original_result == fused_result && original_ge == fused_ge;\nendmodule\n",
+  "artifacts_sha256": {
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/lanes.v": "1e5b9b618a6dfe6fd398d33cbd77adfc98721e0f65198be553e2917e8c3b5377",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/run.py": "3e8f2b0439b864b2e3ebe88ac2be365b8f9bdc2d4d0d6c37cf4c04a04d23f788",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/equivalence.ys": "472b936935b022a6dc6348f1f439ea8cb77b30753d6a4eae1a2c844b0eb9aca8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/equivalence.log": "421324c285f5270ce556547a87205977b939e018a3d6edad477a0390addaebaf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/baseline.ys": "6946e71a7dd50237be6dd5b3827ac997da0c1d91a05f379b182d2140517e89a3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/fused.ys": "a5edc768687204d244f8e06e0ecc373324fa7a8f9447acfbd9f5779d10568d27",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/baseline-map.log": "b9dfb4e61d10325923c0650801d5dde88804f3c0f0a24fc0009263546ecc1b93",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/fused-map.log": "af45c9fb78dc3e09e957ea212b28058aefed8df9a6b81f788d2ce252bec7f427",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/baseline-resources.json": "b7bccab70e23aa77589a445ecefb9df194a6789f22d329e7f5de842d00cff4a9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/fused-resources.json": "432d4787248b4055d19f880cdf59ecd9150398e16ad79b24b0d781e239c41b3d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/tool-version.txt": "99e8a511df43beb09b4c761d613ea933e5dd2648ca9b9179839077fbdc535dcf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-divider-subtract-probe/result.json": "791a556227b72853126c760c2d77f106187d7400f60e8614f2c0b0b40f25f11a"
+  }
+}

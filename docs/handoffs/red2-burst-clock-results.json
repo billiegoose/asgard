@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-14T00:08:28.319069+00:00",
-  "scope": "Optional counted CLOCK delivery in UART frontend; dedicated RED2 core unchanged; experimental until complete RED2 board replay passes",
+  "scope": "Qualified optional UART counted CLOCK delivery on Basys 3 for five programs plus lifecycle; dedicated RED2 core unchanged",
   "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
   "source_monitor_byte_identical_to_hardware_tested_fixture": true,
   "mapped_core_byte_identical_to_previous_prepared_candidate": true,
@@ -250,17 +250,17 @@
   },
   "active_build": {
     "root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared",
-    "driver_pid": 74444,
-    "phase": "routing",
+    "driver_pid": null,
+    "phase": "complete",
     "loads_board_automatically": false
   },
-  "burst_RED2_routed_timing_passed": false,
-  "burst_RED2_physical_replay_passed": false,
+  "burst_RED2_routed_timing_passed": true,
+  "burst_RED2_physical_replay_passed": true,
   "limitations": [
-    "Counter/echo hardware fixture contains no RED2 core",
-    "Full burst-enabled RED2 design still requires routing, timing and physical replay",
-    "Burst replay compares endpoints only; use legacy per-clock replay for complete output comparison",
-    "Existing integer/256-word graph profile and list-equality execution gap remain unchanged"
+    "Recorded integer/256-word graph profile and six traces; no exhaustive ISA claim",
+    "Burst replay compares packet endpoints only; the separate verified prior image has complete per-clock physical comparisons",
+    "Existing list-equality execution gap remains unresolved",
+    "Physical LUT count is placement-dependent; the frontend adds 71 mapped LUTs despite the smaller routed site count"
   ],
   "artifacts_sha256": {
     "/Users/billie/code/billiegoose/asgard/build/red2-burst-selftest/physical-result.json": "4044ee12fac6649291f52965ef4e249fd05867fe076aa0f63e36b7ea6d9c0f5d",
@@ -340,9 +340,58 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-route.sdc": "b458ef73007a8fa93dc6de67f3c4422d3710e220a8b63514d1665a54147526a8",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualify-after-build.py": "234c577fa73bad3f842068dbb0d0a2d3a60bfa496602a4c847983e534ae190e8",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/run-physical-suite.py": "944f9020ab121950d40c617f5582c75c96ae2988bfe63b609c166320f6fd58f5",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-launch.json": "4ec687a600bfd3ee0f7b048208d38112e91dac6f193ed63f769aac753baa7dbd"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-launch.json": "4ec687a600bfd3ee0f7b048208d38112e91dac6f193ed63f769aac753baa7dbd",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/build-result.json": "1bbdbb8a872ccc53caad8b612dd82d333120638c75ffd5a0841a00443d6e049e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-route.log": "2ac1f26335faa193e240266af9b4f4641cc9977ce6dfee396898c7047de7bcc2",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-physical-lut-sites.json": "0e1e09664d7330f5721acaec04cf6aed4d323b87017f10b898395cffb1b6d832",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-timing.json": "d3d77c818d6a8121bff76a5c64c174ecdf43d66cc87894825fd8d9df0f78d612",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-route-report.json": "f5842c8d1f9142ccf278341d32f95936154291b75b72799949e777249b8bddab",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-routed.json": "c2c479ca49aa45a6f0e00c6ff01a17028bcd9a914794328f27c5e67564bacb96",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-progress.json": "17e5afad77777e6b4e0326e512174d5f6e0c536d73a1443e73c96a0ef7c69547",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-driver.log": "40dd1db7b74277c29a0a886f637d3fa84d64686a77dc926c5764ccd6bc697117",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/physical-suite-progress.json": "8a7bc660d946b3b825b8b0afcec6ade6fee0c63e67087cfc01be610ee4ecc71b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/physical-suite-driver.log": "e6f896952ba1b83821195ba2e3771f6fba4c086ad04445bb2a099754650f82ba",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/replay-tools/host.py": "cd19e014ff1d0ff81fbf264f7e61d4f5b6c82d6a0c144d4810b5be6ac120144d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/replay-tools/burst_monitor.py": "51d8e8b0a0b7376470ad622350a7337921dcb493e2a1094a5b6dae7fe63acff4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/application-burst-result.json": "2afad640197220fac5416ae3659681467d1efe83ffe34d435323633163f69ddf",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/application-burst-result.progress.json": "8a85226151ae07e8ce339fdda176e31a17106e07ed69916c23d49dd879dd6781",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/application-burst-replay.log": "63a4b359c24ae429fbd87933b2b4015208e47df176001423a22c16ba9511591b",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-application-result.json": "bade990fce396d4455e7a151ecdb3f67df654b7c435598606f16f8539e86385f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-application.log": "14a9f6fe18456817f8289c5e3597209bc27aa96521773ecec7e21a83d9812c57",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-application.py": "8cedc74becb158019d8c28580f533de4594f807ee881627d4bb5aa6549451124",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/lifecycle-burst-result.json": "0420f197c89828a8dd319b6c5f64f101ba91177e241e85b7267c5a750548e4de",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/lifecycle-burst-result.progress.json": "0d9e89f9ae3271f98f6638b485c49466dd5b9048a806c704385145927bc9827e",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/lifecycle-burst-replay.log": "378ba99710622371c267b7092b2d4e747e2c2f59b36be2a10fea34123d7ae843",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-lifecycle-result.json": "4164d4cee695f1113d4d7a59e7712079b6e5328a085ea3f66f4a2c87c6195b86",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-lifecycle.log": "4e5c9f3d19d70714195d3efb2246a617744c1fa3778b7079b59a22a9176a0c4f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-lifecycle.py": "7f57dba56c331693c18c4f661ca9f1631472f060408410177547cbd768f41b2f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/structure-burst-result.json": "7962c1d315b37cb1523159b303153cc001540f4a7b6d7a934c3d60775fad1201",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/structure-burst-result.progress.json": "6d82bec0abcc8e9fafe2251b8b4ee56f611e7f2db74bfec55d8ad74d11024e61",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/structure-burst-replay.log": "9b4a5c38e808f4a5abcca1c3419753a48bc5aa1744245ed809aaca2a801a29d1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-structure-result.json": "92606b8860921aa37ddc6947b2a3c13763d155ed553cf4250d68b292e1c59709",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-structure.log": "3be68d05e499df033bc8bc2818dc9375f9b3316e5d54abee48986fd62a5dd6c5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-structure.py": "1e6d774717c2b0fabe7c1900b1ff239f5c5faf8b060769f5347e532ff2b6e037",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/add-burst-result.json": "e2e7722d7c5412f4cf45e30ad164032035b4d235aae5e6b106340962346e9915",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/add-burst-result.progress.json": "dd4b3565d63d7eb18aa0c2122018a4a8ba17402cb3ab62c173426c363d6799e3",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/add-burst-replay.log": "483d812b860aa2eb816c0cbb9521793080c58edc41d194f2a1602595d2e8c5b7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-add-result.json": "896a200e23c4d8cb9276446e20292c6ee29ab4c6d1ffb2e281fd540b19eb7030",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-add.log": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-add.py": "0a0dc69f3fa8255776f454c8abda9555822e46eb8483be6e1bfc2c9e71e74216",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/signed-add-burst-result.json": "4aaf61c37d121878cfbb9d3484d8e0723f99cb39e933bfc2341aaf98d68e703a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/signed-add-burst-result.progress.json": "acd8e861608a6ce9a4707b7577da96e59ff914910becdd460a7eca7996924ac9",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/signed-add-burst-replay.log": "483d812b860aa2eb816c0cbb9521793080c58edc41d194f2a1602595d2e8c5b7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-signed-add-result.json": "04a0334a326c311c57a0732ad4e37aa86511b8a482d81382d2fb9f9ef0ca19e8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-signed-add.log": "10fb1ab262273f6282f83073617b5e5a10b571c9b1c6d044971b97a50dac6ec6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-signed-add.py": "97dd4c926f05cf243fc799f3fcf1010efb275389619fb3ea9eed0b955ddce60a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/even-negative-burst-result.json": "6fd1adf1459a959ecec9f1d3b5678d2b32702358230463430914a9b6956ca3fe",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/even-negative-burst-result.progress.json": "3c9e32fa0828844cf388f8cc01b901c73683370c9e710a494b98937ddda4fce5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/even-negative-burst-replay.log": "dc4c35599a5b44ed11b451b97d1064eea9b5de130e02f63f37e2216d834da16f",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-even-negative-result.json": "b754e29e9496f2db79d37c850ca58763a8bd33980ea4014eceb506088b56eba7",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-even-negative.log": "d2a182728fa2225017567d46b624c91a1d67e39473499b399dc74e2c6bc28ba8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/program-even-negative.py": "73f4ee5bfa48e384502c260954e9b010674ef5258c0932f3661dbf960e5b6897",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/record-physical-burst.py": "c4863b8123c56f0c86dbf78032627d406e022e79550d7ec26efb2eb5e0a9b1f6"
   },
-  "updated_at_utc": "2026-10-14T00:26:53.098881+00:00",
+  "updated_at_utc": "2026-10-14T00:47:26.048398+00:00",
   "placement": {
     "passed": true,
     "clock_estimates": {
@@ -362,10 +411,175 @@
     "routed_timing_still_required": true
   },
   "qualification_runner": {
-    "pid": 84024,
-    "state": "waiting for existing build driver to finish",
+    "pid": null,
+    "state": "passed",
     "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-progress.json",
     "loads_board_after_successful_build_only": true,
     "suite": "All five programs plus lifecycle; fresh SRAM per case; endpoint comparisons only; restore known working image on replay failure"
+  },
+  "physical_RED2_burst_corpus": {
+    "cases": {
+      "application": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "ba38aaa2f076fef7d4b36fb32db9113c72ecd128021abe6830ac46e6f45b1a4c",
+          "expected_clocks": 10683,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 10683,
+          "compared_samples": 1354,
+          "expected_samples": 1354,
+          "last_compared_clock": 10682,
+          "elapsed_seconds": 30.471
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "bade990fce396d4455e7a151ecdb3f67df654b7c435598606f16f8539e86385f"
+      },
+      "lifecycle": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "249a35190350f8fba5f5bbe89591fecf8b6f954f019389c77c1f3baad6b0da96",
+          "expected_clocks": 1018,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 1018,
+          "compared_samples": 21,
+          "expected_samples": 21,
+          "last_compared_clock": 1017,
+          "elapsed_seconds": 0.454
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "4164d4cee695f1113d4d7a59e7712079b6e5328a085ea3f66f4a2c87c6195b86"
+      },
+      "structure": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "07ff1e0bc605914d6c0bf205b97b7d6eef7c99a51d3122fdf635e035e1f70571",
+          "expected_clocks": 123200,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 123200,
+          "compared_samples": 1445,
+          "expected_samples": 1445,
+          "last_compared_clock": 123199,
+          "elapsed_seconds": 33.332
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "92606b8860921aa37ddc6947b2a3c13763d155ed553cf4250d68b292e1c59709"
+      },
+      "add": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "8ac87d3d5423abf825b2e14817f66f2f866b85f24f5918a1937431b2f59d9194",
+          "expected_clocks": 26226,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 26226,
+          "compared_samples": 1375,
+          "expected_samples": 1375,
+          "last_compared_clock": 26225,
+          "elapsed_seconds": 31.558
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "896a200e23c4d8cb9276446e20292c6ee29ab4c6d1ffb2e281fd540b19eb7030"
+      },
+      "signed-add": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "d27a8de9ccc5d87f689a5425a980b3f2cd5189277b6c463fb0d781581829d6dc",
+          "expected_clocks": 26226,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 26226,
+          "compared_samples": 1375,
+          "expected_samples": 1375,
+          "last_compared_clock": 26225,
+          "elapsed_seconds": 31.188
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "04a0334a326c311c57a0732ad4e37aa86511b8a482d81382d2fb9f9ef0ca19e8"
+      },
+      "even-negative": {
+        "result": {
+          "port": "/dev/cu.usbserial-2101837357871",
+          "candidate_source_sha256": "f97b169a1610f0235fed2bf3f701d3989e1567daa97ce668a36cc2e5403195e8",
+          "prepared_provenance_sha256": "58e05b28627d0da2b065806c2caee12b40ff8c70e395ef619c6012a83164878c",
+          "vectors_sha256": "761b37685d9cf1bf70a781db0425aa16426d8700ee49dce9b97bfb5222d3bfcf",
+          "expected_clocks": 44655,
+          "completed_pass": true,
+          "burst_clock": true,
+          "comparison_scope": "packet endpoints only",
+          "executed_clock_count_scope": "confirmed packets; lower bound on failure",
+          "executed_clocks": 44655,
+          "compared_samples": 1357,
+          "expected_samples": 1357,
+          "last_compared_clock": 44654,
+          "elapsed_seconds": 32.551
+        },
+        "all_output_bits_per_endpoint": 626,
+        "fresh_SRAM_load_result_sha256": "b754e29e9496f2db79d37c850ca58763a8bd33980ea4014eceb506088b56eba7"
+      }
+    },
+    "executed_clocks": 232008,
+    "compared_endpoint_samples": 6927,
+    "comparison_scope": "Every 626-bit packet endpoint; intermediate burst outputs are not compared",
+    "fresh_SRAM_per_case": true,
+    "no_implicit_UART_retries": true,
+    "passed": true
+  },
+  "routed_resources": {
+    "placed_netlist_sha256": "631d624920ead748b3df86e6f175c8d76ef605a1af978ed39b941b733c1b9060",
+    "routed_netlist_sha256": "c2c479ca49aa45a6f0e00c6ff01a17028bcd9a914794328f27c5e67564bacb96",
+    "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+    "preserved_cell_placements": 33222,
+    "lut_half_cells": 23675,
+    "unique_physical_lut_sites": 17932,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+  },
+  "routed_clocks": {
+    "core_clock": {
+      "achieved_mhz": 10.45,
+      "status": "PASS",
+      "required_mhz": 10.0
+    },
+    "clock": {
+      "achieved_mhz": 10.67,
+      "status": "PASS",
+      "required_mhz": 10.0
+    }
+  },
+  "current_qualified_RED2_image": {
+    "bitstream_sha256": "5e88122cefd085717d63258192d5fd60f3b9ab10e2ed8bc0e71d5c088b8a8df5",
+    "last_successful_SRAM_load_result": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-even-negative-result.json",
+    "loaded_on_board": true,
+    "configured_core_clock_mhz": 10
+  },
+  "replay_elapsed_comparison": {
+    "prior_per_clock_host_seconds": 5689.291,
+    "burst_endpoint_host_seconds": 159.554,
+    "host_elapsed_speedup": 35.66,
+    "scope": "Recorded host replay elapsed, excludes SRAM programming; kernel frequency and core logic unchanged"
   }
 }

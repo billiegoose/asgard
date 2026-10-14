@@ -483,7 +483,9 @@ pass on the Basys 3: 232,008 clocks, comparing every 626-bit output, with a fres
 SRAM load per case. See
 [the complete physical corpus](../../../docs/handoffs/red2-complete-physical-corpus-results.json)
 and [the board build instructions](../../boards/red2_basys3/README.md).
-The optional burst-clock frontend has separate endpoint-only validation and
-still requires qualification of its complete FPGA image. The experimental top
+The optional burst-clock frontend also passes the complete physical corpus,
+comparing all 626 bits at its 6,927 packet endpoints across 232,008 executed
+clocks. Its complete image uses 17,932 physical LUT sites and passes routed
+10 MHz timing; see [the burst evidence](../../../docs/handoffs/red2-burst-clock-results.json). The experimental top
 remains separate from maintained production source; the existing list-equality
 execution gap remains outside the passing profile.

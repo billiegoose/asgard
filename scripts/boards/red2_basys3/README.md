@@ -2,14 +2,15 @@
 
 The first board target exposes the RTL-validated dedicated RED2 core through
 115200-baud USB UART. It uses a 100 MHz to 10 MHz MMCM and a BUFGCE at the core
-boundary. The core, including its synchronous RAMs, receives exactly one rising
-edge per accepted command. Between packets it receives no edges. This preserves
+boundary. In default mode the core, including its synchronous RAMs, receives
+exactly one rising edge per accepted command. Between packets it receives no
+edges. This preserves
 the public-port trace contract; continuously issuing CMD_NOP would still clock
 synchronous RAM reads and would not reproduce the same trace.
 
 The dedicated core maps to **17,266 LUTs**; the complete board maps to
 **18,144 LUTs**, with 8,525 flip-flops, 34.5 BRAM36 equivalents and 20 DSPs.
-The working image uses **17,997 physical LUT sites**, leaving **2,803 spare**.
+The verified single-clock image uses **17,997 physical LUT sites**, leaving **2,803 spare**.
 Both domains pass the 10 MHz gate: core 10.05 MHz and monitor 10.51 MHz.
 
 The FPGA passes all five recorded programs—function application, graph
@@ -240,7 +241,7 @@ This qualifies the recorded integer/256-word graph profile and these traces;
 it does not establish exhaustive ISA coverage. The existing list-equality
 execution gap remains.
 
-## Experimental counted CLOCK delivery
+## Counted CLOCK delivery (optional)
 
 `prepare.py --burst-clock` adds a counted-clock controller to the UART frontend.
 The dedicated RED2 core is unchanged. Wire opcode 10 carries a 20-bit count in
@@ -277,7 +278,32 @@ python3 scripts/boards/red2_basys3/prepare.py \
 Exact-count simulation checks the minimum, maximum and intermediate counts,
 contiguous core edges, the complete status payload and CRC, transmit stalls,
 and invalid-count recovery. A physical counter/echo fixture also passes these
-counts; that fixture contains no RED2 core and does not qualify RED2 at full speed.
-The complete burst-enabled RED2 image still needs routed timing and hardware
-replay before promotion. See
+counts; that fixture contains no RED2 core. The complete burst-enabled RED2 image
+now also passes all five programs and queued lifecycle on the Basys 3:
+**232,008 executed clocks and 6,927 compared endpoints**, with all 626 bits checked
+at each endpoint and a fresh SRAM load per case. The core receives consecutive
+10 MHz edges within each burst.
+
+This image uses **17,932 physical LUT sites** (2,868 spare) and passes the 10 MHz
+routed timing gate at **10.45 MHz core / 10.67 MHz monitor**, with no hold
+violations. Mapping is 18,215 LUTs, 8,545 FF, 34.5 BRAM36 equivalents and 20 DSPs.
+The mapped frontend adds 71 LUTs and 20 FF; the physical site count also reflects
+packing and placement. Its bitstream SHA256 is
+`5e88122cefd085717d63258192d5fd60f3b9ab10e2ed8bc0e71d5c088b8a8df5`.
+The recorded host replays took 159.554 seconds total, versus 5,689.291 seconds
+for the separate per-clock checks: about 35.66 times less host elapsed time.
+That comparison changes the sampling scope; the RED2 kernel and its configured
+clock frequency are unchanged. See
 [the burst evidence](../../../docs/handoffs/red2-burst-clock-results.json).
+
+Load this specific image before using the burst host option:
+
+```sh
+openFPGALoader --board basys3 --ftdi-serial 210183735787 --write-sram \
+  --bitstream build/red2-basys3-burst-prepared/red2_basys3.bit
+python3 scripts/boards/red2_basys3/host.py --burst-clock \
+  --port /dev/cu.usbserial-2101837357871 \
+  --prepared build/red2-basys3-burst-prepared \
+  --log build/red2-basys3-burst-prepared/application-next-result.json \
+  build/red2-datapath-sharing/dirty-writeback/rtl-application/vectors.txt
+```
