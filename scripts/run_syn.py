@@ -11,6 +11,7 @@ from pathlib import Path
 from pipelinec_toolchain import (
     DEFAULT_PIPELINEC_ROOT,
     configured_root,
+    ensure_python_compatibility,
     verify_enhanced_compiler,
 )
 
@@ -42,6 +43,7 @@ def _bootstrap_import_paths() -> None:
         checkout_path_set = set(checkout_paths)
         sys.path[:] = [value for value in sys.path if value not in checkout_path_set]
         sys.path[:0] = checkout_paths
+        ensure_python_compatibility()
         return
 
     raise RuntimeError(

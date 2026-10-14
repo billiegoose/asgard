@@ -35,6 +35,11 @@ implement architectural RESET/LOAD_STATE or undo an already accepted RAM write.
 Generate and validate, with Python 3.14 and the native PipelineC dependencies
 used by `scripts/check_syn_sim.py`:
 
+The compiler Python environment must provide `setuptools` on Python 3.12 and
+later. The native and frontend launchers load its maintained `distutils`
+compatibility package when the standard-library package is absent. Temporary
+`/tmp` import shims are no longer required; the pinned compiler stays unchanged.
+
 ```sh
 export RED2_CFG_PILOT_OUT="$PWD/build/red2-cfg-pilot"
 python3 scripts/experiments/red2_cfg_pilot/oracle.py

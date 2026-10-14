@@ -31,15 +31,14 @@ environment["PYTHONPATH"] = os.pathsep.join(
 )
 with (root / "frontend.log").open("w") as log:
     subprocess.run(
-        [
-            sys.executable,
-            str(compiler / "src" / "pypelinec"),
+        tc.compiler_python_command(
+            compiler / "src" / "pypelinec",
             str(root / "machine.py"),
             "--comb",
             "--no_synth",
             "--out_dir",
             str(root / "hdl"),
-        ],
+        ),
         env=environment,
         stdout=log,
         stderr=subprocess.STDOUT,

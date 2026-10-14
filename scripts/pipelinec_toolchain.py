@@ -1,8 +1,10 @@
 """One reproducible enhanced PipelineC selection for simulation and lowering."""
 
 import hashlib
+import importlib
 import json
 import os
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +15,36 @@ PIPELINEC_PATCHES = REPO_ROOT / "tools" / "fpgatool" / "toolchain" / "patches"
 DEFAULT_PIPELINEC_ROOT = REPO_ROOT / "build" / (
     "pipelinec-enhanced-" + hashlib.sha256(MANIFEST.read_bytes()).hexdigest()[:12]
 )
+
+
+def ensure_python_compatibility() -> None:
+    """Provide PipelineC's legacy directory utility on Python 3.12 and later."""
+    try:
+        importlib.import_module("distutils.dir_util")
+    except ModuleNotFoundError as error:
+        if error.name not in {"distutils", "distutils.dir_util"}:
+            raise
+        # setuptools installs its maintained distutils implementation. This
+        # avoids relying on a temporary, locally recreated stdlib package.
+        importlib.import_module("setuptools")
+        importlib.import_module("distutils.dir_util")
+
+
+def compiler_python_command(script: Path, *arguments: str) -> list[str]:
+    """Bootstrap legacy imports without modifying the pinned compiler source."""
+    bootstrap = (
+        "import importlib, runpy, sys\n"
+        "try:\n"
+        "    importlib.import_module('distutils.dir_util')\n"
+        "except ModuleNotFoundError as error:\n"
+        "    if error.name not in {'distutils', 'distutils.dir_util'}:\n"
+        "        raise\n"
+        "    importlib.import_module('setuptools')\n"
+        "    importlib.import_module('distutils.dir_util')\n"
+        "sys.argv = sys.argv[1:]\n"
+        "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+    )
+    return [sys.executable, "-c", bootstrap, str(script), *arguments]
 
 
 def configured_root() -> Path:
