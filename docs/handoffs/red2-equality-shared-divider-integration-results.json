@@ -39,7 +39,8 @@
     "complete_top_boundary_and_programs_passed": false,
     "RTL_replay_passed": false,
     "core_synthesis_available": false,
-    "board_programmed": false
+    "board_programmed": false,
+    "exact_enhanced_RTL_elaboration_passed": true
   },
   "live_jobs": {
     "frontend": {
@@ -51,6 +52,11 @@
       "pid": 62773,
       "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py",
       "mode": "native"
+    },
+    "complete_core_measurement": {
+      "pid": 64820,
+      "script": "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-map.py",
+      "scope": "Measure the actual combined source independently of the older frozen divider fit"
     }
   },
   "limitations": [
@@ -71,6 +77,11 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/machine.py": "202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b",
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/integrated-stream/integration.json": "0f8cc947effa7b528ba62d58877ec43319a2a07c93d7591e5da93a29fcec95f8",
     "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-generate-typed.py": "5ec14c5cdc1ec1fea1ff352d48f9a04c3c807d54370a368741e6abd3cca723e7",
-    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py": "287598d6168be7650ff1238a0d0c68ea41aeb5895879ccb7984ff42f55faacd1"
-  }
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-next-gates.py": "287598d6168be7650ff1238a0d0c68ea41aeb5895879ccb7984ff42f55faacd1",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/frontend-progress.json": "02f288ab58c328b68c4443fc998375e8ae4279bdd45d5c47bfd25d681731b7d6",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/frontend-check.log": "3189df4733dd75a45bbcae219c6e9816dcd8d3e2f37673c9818af7cb212d61a8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/map-launch.json": "cd5918aeea7ff604d6b1f16df27027227d8a5668d0887cee1a2e77aec1390e46",
+    "/Users/billie/code/billiegoose/asgard/build/red2-equality-integrated/shared-divider/run-map.py": "ed0e82298c5ff7367de1037aa40e6e489c5c77f03fbc1e798a05d1ef18cd9360"
+  },
+  "updated_at_utc": "2026-10-14T03:00:38.200598+00:00"
 }

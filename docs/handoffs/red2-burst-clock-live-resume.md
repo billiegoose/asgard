@@ -142,15 +142,20 @@ with mandatory integer corners pass**. Combined source SHA256:
 `202f71828d84269d7f491dab383753473fa0bc0de89ee796bc073de9c3dda68b`.
 See `red2-equality-shared-divider-integration-results.json`.
 
-Two exact-source gates are running via `run-next-gates.py`: enhanced RTL frontend
-driver PID 62772 (mode `frontend`) and complete-top native driver PID 62773 (mode
-`native`). The latter runs all boundary/lifecycle witnesses, then records fresh
-public-port native/concrete traces for equal/unequal simple and nested lists.
-Inspect `frontend-progress.json`, `native-progress.json`, driver/stage logs and
-actual process identity before waiting or retrying. Program traces require a
-successful exact-source frontend. No new RTL replay, area map or board result is
-claimed for this combined source. It still needs appropriate arithmetic/public
-lifecycle traces, RTL/mapped replay, complete map and physical qualification.
+Enhanced RTL frontend driver PID 62772 **finished successfully**. Complete-top
+native driver PID 62773 (`run-next-gates.py native`) is running all boundary and
+lifecycle witnesses, then records public-port native/concrete traces for equal/
+unequal simple and nested lists. Inspect `native-progress.json`, driver/stage
+logs and actual process identity before waiting or retrying.
+
+Exact combined-source area measurement driver PID 64820 (`run-map.py`) is also
+running: it reuses that completed exact-source enhanced frontend, pins all HDL
+inputs, prepares the same area flow and measures the complete core. Its container
+is `red2-equality-divider-map`; inspect `map-progress.json`, driver/stage logs and
+actual process/container identity. This source includes new semantics, so any
+comparison against f97 is **not isolated divider attribution**. No combined-core
+LUT result, RTL replay or board qualification is established yet. It still needs
+arithmetic/public lifecycle traces, RTL/mapped replay and physical qualification.
 
 ## Artifact storage
 
