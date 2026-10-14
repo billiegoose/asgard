@@ -35,8 +35,10 @@ programs plus lifecycle handling. See [the earlier hardware evidence](../../../d
 The final eight response-byte LUT/register pairs still use the verified
 placement adjustment; earlier failures and their diagnostics remain preserved.
 
-This is a processor monitor for bring-up. It does not execute RED2 in host
-software, and it does not yet provide an interactive THOR CLI on the board.
+The monitor also runs freshly compiled THOR through `run.py`. The host compiles
+and loads a graph, the FPGA performs RED2 reductions, and the host decodes the
+graph read back from the FPGA. CLOCK/UART effects use the existing host I/O
+adapter at explicit hardware suspension/resume boundaries.
 Floating arithmetic is omitted and division is retained. Saved-JOIN list
 equality is supported; direct/EP private primitive firing remains outside that
 support. Finite graph/control memory and the other recorded profile limits
@@ -51,10 +53,57 @@ image and failed divider image pass this check. It does not establish routed
 connectivity, frame conversion, timing or physical behavior. The build record
 fingerprints the auditor and its result.
 
+## Run THOR on the board
+
+Install the explicit Python compatibility dependency and use the prepared,
+qualified burst image:
+
+```sh
+uv sync --group fpga
+.venv/bin/python scripts/boards/red2_basys3/run.py \
+  --prepared build/red2-basys3-shared-multiplier \
+  --serial 210183735787 \
+  --port /dev/cu.usbserial-2101837357871 \
+  --log build/red2-live-example.json \
+  --expr '((LAMBDA (x) (+ x 2)) 40)'
+# 42
+```
+
+`--file program.thor` accepts a source file instead of `--expr`. Each invocation
+checks the prepared build hashes, timing and ABI, compiles the program, then
+loads volatile SRAM on the selected board. The runner uses the pinned enhanced
+PipelineC runtime for ABI types; install it with `scripts/setup_pipelinec.py` if
+needed. It executes without prerecorded command/output vectors or a host RED2
+reducer. The profile has 256 graph words, 256 control words and 64 literal
+metadata slots, with floating arithmetic omitted.
+
+The JSON receipt records the returned expression, final architectural fields,
+graph/control RAM hashes and actual bitstream identity. Matching `.load.log`
+and `.packets.jsonl` files preserve loader output and every actual command and
+response. Choose a new `--log` path for each run. UART delivery errors abort
+without retry; a new invocation starts with a fresh SRAM configuration.
+
+`--burst-clocks` defaults to 65,536. Its counter is **delivered run-clock edges**,
+including any idle tail after halt within the last burst. It excludes setup and
+readback and is not an exact cycles-to-halt measurement. `--max-clocks` bounds
+these delivered run clocks. Budget/transport errors fail; quantum exhaustion
+returns exit code 3 and hardware faults return 5. Only COMPLETE with HALTED and
+no pending host operation is successful.
+
+Pure expressions print their returned THOR value. I/O programs print explicit
+UART output; their final value is retained in the receipt. `--clock path` uses
+the latest valid millisecond value in that file for CLOCK effects.
+
+Physical live tests pass fresh function/arithmetic source returning 42, graph
+access returning 12, division returning -42, UART transmit/receive and CLOCK.
+Their final architecture and every graph/control RAM word match separate RTL
+executions with native reducer/RAM APIs disabled. See
+[the live execution evidence](../../../docs/handoffs/red2-basys3-live-run-results.json).
+
 ## Prepare and build
 
 The recommended preparation uses the validated mapped candidate referenced by
-`docs/handoffs/synth-red2-datapath-sharing-results.json`. It verifies the measured
+`docs/handoffs/synth-red2-shared-multiplier-results.json`. It verifies the measured
 netlist, candidate source and RTL replay adapter hashes before preparing a new
 output directory. The netlist is already lowered by the enhanced PipelineC
 compiler. Preparation moves its single BUFG to the board boundary as a BUFGCE;
@@ -62,11 +111,14 @@ all logic and memory cells are preserved. It does not rerun a different compiler
 
 ```sh
 python3 scripts/boards/red2_basys3/prepare.py \
+  --report docs/handoffs/synth-red2-shared-multiplier-results.json \
+  --variant shared-multiply --burst-clock \
   --output build/red2-basys3-next
 bash build/red2-basys3-next/build.sh > build/red2-basys3-next/build-driver.log 2>&1
 ```
 
-Defaults select the validated `dirty-writeback` candidate and the eight-bit
+Omitting the explicit report/variant selects the older `dirty-writeback`
+candidate. Defaults retain the eight-bit
 response-byte relocation recipe. `--report` and `--variant` select another
 measured candidate; `--no-relocate-response-byte` explicitly disables the
 adjustment. `--snapshot-response` selects the experimental snapshot serializer
@@ -86,7 +138,7 @@ not overwritten. The generated build runs the pinned fpgatool
 Nix/OpenXC7 environment through Podman. It maps the wrapper, checks all board
 resources, places/routes the pin-constrained design and requires passing routed
 timing for both 10 MHz clock domains before generating a bitstream. Mapping and
-routing are necessary: the measured 17,266 LUTs cover the core, not this wrapper.
+routing are necessary: the measured core LUT count excludes this wrapper.
 `build-result.json` records the final artifact hashes after a successful build.
 
 Placement is saved separately, then routing resumes with measured delays from

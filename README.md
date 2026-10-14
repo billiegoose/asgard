@@ -34,6 +34,7 @@ and install the enhanced compiler:
 
 ```sh
 git submodule update --init tools/fpgatool
+uv sync --group fpga
 python scripts/setup_pipelinec.py
 ```
 
@@ -41,25 +42,26 @@ Compiler source requirements, patch fingerprints, and overrides are documented
 in [tools/pipelinec/README.md](tools/pipelinec/README.md).
 
 The hardware top defaults to `RED2_SYN_FLOAT=0`, omitting optional floating-point
-arithmetic. The maintained top's earlier measurement was 41,170 LUTs. The latest
-experimental dedicated shared-controller candidate maps to **17,266 core LUTs**
-and passes 230,990 RTL program clocks plus 1,018 public lifecycle clocks.
-The [Basys 3 target](scripts/boards/red2_basys3/README.md), including its UART
-monitor, maps to **18,144 LUTs**. Its working routed image uses **17,997 physical
-LUT sites**, leaving **2,803 spare**, and both domains pass 10 MHz timing.
+arithmetic while retaining integer division. The qualified dedicated controller
+maps to **15,803 core LUTs** and ten DSPs. The complete
+[Basys 3 target](scripts/boards/red2_basys3/README.md) maps to **16,752 LUTs**;
+its routed image uses **16,368 physical LUT sites**, leaving **4,432 spare**.
+Both clock domains pass the 10 MHz timing requirement.
 
-The dedicated RED2 engine now passes the complete physical function-application
-trace `((LAMBDA (x) x) 7)`: **10,683 clocks, all 626 output bits**. Graph
-construction/access `(CAR (CONS 7 (CONS 8 NIL)))` also passes **123,200 clocks**,
-with every output bit compared, plus 1,018 queued lifecycle clocks and all 131
-physical graph-memory patterns. A placement workaround moves only the final response-byte LUT/register
-pairs; `prepare.py --relocate-response-byte` applies the recorded recipe. Broader
-physical arithmetic checks are ongoing. See
-[the working-image evidence](docs/handoffs/synth-red2-basys3-working-application-results.json)
-and [resource overview](docs/handoffs/red2-basys3-resource-overview.md).
+The physical board passes 15 complete programs, including function application,
+graph construction/access, integer arithmetic and equal/unequal nested lists,
+plus lifecycle handling and the equality checkpoint. Burst replay executes
+4,631,059 engine clocks and compares all 626 public output bits at 22,878 packet
+endpoints. See [the current hardware evidence](docs/handoffs/red2-shared-multiplier-board-results.json).
 
-The candidate remains separate from the maintained top, and the existing
-list-equality execution gap remains outside the passing profile. Set
+The [live board runner](scripts/boards/red2_basys3/README.md#run-thor-on-the-board)
+also compiles fresh THOR programs, executes graph reductions on the FPGA and
+reads back results. For example, `((LAMBDA (x) (+ x 2)) 40)` returns `42` on the
+physical board. UART/CLOCK host operations use the existing I/O adapter.
+
+The lowered candidate remains separate from the maintained top. Saved-JOIN list
+equality is supported; direct/EP private primitive firing remains outside that
+support. The board profile has finite graph/control memory. Set
 `RED2_SYN_FLOAT=1` to include the existing floating-point module. The native `syn`
 CLI and full native parity suite retain floating-point support by default. The
 synthesis gate selects the matching profile checks.

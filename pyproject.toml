@@ -24,6 +24,9 @@ dev = [
   "pytest-xdist>=3.8.0",
   "ruff>=0.12.9",
 ]
+fpga = [
+    "setuptools==84.0.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = [

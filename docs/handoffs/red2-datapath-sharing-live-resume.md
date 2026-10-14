@@ -97,16 +97,53 @@ field ports; that failed harness receipt is preserved, and the corrected actual
 RTL proof passes. Default-off generation stays byte-identical to the baseline.
 
 The candidate's full RTL replay model is built (exec **92380** terminal PASS),
-binary SHA `af7ce7c4...`. Cross-source regression is live in exec **1119**,
+binary SHA `af7ce7c4...`. Cross-source regression **passes** (exec **1119**),
 `check-reference-traces.py`, progress `reference-rtl-replay-progress.json`.
 It intentionally compares new candidate RTL against the earlier-source native
 and validated RTL observation traces, preserving both source IDs and each
 expected-output origin. It checks every one of 626 bits on every cycle for all
-17 cases. Application, lifecycle, signed multiply and the equality checkpoint
-already pass. Revalidate the actual child PID/session before waiting; do not
-restart solely because an observation times out. This candidate has not been
+17 cases: **4,631,059 simulated clocks**, terminal PASS. This candidate has not been
 routed, loaded or physically qualified. The current board remains unchanged.
 See `red2-shared-shift-results.json`. The flag remains optional/default-off.
+
+The next same-source gate is live in exec **34593**, driver
+`build/red2-shared-shift/shared-shift/check-boundaries.py`, progress
+`native-boundary-progress.json`, initial child PID **68085**, log
+`native-boundary.log`. It runs complete-top native boundary/lifecycle/metadata
+and poisoned-payload checks with `--poison-lifecycle`. Revalidate the actual
+PID/session before waiting; these are simulated clocks, not physical clocks.
+
+Live execution is now implemented in `scripts/boards/red2_basys3/run.py`.
+It compiles THOR on the host, loads fresh volatile SRAM, sends public-port
+commands and clock bursts, and decodes graph data read back from the FPGA.
+No prerecorded vectors or host RED2 reducer are used. CLOCK/UART effects are
+handled by the existing host I/O adapter at FPGA suspension/resume boundaries.
+Native reducer/RAM APIs are disabled during the RTL runner checks.
+
+Six fresh physical programs pass: `((LAMBDA (x) (+ x 2)) 40)` -> 42,
+`(CAR (CONS 12 (CONS 34 NIL)))` -> 12, `(/ -84 2)` -> -42, UART transmit,
+UART receive and CLOCK. Their final architectural fields and all 256 graph /
+256 control RAM words match separate RTL public-port executions. The FPGA
+remains on `a0ef3f44...`, most recently halted after UART receive of `Z` -> 90.
+All live UART processes have completed; no flash writes occurred. Detailed
+receipts and transcripts are in `build/red2-basys3-live-run`, with compact
+evidence in `red2-basys3-live-run-results.json`.
+Post-execution transcript comparison also matches every command and all 626
+response bits at all **7,714 packet endpoints** across these six programs.
+These are live-execution endpoint checks, not comparisons at each internal
+burst cycle. The pre-profile-guard runner source was reconstructed and hash
+verified against its physical receipts, then preserved as
+`build/red2-basys3-live-run/run.before-profile-guard.py`.
+
+The `fpga` dependency group explicitly pins setuptools 84.0.0 (the same version
+previously borrowed from Python 3.13's site-packages). `uv sync --group fpga`
+makes the live runner work from the project venv without that PYTHONPATH.
+`uv lock --check`, Ruff and 40 focused tests pass. Runtime rejects cached ABI
+types from a mismatched memory/float profile before loading hardware.
+Live `delivered_run_clocks` includes any idle tail in the final 65,536-clock
+burst, excludes setup/readback, and is not an exact cycles-to-halt benchmark.
+The receipt requires COMPLETE/HALTED/no pending host op; budget/transport
+errors, hardware faults and quantum exhaustion cannot produce success.
 
 `audit_bram.py` is now copied and run after routing before frame generation.
 Eight regressions and a real preparation smoke pass. Both saved working/failed
