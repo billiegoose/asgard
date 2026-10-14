@@ -56,6 +56,8 @@ nextpnr-xilinx \
     > board-route.log 2>&1
 python3 audit.py "$placement" board-routed.json \
     "$PRJXRAY_DB_DIR/artix7/xc7a50t/tilegrid.json" > board-physical-lut-sites.json
+python3 audit_bram.py board-routed.json board.fasm \
+    "$PRJXRAY_DB_DIR/artix7/xc7a50t/tilegrid.json" > board-bram-audit.json
 python3 - <<'PY'
 import json, re
 from pathlib import Path
@@ -91,7 +93,8 @@ for name in ['red2_basys3.bit', 'board.json', 'board.xdc', 'board.sdc',
     'board-map.log', 'board-place.log', 'board-placed.json', 'board-route.log',
     'board-routed.json', 'board-route-report.json', 'board-physical-lut-sites.json',
     'board-resources.json', 'board-timing.json', 'backend-versions.txt', 'provenance.json',
-    'audit.py', 'relocate_monitor.py', 'board-placement-options.json',
+    'audit.py', 'audit_bram.py', 'board-bram-audit.json',
+    'relocate_monitor.py', 'board-placement-options.json',
     'board-selected-placement.json']:
     record['files_sha256'][name] = hashlib.sha256(Path(name).read_bytes()).hexdigest()
 if json.loads(Path('board-placement-options.json').read_text())['relocate_response_byte']:

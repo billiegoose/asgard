@@ -317,9 +317,14 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/load-after-shared-divider-single-clock-result.json": "f86a029addb3404ef6d7a503eafa6a0ba6a8e27d034c08d521fb60bd70f1327c",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-init-audit.json": "a9c071391797d00a9ffe92567513e886245ce47dc1865a8cedbfe803746afb96",
     "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-init-audit.log": "1d0ff060d650c8f06308fca8eabad95626edf82c95920790970859bf670474d6",
-    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/audit-bram-init.py": "3999b42dfa3a2b9e6ccfca8cf5e176835091fc36cb8b8c70f16a1af906464201"
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/audit-bram-init.py": "3999b42dfa3a2b9e6ccfca8cf5e176835091fc36cb8b8c70f16a1af906464201",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-complete-audit.json": "7df796dbb31b92a4306ac840a17e686edf524a45d446b2527868f30bdf91ba10",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/bram-config-audit.json": "faff082633a8b5b9ece348408e5cca225daba0546855e920fa897b66976f403a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/audit-bram-config.py": "9e7bcdfcdbf8d587a423698c093201f1a51017d95754463b3e5013203f04c2e0",
+    "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_basys3/audit_bram.py": "b8ccadb714604bdbfce3ef8c2102d5a0cb0d1982e3f880fc74ffd5d39c836341",
+    "/Users/billie/code/billiegoose/asgard/tests/test_red2_board_bram_audit.py": "603b9a65d9fd749c2077a534026b255fd042409913247ec1ee2fc33a2d63de84"
   },
-  "updated_at_utc": "2026-10-14T05:32:17.780468+00:00",
+  "updated_at_utc": "2026-10-14T06:17:53.057035+00:00",
   "BRAM_initialization_and_output_register_FASM_audit": {
     "scope": "Mapped routed BRAM initialization known bits and output register enables versus emitted FASM; RAMB36 even/odd split checked; not bitstream-frame, routing, pin polarity, width or physical behavior verification",
     "passed": true,
@@ -335,5 +340,30 @@
       "/Users/billie/code/billiegoose/asgard/build/red2-basys3-shared-divider/board.fasm": "847c1472aaa0cea144ab5952d0922ba3c28035a31c5f1ebec0b592235850f49d",
       "/Users/billie/code/billiegoose/asgard/build/red2-basys3/tilegrid.json": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e"
     }
+  },
+  "complete_BRAM_FASM_audit": {
+    "scope": "Routed BRAM known init bits and intended FASM configuration; not frame conversion, connectivity, timing, or physical behavior",
+    "passed": true,
+    "BRAM_cells": 45,
+    "BRAM18_halves": 69,
+    "initialization_words_checked": 4968,
+    "known_initialization_bits_checked": 962048,
+    "configuration_flags_checked": 855,
+    "width_marker_sets_checked": 69,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "artifacts_sha256": {
+      "build/red2-basys3-shared-divider/board-routed.json": "99b3f7e7f3f2ab90f58571c75fe1bbe9fe8ec5d353d29521ad408c6f0ab545c5",
+      "build/red2-basys3-shared-divider/board.fasm": "847c1472aaa0cea144ab5952d0922ba3c28035a31c5f1ebec0b592235850f49d",
+      "build/red2-basys3/tilegrid.json": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e"
+    }
+  },
+  "BRAM_audit_validation": {
+    "regression_cases_passed": 8,
+    "known_working_burst_image_also_passed": true,
+    "working_image_audit_sha256": "d4da6049e16214497600ecd00a365e86b81c7b1da48b9666170f04873554ec5c",
+    "board_preparation_smoke_passed": true,
+    "known_wide_write_patch_in_expected_model": true,
+    "physical_failure_still_unresolved": true
   }
 }

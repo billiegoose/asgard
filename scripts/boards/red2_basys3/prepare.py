@@ -101,6 +101,7 @@ def main():
         "board.v",
         "implement.sh",
         "audit.py",
+        "audit_bram.py",
         "clocks.py",
         "relocate_monitor.py",
         "snapshot_monitor.py",

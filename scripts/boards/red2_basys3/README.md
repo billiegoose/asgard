@@ -31,6 +31,24 @@ The host sends previously compiled command vectors and compares every output
 bit. The existing supported-profile limitations still apply, including the
 recorded list-equality execution gap.
 
+The latest experimental core is separate from that qualified board image. It
+maps at **15,803 LUTs**, 6,170 FFs, 34.5 BRAM36 equivalents and ten DSPs, with
+corrected shared RAM requests and shared product hardware. Its
+[frozen preparation gate](../../../docs/handoffs/synth-red2-shared-multiplier-results.json)
+records 820 native boundary/lifecycle witnesses, 15 complete RTL/Concrete
+programs, 26 saved-IF fixtures and four every-bit native-expected RTL/primitive
+replays. Full duplicate native list traces remain independently tracked. A
+preparation gate does not establish a routed or working physical board.
+
+New builds run `audit_bram.py` after routing and before frame generation. The
+audit compares mapped known initialization bits, RAMB36 even/odd splitting,
+width/SDP markers, clock polarity, output-register modes, write modes and
+odd-width pairing flags with emitted FASM. It includes the existing SDP72
+write-width correction. Eight regression cases and both the working burst
+image and failed divider image pass this check. It does not establish routed
+connectivity, frame conversion, timing or physical behavior. The build record
+fingerprints the auditor and its result.
+
 ## Prepare and build
 
 The recommended preparation uses the validated mapped candidate referenced by
