@@ -1,7 +1,7 @@
 # RED2 control-flow/storage experiment
 
-This is an isolated hardware experiment, not the production top or a completed
-Basys 3 implementation. It mechanically lowers the original typed RED2 handlers
+This is an experimental hardware implementation; the maintained production top
+remains a separate reference. It mechanically lowers the original typed RED2 handlers
 before SSA into an immutable synchronous control ROM, synchronous BRAM scratch,
 one 64-bit add/sub lane, Boolean/bit operations, and registered graph/control
 ports. There is no CPU core, loadable firmware, or writable control-store port.

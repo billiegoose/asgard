@@ -251,7 +251,7 @@
   "active_build": {
     "root": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared",
     "driver_pid": 74444,
-    "phase": "placement",
+    "phase": "routing",
     "loads_board_automatically": false
   },
   "burst_RED2_routed_timing_passed": false,
@@ -330,6 +330,42 @@
     "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/burst-vectors.txt": "bedbf524a11febb64a32f4bc05492397c8abe09ba25b9b773f016c207b53819e",
     "/Users/billie/code/billiegoose/asgard/build/red2-burst-corpus-check/even-negative/monitor.v": "9168efcee9cf69a7a665596e0b662586eb3d53371c8916192f44568da71e0ca8",
     "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-even-negative/vectors.txt": "761b37685d9cf1bf70a781db0425aa16426d8700ee49dce9b97bfb5222d3bfcf",
-    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-even-negative/vectors.json": "322dbba5862bfb8d028f89049048b1cdfcf15d54249eec73f4863511869f07dd"
+    "/Users/billie/code/billiegoose/asgard/build/red2-datapath-sharing/dirty-writeback/rtl-even-negative/vectors.json": "322dbba5862bfb8d028f89049048b1cdfcf15d54249eec73f4863511869f07dd",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-place.log": "786ef1847543fcd138855de0c9940c071bd2749378479cabbaa83bf6712d69c4",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-placed.json": "13e3770fcf6811dc3940e2afe3c6f89face02d0306917112004d64b91786483d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-placed-serializer.json": "631d624920ead748b3df86e6f175c8d76ef605a1af978ed39b941b733c1b9060",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-serializer-moves.json": "9d80ad405dae26dc2851fb6ff69c5cb5429ae5fcb0806c5394ffbee65623077d",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-selected-placement.json": "debb09aec7b65f72a21c124275dac9b3a382c4a433707b22da8d05c67a343676",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-clock-names.json": "ab4be0b5c210671c4ebc068f5d23b4a8187c8e2dbf318408d99f1bbfea84050a",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/board-route.sdc": "b458ef73007a8fa93dc6de67f3c4422d3710e220a8b63514d1665a54147526a8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualify-after-build.py": "234c577fa73bad3f842068dbb0d0a2d3a60bfa496602a4c847983e534ae190e8",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/run-physical-suite.py": "944f9020ab121950d40c617f5582c75c96ae2988bfe63b609c166320f6fd58f5",
+    "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-launch.json": "4ec687a600bfd3ee0f7b048208d38112e91dac6f193ed63f769aac753baa7dbd"
+  },
+  "updated_at_utc": "2026-10-14T00:26:53.098881+00:00",
+  "placement": {
+    "passed": true,
+    "clock_estimates": {
+      "core_clock": {
+        "estimated_mhz": 12.3,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "estimated_mhz": 12.51,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "guarded_monitor_pairs_relocated": 8,
+    "selected_placement_sha256": "631d624920ead748b3df86e6f175c8d76ef605a1af978ed39b941b733c1b9060",
+    "routed_timing_still_required": true
+  },
+  "qualification_runner": {
+    "pid": 84024,
+    "state": "waiting for existing build driver to finish",
+    "progress_file": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-burst-prepared/qualification-progress.json",
+    "loads_board_after_successful_build_only": true,
+    "suite": "All five programs plus lifecycle; fresh SRAM per case; endpoint comparisons only; restore known working image on replay failure"
   }
 }
