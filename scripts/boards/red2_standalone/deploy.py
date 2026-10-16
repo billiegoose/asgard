@@ -120,7 +120,7 @@ def main():
     p.add_argument("--log", type=Path, required=True)
     p.add_argument("--serial", default="210183735787")
     p.add_argument("--port", default="/dev/cu.usbserial-2101837357871")
-    p.add_argument("--expected", default="...")
+    p.add_argument("--expected", default=".")
     p.add_argument("--observe-seconds", type=float, default=60)
     p.add_argument(
         "--persistent",
@@ -164,6 +164,8 @@ def main():
             ],
         )
         with receiver(a.port) as fd:
+            # receiver() clears old input before loading. Preserve bytes emitted
+            # during the loader's final startup checks, including one-shot output.
             run(
                 "load-sram",
                 [
@@ -173,7 +175,6 @@ def main():
                     str(a.prepared / "red2_basys3.bit"),
                 ],
             )
-            termios.tcflush(fd, termios.TCIFLUSH)
             record["sram_observation"] = observe(
                 fd, a.expected.encode(), a.observe_seconds
             )

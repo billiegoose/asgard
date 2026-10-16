@@ -1,56 +1,12 @@
 {
-  "updated_at_utc": "2026-10-16T03:20:10.651895+00:00",
-  "scope": "Autonomous QSPI program load, elapsed CLOCK and physical UART around qualified dedicated RED2 core",
+  "updated_at_utc": "2026-10-16T05:20:45.331552+00:00",
+  "scope": "Autonomous QSPI program load, elapsed CLOCK and physical UART around the qualified dedicated RED2 core; no CPU emulation or host runtime services",
   "core_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
-  "frontend_rtl": {
-    "passed": true,
-    "cases": [
-      {
-        "name": "clock-dots",
-        "returncode": 0,
-        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=16 micro=61 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=27 status=0 pc=11 micro=60 ms=19695 UART=.\nprogress cycle=3000000 flash=28092 state=8 status=0 pc=11 micro=37 ms=29695 UART=..\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=12 micro=61 ms=39695 UART=..\nPASS UART=... cycles=4264026 CLOCK calls=0 ms=42335 pc=12 fsp=13\n",
-        "stderr": ""
-      },
-      {
-        "name": "uart-tx",
-        "returncode": 0,
-        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=145893 CLOCK calls=0\n",
-        "stderr": ""
-      },
-      {
-        "name": "uart-rx",
-        "returncode": 0,
-        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=408643 CLOCK calls=0\n",
-        "stderr": ""
-      },
-      {
-        "name": "uart-list",
-        "returncode": 0,
-        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=914944 CLOCK calls=0\n",
-        "stderr": ""
-      }
-    ],
-    "test_millisecond_divider": 100,
-    "hardware_millisecond_divider": 10000,
-    "note": "Actual qualified engine frontend RTL and physical UART waveform models. The counter is checked every simulation cycle. The clock-dots run started before the CLOCK-resume instrumentation fix, so its logged call count is not a valid count. A separate current-harness CLOCK payload probe checks the returned elapsed value and records one resume. Not a mapped-primitive or physical pass.",
-    "handshake": "Capture response while the core clock is stopped, then admit its edge one full board cycle later."
-  },
-  "flash_transport": {
-    "passed": true,
-    "bytes_checked": 28092,
-    "method": "03h SPI command/address and every byte checked with read backpressure against NOR model"
-  },
-  "corrupt_payload": {
-    "passed": true,
-    "adapter_fault": 132,
-    "program_started": false
-  },
   "physical": {
-    "state": "placing",
-    "build": "build/red2-basys3-standalone-v3",
-    "qualified": false,
-    "superseded_build": "build/red2-basys3-standalone-v2",
-    "superseded_reason": "Stopped during placement refinement to add a separate response-sampling stage before the admitted core edge, matching the qualified single-command monitor. No bitstream generated or loaded.",
+    "state": "qualified-autonomous-flash-boot",
+    "qualified": true,
+    "build": "build/red2-basys3-standalone-v4",
+    "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
     "resources": {
       "top": "red2_basys3",
       "lut": 16945,
@@ -95,21 +51,507 @@
       "basys3_over_budget": {},
       "within_basys3_resource_limits": true
     },
-    "backend_sha256": "e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc"
+    "physical_lut_sites": 17365,
+    "basys3_lut_limit": 20800,
+    "timing": {
+      "core_clock": {
+        "achieved_mhz": 11.71,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "achieved_mhz": 11.67,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "clock_buffer_route_throughs": 13,
+    "configured_bufg_sites": 16,
+    "placement_and_routing_reused": true,
+    "route_reuse_record": "build/red2-basys3-standalone-v4/route-reuse.json",
+    "diagnostic_equivalence": {
+      "frames_identical_as_word_arrays": true,
+      "configuration_payload_identical": true,
+      "payload_sha256": "22c29967faa0137210c7daba32fbbc58760c6c41004a161e6cb20f473608cc3e",
+      "bitstream_header_only_differs": true
+    }
   },
-  "artifacts_sha256": {
-    "build/red2-standalone/check-v6/results.json": "7ee097b48909754dd3dcbc798a4d3a3c45433e1f390dc363538a96730d72d860",
-    "build/red2-standalone/check-v6-driver.log": "2b453dc66ea2c254527db13c60ac931c07f6835ed9104255b23393a9fa91fceb",
-    "build/red2-standalone/check-v6/clock-probe.log": "84b25a22cf0ce1ef998f157811dc3c431b23c3988a9defe13fc1fbf3856b472f",
-    "build/red2-standalone/clock-dots.bin": "296ca52af796a3c90209642b4b84480fdd28611b30b1bb6d5c0b4027f4cd7665",
-    "build/red2-basys3-standalone-v3/board.json": "34e7ea7c464384aba516132c5f12111dc5ac7722a9cffed1bce3b24c4fd030e2",
-    "scripts/boards/red2_standalone/controller.v": "71137bed46e8831fba8ccde55284250417a0fe51fd11c297843ef0f6eafc5076",
-    "scripts/boards/red2_standalone/flash.v": "c2e3715c676ec3635377cb391db3b34a536b230cd4c66fa81e092f1b1f055229",
-    "scripts/boards/red2_standalone/board.v": "9c0036d64cf4596344a27dcacc821276a0c0f828ad6f9dae430a248a154eba3e"
+  "routing_fix": {
+    "toolchain_commit": "ad37747",
+    "toolchain_branch": "codex/pypeline-register-reannotations",
+    "helper": "tools/fpgatool/toolchain/compat/complete-bufg-fasm.py",
+    "root_cause": "Router used 13 unused BUFGCTRL I0-to-O paths for data, while native FASM export omitted buffer configuration because no cells were placed there. One disabled branch held graph payload RAM address bit 4 low. The qualified old debug image used no such routes.",
+    "configuration_frame_bits_added": 65,
+    "hdl_changed": false,
+    "placement_changed": false,
+    "routing_changed": false,
+    "backend_or_chipdb_rebuilt": false,
+    "report": "build/red2-basys3-standalone-v4/board-bufg-routethroughs.json",
+    "tests_passed": 5,
+    "physical_diagnostic": "Direct pending UART call emitted NUL before repair and A afterward; actual compiled UART-TX 65 then passed as well.",
+    "metadata_readback": "All 64 slots matched exact compiled metadata, including 51 loaded slots.",
+    "rom_readback": "145408 immutable ROM bits in the same block-RAM frames matched, calibrating the graph readback.",
+    "graph_readback": "Payload storage aliased addresses separated by 16 in the low graph-RAM bank; instruction tags in the other bank remained intact."
+  },
+  "deployment": {
+    "started_at_utc": "2026-10-16T05:16:24.606650+00:00",
+    "image_sha256": "8526372c14cb3b07ddf7a1fb66eb5768976183e1695e2b31379bd27968236fc3",
+    "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+    "persistent_requested": true,
+    "passed": true,
+    "stages": [
+      {
+        "stage": "program-data",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/fpgatool/fpgatool.py",
+          "program-data",
+          "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dot-once.bin",
+          "--offset",
+          "0x220000"
+        ],
+        "log": "build/red2-standalone/physical-deployment-v4-program-data.log",
+        "passed": true
+      },
+      {
+        "stage": "load-sram",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-sram",
+          "--bitstream",
+          "build/red2-basys3-standalone-v4/red2_basys3.bit"
+        ],
+        "log": "build/red2-standalone/physical-deployment-v4-load-sram.log",
+        "passed": true
+      },
+      {
+        "stage": "program-config",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-flash",
+          "--verify",
+          "--bitstream",
+          "build/red2-basys3-standalone-v4/red2_basys3.bit"
+        ],
+        "log": "build/red2-standalone/physical-deployment-v4-program-config.log",
+        "passed": true
+      },
+      {
+        "stage": "reset-from-flash",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--reset"
+        ],
+        "log": "build/red2-standalone/physical-deployment-v4-reset-from-flash.log",
+        "passed": true
+      }
+    ],
+    "sram_observation": {
+      "received_hex": "2e",
+      "samples": [
+        {
+          "seconds": 1.259836,
+          "hex": "2e"
+        }
+      ],
+      "host_uart_bytes_written": 0,
+      "scope": "raw UART observation; no host clock values or runtime commands"
+    },
+    "flash_observation": {
+      "received_hex": "2e",
+      "samples": [
+        {
+          "seconds": 7.437114,
+          "hex": "2e"
+        }
+      ],
+      "host_uart_bytes_written": 0,
+      "scope": "raw UART observation; no host clock values or runtime commands"
+    },
+    "reset_observation": {
+      "received_hex": "2e",
+      "samples": [
+        {
+          "seconds": 7.336893,
+          "hex": "2e"
+        }
+      ],
+      "host_uart_bytes_written": 0,
+      "scope": "raw UART observation; no host clock values or runtime commands"
+    },
+    "finished_at_utc": "2026-10-16T05:17:35.349526+00:00"
+  },
+  "installed_program": {
+    "source": "examples/clock-dot-once.thor",
+    "image": "build/red2-standalone/clock-dot-once.bin",
+    "image_sha256": "8526372c14cb3b07ddf7a1fb66eb5768976183e1695e2b31379bd27968236fc3",
+    "flash_offset": "0x220000",
+    "behavior": "Wait until CLOCK measures at least 1000 milliseconds since program start, emit one physical UART dot, resume and halt.",
+    "clean_halt_after_reset": {
+      "checked_at_utc": "2026-10-16T05:18:59.812111+00:00",
+      "halted": 1,
+      "fault": 0,
+      "scope": "Read-only JTAG SAMPLE of actual LD5/LD6 pins after separate reset and autonomous flash-boot run"
+    },
+    "cold_power_cycle_tested": false,
+    "host_uart_runtime_bytes_written": 0
+  },
+  "physical_corpus": {
+    "scope": "Compiled THOR in QSPI; dedicated reduction, physical UART and autonomous CLOCK; JTAG SAMPLE observes halt/fault LEDs only",
+    "passed": true,
+    "cases": [
+      {
+        "name": "uart",
+        "source": "(UART-TX 65)",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:13:49.421718+00:00",
+        "image_sha256": "0a86030997e7f99db82bbcef2e6b3318f1d529a388076344a03cf1b499ec3be9",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.101105,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:13:54.343858+00:00"
+      },
+      {
+        "name": "increment",
+        "source": "(UART-TX (1+ 64))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:13:55.488701+00:00",
+        "image_sha256": "593f5d109854aab550272b0c83cc1ff86b973e121f61cd23c1966ca11c9886ac",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.098701,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:00.430774+00:00"
+      },
+      {
+        "name": "multiply",
+        "source": "(UART-TX (* 13 5))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:14:01.489753+00:00",
+        "image_sha256": "3ddf1cf2b8d6a43fd38822efd5accfbc19b84d2c1babe97eeae09544c435ff12",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.123226,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:06.491525+00:00"
+      },
+      {
+        "name": "application",
+        "source": "(UART-TX ((LAMBDA (x) x) 65))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:14:07.571719+00:00",
+        "image_sha256": "fae180c0e135bf0508b742d7f3b2e82054b8ee9cb282d01ac2dd6a9726f93cf3",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.098429,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:12.504310+00:00"
+      },
+      {
+        "name": "pair-car",
+        "source": "(UART-TX (CAR (CONS 65 NIL)))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:14:13.643611+00:00",
+        "image_sha256": "7b6674bd31948d40bc27ff5234b0c3d049a98c0206d18f1e1fe4c2655150e7b1",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.125323,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:18.710634+00:00"
+      },
+      {
+        "name": "branch",
+        "source": "(UART-TX (if (< 4 5) 65 66))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:14:19.851894+00:00",
+        "image_sha256": "42161298da234eb1f135afd5fde659960a052e64fb8ef35a3f7f2571aaf1f4bf",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.145916,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:24.744906+00:00"
+      },
+      {
+        "name": "clock",
+        "source": "(IO-BIND (CLOCK) (LAMBDA (ms) (UART-TX 65)))",
+        "expected": "A",
+        "started_at_utc": "2026-10-16T05:14:25.944750+00:00",
+        "image_sha256": "14f0f32ce40456ba3ecafbc472b32776dbc28cf259b71b5cfacbf7ca62aa22cd",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "41",
+          "samples": [
+            {
+              "seconds": 0.133112,
+              "hex": "41"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:31.172572+00:00"
+      },
+      {
+        "name": "list",
+        "source": "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))",
+        "expected": "AB",
+        "started_at_utc": "2026-10-16T05:14:32.226698+00:00",
+        "image_sha256": "f367facb337294f203ea851fe172332654d1a3032318b21a505432e28c180594",
+        "bitstream_sha256": "28ce5504d0080daddc55d157da6fdd94a4c5b350bab8ca7ad9a1675c74cacf2e",
+        "passed": true,
+        "host_uart_bytes_written": 0,
+        "observation": {
+          "received_hex": "4142",
+          "samples": [
+            {
+              "seconds": 0.18396,
+              "hex": "4142"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:14:37.406421+00:00"
+      },
+      {
+        "name": "echo",
+        "source": "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))",
+        "expected": "Z",
+        "passed": true,
+        "started_at_utc": "2026-10-16T05:16:17.499849+00:00",
+        "host_uart_bytes_written": 1,
+        "scope": "Wait for the real running LED before opening serial and supplying one raw byte; no host reducer/device services",
+        "before_input": {
+          "running_led": 1,
+          "halted_led": 0,
+          "fault_led": 0
+        },
+        "observation": {
+          "received_hex": "5a",
+          "samples": [
+            {
+              "seconds": 0.025754,
+              "hex": "5a"
+            }
+          ],
+          "host_uart_bytes_written": 1,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "status": {
+          "running_led": 0,
+          "halted_led": 1,
+          "fault_led": 0
+        },
+        "finished_at_utc": "2026-10-16T05:16:17.676208+00:00"
+      }
+    ],
+    "input_timing_note": "Initial echo input sent before flash loader completed was discarded; the ready-gated retry succeeded. Original failed attempt retained in results-including-early-input.json."
+  },
+  "frontend_rtl": {
+    "passed": true,
+    "cases": [
+      {
+        "name": "clock-dots",
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=16 micro=61 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=27 status=0 pc=11 micro=60 ms=19695 UART=.\nprogress cycle=3000000 flash=28092 state=8 status=0 pc=11 micro=37 ms=29695 UART=..\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=12 micro=61 ms=39695 UART=..\nPASS UART=... cycles=4264026 CLOCK calls=0 ms=42335 pc=12 fsp=13\n",
+        "stderr": ""
+      },
+      {
+        "name": "uart-tx",
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=145893 CLOCK calls=0\n",
+        "stderr": ""
+      },
+      {
+        "name": "uart-rx",
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=408643 CLOCK calls=0\n",
+        "stderr": ""
+      },
+      {
+        "name": "uart-list",
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=914944 CLOCK calls=0\n",
+        "stderr": ""
+      }
+    ],
+    "test_millisecond_divider": 100,
+    "hardware_millisecond_divider": 10000,
+    "note": "Actual qualified engine frontend RTL and physical UART waveform models. The counter is checked every simulation cycle. The clock-dots run started before the CLOCK-resume instrumentation fix, so its logged call count is not a valid count. A separate current-harness CLOCK payload probe checks the returned elapsed value and records one resume. Not a mapped-primitive or physical pass.",
+    "handshake": "Capture response while the core clock is stopped, then admit its edge one full board cycle later."
   },
   "clock_payload_probe": {
     "passed": true,
     "log": "PASS HALTED UART=A cycles=425514 CLOCK calls=1\n progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n\n",
     "source": "(IO-BIND (CLOCK) (LAMBDA (t) (UART-TX 65)))"
+  },
+  "mapped_primitive_check": {
+    "passed": true,
+    "log": "build/red2-standalone/mapped-check/run-unbuffered.log",
+    "result": "MAPPED_CONTROLLER_UART_PASS cycles=145821 edges=29353",
+    "scope": "Qualified technology-mapped core and actual standalone controller with flash byte stream model; not the complete post-board-synthesis circuit"
+  },
+  "flash_transport": {
+    "passed": true,
+    "bytes_checked": 28092,
+    "method": "03h SPI command/address and every byte checked with read backpressure against NOR model"
+  },
+  "corrupt_payload": {
+    "passed": true,
+    "adapter_fault": 132,
+    "program_started": false
+  },
+  "capacity_limit": {
+    "graph_words": 256,
+    "control_words": 256,
+    "literal_meta_words": 64,
+    "hardware_reclamation": false,
+    "original_program": "examples/clock-dots.thor",
+    "autonomous_dots_observed": 3,
+    "fault_name": "FAULT_GRAPH_ENV_COLLISION",
+    "red2_fault": 2,
+    "adapter_fault_hex": "0x88",
+    "milliseconds_at_fault": 4111,
+    "receipt": "build/red2-standalone/bufg-diagnostic/clock-dots-receipt.json",
+    "snapshot": "build/red2-standalone/bufg-diagnostic/clock-dots-capture.json",
+    "note": "Not an unlimited-runtime qualification. The host-assisted runner could reclaim residual memory; the standalone core explicitly faults on exhaustion. No automatic reboot or semantic shortcut was added."
+  },
+  "superseded_v3": {
+    "build": "build/red2-basys3-standalone-v3",
+    "qualified": false,
+    "initial_fault": "STATUS_FAULT / FAULT_ILLEGAL_TRANSITION, adapter 0x88",
+    "initial_deployment": "build/red2-standalone/physical-deployment-v3.json",
+    "direct_memory_probe": "build/red2-standalone/direct-tx-probe-v2-receipt.json",
+    "metadata_readback": "build/red2-standalone/metadata-physical-check.json",
+    "graph_readback": "build/red2-standalone/graph-physical-check.json",
+    "rom_readback_calibration": "build/red2-standalone/rom-readback-check.json"
+  },
+  "unused_checks": {
+    "whole_board_primitive_spi_simulation": "Stopped without a qualification result after 100000 simulated cycles / 3000 flash bytes; superseded by direct physical memory diagnosis and nine passing hardware programs.",
+    "initial_direct_tx_probe": "Invalid-header diagnostic attempt had an incorrectly updated CRC field; excluded. The corrected v2 probe exposed the actual NUL payload.",
+    "lower_clock_probe": "8.333 MHz diagnostic did not change the fault; not deployed persistently."
+  },
+  "artifacts_sha256": {
+    "build/red2-basys3-standalone-v4/build-result.json": "3b897581817eebea8e900b44caab5a445de84b8c03dde2b57b4d5e637b95b4cf",
+    "build/red2-basys3-standalone-v4/board-bufg-routethroughs.json": "b8f306e6816fe00b755a5383d6fe2e1666aacc6c02cdba6914f364b63f599518",
+    "build/red2-basys3-standalone-v4/diagnostic-equivalence.json": "1034e260791828d06e87d1a7b04859050b509e5398958d70c3fc66a40c093a69",
+    "build/red2-standalone/physical-deployment-v4.json": "0361f2248a11732f785f8c0816de3fb3d9b168156061559c52f5cecc2333a097",
+    "build/red2-standalone/finite-flash-halt.json": "0b37b38788cbd6f6f57d17d12c955dc8c9186285d225caca00effccf34633be2",
+    "build/red2-standalone/physical-corpus/results.json": "dec3dc9bf8d3127ebb32fbef3a2b3bc9d96a07db64be99da670564114f350575",
+    "build/red2-standalone/physical-corpus/run.py": "12d2e561f080cf62b108797a6bc671d831ed5ff75f03fb5f90464f9e617a4f79",
+    "build/red2-standalone/physical-corpus/echo-ready.py": "859dfb77c2445043bd9d9256cac32f940d5ae6d107d55a9dd072b82b780d48cb",
+    "build/red2-standalone/metadata-physical-check.json": "559c31693ca8f4e51cec37ad91cb23c1bed0d2de821ea4c5259f525002b3eb79",
+    "build/red2-standalone/graph-physical-check.json": "fe3ef9ae419d547a6dc8105db097819cd3d169c370649ea0867902877b1a7d0a",
+    "build/red2-standalone/rom-readback-check.json": "0a2b967c07e8e21ed8631fe20b718bbb98fe6548adf7c4aa7aa36be7b836560f",
+    "build/red2-standalone/mapped-check/run-unbuffered.log": "3889aec02f15277d79742cbeda28650e80302f037e4c437cb4334e5404586f3c",
+    "build/red2-standalone/bufg-diagnostic/clock-dots-receipt.json": "86ce4527c3e5b1c001825edf4da21f4af83d7540fa085d6fa307f6e808e9495c",
+    "build/red2-standalone/bufg-diagnostic/clock-dots-capture.json": "c107bb3f5c7bbb84ac52a891f18417a630c8c138f456833c49c171b7f05d6445"
   }
 }

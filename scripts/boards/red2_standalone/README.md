@@ -5,6 +5,15 @@ hardware devices around the existing qualified dedicated RED2 engine. The host
 compiles THOR before deployment; it does not execute reductions or service I/O
 while the program runs.
 
+Qualified on the physical board on 2026-10-16: nine programs produced their
+expected UART output and halted without faults. The design uses 17,365 of
+20,800 physical LUT sites and passes routed timing at 10 MHz. Both configuration
+and program are now stored in flash; a separate configuration reset booted the
+program again without uploading anything. The installed `clock-dot-once.thor`
+waits until CLOCK reaches one second after program start, prints `.` at 115200
+baud and halts cleanly. A physical power removal/reconnection has not been tested.
+Evidence is in `docs/handoffs/red2-standalone-results.json`.
+
 - The program image is read from configuration flash at **0x220000**. The loader
   uses ordinary 03h SPI reads on the board's QSPI NOR, without changing flash
   modes or enabling writes.
@@ -23,7 +32,11 @@ while the program runs.
 
 Finite graph/control/literal capacities remain 256/256/64. Floating arithmetic
 is omitted; integer division remains. Memory faults and quantum exhaustion stop
-execution explicitly. This integration does not claim unlimited program lifetime.
+execution explicitly. Hardware memory reclamation is not implemented. The original
+infinite `clock-dots.thor` produced three autonomous dots, then correctly stopped
+with a graph/environment collision fault at roughly 4.1 seconds of program time.
+The earlier host-assisted runner could reclaim memory between effects; this
+runtime does not do that. Continuous execution needs hardware reclamation.
 
 ## Build and deploy
 
@@ -31,7 +44,7 @@ Compile a program and prepare a fresh board build:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/image.py \
-  --file examples/clock-dots.thor --output build/red2-standalone/clock-dots.bin
+  --file examples/clock-dot-once.thor --output build/red2-standalone/clock-dot-once.bin
 .venv/bin/python scripts/boards/red2_standalone/prepare.py \
   --output build/red2-basys3-standalone-next
 bash build/red2-basys3-standalone-next/build.sh
@@ -43,18 +56,31 @@ database, with network access disabled. There is no new PipelineC lowering or
 chip database regeneration. Mapping, physical resource checks, routed timing and
 BRAM initialization audits must pass before a bitstream is produced.
 
+The compatibility exporter also configures static BUFG route-throughs used by
+the router for data signals. The pinned native exporter omitted these settings,
+which left 13 routed buffers disabled and aliased a graph-RAM address bit.
+Completing their configuration fixed physical execution without changing HDL,
+placement or routing. The build records every added feature and rejects
+unqualified buffer modes. Resource and routed timing audits still apply.
+
+For an exporter-only correction, `reuse_route.py --source OLD --prepared NEW`
+can reuse a completed route after verifying identical HDL, synthesis recipes,
+constraints and backend. Run `NEW/finish-reused-route-build.sh` afterward. The
+qualified v4 image used this path; its configuration payload matches the
+physically tested diagnostic repair exactly.
+
 After a successful build:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/deploy.py \
   --prepared build/red2-basys3-standalone-next \
-  --image build/red2-standalone/clock-dots.bin \
+  --image build/red2-standalone/clock-dot-once.bin \
   --log build/red2-standalone/deployment.json --persistent
 ```
 
 Deployment uses the sibling fpgatool's `program-data` command to program and
 verify the reserved data area. It first loads the new hardware into volatile
-SRAM and waits for three raw dots without sending UART commands. Only after that
+SRAM and waits for one raw dot without sending UART commands. Only after that
 check does `--persistent` program and verify the FPGA configuration flash and test
 startup and a separate reset from flash. Power removal/reconnection is a further
 physical check; a JTAG-triggered configuration reset is not a power-cycle test.
@@ -63,7 +89,9 @@ records which flash operations had already completed.
 
 A serial terminal is optional for observing program output; the program does not
 need one attached. Default board serial is `210183735787`, with UART device
-`/dev/cu.usbserial-2101837357871`.
+`/dev/cu.usbserial-2101837357871`. Supply UART input after LD4 lights; bytes sent
+during initial flash loading are discarded. Flash configuration itself takes
+several seconds before program execution starts.
 
 LEDs: LD0 UART transmit request, LD1 clock lock, LD2 board ready, LD3 elapsed-time
 bit 9, LD4 program running, LD5 halted, LD6 adapter fault, LD7 command activity.

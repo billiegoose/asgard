@@ -84,6 +84,10 @@ def main():
     shim = shim.replace("#!/usr/bin/env bash", "#!" + bash, 1)
     (out / "nextpnr-xilinx").write_text(shim)
     (out / "nextpnr-xilinx").chmod(0o755)
+    shutil.copy2(
+        ROOT / "tools/fpgatool/toolchain/compat/complete-bufg-fasm.py",
+        out / "complete-bufg-fasm.py",
+    )
     (out / "check-backend.py").write_text(
         "import hashlib,json\nfrom pathlib import Path\n"
         "p=json.loads(Path('backend-pin.json').read_text())\n"
@@ -99,6 +103,25 @@ def main():
             'python3 fast-fasm2frames.py --part "$part" '
             '--db-root "$PRJXRAY_DB_DIR/artix7" board.fasm board.frames',
         )
+    )
+    # FASM writes flush many small lines. Export on the VM's local filesystem;
+    # writing those lines through the macOS shared mount adds minutes of I/O.
+    implement = implement.replace(
+        "--fasm board.fasm --report board-route-report.json --write board-routed.json",
+        "--fasm /tmp/red2-board.fasm --report /tmp/red2-board-route-report.json "
+        "--write /tmp/red2-board-routed.json",
+    ).replace(
+        'python3 audit.py "$placement" board-routed.json',
+        "cp /tmp/red2-board.fasm board.fasm\n"
+        "cp /tmp/red2-board.fasm.bufg.json board-bufg-routethroughs.json\n"
+        "cp /tmp/red2-board-route-report.json board-route-report.json\n"
+        "cp /tmp/red2-board-routed.json board-routed.json\n"
+        'python3 audit.py "$placement" board-routed.json',
+    )
+    implement = implement.replace(
+        "'board-resources.json', 'board-timing.json', 'backend-versions.txt',",
+        "'board-resources.json', 'board-timing.json', 'backend-versions.txt',\n"
+        "    'board-bufg-routethroughs.json', 'board.fasm', 'board.frames',",
     )
     (out / "implement.sh").write_text(implement)
     command = [

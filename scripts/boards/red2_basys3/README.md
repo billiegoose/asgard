@@ -1,5 +1,8 @@
 # RED2 on Basys 3
 
+For autonomous QSPI execution with a hardware clock and UART, use
+[the standalone integration](../red2_standalone/README.md).
+
 The first board target exposes the RTL-validated dedicated RED2 core through
 115200-baud USB UART. It uses a 100 MHz to 10 MHz MMCM and a BUFGCE at the core
 boundary. In default mode the core, including its synchronous RAMs, receives
