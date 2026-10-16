@@ -1,5 +1,20 @@
 # Examples
 
+## Fibonacci
+
+`fibonacci.thor` is a lazy accumulator example originally added for syntax
+highlighting. Tail recursion alone does not force its pending additions.
+`fibonacci-strict.thor` uses the existing strict `INTEGER?` primitive to evaluate
+the next accumulator before continuing, retaining at most one pending addition.
+Both default to Fibonacci(6), which returns 8.
+
+The strict variant also computes Fibonacci(30) = 832040 in 256 words in both
+Python reference processors using the sharing policy from before `d68e6f4`,
+with quantum 20, quantum 50, or one large quantum (100000). This requires no
+new instruction or residual-sharing hardware. Very small quantum 5 still
+exceeds that arena during reconstruction. These are reference-model results,
+not a new physical board test.
+
 ## Recordings
 
 ### Pong — Python RED2
