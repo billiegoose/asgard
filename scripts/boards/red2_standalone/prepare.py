@@ -18,15 +18,21 @@ from scripts.experiments.red2_cfg_pilot.rtl_trace import PortLayout  # noqa: E40
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument(
+        "--report",
+        type=Path,
+        default=ROOT / "docs/handoffs/red2-finite-quantum-results.json",
+    )
+    p.add_argument("--variant", default="finite-quantum")
     a = p.parse_args()
     subprocess.run(
         [
             sys.executable,
             str(HERE.parent / "red2_basys3/prepare.py"),
             "--report",
-            str(ROOT / "docs/handoffs/synth-red2-shared-multiplier-results.json"),
+            str(a.report),
             "--variant",
-            "shared-multiply",
+            a.variant,
             "--no-relocate-response-byte",
             "--output",
             str(a.output),
@@ -48,15 +54,23 @@ def main():
                 f"`define {prefix}_{name.upper()} {offset + width - 1}:{offset}"
             )
             offset += width
+    state_type = next(
+        sub for name, sub in layout.records[layout.input_type] if name == "state"
+    )
+    offset = 376
+    for name, sub in layout.records[state_type]:
+        width = layout.schema(sub)[0]
+        lines.append(f"`define IN_STATE_{name.upper()} {offset + width - 1}:{offset}")
+        offset += width
     assert (HERE / "layout.vh").read_text() == "\n".join(lines) + "\n"
-    for name in ["board.v", "controller.v", "flash.v", "layout.vh"]:
+    for name in ["board.v", "controller.v", "restart.v", "flash.v", "layout.vh"]:
         shutil.copy2(HERE / name, out / name)
     ys = (
         (out / "board.ys")
         .read_text()
         .replace(
             "uart.v monitor.v packed.v board.v",
-            "uart.v flash.v controller.v packed.v board.v",
+            "uart.v flash.v restart.v controller.v packed.v board.v",
         )
     )
     (out / "board.ys").write_text(ys)
@@ -151,6 +165,10 @@ def main():
         "image_format": "RED2FLSH v1",
         "clock": "64-bit milliseconds since successful program load",
         "uart": "physical 115200 baud, 8N1; no serial debug monitor",
+        "quantum_supervisor": (
+            "finish q=0 reconstruction; relocate reachable residual; "
+            "LOAD_STATE with a fresh image-selected budget"
+        ),
     }
     record["files_sha256"] = {
         p.name: hashlib.sha256(p.read_bytes()).hexdigest()

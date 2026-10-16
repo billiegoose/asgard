@@ -22,12 +22,37 @@ COMMAND_BYTES = 91
 FLASH_OFFSET = 0x220000
 
 
-def compile_image(source, prepared, quantum=100_000):
+def compile_image(source, prepared, quantum=20):
+    hw = runtime()
+    provenance, layout = verify_preparation(prepared, hw, allow_standalone=True)
+    return encode_image(
+        source, hw, layout, quantum, provenance["candidate_source_sha256"]
+    )
+
+
+def compile_simulation_image(source, core, quantum=20):
+    """Use a source-checked core ABI before its physical board qualification."""
+    from scripts.experiments.red2_cfg_pilot.rtl_trace import PortLayout
+
+    hw = runtime()
+    provenance = json.loads((core / "provenance.json").read_text())
+
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    if digest(Path(hw._syn_machine.__file__)) != provenance["original_source_sha256"]:
+        raise ValueError("simulation core differs from the host ABI source")
+    if digest(core / "machine.py") != provenance["candidate_source_sha256"]:
+        raise ValueError("simulation candidate source changed")
+    return encode_image(
+        source, hw, PortLayout(core), quantum, provenance["candidate_source_sha256"]
+    )
+
+
+def encode_image(source, hw, layout, quantum, source_sha256):
     if not 0 < quantum < 1 << 32:
         raise ValueError("standalone quantum must be positive and fit 32 bits")
-    hw = runtime()
     codec, image, metadata = compile_program(hw, source, quantum)
-    provenance, layout = verify_preparation(prepared, hw)
     commands = []
 
     def add(op, **fields):
@@ -88,7 +113,7 @@ def compile_image(source, prepared, quantum=100_000):
         "command_count": len(commands),
         "flash_offset": FLASH_OFFSET,
         "literal_ids": codec._literal_to_id,
-        "core_source_sha256": provenance["candidate_source_sha256"],
+        "core_source_sha256": source_sha256,
         "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
         "sha256": hashlib.sha256(result).hexdigest(),
     }
@@ -98,10 +123,10 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--file", type=Path, required=True)
     p.add_argument(
-        "--prepared", type=Path, default=ROOT / "build/red2-basys3-shared-multiplier"
+        "--prepared", type=Path, default=ROOT / "build/red2-basys3-standalone-quantum"
     )
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--quantum", type=int, default=100_000)
+    p.add_argument("--quantum", type=int, default=20)
     a = p.parse_args()
     data, record = compile_image(a.file.read_text(), a.prepared, a.quantum)
     a.output.parent.mkdir(parents=True, exist_ok=True)

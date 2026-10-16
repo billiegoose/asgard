@@ -65,7 +65,7 @@ def compile_program(hw, source, quantum):
     return codec, image, metadata
 
 
-def verify_preparation(prepared, hw):
+def verify_preparation(prepared, hw, *, allow_standalone=False):
     build = json.loads((prepared / "build-result.json").read_text())
     if not build.get("built"):
         raise ValueError("prepared board has no successful bitstream build")
@@ -79,7 +79,9 @@ def verify_preparation(prepared, hw):
     if (provenance["input_width"], provenance["output_width"]) != (722, 626):
         raise ValueError("prepared board has an incompatible public interface")
     options = json.loads((prepared / "board-placement-options.json").read_text())
-    if not options.get("burst_clock"):
+    if not options.get("burst_clock") and not (
+        allow_standalone and provenance.get("standalone")
+    ):
         raise ValueError("live runner requires a burst-clock board image")
     top = Path(provenance["mapped_core_path"]).parent
     core = json.loads((top / "provenance.json").read_text())

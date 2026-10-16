@@ -1,5 +1,6 @@
 #include "Vstandalone_sim_top.h"
 #include "verilated.h"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -14,7 +15,8 @@ int main(int argc,char**argv) {
     Vstandalone_sim_top dut;
     size_t cursor=0;bool streaming=false;uint64_t last_clock=0;unsigned clocks=0;
     bool was_running=false;uint64_t run_cycles=0;unsigned pending_host=0;
-    for(uint64_t cycle=0;cycle<100000000;cycle++) {
+    unsigned last_restart=0,peak_residual=0;
+    for(uint64_t cycle=0;cycle<300000000;cycle++) {
         dut.clk=0;dut.reset=cycle<8;dut.rx=1;
         if(mode=="rx" && was_running) {
             // A real 8N1 Z byte, delayed to allow the program to enter UART-RX.
@@ -56,15 +58,25 @@ int main(int argc,char**argv) {
             seen.push_back(char(dut.observed_data));
             if(seen!=expected.substr(0,seen.size())) {std::cerr<<"UART mismatch\n";return 1;}
             if(seen==expected && mode=="stream") {
+                if(dut.restarts<2) {std::cerr<<"too few quantum restarts\n";return 1;}
                 std::cout<<"PASS UART="<<seen<<" cycles="<<cycle<<" CLOCK calls="<<clocks
-                         <<" ms="<<dut.milliseconds<<" pc="<<dut.pc<<" fsp="<<dut.fsp<<"\n";
+                         <<" ms="<<dut.milliseconds<<" pc="<<dut.pc<<" fsp="<<dut.fsp
+                         <<" restarts="<<dut.restarts<<" residual="<<dut.residual_words
+                         <<" peak_residual="<<peak_residual<<"\n";
                 return 0; // Stop explicitly after the requested output, not on timeout.
             }
+        }
+        if(dut.restarts!=last_restart) {
+            last_restart=dut.restarts;
+            peak_residual=std::max(peak_residual,unsigned(dut.residual_words));
+            std::cerr<<"restart="<<last_restart<<" residual="<<dut.residual_words
+                     <<" cycle="<<cycle<<"\n";
         }
         if(cycle%1000000==0) std::cerr<<"progress cycle="<<cycle<<" flash="<<cursor<<" state="<<unsigned(dut.adapter_state)<<" status="<<unsigned(dut.status)<<" pc="<<dut.pc<<" micro="<<unsigned(dut.microstate)<<" ms="<<dut.milliseconds<<" UART="<<seen<<"\n";
         if(dut.fault) {
             if(mode=="corrupt" && !was_running) {std::cout<<"PASS rejected bad image fault="<<unsigned(dut.fault)<<"\n";return 0;}
             std::cerr<<"FAULT="<<unsigned(dut.fault)<<" core="<<unsigned(dut.red2_fault)
+                     <<" hw="<<unsigned(dut.hw_fault)
                      <<" micro="<<unsigned(dut.microstate)<<" pc="<<dut.pc<<" fsp="<<dut.fsp
                      <<" after UART="<<seen<<" cycle="<<cycle<<"\n";return 1;
         }

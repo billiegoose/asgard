@@ -6,7 +6,9 @@ module standalone_sim_top (
     output [63:0] milliseconds, output resume_valid,
     output [2:0] host_op, output [63:0] resume_data,
     output [15:0] pc, output [15:0] fsp, output [7:0] microstate,
-    output [5:0] adapter_state, output [2:0] status, output [2:0] red2_fault
+    output [5:0] adapter_state, output [2:0] status, output [2:0] red2_fault,
+    output [2:0] hw_fault,
+    output [31:0] restarts, output [8:0] residual_words
 );
     wire [7:0] rx_data,tx_data;
     wire rx_valid,framing_error,tx_valid,tx_ready,core_ce,activity;
@@ -36,4 +38,7 @@ module standalone_sim_top (
     assign host_op=controller.response[299:297];
     assign pc=result[33:18];assign fsp=result[49:34];
     assign microstate=result[16:9];assign red2_fault=result[5:3];
+    assign restarts=controller.quantum_restarts;
+    assign residual_words=controller.residual_words;
+    assign hw_fault=controller.response[8:6];
 endmodule

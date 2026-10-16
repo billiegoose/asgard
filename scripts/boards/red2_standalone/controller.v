@@ -6,21 +6,39 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
     input [7:0] flash_data, input flash_valid,
     input [7:0] rx_data, input rx_valid, input framing_error,
     output reg [7:0] tx_data=0, output tx_valid, input tx_ready,
-    output reg [721:0] command=0, input [625:0] result,
-    output reg core_ce=0,
+    output [721:0] command, input [625:0] result,
+    output core_ce,
     output reg running=0, output reg halted=0,
     output reg [7:0] fault=0, output reg activity=0,
     output reg [63:0] milliseconds=0
 );
     localparam BOOT_RESET=0, RESET_WAIT=1, HEADER=2, HEADER_CHECK=3,
         BODY=4, BODY_CHECK=5, BOOT_NEXT=6, BOOT_DONE=7, RUN=8,
-        PULSE=9, SETTLE=10, RESUME=11, RECHARGE=12,
+        PULSE=9, SETTLE=10, RESUME=11, RESUMED=12,
         READ_FIRST=13, READ_SECOND=14, READ_DONE=15,
         TX_BYTE=16, TX_DRAIN=17, RX_WAIT=18,
         LIST_DESC=19, LIST_VALUE=20, LIST_TAIL=21, LIST_HEAD=22,
-        LIST_HEAD_VALUE=23, LIST_SEND=24, LIST_SEND_DRAIN=25, STOPPED=26, SAMPLE=27;
+        LIST_HEAD_VALUE=23, LIST_SEND=24, LIST_SEND_DRAIN=25, STOPPED=26, SAMPLE=27,
+        RESTART_WAIT=28;
     reg [5:0] state=BOOT_RESET, after_edge=0, after_read=0;
     reg [625:0] response=0;
+    reg [721:0] normal_command=0;
+    reg normal_ce=0, restart_start=0;
+    reg [8:0] arena_limit=256;
+    reg [31:0] quantum_restarts=0;
+    wire [721:0] restart_command;
+    wire restart_ce,restart_done;
+    wire [7:0] restart_fault;
+    wire [8:0] residual_words;
+    wire restarting=state==RESTART_WAIT;
+    assign command=restarting ? restart_command : normal_command;
+    assign core_ce=restarting ? restart_ce : normal_ce;
+    red2_residual_restart restart_engine (
+        .clk(clk),.reset(reset),.start(restart_start),
+        .root(response[`OUT_PC]),.arena_limit(arena_limit),.quantum(quantum),
+        .result(result),.command(restart_command),.core_ce(restart_ce),
+        .done(restart_done),.fault(restart_fault),.residual_words(residual_words)
+    );
     reg [511:0] header=0;
     reg [727:0] load_command=0;
     reg [6:0] byte_index=0;
@@ -64,7 +82,7 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
     task issue;
         input [721:0] value;
         input [5:0] next_state;
-        begin command<=value;after_edge<=next_state;state<=SAMPLE;end
+        begin normal_command<=value;after_edge<=next_state;state<=SAMPLE;end
     endtask
     task read_memory;
         input [7:0] address;
@@ -73,16 +91,17 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
     endtask
     task fail;
         input [7:0] code;
-        begin fault<=code;state<=STOPPED;running<=0;core_ce<=0;flash_stop<=1;end
+        begin fault<=code;state<=STOPPED;running<=0;normal_ce<=0;flash_stop<=1;end
     endtask
     reg [721:0] work;
     always @(posedge clk) begin
-        core_ce<=0;flash_start<=0;
+        normal_ce<=0;flash_start<=0;restart_start<=0;
         if(reset) begin
-            state<=BOOT_RESET;command<=0;core_ce<=0;fault<=0;running<=0;
+            state<=BOOT_RESET;normal_command<=0;normal_ce<=0;fault<=0;running<=0;
             halted<=0;milliseconds<=0;ms_divider<=0;flash_stop<=0;
             byte_index<=0;header<=0;crc<=32'hffffffff;rx_count<=0;
             rx_write<=0;rx_read<=0;reset_steps<=0;activity<=0;
+            arena_limit<=256;quantum_restarts<=0;
         end else begin
             if(running) begin
                 if(ms_divider==CYCLES_PER_MS-1) begin
@@ -135,8 +154,16 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
                        (commands_left!=1 && load_command[3:0]!=2 &&
                          load_command[3:0]!=3 && load_command[3:0]!=9) ||
                        ((load_command[3:0]==2 || load_command[3:0]==3) && load_command[19:4]>=256) ||
-                       (load_command[3:0]==9 && load_command[19:4]>=64)) fail(8'h82);
-                    else issue(load_command[721:0],BOOT_NEXT);
+                       (load_command[3:0]==9 && load_command[19:4]>=64) ||
+                       (commands_left==1 &&
+                        (load_command[`IN_STATE_FREE_SPACE]==0 ||
+                         load_command[`IN_STATE_FREE_SPACE]>256 ||
+                         load_command[`IN_STATE_ENV]!=load_command[`IN_STATE_FREE_SPACE] ||
+                         load_command[`IN_STATE_Q]!=quantum))) fail(8'h82);
+                    else begin
+                        if(commands_left==1) arena_limit<=load_command[515:507];
+                        issue(load_command[721:0],BOOT_NEXT);
+                    end
                 end
                 BOOT_NEXT: if(response[`OUT_HW_FAULT]!=0 || response[`OUT_RED2_FAULT]!=0) fail(8'h83);
                     else if(commands_left==1) state<=BOOT_DONE;
@@ -148,14 +175,14 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
                 end
                 // The core exposes next-state outputs. Capture while its clock is
                 // stopped, then admit its edge one full board cycle later.
-                SAMPLE: begin response<=result;core_ce<=1;state<=PULSE;end
+                SAMPLE: begin response<=result;normal_ce<=1;state<=PULSE;end
                 PULSE: begin state<=SETTLE;activity<=~activity;end
                 SETTLE: state<=after_edge;
                 RUN: begin
                     case(response[`OUT_STATUS])
                         0: issue(722'd7,RUN);
                         1: begin halted<=1;running<=0;state<=STOPPED;end
-                        2: fail(8'h85);
+                        2: begin restart_start<=1;state<=RESTART_WAIT;end
                         3: case(response[`OUT_PENDING_HOST_OP])
                             1: begin resume_word<=int_prefix|milliseconds;state<=RESUME;end
                             2: state<=RX_WAIT;
@@ -175,7 +202,7 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
                 READ_FIRST: begin
                     work=0;work[`IN_ADDRESS]={8'b0,read_address};issue(work,READ_SECOND);
                 end
-                READ_SECOND: issue(command,READ_DONE);
+                READ_SECOND: issue(normal_command,READ_DONE);
                 READ_DONE: begin read_word<=response[`OUT_MEMORY_READ];state<=after_read;end
                 LIST_DESC: if(response[`OUT_PENDING_HOST_OP]==3) begin
                     if(!is_int(read_word)) fail(8'h89);
@@ -227,9 +254,15 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
                     if(byte_cursor+1==byte_count) begin resume_word<=nil_word;state<=RESUME;end
                     else begin byte_cursor<=byte_cursor+1;tx_data<=bytes[byte_cursor+1];state<=LIST_SEND;end
                 end
-                RESUME: begin work=0;work[`IN_OP]=6;work[`IN_WORD]=resume_word;issue(work,RECHARGE);end
-                RECHARGE: if(response[`OUT_STATUS]==4) fail(8'h8e);
-                    else begin work=0;work[`IN_OP]=5;work[`IN_VALUE]=quantum;issue(work,RUN);end
+                RESUME: begin work=0;work[`IN_OP]=6;work[`IN_WORD]=resume_word;issue(work,RESUMED);end
+                RESUMED: if(response[`OUT_STATUS]==4) fail(8'h8e);
+                    else state<=RUN;
+                RESTART_WAIT: if(restart_done) begin
+                    if(restart_fault!=0) fail(restart_fault);
+                    else begin
+                        response<=result;quantum_restarts<=quantum_restarts+1;state<=RUN;
+                    end
+                end
                 STOPPED: begin end
                 default: fail(8'h8f);
             endcase
