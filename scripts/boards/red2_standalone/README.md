@@ -61,6 +61,8 @@ projects 42.5 block-RAM equivalents for 512 graph words, compared with 39.5
 for 256. This is an isolated-memory estimate, not a larger-board qualification.
 The 512-word native model produced ten dots with six restarts at quantum 20
 and two restarts at quantum 50; the present 256-word model needs 26 at quantum 5.
+With CLOCK advancing only every fourth call, the corresponding counts are
+21 and eight restarts for 512 words, compared with 84 for 256 words.
 The standalone controller and loader still require wider graph addresses before
 that capacity can be used on the board. A direct 1024-word expansion projects
 62 block-RAM equivalents and exceeds the device capacity.
