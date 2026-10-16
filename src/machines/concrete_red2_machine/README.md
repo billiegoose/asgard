@@ -90,6 +90,30 @@ provide explicit execution limits. The ordinary single-quantum interface is
 unchanged. `tests/test_red2_supervisor.py` covers bounded-memory recursion,
 captured branches and exactly-once device effects across restart boundaries.
 
+The Python reference processors also preserve **closed scalar residual sharing**.
+The proof deliberately accepts only variable-free scalar graphs containing
+numeric/character/boolean/NIL data and configured pure scalar primitives. It
+rejects definitions, functions, structures, host primitives, and environment
+references. A proven graph below its owner can remain an APP target during
+zero-quantum traversal. Fully reconstructed closure results are memoized only
+during exhausted reconstruction, with at most one entry per live environment
+slot; normal evaluation, source reclamation, and result-suffix rewinds invalidate
+those entries. Evaluated scalar results may update independent graph roots,
+but never an interior application spine. No new architectural word or control
+encoding is required. The reconstruction memo is scratch, not part of the ABI
+checkpoint: discarding it preserves values but can change subsequent work and
+residual layout.
+
+Concrete uses fixed, memory-sized arrays for memo entries, touched slots, visit
+stamps, and a bounded traversal stack. Its graph proofs and scratch bookkeeping
+run as Python model operations; the simulated microclock count does not include
+a serialized hardware implementation of those scans. This is a semantics-preserving
+extension to Hilton's atomic-only sharing policy in the Python models, not a
+claim that Synth or the current bitstream implements general residual sharing.
+`tests/test_red2_residual_sharing.py` checks the original Fibonacci program in
+512 words, every committed transition across restarts, lexical scope, and
+repeated effects through a shared graph.
+
 `RED2_PROGRAMS_V1` is the program-level proof contract built on
 `RED2_LOCKSTEP_V1`. After THOR parsing/compilation and image loading, the
 `ConcreteRED2Machine` owns RED2 evaluation. The host may schedule the processor,

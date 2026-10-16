@@ -19,6 +19,15 @@ from thor.ast import (
     Var,
 )
 
+_RESIDUAL_SCALAR_PRIMITIVES = frozenset(
+    {
+        "+", "-", "*", "/", "MOD", "1-", "1+", "MINUS", "ABS",
+        "FLOOR", "CEILING", "EVEN?", "=", "<", ">", "<=", ">=",
+        "INTEGER?", "FLOAT?", "CHAR?", "SYMBOL?", "NULL?", "NOT",
+        "MAX", "MIN", "EXPT",
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class MuredHostCall:
@@ -205,6 +214,9 @@ class AbstractRED2Machine:
         self._frontier_restores = 0
         self._graph_rewinds = 0
         self._host_checkpoints = 0
+        # At most one completed scalar residual per live closure slot. This
+        # scratch memo is used only until exhausted reconstruction finishes.
+        self._residual_closures: dict[int, tuple[Word, int, int]] = {}
 
     @classmethod
     def load(
@@ -358,6 +370,14 @@ class AbstractRED2Machine:
         if state.halted or self.pending_host_call is not None:
             return state
         self._validate_state()
+        if state.q > 0:
+            self._residual_closures.clear()
+        else:
+            self._residual_closures = {
+                address: memo
+                for address, memo in self._residual_closures.items()
+                if address >= state.free_space and memo[2] <= state.fsp
+            }
         old_fsp = state.fsp
         word = self._word(state.pc)
         match word.opcode:
@@ -1852,7 +1872,94 @@ class AbstractRED2Machine:
             raise InvalidAddress("APP requires an argument address")
         parent_app = state.pc
         parent_env = self._pop_control()
+        if (
+            state.q == 0
+            and state.fire == 0
+            and 0 <= parent_env <= len(state.memory)
+            and self._closed_residual_before(word.data, parent_app)
+        ):
+            state.env = parent_env
+            state.argcnt = 0
+            state.pc -= 1
+            return
         self._enter_subgraph(parent_env, word.data, parent_app)
+
+    def _closed_residual_before(self, address: int, boundary: int) -> bool:
+        """Recognize pure scalar graphs whose storage precedes their owner.
+
+        A zero-quantum traversal cannot change these graphs. Retaining their
+        pointers avoids expanding a DAG into a tree; the address bound ensures
+        that reclaiming a suffix cannot discard a still-referenced target.
+        Binder-dependent graphs and effects take ordinary reconstruction. This
+        deliberately excludes functions, structures, and defined symbols.
+        """
+        atoms = {
+            MuredOpcode.INT,
+            MuredOpcode.FLOAT,
+            MuredOpcode.CHAR,
+            MuredOpcode.SYM,
+            MuredOpcode.PRIM_1,
+            MuredOpcode.PRIM_2,
+        }
+        if not 0 <= address < min(boundary, self.working_memory_limit):
+            return False
+        first = self.state.memory[address]
+        if first is None or (first.head and first.opcode in atoms):
+            return False
+        active: set[int] = set()
+        done: set[int] = set()
+        stack = [(address, False)]
+        while stack:
+            root, leaving = stack.pop()
+            if leaving:
+                active.remove(root)
+                done.add(root)
+                continue
+            if root in active:
+                return False
+            if root in done:
+                continue
+            active.add(root)
+            stack.append((root, True))
+            cursor = root
+            while True:
+                if not 0 <= cursor < min(boundary, self.working_memory_limit):
+                    return False
+                entry = self.state.memory[cursor]
+                if entry is None:
+                    return False
+                if entry.definition is not None or entry.closure_slot:
+                    return False
+                if entry.opcode in {MuredOpcode.PRIM_1, MuredOpcode.PRIM_2} and (
+                    entry.data not in _RESIDUAL_SCALAR_PRIMITIVES
+                ):
+                    return False
+                if entry.opcode is MuredOpcode.INT and type(entry.data) is not int:
+                    return False
+                if entry.opcode is MuredOpcode.FLOAT and type(entry.data) is not float:
+                    return False
+                if entry.opcode in {MuredOpcode.CHAR, MuredOpcode.SYM} and (
+                    type(entry.data) is not str or not entry.data
+                ):
+                    return False
+                if entry.opcode is MuredOpcode.CHAR and len(str(entry.data)) != 1:
+                    return False
+                if entry.opcode is MuredOpcode.SYM and entry.data not in {
+                    "TRUE", "FALSE", "NIL"
+                }:
+                    return False
+                if entry.opcode is MuredOpcode.APP:
+                    if type(entry.data) is not int or entry.data < 0:
+                        return False
+                    if len(stack) >= len(self.state.memory) * 2 + 2:
+                        return False
+                    stack.append((entry.data, False))
+                elif entry.opcode not in atoms:
+                    return False
+                elif entry.head:
+                    break
+                cursor += 1
+        return True
 
     def _closure(self, word: Word) -> None:
         if self.state.direction is not Direction.F:
@@ -1900,6 +2007,31 @@ class AbstractRED2Machine:
         shareable_atomic = (
             single_word and tail.head and self._is_shareable_ep_value(tail)
         )
+        if (
+            parent.opcode is MuredOpcode.EP
+            and state.q == 0
+            and not shareable_atomic
+            and not any(
+                isinstance(entry, _SavedQuantum) and entry.value > 0
+                for entry in state.control_stack[: state.c + 1]
+            )
+            and self._closed_residual_before(state.s_a, state.fsp + 1)
+        ):
+            assert type(parent.data) is int
+            source = self._word(parent.data)
+            if source.opcode is MuredOpcode.CLOSURE:
+                self._residual_closures[parent.data] = (source, state.s_a, state.fsp)
+        if parent.opcode is MuredOpcode.APP and shareable_atomic and state.q > 0:
+            assert type(parent.data) is int
+            if self._closed_residual_before(parent.data, word.data):
+                previous = state.memory[parent.data - 1] if parent.data else None
+                # A spine suffix can also be addressed as a graph. Updating an
+                # interior suffix would change its enclosing application, so
+                # only a root following a HEAD (or address zero) is eligible.
+                if parent.data == 0 or (previous is not None and previous.head):
+                    state.memory[parent.data] = Word(
+                        tail.opcode, tail.data, True, tail.definition
+                    )
         if parent.opcode is MuredOpcode.EP and shareable_atomic:
             if type(parent.data) is not int or parent.data < 0:
                 raise InvalidAddress("EP requires an environment address")
@@ -2090,6 +2222,22 @@ class AbstractRED2Machine:
         if caller_path != state.env:
             self._push_environment_marker(caller_path)
         if target.opcode is MuredOpcode.CLOSURE:
+            memo = self._residual_closures.get(target_address)
+            if (
+                state.q == 0
+                and memo is not None
+                and memo[0] is target
+                and memo[2] <= state.fsp
+            ):
+                state.memory[parent_ep] = Word(MuredOpcode.APP, memo[1], False)
+                if state.fire > 0:
+                    state.fire -= 1
+                    if state.fire == 0:
+                        state.pc = parent_ep
+                        self._fire_primitive()
+                        return
+                state.pc -= 1
+                return
             self._enter_subgraph(state.env, target_address, parent_ep)
             return
         if target.opcode is MuredOpcode.UBV:

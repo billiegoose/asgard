@@ -67,6 +67,7 @@ def test_task4_publication_uses_fixed_bounded_scratch_not_dynamic_containers() -
         "_task4_materialization_clock",
         "_task4_publication_clock",
         "_task4_join_clock",
+        "_closed_residual_before",
         "_task4_join_restore_and_commit",
         "_task4_var_clock",
         "_task4_app_var_clock",

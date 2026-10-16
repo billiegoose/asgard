@@ -123,6 +123,15 @@ a smaller quantum does not guarantee lower peak memory for every program.
 In particular, the clock polling example uses quantum 5 because some quantum-20
 boundaries require more than 256 words of temporary reconstruction space.
 
+The Python processors preserve sharing of closed, pure scalar residual graphs
+across reconstruction. Repeated references to a completed arithmetic residual
+reuse its graph; when that graph later evaluates to an atom, eligible graph
+roots retain the value. This extends Hilton's atomic environment sharing without
+forcing arithmetic early or sharing effects, open expressions, or structures.
+The original Fibonacci(30) example completes with 512 memory words at quanta
+5, 20, 50, 100, and 200; it still exceeds the 256-word configuration. This
+optimization has not been ported to the synthesizable processor or FPGA image.
+
 Without `--supervise`, existing single-quantum behavior is preserved. The shared
 Python scheduler is `red2.supervisor.supervise`, with `AbstractProcessor` and
 `ConcreteProcessor` adapters. The concrete adapter uses its own word-level

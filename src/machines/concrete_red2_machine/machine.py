@@ -301,6 +301,19 @@ class ConcreteRED2Machine:
         self._task_pub_rec_touched = [0] * memory_words
         self._task_pub_rec_touched_count = 0
         self._task_mat_words = [0] * memory_words
+        # Bounded by the live environment slots; invalid after evaluation,
+        # source reclamation, or a rewind through the completed result suffix.
+        self._residual_valid = [0] * memory_words
+        self._residual_source = [0] * memory_words
+        self._residual_target = [0] * memory_words
+        self._residual_end = [0] * memory_words
+        self._residual_touched = [0] * memory_words
+        self._residual_count = 0
+        self._residual_visit_stamp = [0] * memory_words
+        self._residual_visit_state = [0] * memory_words
+        self._residual_generation = 0
+        self._residual_stack_address = [0] * (memory_words * 2 + 2)
+        self._residual_stack_leave = [0] * (memory_words * 2 + 2)
         self._task_mat_valid = [0] * memory_words
         self._task_mat_visit_address = [0] * memory_words
         self._task_mat_visit_environment = [0] * memory_words
@@ -599,6 +612,18 @@ class ConcreteRED2Machine:
         if self.microstate == MICRO_FAULT:
             return False
         if self.microstate == MICRO_FETCH:
+            retained = 0
+            for index in range(self._residual_count):
+                address = self._residual_touched[index]
+                if (
+                    self.q > 0 or address < self.free_space
+                    or self._residual_end[address] > self.fsp
+                ):
+                    self._residual_valid[address] = 0
+                else:
+                    self._residual_touched[retained] = address
+                    retained += 1
+            self._residual_count = retained
             if self.halted or self.pending_host_op != abi.HOST_NONE:
                 return False
             if not 0 <= self.pc < len(self.memory):
@@ -1857,6 +1882,18 @@ class ConcreteRED2Machine:
         parent_env = self._peek_control_path()
         if parent_env is None:
             return
+        if (
+            self.q == 0
+            and self.fire == 0
+            and 0 <= parent_env <= len(self.memory)
+            and self._closed_residual_before(self.memory, child_pc, parent_app)
+        ):
+            if self._pop_control_path() is None:
+                return
+            self.env = parent_env
+            self.argcnt = 0
+            self.pc -= 1
+            return
         fault = self._subgraph_entry_fault(parent_env, self.c - 1)
         if fault != abi.FAULT_NONE:
             self._fault(fault)
@@ -1865,6 +1902,102 @@ class ConcreteRED2Machine:
         if popped_parent_env is None:
             return
         self._enter_subgraph(popped_parent_env, child_pc, parent_app)
+
+    def _closed_residual_before(
+        self, memory: list[int], address: int, boundary: int
+    ) -> bool:
+        """Conservative, bounded recognition of variable-free scalar graphs.
+
+        Only targets below their owner can outlive every legal suffix rewind.
+        No binder, definition, structure, or host primitive is admitted.
+        """
+        atoms = (
+            abi.MOP_INT,
+            abi.MOP_FLOAT,
+            abi.MOP_CHAR,
+            abi.MOP_SYM,
+            abi.MOP_PRIM_1,
+            abi.MOP_PRIM_2,
+        )
+        if not 0 <= address < min(boundary, self.working_memory_limit):
+            return False
+        first = memory[address]
+        if first == 0 or (self._head(first) and self._opcode(first) in atoms):
+            return False
+        self._residual_generation = (self._residual_generation + 1) & 0xFFFFFFFF
+        if self._residual_generation == 0:
+            for index in range(len(self._residual_visit_stamp)):
+                self._residual_visit_stamp[index] = 0
+            self._residual_generation = 1
+        generation = self._residual_generation
+        self._residual_stack_address[0] = address
+        self._residual_stack_leave[0] = 0
+        sp = 0
+        while sp >= 0:
+            root = self._residual_stack_address[sp]
+            leaving = self._residual_stack_leave[sp]
+            sp -= 1
+            if not 0 <= root < min(boundary, self.working_memory_limit):
+                return False
+            if leaving:
+                self._residual_visit_state[root] = 2
+                continue
+            if self._residual_visit_stamp[root] == generation:
+                if self._residual_visit_state[root] == 1:
+                    return False
+                continue
+            self._residual_visit_stamp[root] = generation
+            self._residual_visit_state[root] = 1
+            sp += 1
+            if sp >= len(self._residual_stack_address):
+                return False
+            self._residual_stack_address[sp] = root
+            self._residual_stack_leave[sp] = 1
+            cursor = root
+            while True:
+                if not 0 <= cursor < min(boundary, self.working_memory_limit):
+                    return False
+                entry = memory[cursor]
+                if (
+                    entry == 0
+                    or self._definition_valid(entry)
+                    or self._closure_slot(entry)
+                ):
+                    return False
+                opcode = self._opcode(entry)
+                kind = self._data_kind(entry)
+                if opcode == abi.MOP_INT and kind != abi.DATA_SIGNED:
+                    return False
+                if opcode == abi.MOP_FLOAT and kind != abi.DATA_FLOAT64:
+                    return False
+                if opcode in (
+                    abi.MOP_CHAR, abi.MOP_SYM, abi.MOP_PRIM_1, abi.MOP_PRIM_2
+                ):
+                    if kind != abi.DATA_LITERAL_ID or self._payload(entry) == 0:
+                        return False
+                if opcode == abi.MOP_SYM and self._payload(entry) not in (
+                    self.true_literal_id, self.false_literal_id, self.nil_literal_id
+                ):
+                    return False
+                if opcode in (abi.MOP_PRIM_1, abi.MOP_PRIM_2) and (
+                    self._scalar_op(self._payload(entry)) == 0
+                ):
+                    return False
+                if opcode == abi.MOP_APP:
+                    target = self._signed_data(entry)
+                    if target is None or target < 0:
+                        return False
+                    sp += 1
+                    if sp >= len(self._residual_stack_address):
+                        return False
+                    self._residual_stack_address[sp] = target
+                    self._residual_stack_leave[sp] = 0
+                elif opcode not in atoms:
+                    return False
+                elif self._head(entry):
+                    break
+                cursor += 1
+        return True
 
     def _execute_app_var(self, word: int) -> None:
         if self.direction == abi.DIRECTION_REVERSE:
@@ -4064,6 +4197,54 @@ class ConcreteRED2Machine:
                 and self._is_shareable_atomic(tail)
             )
             tail_opcode = self._opcode(tail)
+            inhibited = False
+            if parent_opcode == abi.MOP_EP and self._task_q == 0:
+                for control_index in range(self._task_c + 1):
+                    entry = self._task_control[control_index]
+                    if (
+                        abi.control_tag(entry) == abi.CONTROL_SAVED_QUANTUM
+                        and abi.control_field(entry, 0) > 0
+                    ):
+                        inhibited = True
+                        break
+            if (
+                parent_opcode == abi.MOP_EP
+                and self._task_q == 0
+                and not shareable_atomic
+                and not inhibited
+                and self._closed_residual_before(
+                    self._task_memory, self._task_s_a, self._task_fsp + 1
+                )
+            ):
+                source_address = self._signed_data(parent)
+                if (
+                    source_address is not None
+                    and 0 <= source_address < len(self._task_memory)
+                ):
+                    source = self._task_memory[source_address]
+                    if self._opcode(source) == abi.MOP_CLOSURE:
+                        if not self._residual_valid[source_address]:
+                            self._residual_touched[
+                                self._residual_count
+                            ] = source_address
+                            self._residual_count += 1
+                        self._residual_valid[source_address] = 1
+                        self._residual_source[source_address] = source
+                        self._residual_target[source_address] = self._task_s_a
+                        self._residual_end[source_address] = self._task_fsp
+            if parent_opcode == abi.MOP_APP and shareable_atomic and self._task_q > 0:
+                source_address = self._signed_data(parent)
+                if (
+                    source_address is not None
+                    and self._closed_residual_before(
+                        self._task_memory, source_address, parent_address
+                    )
+                ):
+                    previous = (
+                        self._task_memory[source_address - 1] if source_address else 0
+                    )
+                    if source_address == 0 or (previous and self._head(previous)):
+                        self._task_memory[source_address] = self._clone_word(tail, 1)
             if parent_opcode == abi.MOP_RBLOCK:
                 self._task_memory[parent_address] = self._make_word(
                     abi.MOP_RBLOCK,
@@ -4536,6 +4717,32 @@ class ConcreteRED2Machine:
                     return
             target_opcode = self._opcode(target)
             if target_opcode == abi.MOP_CLOSURE:
+                if (
+                    self._task_q == 0
+                    and self._residual_valid[target_address]
+                    and self._residual_source[target_address] == target
+                    and self._residual_end[target_address] <= self._task_fsp
+                ):
+                    self._task_memory[self._task_ep_parent] = self._make_word(
+                        abi.MOP_APP,
+                        abi.DATA_SIGNED,
+                        abi.signed_to_payload(self._residual_target[target_address]),
+                        0,
+                    )
+                    if self._task_fire > 0:
+                        if self._task_prim_id == 0:
+                            self._fault(abi.FAULT_ILLEGAL_TRANSITION)
+                            return
+                        self._task_fire -= 1
+                        if self._task_fire == 0:
+                            self._task_pc = self._task_ep_parent
+                            if not self._task4_fire_primitive():
+                                return
+                            self.microstate = MICRO_COMMIT
+                            return
+                    self._task_pc -= 1
+                    self.microstate = MICRO_COMMIT
+                    return
                 if not self._task4_enter_subgraph(
                     self._task_env,
                     target_address,
@@ -4571,7 +4778,16 @@ class ConcreteRED2Machine:
                 abi.MOP_PRIM_1,
                 abi.MOP_PRIM_2,
             ):
-                self._task_memory[self._task_ep_parent] = self._clone_word(target, 0)
+                # The two-word closure-slot marker belongs to the environment,
+                # not the detached scalar copied into the result graph.
+                self._task_memory[self._task_ep_parent] = self._make_word(
+                    self._opcode(target),
+                    self._data_kind(target),
+                    self._payload(target),
+                    0,
+                    self._definition_valid(target),
+                    self._definition(target),
+                )
                 if self._task_fire > 0:
                     if self._task_prim_id == 0:
                         self._fault(abi.FAULT_ILLEGAL_TRANSITION)
