@@ -9,7 +9,9 @@ The first finite-quantum image passed physical resource, memory and routed timin
 checks at 10 MHz, then faulted after four physical UART dots. The source model
 reproduced a control-stack underflow when IO-THEN's first value was already
 inline after reconstruction. The correction has passed ten dots and 26 restarts
-in the source model; the updated physical build is being qualified.
+in the source model, including a polling run with 84 restarts. The corrected
+frontend RTL passed all ten cases and corrupt-image rejection; the updated
+physical build is being qualified.
 The earlier once-dot board qualification remains in
 `docs/handoffs/red2-standalone-results.json`.
 
