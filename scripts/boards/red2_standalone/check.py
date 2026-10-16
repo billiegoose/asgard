@@ -50,6 +50,12 @@ prepared = ROOT / "build/red2-basys3-shared-multiplier"
 cases = [
     ("clock-dots", (ROOT / "examples/clock-dots.thor").read_text(), "...", "stream"),
     ("uart-tx", "(UART-TX 65)", "A", "halt"),
+    (
+        "clock-payload",
+        "(IO-BIND (CLOCK) (LAMBDA (t) (UART-TX 65)))",
+        "A",
+        "halt",
+    ),
     ("uart-rx", "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))", "Z", "rx"),
     ("uart-list", "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))", "AB", "halt"),
 ]

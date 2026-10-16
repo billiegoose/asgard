@@ -18,7 +18,7 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
         READ_FIRST=13, READ_SECOND=14, READ_DONE=15,
         TX_BYTE=16, TX_DRAIN=17, RX_WAIT=18,
         LIST_DESC=19, LIST_VALUE=20, LIST_TAIL=21, LIST_HEAD=22,
-        LIST_HEAD_VALUE=23, LIST_SEND=24, LIST_SEND_DRAIN=25, STOPPED=26;
+        LIST_HEAD_VALUE=23, LIST_SEND=24, LIST_SEND_DRAIN=25, STOPPED=26, SAMPLE=27;
     reg [5:0] state=BOOT_RESET, after_edge=0, after_read=0;
     reg [625:0] response=0;
     reg [511:0] header=0;
@@ -64,7 +64,7 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
     task issue;
         input [721:0] value;
         input [5:0] next_state;
-        begin command<=value;core_ce<=1;after_edge<=next_state;state<=PULSE;end
+        begin command<=value;after_edge<=next_state;state<=SAMPLE;end
     endtask
     task read_memory;
         input [7:0] address;
@@ -146,9 +146,10 @@ module red2_standalone_controller #(parameter CYCLES_PER_MS=10000) (
                     if((~crc)!=header[383:352]) fail(8'h84);
                     else begin running<=1;milliseconds<=0;ms_divider<=0;state<=RUN;end
                 end
-                // Sample the command result before its one admitted core edge, exactly
-                // as the qualified monitor does. The core exposes next-state outputs.
-                PULSE: begin response<=result;state<=SETTLE;activity<=~activity;end
+                // The core exposes next-state outputs. Capture while its clock is
+                // stopped, then admit its edge one full board cycle later.
+                SAMPLE: begin response<=result;core_ce<=1;state<=PULSE;end
+                PULSE: begin state<=SETTLE;activity<=~activity;end
                 SETTLE: state<=after_edge;
                 RUN: begin
                     case(response[`OUT_STATUS])

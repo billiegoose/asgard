@@ -13,7 +13,7 @@ int main(int argc,char**argv) {
     std::string expected=argv[2],mode=argv[3],seen;
     Vstandalone_sim_top dut;
     size_t cursor=0;bool streaming=false;uint64_t last_clock=0;unsigned clocks=0;
-    bool was_running=false;uint64_t run_cycles=0;
+    bool was_running=false;uint64_t run_cycles=0;unsigned pending_host=0;
     for(uint64_t cycle=0;cycle<100000000;cycle++) {
         dut.clk=0;dut.reset=cycle<8;dut.rx=1;
         if(mode=="rx" && was_running) {
@@ -30,13 +30,15 @@ int main(int argc,char**argv) {
         bool take=dut.flash_take;
         if(dut.flash_start) streaming=true;
         if(dut.flash_stop) streaming=false;
-        if(dut.resume_valid && dut.host_op==1) {
+        if(dut.host_op) pending_host=dut.host_op;
+        if(dut.resume_valid && pending_host==1) {
             if(dut.resume_data<last_clock || dut.resume_data>dut.milliseconds ||
                dut.milliseconds-dut.resume_data>1) {
                 std::cerr<<"CLOCK mismatch\n";return 1;
             }
             last_clock=dut.resume_data;clocks++;
         }
+        if(dut.resume_valid) pending_host=0;
         bool old_running=dut.running;
         dut.clk=1;dut.eval();
         if(take)cursor++;

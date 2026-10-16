@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-16T03:01:08.131608+00:00",
+  "updated_at_utc": "2026-10-16T03:20:10.651895+00:00",
   "scope": "Autonomous QSPI program load, elapsed CLOCK and physical UART around qualified dedicated RED2 core",
   "core_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
   "frontend_rtl": {
@@ -8,31 +8,32 @@
       {
         "name": "clock-dots",
         "returncode": 0,
-        "stdout": "PASS UART=... cycles=3205157 CLOCK calls=4 ms=31752 pc=12 fsp=13\n",
-        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=9 status=0 pc=12 micro=120 ms=9700 UART=\nprogress cycle=2000000 flash=28092 state=9 status=0 pc=12 micro=61 ms=19700 UART=.\nprogress cycle=3000000 flash=28092 state=9 status=0 pc=12 micro=61 ms=29700 UART=..\n"
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=16 micro=61 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=27 status=0 pc=11 micro=60 ms=19695 UART=.\nprogress cycle=3000000 flash=28092 state=8 status=0 pc=11 micro=37 ms=29695 UART=..\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=12 micro=61 ms=39695 UART=..\nPASS UART=... cycles=4264026 CLOCK calls=0 ms=42335 pc=12 fsp=13\n",
+        "stderr": ""
       },
       {
         "name": "uart-tx",
         "returncode": 0,
-        "stdout": "PASS HALTED UART=A cycles=116534 CLOCK calls=0\n",
-        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=145893 CLOCK calls=0\n",
+        "stderr": ""
       },
       {
         "name": "uart-rx",
         "returncode": 0,
-        "stdout": "PASS HALTED UART=Z cycles=313597 CLOCK calls=0\n",
-        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=408643 CLOCK calls=0\n",
+        "stderr": ""
       },
       {
         "name": "uart-list",
         "returncode": 0,
-        "stdout": "PASS HALTED UART=AB cycles=693338 CLOCK calls=0\n",
-        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=914944 CLOCK calls=0\n",
+        "stderr": ""
       }
     ],
     "test_millisecond_divider": 100,
     "hardware_millisecond_divider": 10000,
-    "note": "Actual qualified engine frontend RTL; adapter flash byte stream modeled; no host reducer. Physical UART serialized/received in RTL. Not a mapped-primitive or physical pass."
+    "note": "Actual qualified engine frontend RTL and physical UART waveform models. The counter is checked every simulation cycle. The clock-dots run started before the CLOCK-resume instrumentation fix, so its logged call count is not a valid count. A separate current-harness CLOCK payload probe checks the returned elapsed value and records one resume. Not a mapped-primitive or physical pass.",
+    "handshake": "Capture response while the core clock is stopped, then admit its edge one full board cycle later."
   },
   "flash_transport": {
     "passed": true,
@@ -46,13 +47,15 @@
   },
   "physical": {
     "state": "placing",
-    "build": "build/red2-basys3-standalone-v2",
+    "build": "build/red2-basys3-standalone-v3",
     "qualified": false,
+    "superseded_build": "build/red2-basys3-standalone-v2",
+    "superseded_reason": "Stopped during placement refinement to add a separate response-sampling stage before the admitted core edge, matching the qualified single-command monitor. No bitstream generated or loaded.",
     "resources": {
       "top": "red2_basys3",
-      "lut": 16979,
+      "lut": 16945,
       "lut_memory": 394,
-      "lut_total": 17373,
+      "lut_total": 17339,
       "unknown_memory_primitives": [],
       "unaccounted_primitives": [],
       "flipflops": 9013,
@@ -74,11 +77,11 @@
         "FDSE": 51,
         "IBUF": 3,
         "INV": 732,
-        "LUT2": 2950,
-        "LUT3": 2276,
-        "LUT4": 2750,
-        "LUT5": 3740,
-        "LUT6": 5263,
+        "LUT2": 2460,
+        "LUT3": 2254,
+        "LUT4": 2760,
+        "LUT5": 3882,
+        "LUT6": 5589,
         "MMCME2_ADV": 1,
         "OBUF": 13,
         "RAM256X1S": 50,
@@ -95,12 +98,18 @@
     "backend_sha256": "e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc"
   },
   "artifacts_sha256": {
-    "build/red2-standalone/check-v5/results.json": "8501f5cc046e052a630c1e87ba28b086bbbab187c8ad2f22cc1f7b1901ec4d62",
-    "build/red2-standalone/check-v5-driver.log": "f5aea07e964f034e367ddd0c9991a91933fb40cc3668bb8548e9a6c2f76297e3",
+    "build/red2-standalone/check-v6/results.json": "7ee097b48909754dd3dcbc798a4d3a3c45433e1f390dc363538a96730d72d860",
+    "build/red2-standalone/check-v6-driver.log": "2b453dc66ea2c254527db13c60ac931c07f6835ed9104255b23393a9fa91fceb",
+    "build/red2-standalone/check-v6/clock-probe.log": "84b25a22cf0ce1ef998f157811dc3c431b23c3988a9defe13fc1fbf3856b472f",
     "build/red2-standalone/clock-dots.bin": "296ca52af796a3c90209642b4b84480fdd28611b30b1bb6d5c0b4027f4cd7665",
-    "scripts/boards/red2_standalone/controller.v": "6ea631315695dc8f556d8ebb4adb99765385bca21fbd069cf3a18815e7a1623a",
+    "build/red2-basys3-standalone-v3/board.json": "34e7ea7c464384aba516132c5f12111dc5ac7722a9cffed1bce3b24c4fd030e2",
+    "scripts/boards/red2_standalone/controller.v": "71137bed46e8831fba8ccde55284250417a0fe51fd11c297843ef0f6eafc5076",
     "scripts/boards/red2_standalone/flash.v": "c2e3715c676ec3635377cb391db3b34a536b230cd4c66fa81e092f1b1f055229",
-    "scripts/boards/red2_standalone/board.v": "9c0036d64cf4596344a27dcacc821276a0c0f828ad6f9dae430a248a154eba3e",
-    "build/red2-basys3-standalone-v2/board.json": "5287fa06ebc41e5794fdf19aa6e628d6360a7cf28f305dd3d3c0d6a6692df884"
+    "scripts/boards/red2_standalone/board.v": "9c0036d64cf4596344a27dcacc821276a0c0f828ad6f9dae430a248a154eba3e"
+  },
+  "clock_payload_probe": {
+    "passed": true,
+    "log": "PASS HALTED UART=A cycles=425514 CLOCK calls=1\n progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n\n",
+    "source": "(IO-BIND (CLOCK) (LAMBDA (t) (UART-TX 65)))"
   }
 }
