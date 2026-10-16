@@ -202,7 +202,9 @@
     "build/red2-graph-capacity-probe/native-512.py": "f087906acabfc880b4bde2d85f7871c810e0d891a1e9fec7f2f2ba14faf68ffb",
     "build/red2-graph-capacity-probe/native-512.log": "11997785b9e8263785b58597fa363ffc5456a68a7509cf347122eadb86cffed2",
     "build/red2-graph-capacity-probe/native-512-polling.py": "0c678cf106e7e8624761fc75460b149eb392641ea852013deab1efe58de50ac6",
-    "build/red2-graph-capacity-probe/native-512-polling.log": "f1aa4a05df19c5e22255a63958ba32945407215c58409c9f8483cfdb6c7fef44"
+    "build/red2-graph-capacity-probe/native-512-polling.log": "f1aa4a05df19c5e22255a63958ba32945407215c58409c9f8483cfdb6c7fef44",
+    "build/red2-graph-capacity-probe/native-512-extended.py": "d80e6d255f1757e78e67538e35e0f570b20a98195fbe6b60bd0e5eb8c77691d7",
+    "build/red2-graph-capacity-probe/native-512-extended.log": "fdcb0627fded7bf248af23cabc6aa739eff7f53bd02c6820b32500d4ae649311"
   },
   "native_polling_clock_dots": [
     {
@@ -228,5 +230,26 @@
     "clock_calls": 40,
     "restarts": 84,
     "peak_residual_words": 86
-  }
+  },
+  "extended_native_clock_dots": [
+    {
+      "graph_words": 512,
+      "quantum": 20,
+      "dots": 40,
+      "clock_calls": 41,
+      "restarts": 26,
+      "peak_residual_words": 86
+    },
+    {
+      "graph_words": 512,
+      "quantum": 50,
+      "dots": 100,
+      "clock_calls": 101,
+      "restarts": 26,
+      "peak_residual_words": 86
+    }
+  ],
+  "extended_recorded_at_utc": "2026-10-16T22:34:36.259635+00:00",
+  "extended_validation_scope": "Longer always-due CLOCK runs exercise multiple positions in the loop at quantum exhaustion; these remain typed-source tests, not 512-word hardware qualification",
+  "source_commit": "c994f5f4fe1fe6d84ae63f476a08e1c1befc39b6"
 }
