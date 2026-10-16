@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import shlex
 import shutil
 import subprocess
@@ -24,7 +25,16 @@ def main():
         default=ROOT / "docs/handoffs/red2-finite-quantum-results.json",
     )
     p.add_argument("--variant", default="finite-quantum")
+    p.add_argument("--seed", type=int, default=1)
+    p.add_argument("--router2-bb-expand-max", type=int, default=12)
+    p.add_argument("--router2-cong-mult", type=float, default=1.2)
     a = p.parse_args()
+    if not 0 <= a.seed < 1 << 32:
+        p.error("seed must fit an unsigned 32-bit field")
+    if a.router2_bb_expand_max < 0:
+        p.error("routing expansion must be nonnegative")
+    if not math.isfinite(a.router2_cong_mult) or a.router2_cong_mult <= 0:
+        p.error("routing congestion multiplier must be finite and positive")
     subprocess.run(
         [
             sys.executable,
@@ -137,6 +147,13 @@ def main():
         "'board-resources.json', 'board-timing.json', 'backend-versions.txt',\n"
         "    'board-bufg-routethroughs.json', 'board.fasm', 'board.frames',",
     )
+    assert implement.count("--seed 1") == 2
+    assert "--router2-bb-expand-max 12 --router2-cong-mult 1.2" in implement
+    implement = implement.replace("--seed 1", f"--seed {a.seed}").replace(
+        "--router2-bb-expand-max 12 --router2-cong-mult 1.2",
+        f"--router2-bb-expand-max {a.router2_bb_expand_max} "
+        f"--router2-cong-mult {a.router2_cong_mult}",
+    )
     (out / "implement.sh").write_text(implement)
     command = [
         "podman",
@@ -169,6 +186,11 @@ def main():
             "finish q=0 reconstruction; relocate reachable residual; "
             "LOAD_STATE with a fresh image-selected budget"
         ),
+    }
+    record["implementation_options"] = {
+        "seed": a.seed,
+        "router2_bb_expand_max": a.router2_bb_expand_max,
+        "router2_cong_mult": a.router2_cong_mult,
     }
     record["files_sha256"] = {
         p.name: hashlib.sha256(p.read_bytes()).hexdigest()

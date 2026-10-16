@@ -91,6 +91,9 @@ Preparation preserves the qualified mapped engine and verifies its packed ABI.
 The build uses the qualified image's cached, hash-pinned nextpnr backend and chip
 database, with network access disabled. Changes to the core are lowered with the
 verified enhanced PipelineC compiler; the board wrapper reuses that mapped core.
+Placement and routing trials can set `--seed`, `--router2-bb-expand-max` and
+`--router2-cong-mult` during preparation. These options change implementation
+choices and are recorded in provenance; they do not change RED2 logic.
 No chip database regeneration is needed. Mapping, physical resource checks,
 routed timing and BRAM initialization audits must pass before a bitstream is
 produced.
