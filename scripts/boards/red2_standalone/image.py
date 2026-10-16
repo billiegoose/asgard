@@ -123,7 +123,9 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--file", type=Path, required=True)
     p.add_argument(
-        "--prepared", type=Path, default=ROOT / "build/red2-basys3-standalone-quantum"
+        "--prepared",
+        type=Path,
+        default=ROOT / "build/red2-basys3-standalone-quantum-v6-seed2",
     )
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--quantum", type=int, default=20)

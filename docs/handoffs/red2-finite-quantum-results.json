@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-16T20:26:33.410126+00:00",
-  "scope": "Targeted finite-quantum RED2 core validation and mapped fit candidate; board routing and physical qualification are recorded separately",
+  "scope": "Dedicated finite-quantum RED2 with hardware residual relocation, autonomous QSPI program boot, elapsed CLOCK and physical UART; source, frontend RTL, routed implementation and persistent board execution qualified",
   "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
   "fpgatool_commit": "ad377479db8a70b027fdb096bfb8f0df308524bc",
   "variants": {
@@ -894,5 +894,533 @@
     "control_words": 256,
     "literal_entries": 64,
     "behavior": "Finish q=0 reconstruction, copy reachable residual spines, relocate APP/RBLOCK links, restart the dedicated reducer; CLOCK and UART never refresh the budget"
+  },
+  "physical": {
+    "recorded_at_utc": "2026-10-16T22:57:18.700224+00:00",
+    "state": "qualified-autonomous-finite-quantum-flash-boot",
+    "qualified": true,
+    "build": "build/red2-basys3-standalone-quantum-v6-seed2",
+    "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+    "program": "examples/clock-dots.thor",
+    "quantum": 5,
+    "resources": {
+      "top": "red2_basys3",
+      "lut": 18108,
+      "lut_memory": 394,
+      "lut_total": 18502,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 9567,
+      "bram18": 23,
+      "bram36": 28,
+      "bram36_equivalent": 39.5,
+      "dsp48": 12,
+      "carry4": 647,
+      "muxf7": 0,
+      "muxf8": 0,
+      "startup": 1,
+      "primitives": {
+        "BUFG": 2,
+        "BUFGCE": 1,
+        "CARRY4": 647,
+        "DSP48E1": 12,
+        "FDCE": 2,
+        "FDRE": 9510,
+        "FDSE": 55,
+        "IBUF": 3,
+        "INV": 750,
+        "LUT2": 3016,
+        "LUT3": 2756,
+        "LUT4": 2472,
+        "LUT5": 3640,
+        "LUT6": 6224,
+        "MMCME2_ADV": 1,
+        "OBUF": 13,
+        "RAM256X1S": 50,
+        "RAM32M": 2,
+        "RAM64M": 15,
+        "RAM64X1S": 126,
+        "RAMB18E1": 23,
+        "RAMB36E1": 28,
+        "STARTUPE2": 1
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "physical_lut_sites": 18467,
+    "timing": {
+      "core_clock": {
+        "achieved_mhz": 13.1,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "achieved_mhz": 12.53,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "observed_dots_per_boot": 30,
+    "deployment": {
+      "started_at_utc": "2026-10-16T22:50:15.895108+00:00",
+      "image_sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+      "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+      "persistent_requested": true,
+      "passed": true,
+      "stages": [
+        {
+          "stage": "program-data",
+          "command": [
+            "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+            "/Users/billie/code/billiegoose/fpgatool/fpgatool.py",
+            "program-data",
+            "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin",
+            "--offset",
+            "0x220000"
+          ],
+          "log": "build/red2-standalone/quantum-v6-deployment-program-data.log",
+          "passed": true
+        },
+        {
+          "stage": "load-sram",
+          "command": [
+            "openFPGALoader",
+            "--board",
+            "basys3",
+            "--ftdi-serial",
+            "210183735787",
+            "--write-sram",
+            "--bitstream",
+            "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
+          ],
+          "log": "build/red2-standalone/quantum-v6-deployment-load-sram.log",
+          "passed": true
+        },
+        {
+          "stage": "program-config",
+          "command": [
+            "openFPGALoader",
+            "--board",
+            "basys3",
+            "--ftdi-serial",
+            "210183735787",
+            "--write-flash",
+            "--verify",
+            "--bitstream",
+            "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
+          ],
+          "log": "build/red2-standalone/quantum-v6-deployment-program-config.log",
+          "passed": true
+        },
+        {
+          "stage": "reset-from-flash",
+          "command": [
+            "openFPGALoader",
+            "--board",
+            "basys3",
+            "--ftdi-serial",
+            "210183735787",
+            "--reset"
+          ],
+          "log": "build/red2-standalone/quantum-v6-deployment-reset-from-flash.log",
+          "passed": true
+        }
+      ],
+      "sram_observation": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+        "samples": [
+          {
+            "seconds": 3.712657,
+            "hex": "2e"
+          },
+          {
+            "seconds": 7.775533,
+            "hex": "2e"
+          },
+          {
+            "seconds": 10.86332,
+            "hex": "2e"
+          },
+          {
+            "seconds": 14.927176,
+            "hex": "2e"
+          },
+          {
+            "seconds": 19.695027,
+            "hex": "2e"
+          },
+          {
+            "seconds": 23.294828,
+            "hex": "2e"
+          },
+          {
+            "seconds": 27.376001,
+            "hex": "2e"
+          },
+          {
+            "seconds": 30.446553,
+            "hex": "2e"
+          },
+          {
+            "seconds": 34.526428,
+            "hex": "2e"
+          },
+          {
+            "seconds": 39.295484,
+            "hex": "2e"
+          },
+          {
+            "seconds": 42.894054,
+            "hex": "2e"
+          },
+          {
+            "seconds": 46.957873,
+            "hex": "2e"
+          },
+          {
+            "seconds": 50.045778,
+            "hex": "2e"
+          },
+          {
+            "seconds": 54.109605,
+            "hex": "2e"
+          },
+          {
+            "seconds": 58.877391,
+            "hex": "2e"
+          },
+          {
+            "seconds": 62.493314,
+            "hex": "2e"
+          },
+          {
+            "seconds": 66.557116,
+            "hex": "2e"
+          },
+          {
+            "seconds": 69.628991,
+            "hex": "2e"
+          },
+          {
+            "seconds": 73.708835,
+            "hex": "2e"
+          },
+          {
+            "seconds": 78.476624,
+            "hex": "2e"
+          },
+          {
+            "seconds": 82.076534,
+            "hex": "2e"
+          },
+          {
+            "seconds": 86.140516,
+            "hex": "2e"
+          },
+          {
+            "seconds": 89.22822,
+            "hex": "2e"
+          },
+          {
+            "seconds": 93.292037,
+            "hex": "2e"
+          },
+          {
+            "seconds": 98.07587,
+            "hex": "2e"
+          },
+          {
+            "seconds": 101.675678,
+            "hex": "2e"
+          },
+          {
+            "seconds": 105.739532,
+            "hex": "2e"
+          },
+          {
+            "seconds": 108.811514,
+            "hex": "2e"
+          },
+          {
+            "seconds": 112.891292,
+            "hex": "2e"
+          },
+          {
+            "seconds": 117.65904,
+            "hex": "2e"
+          }
+        ],
+        "host_uart_bytes_written": 0,
+        "scope": "raw UART observation; no host clock values or runtime commands"
+      },
+      "flash_observation": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+        "samples": [
+          {
+            "seconds": 9.871913,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.935676,
+            "hex": "2e"
+          },
+          {
+            "seconds": 17.023528,
+            "hex": "2e"
+          },
+          {
+            "seconds": 21.087498,
+            "hex": "2e"
+          },
+          {
+            "seconds": 25.871361,
+            "hex": "2e"
+          },
+          {
+            "seconds": 29.471157,
+            "hex": "2e"
+          },
+          {
+            "seconds": 33.554946,
+            "hex": "2e"
+          },
+          {
+            "seconds": 36.60679,
+            "hex": "2e"
+          },
+          {
+            "seconds": 40.686605,
+            "hex": "2e"
+          },
+          {
+            "seconds": 45.454431,
+            "hex": "2e"
+          },
+          {
+            "seconds": 49.054279,
+            "hex": "2e"
+          },
+          {
+            "seconds": 53.118207,
+            "hex": "2e"
+          },
+          {
+            "seconds": 56.206006,
+            "hex": "2e"
+          },
+          {
+            "seconds": 60.269826,
+            "hex": "2e"
+          },
+          {
+            "seconds": 65.053647,
+            "hex": "2e"
+          },
+          {
+            "seconds": 68.65348,
+            "hex": "2e"
+          },
+          {
+            "seconds": 72.717378,
+            "hex": "2e"
+          },
+          {
+            "seconds": 75.78923,
+            "hex": "2e"
+          },
+          {
+            "seconds": 79.869019,
+            "hex": "2e"
+          },
+          {
+            "seconds": 84.636929,
+            "hex": "2e"
+          },
+          {
+            "seconds": 88.236727,
+            "hex": "2e"
+          },
+          {
+            "seconds": 92.300571,
+            "hex": "2e"
+          },
+          {
+            "seconds": 95.388422,
+            "hex": "2e"
+          },
+          {
+            "seconds": 99.468318,
+            "hex": "2e"
+          },
+          {
+            "seconds": 104.236064,
+            "hex": "2e"
+          },
+          {
+            "seconds": 107.836021,
+            "hex": "2e"
+          },
+          {
+            "seconds": 111.899782,
+            "hex": "2e"
+          },
+          {
+            "seconds": 114.971648,
+            "hex": "2e"
+          },
+          {
+            "seconds": 119.051475,
+            "hex": "2e"
+          },
+          {
+            "seconds": 123.819351,
+            "hex": "2e"
+          }
+        ],
+        "host_uart_bytes_written": 0,
+        "scope": "raw UART observation; no host clock values or runtime commands"
+      },
+      "reset_observation": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+        "samples": [
+          {
+            "seconds": 9.862426,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.942278,
+            "hex": "2e"
+          },
+          {
+            "seconds": 17.014085,
+            "hex": "2e"
+          },
+          {
+            "seconds": 21.093913,
+            "hex": "2e"
+          },
+          {
+            "seconds": 25.861685,
+            "hex": "2e"
+          },
+          {
+            "seconds": 29.461646,
+            "hex": "2e"
+          },
+          {
+            "seconds": 33.525428,
+            "hex": "2e"
+          },
+          {
+            "seconds": 36.613276,
+            "hex": "2e"
+          },
+          {
+            "seconds": 40.677133,
+            "hex": "2e"
+          },
+          {
+            "seconds": 45.444981,
+            "hex": "2e"
+          },
+          {
+            "seconds": 49.060789,
+            "hex": "2e"
+          },
+          {
+            "seconds": 53.124603,
+            "hex": "2e"
+          },
+          {
+            "seconds": 56.196484,
+            "hex": "2e"
+          },
+          {
+            "seconds": 60.276316,
+            "hex": "2e"
+          },
+          {
+            "seconds": 65.044124,
+            "hex": "2e"
+          },
+          {
+            "seconds": 68.644035,
+            "hex": "2e"
+          },
+          {
+            "seconds": 72.707898,
+            "hex": "2e"
+          },
+          {
+            "seconds": 75.800256,
+            "hex": "2e"
+          },
+          {
+            "seconds": 79.85952,
+            "hex": "2e"
+          },
+          {
+            "seconds": 84.62736,
+            "hex": "2e"
+          },
+          {
+            "seconds": 88.243213,
+            "hex": "2e"
+          },
+          {
+            "seconds": 92.307167,
+            "hex": "2e"
+          },
+          {
+            "seconds": 95.378948,
+            "hex": "2e"
+          },
+          {
+            "seconds": 99.458804,
+            "hex": "2e"
+          },
+          {
+            "seconds": 104.226715,
+            "hex": "2e"
+          },
+          {
+            "seconds": 107.826428,
+            "hex": "2e"
+          },
+          {
+            "seconds": 111.890293,
+            "hex": "2e"
+          },
+          {
+            "seconds": 114.978139,
+            "hex": "2e"
+          },
+          {
+            "seconds": 119.042021,
+            "hex": "2e"
+          },
+          {
+            "seconds": 123.825837,
+            "hex": "2e"
+          }
+        ],
+        "host_uart_bytes_written": 0,
+        "scope": "raw UART observation; no host clock values or runtime commands"
+      },
+      "finished_at_utc": "2026-10-16T22:57:16.351382+00:00"
+    },
+    "scope": "Verified program-data flash, SRAM execution, configuration flash execution, and separate reset from flash with read-only UART observation; physical power removal/reconnection was not tested",
+    "files_sha256": {
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/build-result.json": "ae05fe38480c28d095505c4744040faa9e845e6757a6bc2f39a771fe7d26fb7b",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/provenance.json": "21c7723f34705b2a5c2f30a285ef136f17d7220b6b670f7e27dd5f9df79fb048",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-resources.json": "4750d08848edb0728fbc55c33ffa682ef62a153773abfeb59b4eda37d13da18a",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-timing.json": "961abda81bb5519cd6adb75a7b75429d7eaec1390c18a5dad1e66eb88ff6bc64",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-physical-lut-sites.json": "0dc95cf449a2e0a84759715d746573fadf01bb20ec570632093464f09bf3c254",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-bram-audit.json": "be608e5689fd0723593e8abb4f5653e0232ee85638f8ebf6a1cdc8245edf5169",
+      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.json": "f251097bb3388af0fb942c3f1b384436f5119d73d190ea52a883128ae8944cda",
+      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/quantum-v6-deployment.json": "ac02bacbe07224ee2b181989ba41f6523e48509348ae62c13e577f4e00a34124"
+    }
   }
 }

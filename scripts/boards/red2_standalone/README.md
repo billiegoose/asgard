@@ -5,13 +5,16 @@ hardware devices around the existing qualified dedicated RED2 engine. The host
 compiles THOR before deployment; it does not execute reductions or service I/O
 while the program runs.
 
-The first finite-quantum image passed physical resource, memory and routed timing
-checks at 10 MHz, then faulted after four physical UART dots. The source model
-reproduced a control-stack underflow when IO-THEN's first value was already
-inline after reconstruction. The correction has passed ten dots and 26 restarts
-in the source model, including a polling run with 84 restarts. The corrected
-frontend RTL passed all ten cases and corrupt-image rejection; the updated
-physical build is being qualified.
+The corrected finite-quantum image passed physical resource, memory and routed
+timing checks at 10 MHz. It produced thirty physical UART dots from SRAM,
+thirty after programming configuration flash, and thirty after a separate
+configuration reset from flash. The observer sent no UART commands.
+The implementation uses 18,467 physical LUT sites,
+39.5 block-RAM equivalents and 12 DSPs.
+
+The earlier four-dot fault was a control-stack underflow when reconstructed
+IO-THEN began with an inline value. Its correction passed source, frontend
+RTL and the sustained physical checks recorded below.
 The earlier once-dot board qualification remains in
 `docs/handoffs/red2-standalone-results.json`.
 
@@ -79,12 +82,12 @@ program:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/prepare.py \
-  --output build/red2-basys3-standalone-quantum
-bash build/red2-basys3-standalone-quantum/build.sh
+  --seed 2 --output build/red2-basys3-standalone-quantum-v6-seed2
+bash build/red2-basys3-standalone-quantum-v6-seed2/build.sh
 .venv/bin/python scripts/boards/red2_standalone/image.py \
-  --prepared build/red2-basys3-standalone-quantum \
+  --prepared build/red2-basys3-standalone-quantum-v6-seed2 \
   --file examples/clock-dots.thor --quantum 5 \
-  --output build/red2-standalone/clock-dots-quantum.bin
+  --output build/red2-standalone/clock-dots-quantum-v6.bin
 ```
 
 Preparation preserves the qualified mapped engine and verifies its packed ABI.
@@ -115,10 +118,10 @@ After a successful build:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/deploy.py \
-  --prepared build/red2-basys3-standalone-quantum \
-  --image build/red2-standalone/clock-dots-quantum.bin \
-  --log build/red2-standalone/deployment.json \
-  --expected ".............................." --observe-seconds 120 --persistent
+  --prepared build/red2-basys3-standalone-quantum-v6-seed2 \
+  --image build/red2-standalone/clock-dots-quantum-v6.bin \
+  --log build/red2-standalone/quantum-v6-deployment.json \
+  --expected ".............................." --observe-seconds 900 --persistent
 ```
 
 Deployment uses the sibling fpgatool's `program-data` command to program and
