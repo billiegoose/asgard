@@ -1,5 +1,9 @@
 # Executable functional THOR lifetime reference
 
+For compiling and running complete archived programs, including the historical
+parser and graph dumps, see [the whole-program runner](PROGRAM.md).
+The fixture harness described below remains separate and unchanged.
+
 ```sh
 uv run pytest -q tests/test_hilton_reference.py
 uv run python -c 'from tools.hilton_reference.runner import run_case; print(run_case("atomic-child-return"))'
