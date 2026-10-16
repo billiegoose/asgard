@@ -1,0 +1,106 @@
+{
+  "updated_at_utc": "2026-10-16T03:01:08.131608+00:00",
+  "scope": "Autonomous QSPI program load, elapsed CLOCK and physical UART around qualified dedicated RED2 core",
+  "core_source_sha256": "89c7712cb728b61872c7823e119b0c4e8c6548f2dcccd92b2504c8f5d10f4f94",
+  "frontend_rtl": {
+    "passed": true,
+    "cases": [
+      {
+        "name": "clock-dots",
+        "returncode": 0,
+        "stdout": "PASS UART=... cycles=3205157 CLOCK calls=4 ms=31752 pc=12 fsp=13\n",
+        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=9 status=0 pc=12 micro=120 ms=9700 UART=\nprogress cycle=2000000 flash=28092 state=9 status=0 pc=12 micro=61 ms=19700 UART=.\nprogress cycle=3000000 flash=28092 state=9 status=0 pc=12 micro=61 ms=29700 UART=..\n"
+      },
+      {
+        "name": "uart-tx",
+        "returncode": 0,
+        "stdout": "PASS HALTED UART=A cycles=116534 CLOCK calls=0\n",
+        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+      },
+      {
+        "name": "uart-rx",
+        "returncode": 0,
+        "stdout": "PASS HALTED UART=Z cycles=313597 CLOCK calls=0\n",
+        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+      },
+      {
+        "name": "uart-list",
+        "returncode": 0,
+        "stdout": "PASS HALTED UART=AB cycles=693338 CLOCK calls=0\n",
+        "stderr": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\n"
+      }
+    ],
+    "test_millisecond_divider": 100,
+    "hardware_millisecond_divider": 10000,
+    "note": "Actual qualified engine frontend RTL; adapter flash byte stream modeled; no host reducer. Physical UART serialized/received in RTL. Not a mapped-primitive or physical pass."
+  },
+  "flash_transport": {
+    "passed": true,
+    "bytes_checked": 28092,
+    "method": "03h SPI command/address and every byte checked with read backpressure against NOR model"
+  },
+  "corrupt_payload": {
+    "passed": true,
+    "adapter_fault": 132,
+    "program_started": false
+  },
+  "physical": {
+    "state": "placing",
+    "build": "build/red2-basys3-standalone-v2",
+    "qualified": false,
+    "resources": {
+      "top": "red2_basys3",
+      "lut": 16979,
+      "lut_memory": 394,
+      "lut_total": 17373,
+      "unknown_memory_primitives": [],
+      "unaccounted_primitives": [],
+      "flipflops": 9013,
+      "bram18": 21,
+      "bram36": 24,
+      "bram36_equivalent": 34.5,
+      "dsp48": 12,
+      "carry4": 609,
+      "muxf7": 0,
+      "muxf8": 0,
+      "startup": 1,
+      "primitives": {
+        "BUFG": 2,
+        "BUFGCE": 1,
+        "CARRY4": 609,
+        "DSP48E1": 12,
+        "FDCE": 2,
+        "FDRE": 8960,
+        "FDSE": 51,
+        "IBUF": 3,
+        "INV": 732,
+        "LUT2": 2950,
+        "LUT3": 2276,
+        "LUT4": 2750,
+        "LUT5": 3740,
+        "LUT6": 5263,
+        "MMCME2_ADV": 1,
+        "OBUF": 13,
+        "RAM256X1S": 50,
+        "RAM32M": 2,
+        "RAM64M": 15,
+        "RAM64X1S": 126,
+        "RAMB18E1": 21,
+        "RAMB36E1": 24,
+        "STARTUPE2": 1
+      },
+      "basys3_over_budget": {},
+      "within_basys3_resource_limits": true
+    },
+    "backend_sha256": "e9fd42e7b779424725302bd79bbc1632ca8d87526dd0fac50daac44a8b4212fc"
+  },
+  "artifacts_sha256": {
+    "build/red2-standalone/check-v5/results.json": "8501f5cc046e052a630c1e87ba28b086bbbab187c8ad2f22cc1f7b1901ec4d62",
+    "build/red2-standalone/check-v5-driver.log": "f5aea07e964f034e367ddd0c9991a91933fb40cc3668bb8548e9a6c2f76297e3",
+    "build/red2-standalone/clock-dots.bin": "296ca52af796a3c90209642b4b84480fdd28611b30b1bb6d5c0b4027f4cd7665",
+    "scripts/boards/red2_standalone/controller.v": "6ea631315695dc8f556d8ebb4adb99765385bca21fbd069cf3a18815e7a1623a",
+    "scripts/boards/red2_standalone/flash.v": "c2e3715c676ec3635377cb391db3b34a536b230cd4c66fa81e092f1b1f055229",
+    "scripts/boards/red2_standalone/board.v": "9c0036d64cf4596344a27dcacc821276a0c0f828ad6f9dae430a248a154eba3e",
+    "build/red2-basys3-standalone-v2/board.json": "5287fa06ebc41e5794fdf19aa6e628d6360a7cf28f305dd3d3c0d6a6692df884"
+  }
+}

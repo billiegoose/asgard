@@ -81,3 +81,17 @@ def test_unmapped_logic_and_unknown_ip_prevent_fit_claim():
     resources = count_resources(netlist)
     assert resources["unaccounted_primitives"] == ["$add", "custom_blackbox"]
     assert not resources["within_basys3_resource_limits"]
+
+
+def test_configuration_flash_access_uses_one_dedicated_startup_site():
+    cells = {"flash_clock": {"type": "STARTUPE2"}}
+    netlist = {"modules": {"top": {"attributes": {"top": 1}, "cells": cells}}}
+    resources = count_resources(netlist)
+    assert resources["startup"] == 1
+    assert resources["lut_total"] == 0
+    assert resources["unaccounted_primitives"] == []
+    assert resources["within_basys3_resource_limits"]
+    cells["second_flash_clock"] = {"type": "STARTUPE2"}
+    resources = count_resources(netlist)
+    assert resources["basys3_over_budget"]["startup"] == {"used": 2, "available": 1}
+    assert not resources["within_basys3_resource_limits"]

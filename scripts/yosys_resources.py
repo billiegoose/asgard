@@ -81,7 +81,7 @@ def count_resources(netlist, top=None):
         r"(?:LUT[1-6](?:_2)?|(?:FD|LD)[A-Z0-9_]*|RAM[A-Z0-9_]*|"
         r"SRL[A-Z0-9_]*|DSP48[A-Z0-9_]*|CARRY4|MUXF[5-9]|"
         r"(?:I|O|IO)BUF[A-Z0-9_]*|BUF[A-Z0-9_]*|"
-        r"MMCME2_(?:ADV|BASE)|PLLE2_(?:ADV|BASE)|INV|GND|VCC)"
+        r"MMCME2_(?:ADV|BASE)|PLLE2_(?:ADV|BASE)|STARTUPE2|INV|GND|VCC)"
     )
     unaccounted = [name for name in primitives if not known_primitive.fullmatch(name)]
     resources = {
@@ -99,6 +99,7 @@ def count_resources(netlist, top=None):
         "carry4": primitives["CARRY4"],
         "muxf7": primitives["MUXF7"],
         "muxf8": primitives["MUXF8"],
+        "startup": primitives["STARTUPE2"],
         "primitives": dict(sorted(primitives.items())),
     }
     limits = {
@@ -109,6 +110,7 @@ def count_resources(netlist, top=None):
         "carry4": 5200,
         "muxf7": 10400,
         "muxf8": 5200,
+        "startup": 1,
     }
     resources["basys3_over_budget"] = {
         name: {"used": resources[name], "available": limit}
