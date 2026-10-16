@@ -6442,9 +6442,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 pending_host_argument = pc + 1
                 join_host_active = 0
                 join_host_op = HOST_NONE
-            elif join_if_active:
-                # Publish the EP condition and pop its value path before IF
-                # reads the two branch paths. There is no child JOIN frame.
+            elif join_if_active or join_io_active:
+                # Publish the EP value and pop its path before the primitive
+                # reads its continuation paths. There is no child JOIN frame.
                 prim_id = 0
                 fire = 0
                 ep_scalar_active = 0
@@ -6470,6 +6470,9 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 join_false_literal_id = 0
                 join_special_meta_cursor = 0
                 microstate = MICRO_JOIN_SPECIAL_META_SCAN
+            elif join_io_active:
+                join_publish_word = ep_publish_word
+                microstate = MICRO_JOIN_IO_CONT_READ
             else:
                 if pending_host_op == HOST_NONE:
                     pc = pc - 1
@@ -7257,12 +7260,24 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                         join_io_return_active = 1
                         microstate = MICRO_JOIN_TAIL_READ
                 elif (join_meta_is_bind or join_meta_is_then):
-                    if q == 0:
+                    if direct_scalar_active and q == 0:
+                        prim_id = 0
+                        fire = 0
+                        direct_scalar_active = 0
+                        pc = join_parent_address - 1
+                        microstate = MICRO_COMMIT
+                    elif q == 0:
                         microstate = MICRO_JOIN_TAIL_READ
                     else:
                         join_io_active = 1
                         join_io_then = join_meta_is_then
-                        microstate = MICRO_JOIN_IO_CONT_READ
+                        if ep_scalar_active:
+                            if ep_caller_path != env:
+                                microstate = MICRO_EP_REVERSE_MARKER
+                            else:
+                                microstate = MICRO_EP_REVERSE_PUBLISH
+                        else:
+                            microstate = MICRO_JOIN_IO_CONT_READ
                 elif (join_meta_is_if):
                     # JOIN restores fire==1 and fires lazy IF in the same
                     # architectural transition, after publishing the child.
@@ -8418,6 +8433,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             microstate = MICRO_JOIN_CONTROL_CLEAR
     if clock_dispatch_enable and micro_is_join_io_cont_read:
         clock_dispatch_handled = 1
+        if direct_scalar_active:
+            # An inline value (including one just published through an EP) has
+            # no child JOIN frame. Its continuation path is the current top.
+            join_frame_index = control_top
         join_io_parent_too_low: uint1_t = join_parent_address == 0
         join_io_cont_valid: uint1_t = memory_out.p0.rd_data.hi[26]
         join_io_cont_opcode: uint5_t = memory_out.p0.rd_data.hi[25:21]
@@ -8426,7 +8445,17 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         join_io_cont_signed: uint1_t = join_io_cont_kind == DATA_SIGNED
         join_io_cont_negative: uint1_t = memory_out.p0.rd_data.lo[63]
         join_io_cont_range: uint1_t = memory_out.p0.rd_data.lo[62:GRAPH_ADDR_BITS] == 0
-        if (join_io_parent_too_low) or (not join_io_cont_valid):
+        join_io_direct_opcode: uint5_t = join_publish_word.hi[25:21]
+        join_io_direct_sym: uint1_t = join_io_direct_opcode == MOP_SYM
+        join_io_direct_sym = join_io_direct_sym and not join_publish_word.hi[16]
+        join_io_direct_atomic: uint1_t = join_io_direct_opcode == MOP_INT
+        join_io_direct_atomic = join_io_direct_atomic or join_io_direct_opcode == MOP_FLOAT
+        join_io_direct_atomic = join_io_direct_atomic or join_io_direct_opcode == MOP_CHAR
+        join_io_direct_atomic = join_io_direct_atomic or join_io_direct_sym
+        if direct_scalar_active and not join_io_then and not join_io_direct_atomic:
+            red2_fault = FAULT_ILLEGAL_TRANSITION
+            microstate = MICRO_FAULT
+        elif (join_io_parent_too_low) or (not join_io_cont_valid):
             red2_fault = FAULT_INVALID_ADDRESS
             microstate = MICRO_FAULT
         elif not join_io_cont_is_app:
@@ -8462,7 +8491,14 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             microstate = MICRO_FAULT
         else:
             join_io_path = join_io_path_lane[16:0]
-            microstate = MICRO_JOIN_TAIL_READ
+            if direct_scalar_active:
+                # The value is already at the parent slot: no JOIN publication
+                # or frame clearing is needed before sequencing the continuation.
+                direct_scalar_active = 0
+                join_io_bind_ep = 0
+                microstate = MICRO_JOIN_IO_COMMIT
+            else:
+                microstate = MICRO_JOIN_TAIL_READ
     if clock_dispatch_enable and micro_is_join_io_commit:
         clock_dispatch_handled = 1
         join_io_commit_bind_ep_exec: uint1_t = join_io_bind_ep

@@ -12,13 +12,14 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT))
 from scripts.boards.red2_standalone.image import compile_simulation_image  # noqa: E402
+from scripts.boards.red2_standalone.io_fixture import compile_inline_image  # noqa: E402
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument("--output", type=Path, required=True)
 p.add_argument(
     "--core",
     type=Path,
-    default=ROOT / "build/red2-finite-quantum/core-v5/integrated-stream",
+    default=ROOT / "build/red2-finite-quantum/core-v6/integrated-stream",
 )
 p.add_argument("--reuse-model", type=Path)
 p.add_argument("--case", action="append", help="Run only named cases")
@@ -82,6 +83,8 @@ else:
 binary = model / "obj/Vstandalone_sim_top"
 cases = [
     ("budget20", "(IO-BIND (CLOCK) (LAMBDA (x) (UART-TX 65)))", "A", "halt", 20),
+    ("inline-io-then", "IO-THEN", "A", "halt", 3),
+    ("inline-io-bind", "IO-BIND", "A", "halt", 3),
     ("uart-tx", "(UART-TX 65)", "A", "halt", 1),
     (
         "clock-payload",
@@ -118,7 +121,12 @@ results = []
 for name, source, expected, mode, quantum in cases:
     if a.case and name not in a.case:
         continue
-    data, record = compile_simulation_image(source, a.core.resolve(), quantum=quantum)
+    if name.startswith("inline-io-"):
+        data, record = compile_inline_image(a.core.resolve(), source)
+    else:
+        data, record = compile_simulation_image(
+            source, a.core.resolve(), quantum=quantum
+        )
     image = out / (name + ".bin")
     image.write_bytes(data)
     with (out / (name + ".log")).open("w") as log:

@@ -1,6 +1,6 @@
 {
   "recorded_at_utc": "2026-10-16T19:15:10.226482+00:00",
-  "scope": "Targeted finite-quantum RED2 core validation and mapped fit candidate; board routing and physical qualification are recorded separately",
+  "scope": "Initial finite-quantum candidate: targeted frontend RTL and routed implementation pass, but extended source and physical execution fail after four dots; superseded by an inline-sequencing correction",
   "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
   "fpgatool_commit": "ad377479db8a70b027fdb096bfb8f0df308524bc",
   "variants": {
@@ -70,7 +70,7 @@
         "basys3_over_budget": {},
         "within_basys3_resource_limits": true
       },
-      "usable_fit_candidate": true,
+      "usable_fit_candidate": false,
       "verilator_netlist_provenance": {
         "coarse_json_sha256": "bcdcee7fc18556f064aee4acec644c4d72a670292423cb89c2132259ede9d6b5",
         "coarse_verilog_sha256": "e7d09061f93fdd05275fc6cf8e49e2b89d1f0a88c5b18dada0bc5bddac48cb3a",
@@ -700,5 +700,40 @@
     "control_words": 256,
     "literal_entries": 64,
     "behavior": "Finish q=0 reconstruction, copy reachable residual spines, relocate APP/RBLOCK links, restart the dedicated reducer; CLOCK and UART never refresh the budget"
+  },
+  "physical": {
+    "qualified": false,
+    "build": "build/red2-basys3-standalone-quantum",
+    "built": true,
+    "physical_lut_sites": 18567,
+    "timing": {
+      "core_clock": {
+        "achieved_mhz": 13.77,
+        "status": "PASS",
+        "required_mhz": 10.0
+      },
+      "clock": {
+        "achieved_mhz": 13.37,
+        "status": "PASS",
+        "required_mhz": 10.0
+      }
+    },
+    "observed_uart_dots": 4,
+    "host_uart_bytes_written": 0,
+    "program_data_flash_verified": true,
+    "configuration_flash_programmed": false,
+    "outcome": "Four dots followed by a fault; JTAG SAMPLE and user observation confirm LD6=1, LD4=0. The source model reproduces the same four-dot stop as CONTROL_UNDERFLOW in inline IO-THEN sequencing. Candidate is not qualified for sustained operation.",
+    "source_regression": "IO-THEN with a reconstructed inline NIL value has no child JOIN frame; the existing JOIN sequencing path incorrectly restores a nonexistent frame.",
+    "artifacts_sha256": {
+      "build/red2-basys3-standalone-quantum/build-result.json": "5b1b41171eee05404115434b70895c268d1a759f897196828f4ffc89a843b3fe",
+      "build/red2-basys3-standalone-quantum/board-timing.json": "3d955fc979334f21e4c227b5fd1e379c92cd6932881289805d17d601b725fa19",
+      "build/red2-basys3-standalone-quantum/board-physical-lut-sites.json": "d70269c9811999750da925f1c81bfcbc65540658fdaeebf50607aa2e0486bfba",
+      "build/red2-standalone/quantum-deployment-stall.json": "a7006129be9fe70ec0019d24188b12dd86b676a83cf5df6a1dec41c5ae91f3b3",
+      "build/red2-finite-quantum/sample-status.json": "73adbc594f03365b5170a2084e8808ade37f6de648066fbd6bb08cf47e167425",
+      "build/red2-finite-quantum/sample-status.log": "a428a0027d15bfaf17fd0e6ada710982924d896b675ad0057ec269d399fae1ee",
+      "build/red2-finite-quantum/native-always-due.log": "83d2824333f336f59fa2c94baa06c50f49df34aa09ea4143f26b9b4bd468c893",
+      "build/red2-finite-quantum/native-stress20.log": "2e9651dbff63e8825f66a811e0f655e7a102996c983b7583ce32424c786c70a7",
+      "build/red2-finite-quantum/direct-io-before.log": "98f8fd25fcee7ee82a9680830c33701dc8a5eff11dae91984e27d67020b32176"
+    }
   }
 }

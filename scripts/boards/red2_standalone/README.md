@@ -5,14 +5,13 @@ hardware devices around the existing qualified dedicated RED2 engine. The host
 compiles THOR before deployment; it does not execute reductions or service I/O
 while the program runs.
 
-The previous image was qualified on the physical board on 2026-10-16: nine programs produced their
-expected UART output and halted without faults. The design uses 17,365 of
-20,800 physical LUT sites and passes routed timing at 10 MHz. Both configuration
-and program are now stored in flash; a separate configuration reset booted the
-program again without uploading anything. The installed `clock-dot-once.thor`
-waits until CLOCK reaches one second after program start, prints `.` at 115200
-baud and halts cleanly. A physical power removal/reconnection has not been tested.
-Evidence is in `docs/handoffs/red2-standalone-results.json`.
+The first finite-quantum image passed physical resource, memory and routed timing
+checks at 10 MHz, then faulted after four physical UART dots. The source model
+reproduced a control-stack underflow when IO-THEN's first value was already
+inline after reconstruction. The correction has passed ten dots and 26 restarts
+in the source model; the updated physical build is being qualified.
+The earlier once-dot board qualification remains in
+`docs/handoffs/red2-standalone-results.json`.
 
 Finite-quantum validation and board qualification are recorded separately in
 `docs/handoffs/red2-finite-quantum-results.json`. The frontend RTL checks produce
@@ -50,7 +49,7 @@ capacities remain 256/256/64. A smaller budget may be required to finish
 reconstruction within the working arena reserved by a particular program.
 Use **5 for clock-dots**: a budget of 20 still reaches a graph/environment
 collision in this small arena. With 5, the native hardware model produced repeated
-dots with a peak compacted residual of 84 words.
+dots with a peak compacted residual of 86 words.
 Floating arithmetic is omitted; integer division remains. Capacity exhaustion or
 an invalid residual raises an explicit fault. The Python models' additional
 closed-scalar sharing policy is not part of this hardware change.
@@ -152,13 +151,13 @@ source, literal IDs, hashes and compiler/core identity.
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/check.py \
-  --core build/red2-finite-quantum/core-v5/integrated-stream \
+  --core build/red2-finite-quantum/core-v6/integrated-stream \
   --output build/red2-standalone/check-new
 ```
 
 This test combines the actual qualified engine's frontend RTL with the new
 controller and a physical UART transmitter/receiver model. It checks clock-dots,
-byte output, real-waveform byte input/echo, list output, captured-variable IF,
+byte output, real-waveform byte input/echo, list output, inline IO sequencing, captured-variable IF,
 repeated quantum restart, elapsed-time behavior and
 corrupt-image rejection. Its test clock uses 100 cycles per millisecond to bound
 simulation cost; hardware uses 10,000. Success terminates when expected output
@@ -176,6 +175,7 @@ iverilog -g2012 -I scripts/boards/red2_standalone -s restart_tb \
   scripts/boards/red2_standalone/restart_tb.v
 vvp build/red2-standalone/restart-test
 .venv/bin/python scripts/boards/red2_standalone/check_if_quantum.py
+.venv/bin/python scripts/boards/red2_standalone/check_io_quantum.py
 ```
 
 `flash_check.sv` separately checks the read command/address, every image byte and
