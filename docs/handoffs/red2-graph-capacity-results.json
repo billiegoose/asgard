@@ -1,0 +1,205 @@
+{
+  "recorded_at_utc": "2026-10-16T20:29:58.152708+00:00",
+  "scope": "Isolated-memory synthesis and native typed-source experiments; larger integrated hardware has not been generated, routed or loaded",
+  "source_sha256": "5610b87a75d5e606e7028ef42f8076a85964e10c3f69696ebb720ce90f853fd8",
+  "baseline_board_build": "build/red2-basys3-standalone-quantum-v6",
+  "baseline_board_resources": {
+    "top": "red2_basys3",
+    "lut": 18108,
+    "lut_memory": 394,
+    "lut_total": 18502,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 9567,
+    "bram18": 23,
+    "bram36": 28,
+    "bram36_equivalent": 39.5,
+    "dsp48": 12,
+    "carry4": 647,
+    "muxf7": 0,
+    "muxf8": 0,
+    "startup": 1,
+    "primitives": {
+      "BUFG": 2,
+      "BUFGCE": 1,
+      "CARRY4": 647,
+      "DSP48E1": 12,
+      "FDCE": 2,
+      "FDRE": 9510,
+      "FDSE": 55,
+      "IBUF": 3,
+      "INV": 750,
+      "LUT2": 3016,
+      "LUT3": 2756,
+      "LUT4": 2472,
+      "LUT5": 3640,
+      "LUT6": 6224,
+      "MMCME2_ADV": 1,
+      "OBUF": 13,
+      "RAM256X1S": 50,
+      "RAM32M": 2,
+      "RAM64M": 15,
+      "RAM64X1S": 126,
+      "RAMB18E1": 23,
+      "RAMB36E1": 28,
+      "STARTUPE2": 1
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "memory_sizing": [
+    {
+      "graph_words": 256,
+      "graph_bytes": 4096,
+      "isolated_memory_resources": {
+        "top": "top",
+        "lut": 0,
+        "lut_memory": 204,
+        "lut_total": 204,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 0,
+        "bram18": 20,
+        "bram36": 9,
+        "bram36_equivalent": 19.0,
+        "dsp48": 0,
+        "carry4": 0,
+        "muxf7": 0,
+        "muxf8": 0,
+        "startup": 0,
+        "primitives": {
+          "RAM256X1S": 51,
+          "RAMB18E1": 20,
+          "RAMB36E1": 9
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "projected_board_bram36_equivalent": 39.5,
+      "memory_only_lut_increase": 0
+    },
+    {
+      "graph_words": 512,
+      "graph_bytes": 8192,
+      "isolated_memory_resources": {
+        "top": "top",
+        "lut": 53,
+        "lut_memory": 408,
+        "lut_total": 461,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 0,
+        "bram18": 26,
+        "bram36": 9,
+        "bram36_equivalent": 22.0,
+        "dsp48": 0,
+        "carry4": 0,
+        "muxf7": 0,
+        "muxf8": 0,
+        "startup": 0,
+        "primitives": {
+          "LUT2": 2,
+          "LUT3": 51,
+          "RAM256X1S": 102,
+          "RAMB18E1": 26,
+          "RAMB36E1": 9
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "projected_board_bram36_equivalent": 42.5,
+      "memory_only_lut_increase": 257
+    },
+    {
+      "graph_words": 1024,
+      "graph_bytes": 16384,
+      "isolated_memory_resources": {
+        "top": "top",
+        "lut": 55,
+        "lut_memory": 816,
+        "lut_total": 871,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 0,
+        "bram18": 21,
+        "bram36": 31,
+        "bram36_equivalent": 41.5,
+        "dsp48": 0,
+        "carry4": 0,
+        "muxf7": 0,
+        "muxf8": 0,
+        "startup": 0,
+        "primitives": {
+          "LUT3": 4,
+          "LUT6": 51,
+          "RAM256X1S": 204,
+          "RAMB18E1": 21,
+          "RAMB36E1": 31
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "projected_board_bram36_equivalent": 62.0,
+      "memory_only_lut_increase": 667
+    }
+  ],
+  "native_clock_dots": [
+    {
+      "graph_words": 512,
+      "quantum": 20,
+      "dots": 10,
+      "clock_calls": 11,
+      "restarts": 6,
+      "peak_residual_words": 84
+    },
+    {
+      "graph_words": 512,
+      "quantum": 50,
+      "dots": 10,
+      "clock_calls": 11,
+      "restarts": 2,
+      "peak_residual_words": 81
+    }
+  ],
+  "comparison_256_words": {
+    "quantum": 5,
+    "dots": 10,
+    "clock_calls": 11,
+    "restarts": 26,
+    "peak_residual_words": 86
+  },
+  "recommendation": "Try 512 graph words, initially quantum 20, then qualify quantum 50 separately; a direct 1024-word expansion exceeds BRAM capacity",
+  "required_changes": [
+    "Widen graph addresses independently of 256-word control RAM",
+    "Widen PUB_TASK_ADDR_BITS from 10 to 11 for the 2048-entry publication stack",
+    "Remove the integrated compiler and native adapter 256-word restrictions",
+    "Parameterize restart buffers, relocation addresses and arena bounds",
+    "Accept graph capacity from validated prepared-core metadata in flash images, loading and deployment checks",
+    "Rerun enhanced PipelineC lowering, full synthesis, RTL, routing and autonomous flash qualification"
+  ],
+  "limits": [
+    "Projection adds independently synthesized memory differences to the current full-board count; it is not a complete larger-board synthesis",
+    "The isolated asynchronous forwarding memory retains all 51 bits; the full baseline optimizes one bit away",
+    "Address decoding, wider counters, routing and timing costs are not included in the LUT increase",
+    "Native larger-graph runs exercise selected paths and do not qualify the still-fixed-width standalone RTL or the full publication-stack capacity",
+    "Synthetic CLOCK advances 1000 ms on each call; physical timing and polling behavior remain separate qualification steps"
+  ],
+  "files_sha256": {
+    "build/red2-graph-capacity-probe/memories-256.v": "d17e293ecf874a8e26a97f9dfafdcba61454c1a12b9318879bc349c4c5c27ea4",
+    "build/red2-graph-capacity-probe/memories-256.ys": "a5f0c8228d480e0c7d0d845f9562a861f95fc852807907c1531e6ff2b49ba308",
+    "build/red2-graph-capacity-probe/memories-256.json": "4f4750d7f4979adbac5171143c74f12705a76fefa73b5fe0754a7f48b5f8c02d",
+    "build/red2-graph-capacity-probe/memories-256.log": "ec37eb2fb43e57f30922e20b8c3c10a03a71c24160c7205ee6ec708881219fdc",
+    "build/red2-graph-capacity-probe/memories-512.v": "da106a35f4078ce6f26d9c16f2e4fa878c87a101af4d2d1d4e9c7987b8123a44",
+    "build/red2-graph-capacity-probe/memories-512.ys": "fbe292ae9213e7d643b31b5582a987e59e7183502364ebb340313e99754c12f7",
+    "build/red2-graph-capacity-probe/memories-512.json": "90b7cf855443759674b7602b47dda7066410b1a244f472bdf4deb4eeab1ca58e",
+    "build/red2-graph-capacity-probe/memories-512.log": "54430235f936c516f29c29ff59d427902ec4471d786f74a6c31ea2428dccdc05",
+    "build/red2-graph-capacity-probe/memories-1024.v": "feb5ea399962bc02eaf4f471703275a44d3131228378d9a34bd7a1375d542b2c",
+    "build/red2-graph-capacity-probe/memories-1024.ys": "e6b1a488d62167790550d8e053b8f10a09b7bba8be99c8048410857edac981dd",
+    "build/red2-graph-capacity-probe/memories-1024.json": "1e69d8892cd3e7ddd9cb48eabb7c0b4035a171ae39be42a0677d0d15ff10b231",
+    "build/red2-graph-capacity-probe/memories-1024.log": "6c2a2a2679a5e31bed64ffa456d8b95923975fef094fb4b4fe0ff5814d5af4b4",
+    "build/red2-graph-capacity-probe/run.sh": "cee074fec3e756e7befdb0eb40bfc63dc7d996b5f43fcef579d8e85ed52d0f4b",
+    "build/red2-graph-capacity-probe/frozen-runtime-env.sh": "f0fd4b7eb32b42caf04b7477a134df5fbf1391620821de5db3d85b3de5d99acd",
+    "build/red2-graph-capacity-probe/native-512.py": "f087906acabfc880b4bde2d85f7871c810e0d891a1e9fec7f2f2ba14faf68ffb",
+    "build/red2-graph-capacity-probe/native-512.log": "11997785b9e8263785b58597fa363ffc5456a68a7509cf347122eadb86cffed2"
+  }
+}

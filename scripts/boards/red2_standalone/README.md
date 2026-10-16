@@ -56,6 +56,15 @@ Floating arithmetic is omitted; integer division remains. Capacity exhaustion or
 an invalid residual raises an explicit fault. The Python models' additional
 closed-scalar sharing policy is not part of this hardware change.
 
+The capacity experiment in `docs/handoffs/red2-graph-capacity-results.json`
+projects 42.5 block-RAM equivalents for 512 graph words, compared with 39.5
+for 256. This is an isolated-memory estimate, not a larger-board qualification.
+The 512-word native model produced ten dots with six restarts at quantum 20
+and two restarts at quantum 50; the present 256-word model needs 26 at quantum 5.
+The standalone controller and loader still require wider graph addresses before
+that capacity can be used on the board. A direct 1024-word expansion projects
+62 block-RAM equivalents and exceeds the device capacity.
+
 The hardware IF exhaustion path restores both captured branch environments and
 reconstructs both branches before restarting. This is necessary even when the
 condition has already become a Boolean: exhaustion prevents IF contraction but
