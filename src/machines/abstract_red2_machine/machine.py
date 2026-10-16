@@ -2700,15 +2700,6 @@ class AbstractRED2Machine:
         state.fsp = false_slot
         state.pc = false_slot
 
-    def _skip_if_branches(self) -> None:
-        state = self.state
-        false_slot = state.pc - 2
-        true_slot = state.pc - 1
-        false_branch = self._word(false_slot)
-        true_branch = self._word(true_slot)
-        self._pop_if_branch_paths(false_branch, true_branch)
-        state.pc = false_slot - 1
-
     def _finish_if_reconstruction(self) -> None:
         self.state.q = self._pop_saved_quantum()
 
@@ -2896,9 +2887,10 @@ class AbstractRED2Machine:
             ):
                 if state.q > 0:
                     self._select_if_branch(condition.data)
-                else:
-                    self._skip_if_branches()
-                return
+                    return
+                # The condition may consume the last contraction. Both branches
+                # still contain captured bindings and must be reconstructed, not
+                # skipped, before their environment can be discarded on restart.
             false_branch = self._word(state.pc - 2)
             true_branch = self._word(state.pc - 1)
             self._begin_if_reconstruction(false_branch, true_branch)
@@ -3894,7 +3886,10 @@ class AbstractRED2Machine:
                             target = len(output)
                             emit_atomic(source_word(source), head=True)
                         output[slots + offset] = Word(
-                            MuredOpcode.APP, target, False, definition
+                            MuredOpcode.APP,
+                            target,
+                            False,
+                            definition if opcode is MuredOpcode.APP else None,
                         )
                     return
 
@@ -3998,7 +3993,9 @@ class AbstractRED2Machine:
                             MuredOpcode.APP,
                             target,
                             False,
-                            descriptor.definition,
+                            descriptor.definition
+                            if descriptor.opcode is MuredOpcode.APP
+                            else None,
                         )
                     return
 

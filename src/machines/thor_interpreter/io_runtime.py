@@ -1,7 +1,7 @@
 import os
 import select
 import time
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,6 +81,8 @@ def run_io_source(
     clock: ClockSource | None = None,
     red2_memory_words: int = 1_048_576,
     red2_recharge_on: Collection[Red2RechargeEvent] = DEFAULT_RED2_RECHARGE_EVENTS,
+    red2_supervised: bool = False,
+    red2_max_quanta: int | None = None,
 ) -> str:
     """Execute the last top-level expression as a simulated THOR IO action.
 
@@ -103,6 +105,8 @@ def run_io_source(
                 host=host,
                 memory_words=red2_memory_words,
                 recharge_on=red2_recharge_on,
+                supervised=red2_supervised,
+                max_quanta=red2_max_quanta,
             )
         except Red2IoRuntimeError as error:
             raise IoRuntimeError(str(error)) from error
@@ -166,7 +170,7 @@ _Red2IoHost = TextRed2IoHost
 
 
 @contextmanager
-def terminal_input_mode(stream: TextIO):
+def terminal_input_mode(stream: TextIO) -> Iterator[None]:
     """Use cbreak mode for a real terminal so UART-RX sees keystrokes immediately."""
     try:
         fd = stream.fileno()

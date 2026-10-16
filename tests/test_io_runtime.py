@@ -182,6 +182,8 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
         host: Red2IoHost,
         memory_words: int,
         recharge_on: Collection[Red2RechargeEvent],
+        supervised: bool = False,
+        max_quanta: int | None = None,
     ) -> Expr:
         nonlocal calls
         calls += 1
@@ -192,6 +194,8 @@ def test_red2_io_path_delegates_to_red2_owned_runner(
             host=host,
             memory_words=memory_words,
             recharge_on=recharge_on,
+            supervised=supervised,
+            max_quanta=max_quanta,
         )
 
     monkeypatch.setattr(runtime, "run_red2_io_action", counting_runner)

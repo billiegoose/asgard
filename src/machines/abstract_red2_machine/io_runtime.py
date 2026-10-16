@@ -12,6 +12,7 @@ from abstract_red2_machine.machine import (
     MuredStopReason,
 )
 from red2.representation import MuredOpcode, Word
+from red2.supervisor import SupervisorStats, supervise
 from thor.ast import Expr
 
 
@@ -55,6 +56,9 @@ def run_red2_io_action(
     memory_diagnostics: bool = False,
     memory_event_sink: Callable[[MuredMemoryEvent], None] | None = None,
     scheduler_stats: Red2IoSchedulerStats | None = None,
+    supervised: bool = False,
+    supervisor_stats: SupervisorStats | None = None,
+    max_quanta: int | None = None,
 ) -> Expr:
     """Run one effectful THOR/RED2 program on exactly one faithful μRED machine."""
     if quantum <= 0:
@@ -70,6 +74,17 @@ def run_red2_io_action(
         memory_words=memory_words,
         memory_diagnostics=memory_diagnostics,
     )
+    if supervised:
+        from abstract_red2_machine.supervisor import AbstractProcessor
+
+        result = supervise(
+            AbstractProcessor(machine), quantum=quantum, host=host,
+            stats=supervisor_stats, max_quanta=max_quanta,
+        )
+        if memory_diagnostics and memory_event_sink is not None:
+            for event in machine.memory_events():
+                memory_event_sink(event)
+        return result
 
     while True:
         stop = machine.run_until_suspend(

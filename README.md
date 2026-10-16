@@ -99,6 +99,38 @@ environment regions incrementally. Host checkpoints/quantum recharge are a separ
 coarse residual-reconstruction mechanism and preserve the same machine and
 exactly-once host-effect ordering.
 
+The abstract and concrete Python processors also support a supervisor that runs
+successive finite quanta to completion:
+
+```sh
+uv run abs --supervise --memory-words 256 --expr \
+  '((Y (LAMBDA (self n) (if (= n 0) 0 (self (- n 1))))) 100)'
+uv run con --supervise --memory-words 256 --expr \
+  '((Y (LAMBDA (self n) (if (= n 0) 0 (self (- n 1))))) 100)'
+uv run abs --supervise --quantum 5 --memory-words 256 examples/clock-dots.thor
+uv run con --supervise --quantum 5 --memory-words 256 examples/clock-dots.thor
+```
+
+`--supervise` defaults to a quantum of 20; `--quantum N` changes it and
+`--max-quanta N` provides an optional execution limit. The supervisor services
+I/O without refilling the current quantum. On exhaustion it waits for complete
+residual reconstruction, copies/relocates that residual into the problem area,
+resets temporary environment/control state, and starts the next quantum on the
+same processor. Static definitions and device state survive. A final result
+that uses its exact budget takes one additional pass to establish completion.
+Residual graphs and reconstruction workspace must still fit the selected arena;
+a smaller quantum does not guarantee lower peak memory for every program.
+In particular, the clock polling example uses quantum 5 because some quantum-20
+boundaries require more than 256 words of temporary reconstruction space.
+
+Without `--supervise`, existing single-quantum behavior is preserved. The shared
+Python scheduler is `red2.supervisor.supervise`, with `AbstractProcessor` and
+`ConcreteProcessor` adapters. The concrete adapter uses its own word-level
+reconstruction/restart engine; the abstract evaluator does not run on its behalf.
+`run_red2_io_action(..., supervised=True)` enables the same policy for embedded
+abstract I/O callers. Synthesizable/FPGA supervision is a separate integration;
+these changes do not modify the qualified hardware image.
+
 Use `mise run` as the canonical command surface for source-file examples and
 project checks:
 

@@ -6,14 +6,15 @@ from abstract_red2_machine.io_runtime import (
     DEFAULT_RED2_RECHARGE_EVENTS,
     Red2RechargeEvent,
 )
+from red2.supervisor import DEFAULT_SUPERVISOR_QUANTUM
+from thor.parser import ParseError
+from thor.version import __version__
 from thor_interpreter.golden import DEFAULT_QUANTUM, run_source
 from thor_interpreter.io_runtime import (
     IoRuntimeError,
     LatestFileClockSource,
     run_io_source,
 )
-from thor.parser import ParseError
-from thor.version import __version__
 
 
 def build_parser(*, prog: str = "abs") -> argparse.ArgumentParser:
@@ -26,9 +27,15 @@ def build_parser(*, prog: str = "abs") -> argparse.ArgumentParser:
     parser.add_argument(
         "--quantum",
         type=int,
-        default=DEFAULT_QUANTUM,
+        default=None,
         help=f"maximum contraction quantum (default: {DEFAULT_QUANTUM})",
     )
+    parser.add_argument(
+        "--supervise",
+        action="store_true",
+        help="restart reconstructed residuals (default quantum: 20)",
+    )
+    parser.add_argument("--max-quanta", type=int, help="supervised execution limit")
     parser.add_argument(
         "--memory-words",
         type=int,
@@ -73,6 +80,10 @@ def main(argv: list[str] | None = None, *, prog: str = "abs") -> int:
         return 0
     if args.expr is not None and args.file is not None:
         parser.error("--expr and file are mutually exclusive")
+    if args.quantum is None:
+        args.quantum = DEFAULT_SUPERVISOR_QUANTUM if args.supervise else DEFAULT_QUANTUM
+    if args.supervise and args.recharge_on:
+        parser.error("--supervise cannot be combined with --recharge-on")
 
     try:
         source = args.expr if args.expr is not None else args.file.read_text()
@@ -87,6 +98,8 @@ def main(argv: list[str] | None = None, *, prog: str = "abs") -> int:
                 if args.recharge_on is None
                 else frozenset(Red2RechargeEvent(value) for value in args.recharge_on)
             ),
+            supervised=args.supervise,
+            max_quanta=args.max_quanta,
         )
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
         print(f"{prog}: {error}", file=sys.stderr)
@@ -101,6 +114,8 @@ def _run_expr_source(
     verbose: bool,
     clock_path: Path | None,
     recharge_on: frozenset[Red2RechargeEvent],
+    supervised: bool = False,
+    max_quanta: int | None = None,
 ) -> int:
     try:
         return _run_io_source(
@@ -110,6 +125,8 @@ def _run_expr_source(
             verbose=verbose,
             clock_path=clock_path,
             recharge_on=recharge_on,
+            supervised=supervised,
+            max_quanta=max_quanta,
         )
     except IoRuntimeError as error:
         message = str(error)
@@ -118,7 +135,14 @@ def _run_expr_source(
             or message.startswith("unknown IO action:")
         ):
             raise
-    output = run_source(source, model="abs", quantum=quantum)
+    output = run_source(
+        source,
+        model="abs",
+        quantum=quantum,
+        supervised=supervised,
+        memory_words=memory_words,
+        max_quanta=max_quanta,
+    )
     if output:
         print(output)
     return 0
@@ -132,6 +156,8 @@ def _run_io_source(
     verbose: bool,
     clock_path: Path | None,
     recharge_on: frozenset[Red2RechargeEvent],
+    supervised: bool = False,
+    max_quanta: int | None = None,
 ) -> int:
     clock = LatestFileClockSource(clock_path) if clock_path is not None else None
     result = run_io_source(
@@ -144,6 +170,8 @@ def _run_io_source(
         stderr=sys.stderr,
         clock=clock,
         red2_recharge_on=recharge_on,
+        red2_supervised=supervised,
+        red2_max_quanta=max_quanta,
     )
     if verbose:
         print(f"io result: {result}", file=sys.stderr)

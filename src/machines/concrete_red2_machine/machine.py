@@ -1323,11 +1323,7 @@ class ConcreteRED2Machine:
                     self.false_literal_id,
                 )
             )
-            if condition_is_boolean:
-                if self._task_q == 0:
-                    self._task_pc = false_slot - 1
-                    self.microstate = MICRO_COMMIT
-                    return
+            if condition_is_boolean and self._task_q > 0:
                 selected_true = self._payload(condition) == self.true_literal_id
                 selected = true_branch if selected_true else false_branch
                 selected_path = true_path if selected_true else false_path
@@ -6146,8 +6142,6 @@ class ConcreteRED2Machine:
                     abi.DATA_SIGNED,
                     abi.signed_to_payload(target),
                     0,
-                    self._definition_valid(entry),
-                    self._definition(entry),
                 )
                 self._task_mat_valid[slot] = 1
                 self._task_stack_d[sp] = index + 1
@@ -6267,8 +6261,6 @@ class ConcreteRED2Machine:
                     abi.DATA_SIGNED,
                     abi.signed_to_payload(target),
                     0,
-                    self._definition_valid(descriptor),
-                    self._definition(descriptor),
                 )
                 self._task_mat_valid[slot] = 1
                 self._task_stack_d[sp] = index + 1

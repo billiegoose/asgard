@@ -79,7 +79,9 @@ with 2,048 words the single-pass C run completes but peaks at **805 environment
 words**. Asgard's reference RED2 also finishes in 31 passes at quantum 20 and
 256 words, peaking at 22 environment words. Its single-pass 2,048-word run peaks
 at 505 environment words. These are observed examples, not general memory
-bounds. Asgard reconstruction errors at quanta 5 and 10 remain unresolved.
+bounds. The IF/defined-symbol reconstruction defects found at smaller quanta
+are covered by the Python supervisor regressions. A smaller quantum can still
+require a larger residual graph or reconstruction workspace for some programs.
 
 This confirms that reconstruction/restart is materially involved in memory
 reuse. Simply resetting the budget of a live machine bypasses that boundary.

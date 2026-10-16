@@ -2923,13 +2923,15 @@ def test_if_boolean_fire_with_exhausted_quantum_reconstructs() -> None:
 
     assert state.memory == before
     assert state.fsp == 5
-    assert state.pc == 1
+    # Preserve the paths and walk both branches at q=0 so captured variables
+    # become graph-owned before the supervisor discards this environment.
+    assert state.pc == 3
     assert state.q == 0
-    assert state.c == -1
-    assert state.control_stack[0] is None
-    assert state.control_stack[1] is None
-    assert state.prim is None
-    assert state.fire == 0
+    assert state.c == 2
+    assert state.control_stack[1] == 10
+    assert state.control_stack[2] == 11
+    assert state.prim == "__IF_RECONSTRUCT__"
+    assert state.fire == 2
 
 
 def test_if_non_boolean_fire_starts_zero_quantum_branch_reconstruction() -> None:

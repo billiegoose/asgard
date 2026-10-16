@@ -80,6 +80,16 @@ uv run pytest -q tests/test_concrete_red2_lazy.py tests/test_concrete_red2_progr
 
 ## Program-level execution contract
 
+`con --supervise` uses a shared scheduler above this processor. It defaults to
+20 contractions per quantum and restarts only after the exhausted quantum has
+finished reconstructing its residual. Host calls resume with their actual result
+without recharging the budget. Restart uses this processor's existing clocked
+materialization engine, preserving static definitions and the identities of the
+processor, graph memory and control memory. `--max-quanta` and `--max-clocks`
+provide explicit execution limits. The ordinary single-quantum interface is
+unchanged. `tests/test_red2_supervisor.py` covers bounded-memory recursion,
+captured branches and exactly-once device effects across restart boundaries.
+
 `RED2_PROGRAMS_V1` is the program-level proof contract built on
 `RED2_LOCKSTEP_V1`. After THOR parsing/compilation and image loading, the
 `ConcreteRED2Machine` owns RED2 evaluation. The host may schedule the processor,

@@ -10,6 +10,8 @@ from abstract_red2_machine.machine import AbstractRED2Machine
 from concrete_red2_machine import abi
 from concrete_red2_machine.io_runtime import dispatch_encoded_host_call
 from concrete_red2_machine.oracle import load_compiled_program
+from concrete_red2_machine.supervisor import ConcreteProcessor
+from red2.supervisor import DEFAULT_SUPERVISOR_QUANTUM, SupervisorStats, supervise
 from thor.ast import Definition, Expr, StructDef
 from thor.normalization import normalize_program
 from thor.parser import ParseError, parse_program
@@ -50,7 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("file", nargs="?", type=Path, help="path to THOR source")
     parser.add_argument("--expr", help="THOR expression or program source to run")
-    parser.add_argument("--quantum", type=int, default=2000)
+    parser.add_argument("--quantum", type=int)
+    parser.add_argument(
+        "--supervise",
+        action="store_true",
+        help="restart reconstructed residuals (default quantum: 20)",
+    )
+    parser.add_argument("--max-quanta", type=int, help="supervised execution limit")
     parser.add_argument("--memory-words", type=int, default=65_536)
     parser.add_argument("--control-words", type=int, default=8_192)
     parser.add_argument("--max-clocks", type=int, default=10_000_000)
@@ -72,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.expr is not None and args.file is not None:
         parser.error("--expr and file are mutually exclusive")
+    if args.quantum is None:
+        args.quantum = DEFAULT_SUPERVISOR_QUANTUM if args.supervise else 2000
     if args.quantum < 0:
         parser.error("--quantum must be non-negative")
 
@@ -95,6 +105,22 @@ def main(argv: list[str] | None = None) -> int:
         had_host_call = False
 
         with terminal_input_mode(sys.stdin):
+            if args.supervise:
+                counters = SupervisorStats()
+                result = supervise(
+                    ConcreteProcessor(
+                        concrete, loaded.codec, max_clocks=args.max_clocks
+                    ),
+                    quantum=args.quantum,
+                    host=host,
+                    stats=counters,
+                    max_quanta=args.max_quanta,
+                )
+                if counters.host_calls == 0:
+                    print(to_source(result))
+                if args.verbose:
+                    print(f"con: supervised {counters}", file=sys.stderr)
+                return 0
             while True:
                 remaining = args.max_clocks - concrete.clocks
                 status = concrete.run_until_suspend(max(0, remaining))
@@ -147,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
                 if concrete.clocks >= args.max_clocks:
                     raise RuntimeError(
                         f"Concrete RED2 Machine remained running after "
-                            f"{args.max_clocks} clocks"
+                        f"{args.max_clocks} clocks"
                     )
                 raise RuntimeError(f"unknown Concrete RED2 status: {status}")
     except (OSError, ParseError, ValueError, RuntimeError, TypeError) as error:
