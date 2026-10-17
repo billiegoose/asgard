@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -19,16 +20,30 @@ from scripts.boards.red2_standalone.image import (  # noqa: E402
 )
 
 
+def quantum_for(source, override):
+    if override is not None:
+        return override
+    try:
+        name = source.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        return 5
+    profiles = tomllib.loads(Path(__file__).with_name("programs.toml").read_text())
+    return profiles.get("programs", {}).get(name, {}).get("quantum", 5)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", type=Path, help="THOR source file")
-    parser.add_argument("--quantum", type=int, default=5)
+    parser.add_argument(
+        "--quantum", type=int, help="override the program's board budget"
+    )
     parser.add_argument("--prepared", type=Path, default=DEFAULT_PREPARED)
     parser.add_argument(
         "--compile-only", action="store_true", help="check and save the image only"
     )
     args = parser.parse_args()
     source = args.file.resolve()
+    quantum = quantum_for(source, args.quantum)
     prepared = args.prepared.resolve()
     fpgatool = ROOT / "tools/fpgatool/fpgatool.py"
     if not args.compile_only:
@@ -39,7 +54,7 @@ def main():
         if shutil.which("openFPGALoader") is None:
             parser.error("openFPGALoader must be installed and available on PATH")
 
-    data, metadata = compile_image(source.read_text(), prepared, args.quantum)
+    data, metadata = compile_image(source.read_text(), prepared, quantum)
     output_root = ROOT / "build/red2-standalone/programs"
     output_root.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix=f"{source.stem}-", dir=output_root))
@@ -50,7 +65,7 @@ def main():
     verify(prepared, image)
     print(
         f"Compiled {source.name}: {len(data)} bytes, "
-        f"{metadata['command_count']} commands, quantum {args.quantum}",
+        f"{metadata['command_count']} commands, quantum {quantum}",
         flush=True,
     )
     print(f"Image: {image}", flush=True)

@@ -1,6 +1,7 @@
 #include "Vstandalone_sim_top.h"
 #include "verilated.h"
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -18,7 +19,9 @@ int main(int argc,char**argv) {
     bool was_running=false;uint64_t run_cycles=0;unsigned pending_host=0;
     unsigned last_restart=0,peak_residual=0;
     unsigned previous_microstate=0;
-    for(uint64_t cycle=0;cycle<300000000;cycle++) {
+    const char* cycle_limit=std::getenv("RED2_SIM_MAX_CYCLES");
+    uint64_t max_cycles=cycle_limit?std::strtoull(cycle_limit,nullptr,10):300000000;
+    for(uint64_t cycle=0;cycle<max_cycles;cycle++) {
         dut.clk=0;dut.reset=cycle<8;dut.rx=1;
         if((mode=="rx" || mode=="rx-halt" || mode=="rx-stream") && was_running) {
             // Real 8N1 input, buffered while the reducer computes between reads.
@@ -60,7 +63,7 @@ int main(int argc,char**argv) {
         if(dut.observed_valid) {
             seen.push_back(char(dut.observed_data));
             if(seen!=expected.substr(0,seen.size())) {std::cerr<<"UART mismatch\n";return 1;}
-            if(seen==expected && (mode=="stream" || mode=="rx-stream")) {
+            if(seen==expected && (mode=="stream" || mode=="rx-stream" || mode=="prefix")) {
                 if(mode=="stream" && dut.restarts<2) {std::cerr<<"too few quantum restarts\n";return 1;}
                 std::cout<<"PASS UART="<<seen<<" cycles="<<cycle<<" CLOCK calls="<<clocks
                          <<" ms="<<dut.milliseconds<<" pc="<<dut.pc<<" fsp="<<dut.fsp

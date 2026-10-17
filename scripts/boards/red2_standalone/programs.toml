@@ -1,0 +1,11 @@
+# Runtime budgets for the 256-word standalone board. Command-line values override
+# these recommendations; unlisted programs use a budget of 5.
+
+[programs."examples/clock-dots.thor"]
+quantum = 5
+
+[programs."examples/uart-alphanumerics.thor"]
+quantum = 20
+
+[programs."examples/uart-caesar-plus4.thor"]
+quantum = 5

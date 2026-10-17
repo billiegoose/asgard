@@ -7,6 +7,19 @@ import pytest
 from scripts.boards.red2_standalone import run
 
 
+def test_explicit_quantum_overrides_program_budget():
+    source = run.ROOT / "examples/uart-alphanumerics.thor"
+    assert run.quantum_for(source, None) == 20
+    assert run.quantum_for(source, 5) == 5
+    # Invalid explicit values must reach the compiler's rejection, not silently
+    # select a different budget before programming the board.
+    assert run.quantum_for(source, 0) == 0
+
+
+def test_external_program_does_not_inherit_budget_by_filename(tmp_path):
+    assert run.quantum_for(tmp_path / "uart-alphanumerics.thor", None) == 5
+
+
 @pytest.fixture
 def runner(monkeypatch, tmp_path):
     source = tmp_path / "program.thor"

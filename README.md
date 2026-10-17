@@ -159,7 +159,9 @@ machine, programs and verifies its data flash through fpgatool, and restarts the
 FPGA to load it. The program persists across power cycles. This requires the
 standalone hardware to have already been flashed and its qualified build artifacts
 to be available; it does not rebuild hardware. The current graph holds 256 words
-and defaults to quantum 5. Use `--quantum N` to change the budget, or
+and selects a program budget from the [board profiles](scripts/boards/red2_standalone/programs.toml):
+20 for alphanumerics, 5 for clock-dots and Caesar, and 5 for unlisted programs.
+Use `--quantum N` to override the budget, or
 `--compile-only` to check a program without touching the board. See the
 [standalone board guide](scripts/boards/red2_standalone/README.md) for setup and
 limits.

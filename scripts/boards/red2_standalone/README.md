@@ -75,6 +75,17 @@ reconstructs both branches before restarting. This is necessary even when the
 condition has already become a Boolean: exhaustion prevents IF contraction but
 must not leave environment-dependent branches in the residual graph.
 
+## Publication fix checkpoint
+
+The v8 source fixes the EP-parent, APP-operator and flat-scan publication gaps.
+Both full UART examples pass typed-source checks (alphanumerics at quantum 20,
+Caesar at 5), and lowered RTL passes the original failing paths. The complete
+board maps to 18,663 LUTs. Placement, routing, sustained RTL and physical
+qualification are still pending; v6 remains installed and the default prepared
+build has deliberately not switched. The updated source will fail the old
+build's source-identity check until a compatible build is selected.
+See `docs/handoffs/red2-uart-publication-fix-checkpoint.md` for the continuation.
+
 ## Build and deploy
 
 Once the standalone hardware is installed, replace just its THOR program with:
@@ -91,8 +102,10 @@ checks finish before any flash write. The installed hardware configuration stays
 in flash, and the new program persists across power cycles. No hardware synthesis
 or host runtime is involved. Attach only one Basys 3 when programming.
 
-The task defaults to quantum **5** for the current 256-word graph. Override with
-`--quantum N`; a larger budget can exhaust the graph before reconstruction finishes.
+The task selects budgets from `programs.toml`: **20 for alphanumerics**, **5 for
+clock-dots and Caesar**, and 5 for unlisted programs. Override with `--quantum N`.
+Either increasing or decreasing the budget can increase peak graph memory,
+depending on deferred work. The new profiles await v8 physical qualification.
 `--compile-only` saves and validates the image without accessing hardware.
 Images, compiler metadata and programming receipts are kept in unique directories
 under `build/red2-standalone/programs/`. Programming success means the flash was

@@ -1,5 +1,11 @@
 # Full UART example failures on standalone RED2
 
+**Source fix in progress:** v8 addresses the three publication gaps below. Full
+UART examples pass typed-source tests at recommended budgets, and original
+failing paths pass lowered RTL. Physical qualification remains pending; v6 is
+still installed. See [the checkpoint](red2-uart-publication-fix-checkpoint.md).
+
+
 The installed, persistent v6 engine runs `clock-dots`, but this does not qualify
 every THOR program. Both full UART examples encounter incomplete publication
 paths in the reducer. The physical fault LED, typed hardware-source simulation,

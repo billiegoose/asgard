@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -28,7 +29,20 @@ p.add_argument(
     action="store_true",
     help="Include full UART examples beyond the qualified smoke-test cases",
 )
+p.add_argument(
+    "--example-prefix",
+    type=int,
+    help="For full UART examples, stop after this many correct output bytes",
+)
+p.add_argument("--example-quantum", type=int, help="override full-example budgets")
+p.add_argument("--max-cycles", type=int, default=300_000_000)
 a = p.parse_args()
+if a.example_prefix is not None and a.example_prefix <= 0:
+    p.error("example prefix must contain at least one byte")
+if a.example_quantum is not None and not 0 < a.example_quantum < 1 << 32:
+    p.error("example quantum must be positive and fit 32 bits")
+if a.max_cycles <= 0:
+    p.error("cycle bound must be positive")
 out = a.output.resolve()
 out.mkdir(parents=True, exist_ok=False)
 top = a.core.resolve() / "rtl-netlist"
@@ -139,7 +153,7 @@ examples = [
         (ROOT / "examples/uart-alphanumerics.thor").read_text(),
         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n",
         "halt",
-        5,
+        20,
     ),
     (
         "uart-caesar-plus4",
@@ -158,6 +172,13 @@ if a.uart_examples or (a.case and set(a.case) & {case[0] for case in examples}):
 for name, source, expected, mode, quantum, *incoming in cases:
     if a.case and name not in a.case:
         continue
+    if a.example_quantum is not None and name in {case[0] for case in examples}:
+        quantum = a.example_quantum
+    if a.example_prefix is not None and name in {case[0] for case in examples}:
+        if a.example_prefix > len(expected):
+            p.error(f"{name} has only {len(expected)} output bytes")
+        expected = expected[: a.example_prefix]
+        mode = "rx-stream" if incoming else "prefix"
     if name.startswith("inline-io-"):
         data, record = compile_inline_image(a.core.resolve(), source)
     else:
@@ -172,11 +193,16 @@ for name, source, expected, mode, quantum, *incoming in cases:
             text=True,
             stdout=log,
             stderr=subprocess.STDOUT,
+            env=os.environ | {"RED2_SIM_MAX_CYCLES": str(a.max_cycles)},
         )
     result.stdout = (out / (name + ".log")).read_text()
     result.stderr = ""
     row = {
         "name": name,
+        "mode": mode,
+        "expected_hex": expected.encode().hex(),
+        "quantum": quantum,
+        "max_cycles": a.max_cycles,
         "returncode": result.returncode,
         "stdout": result.stdout,
         "stderr": result.stderr,

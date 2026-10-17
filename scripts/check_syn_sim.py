@@ -998,6 +998,61 @@ def check_generic_ep_patch_journal() -> None:
             f"generic embedded STRUCT EP publication mismatch at {address}"
         )
 
+    # Exhaustion returns executable lambda spines through EP parents and through
+    # both bounded APP/flat scans. Compare complete publication transactions,
+    # including an EP operand into the environment about to be reclaimed.
+    for label, ep_parent, prefix, last in (
+        ("EP parent", True, "lambda", 7),
+        ("APP operator lambda", False, "app", 10),
+        ("flat operator lambda", False, "inline", 8),
+    ):
+        parent = abi.pack_word(
+            1, abi.MOP_EP if ep_parent else abi.MOP_APP,
+            abi.DATA_SIGNED, 20 if ep_parent else 9, 0, 0, 0, 0,
+        )
+        exhausted = simple_join_encoded(
+            parent, abi.pack_word(1, abi.MOP_INT, abi.DATA_SIGNED, 7, 0, 0, 0, 0)
+        )
+        memory = list(exhausted.memory)
+        memory[20] = abi.pack_word(
+            1, abi.MOP_CLOSURE, abi.DATA_SIGNED, 40, 0, 0, 0, 0
+        )
+        memory[21] = abi.pack_word(
+            1, abi.MOP_NONE, abi.DATA_SIGNED, 15, 0, 0, 0, 0
+        )
+        memory[15] = abi.pack_word(
+            1, abi.MOP_LAMBDA, abi.DATA_LITERAL_ID, 1, 0, 0, 0, 0
+        )
+        memory[16] = abi.pack_word(
+            1, abi.MOP_INT, abi.DATA_SIGNED, 42, 1, 0, 0, 0
+        )
+        lambda_address = 6 if prefix == "lambda" else 7
+        memory[lambda_address] = memory[15]
+        memory[lambda_address + 1] = abi.pack_word(
+            1, abi.MOP_VAR, abi.DATA_SIGNED, 0, 1, 0, 0, 0
+        )
+        if prefix == "app":
+            memory[6] = abi.pack_word(
+                1, abi.MOP_APP, abi.DATA_SIGNED, 10, 0, 0, 0, 0
+            )
+            memory[10] = abi.pack_word(
+                1, abi.MOP_EP, abi.DATA_SIGNED, 34, 1, 0, 0, 0
+            )
+            memory[34] = abi.pack_word(
+                1, abi.MOP_INT, abi.DATA_SIGNED, 65, 1, 0, 0, 0
+            )
+        exhausted = replace(exhausted, memory=tuple(memory), fsp=last, q=0, phi=1)
+        result, expected = _run_encoded_to_same_commit(exhausted, max_clocks=4000)
+        for address, expected_word in enumerate(expected.memory):
+            readback = sim_call(
+                SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+            )
+            assert _packed_memory_read(readback) == expected_word, (
+                f"exhausted {label} publication mismatch at {address}"
+            )
+        readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+        assert _packed_control_read(readback) == expected.control_stack[0]
+
     # Use a 256-word encoded image so Concrete and hardware have the same exact
     # EP hop bound. A two-node cycle must hit that bound without graph/control
     # publication escaping the transaction.
@@ -1668,7 +1723,57 @@ fib-six
 
 
 
+def check_exhausted_ep_selector_result() -> None:
+    """An EP parent must retain private selector promotion before generic JOIN."""
+    memory: list[Word | None] = [None] * 64
+    control: list[object | None] = [None] * 32
+    memory[3] = Word(MuredOpcode.APP, 5, False)
+    memory[4] = Word(MuredOpcode.JOIN, 3, False, definition=1)
+    memory[5] = Word(MuredOpcode.APP, 9, False)
+    memory[6] = Word(MuredOpcode.APP, 9, False)
+    memory[7] = Word(MuredOpcode.PRIM_2, "CONS", True)
+    memory[9] = Word(MuredOpcode.INT, 7, True)
+    control[0] = _SubgraphFrame(
+        env=32, free_space=32, prim="__STRUCT_SELECTOR_RESULT__", fire=1
+    )
+    state = AbstractRED2MachineState(
+        memory=memory, control_stack=control, pc=4, fsp=9, env=28,
+        free_space=28, c=0, direction=Direction.B, q=0, phi=0, argcnt=0,
+    )
+    codec = RED2ABICodec()
+    encoded = codec.encode_state(state)
+    packed = list(encoded.memory)
+    packed[3] = abi.pack_word(1, abi.MOP_EP, abi.DATA_SIGNED, 28, 0, 0, 0, 0)
+    packed[28] = abi.pack_word(1, abi.MOP_CLOSURE, abi.DATA_SIGNED, 32, 0, 0, 0, 0)
+    packed[29] = abi.pack_word(1, abi.MOP_NONE, abi.DATA_SIGNED, 15, 0, 0, 0, 0)
+    encoded = replace(encoded, memory=tuple(packed))
+    literal_id = codec.literal_id("__STRUCT_SELECTOR_RESULT__")
+    oracle = ConcreteRED2Machine(
+        encoded, struct_selector_result_literal_id=literal_id
+    )
+    assert oracle.run_to_commit(), oracle.fault
+    expected = oracle.checkpoint()
+    _load_hardware(encoded)
+    _load_literal_meta(42, literal_id, struct_role=STRUCT_ROLE_SELECTOR_RESULT)
+    for _ in range(4000):
+        result = sim_call(SynthesizableRED2Machine, _command(CMD_CLOCK))
+        assert int(result.status) != STATUS_FAULT
+        if int(result.committed):
+            break
+    else:
+        raise AssertionError("EP selector-result failed to reach a bounded commit")
+    _assert_scalar_checkpoint(result, expected)
+    for address, expected_word in enumerate(expected.memory):
+        readback = sim_call(
+            SynthesizableRED2Machine, _command(CMD_NOP, address=address)
+        )
+        assert _packed_memory_read(readback) == expected_word
+    readback = sim_call(SynthesizableRED2Machine, _command(CMD_NOP, address=0))
+    assert _packed_control_read(readback) == expected.control_stack[0]
+
+
 def check_selector_shared_app_promotion() -> None:
+    check_exhausted_ep_selector_result()
     # Generic selector-result promotion must relinearize an APP problem into
     # fresh relative scratch before publication. Two descriptors that share one
     # target must continue sharing that single materialized target after relocation.

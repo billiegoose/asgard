@@ -7760,7 +7760,12 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
             join_multi_parent_supports_app_graph: uint1_t = join_multi_parent_is_app or join_multi_parent_is_recp
             join_multi_parent_supports_ep_root: uint1_t = join_multi_parent_supports_app_graph or join_multi_parent_is_ep
             # Preserve the original priority while making the hardware arms independent.
-            if (join_tail_is_app):
+            if join_multi_parent_is_ep:
+                # Preserve the IO-return and selector-result priorities above.
+                # Ordinary composite EP returns must publish every reference
+                # into the child's environment before JOIN reclaims it.
+                microstate = MICRO_JOIN_GENERIC_LAUNCH
+            elif (join_tail_is_app):
                 join_multi_app_signed: uint1_t = join_tail_kind == DATA_SIGNED
                 join_multi_app_negative: uint1_t = memory_out.p0.rd_data.lo[63]
                 if not join_multi_parent_supports_app_graph:
@@ -11954,8 +11959,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
                 else:
                     microstate = MICRO_JOIN_APP_TARGET_READ
         else:
-            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-            microstate = MICRO_FAULT
+            # The bounded fast scan has made no architectural writes. Restart
+            # publication from the complete result when its operator is a
+            # reconstructed lambda or another non-inline graph term.
+            microstate = MICRO_JOIN_GENERIC_LAUNCH
     if clock_dispatch_enable and micro_is_join_app_target_read:
         clock_dispatch_handled = 1
         join_app_target_valid: uint1_t = memory_out.p0.rd_data.hi[26]
@@ -12457,8 +12464,10 @@ def SynthesizableRED2Machine(command: red2_command_t) -> red2_status_t:
         elif join_flat_opcode == MOP_APP:
             microstate = MICRO_JOIN_GENERIC_LAUNCH
         elif not join_flat_inline:
-            hw_fault = HW_FAULT_EXECUTION_NOT_IMPLEMENTED
-            microstate = MICRO_FAULT
+            # Exhausted-quantum reconstruction can return more than flat
+            # arguments. The generic walker validates and publishes the entire
+            # result before JOIN restores the caller's environment.
+            microstate = MICRO_JOIN_GENERIC_LAUNCH
         elif join_flat_head:
             join_flat_parent_hi: uint64_t = 69337088
             join_publish_word = red2_word_t(
