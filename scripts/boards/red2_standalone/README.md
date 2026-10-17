@@ -5,23 +5,27 @@ hardware devices around the existing qualified dedicated RED2 engine. The host
 compiles THOR before deployment; it does not execute reductions or service I/O
 while the program runs.
 
-The corrected finite-quantum image passed physical resource, memory and routed
-timing checks at 10 MHz. It produced thirty physical UART dots from SRAM,
-thirty after programming configuration flash, and thirty after a separate
-configuration reset from flash. The observer sent no UART commands.
-The implementation uses 18,467 physical LUT sites,
+The v8 image passes physical resource, memory and routed timing checks at 10 MHz.
+It produces all 63 alphanumeric bytes and halts at quantum 20. At quantum 5,
+Caesar transforms UART input `Az09!` plus ESC into `Ed09!` and halts.
+Clock-dots produced ten dots from SRAM, thirty after programming configuration
+flash, and ten after a separate reset from flash. The observer supplied only
+Caesar's input bytes; CLOCK and graph reconstruction run autonomously.
+The implementation uses 18,510 physical LUT sites,
 39.5 block-RAM equivalents and 12 DSPs.
 
-The earlier four-dot fault was a control-stack underflow when reconstructed
-IO-THEN began with an inline value. Its correction passed source, frontend
-RTL and the sustained physical checks recorded below.
-The earlier once-dot board qualification remains in
-`docs/handoffs/red2-standalone-results.json`.
+The three missing composite graph-publication paths now use the existing
+transactional walker: multiword returns through an EP parent, non-inline APP
+operators, and non-inline flat-scan terms. IO-return and private selector-result
+handlers keep their dispatch priority. Reference comparisons check architectural
+graph/control state and preserve failure atomicity.
 
-Finite-quantum validation and board qualification are recorded separately in
-`docs/handoffs/red2-finite-quantum-results.json`. The frontend RTL checks produce
-two clock-dots outputs across five hardware restarts, with a peak compacted
-residual of 84 words, and preserve elapsed CLOCK across every restart.
+Current qualification is recorded in
+`docs/handoffs/red2-uart-publication-fix-results.json` and
+`docs/handoffs/red2-finite-quantum-results.json`. The earlier once-dot and
+finite-quantum qualifications remain as history. Frontend RTL smoke checks
+include two clock-dots outputs across hardware restarts and preserve elapsed
+CLOCK through restart.
 
 - The program image is read from configuration flash at **0x220000**. The loader
   uses ordinary 03h SPI reads on the board's QSPI NOR, without changing flash
@@ -49,12 +53,15 @@ residual of 84 words, and preserve elapsed CLOCK across every restart.
   clearing. Internal publication generation counters survive LOAD_STATE, so stale
   scratch records cannot become valid again merely because the graph moved.
 
-The flash image selects the budget; its default is 20. Graph/control/literal
-capacities remain 256/256/64. A smaller budget may be required to finish
-reconstruction within the working arena reserved by a particular program.
-Use **5 for clock-dots**: a budget of 20 still reaches a graph/environment
-collision in this small arena. With 5, the native hardware model produced repeated
-dots with a peak compacted residual of 86 words.
+The flash image selects the budget. The raw `image.py` compiler defaults to 20;
+`mise run fpga` selects the budgets in `programs.toml`: **5 for clock-dots,
+20 for alphanumerics, and 5 for Caesar**. Unlisted programs use 5, and an explicit
+`--quantum N` overrides the profile. Graph/control/literal capacities remain
+256/256/64. The most suitable budget depends on the program: clock-dots at 20
+can collide with its environment, while alphanumerics at 5 retains deferred
+arguments and fills its arena after printing the digits. Smaller budgets do not
+guarantee lower peak memory. With its recommended budget, alphanumerics peaks at
+41 compacted residual words; Caesar peaks at 49.
 Floating arithmetic is omitted; integer division remains. Capacity exhaustion or
 an invalid residual raises an explicit fault. The Python models' additional
 closed-scalar sharing policy is not part of this hardware change.
@@ -75,23 +82,14 @@ reconstructs both branches before restarting. This is necessary even when the
 condition has already become a Boolean: exhaustion prevents IF contraction but
 must not leave environment-dependent branches in the residual graph.
 
-## Publication fix checkpoint
-
-The v8 source fixes the EP-parent, APP-operator and flat-scan publication gaps.
-Both full UART examples pass typed-source checks (alphanumerics at quantum 20,
-Caesar at 5), and lowered RTL passes the original failing paths. The complete
-board maps to 18,663 LUTs. Placement, routing, sustained RTL and physical
-qualification are still pending; v6 remains installed and the default prepared
-build has deliberately not switched. The updated source will fail the old
-build's source-identity check until a compatible build is selected.
-See `docs/handoffs/red2-uart-publication-fix-checkpoint.md` for the continuation.
-
 ## Build and deploy
 
 Once the standalone hardware is installed, replace just its THOR program with:
 
 ```sh
 mise run fpga examples/clock-dots.thor
+mise run fpga examples/uart-alphanumerics.thor
+mise run fpga examples/uart-caesar-plus4.thor
 mise run fpga examples/clock-dots.thor --quantum 5 --compile-only
 ```
 
@@ -102,38 +100,44 @@ checks finish before any flash write. The installed hardware configuration stays
 in flash, and the new program persists across power cycles. No hardware synthesis
 or host runtime is involved. Attach only one Basys 3 when programming.
 
-The task selects budgets from `programs.toml`: **20 for alphanumerics**, **5 for
-clock-dots and Caesar**, and 5 for unlisted programs. Override with `--quantum N`.
-Either increasing or decreasing the budget can increase peak graph memory,
-depending on deferred work. The new profiles await v8 physical qualification.
+The task uses the per-program budgets above for the current 256-word graph.
+Override with `--quantum N`; peak memory depends on the budget and deferred work.
 `--compile-only` saves and validates the image without accessing hardware.
 Images, compiler metadata and programming receipts are kept in unique directories
 under `build/red2-standalone/programs/`. Programming success means the flash was
 verified and configuration reset succeeded; program behavior is checked separately
 by observing its UART or status LEDs.
 
-By default the task uses `build/red2-basys3-standalone-quantum-v6-seed2`; pass
+By default the task uses `build/red2-basys3-standalone-quantum-v8-seed2`; pass
 `--prepared PATH` for another qualified, compatible standalone build. Its build
 artifacts and mapped core must be available locally. The task assumes the matching
 hardware is already installed; use the full deployment below to install hardware.
 
 ### Current program compatibility
 
-`clock-dots` has passed sustained physical execution. The simple UART send/receive
-fixtures also pass frontend RTL tests, but the full `uart-alphanumerics.thor` and
-`uart-caesar-plus4.thor` examples currently fault in the installed v6 reducer.
-Successful flash programming does not establish that a program will execute.
-Check LD6 when a program produces no UART output.
+The unchanged `clock-dots`, `uart-alphanumerics.thor` and
+`uart-caesar-plus4.thor` examples have passed physical execution with their
+recommended budgets. Open a terminal at 115200 baud, 8N1 before programming to
+capture the finite alphanumeric output. Caesar has no startup banner; after LD4
+lights, type input and it emits transformed characters. ESC ends the program.
+LD5 indicates normal halt; LD6 indicates a runtime fault. Only one process may
+own the serial port at a time.
 
-Both full examples expose missing graph-publication cases during exhausted-quantum
-reconstruction, reported as `HW_FAULT_EXECUTION_NOT_IMPLEMENTED`. Alphanumerics
-first fails when a multiword result is returned through an EP parent; Caesar first
-fails in `MICRO_JOIN_FLAT_SCAN` after receiving input. These are reducer coverage
-gaps, not serial-terminal settings. Increasing quantum delays the alphanumerics
-failure but does not fix it. The investigation and reproduction commands are in
-`docs/handoffs/red2-uart-examples-diagnosis.md`.
+The v6 missing-case investigation is preserved in
+`docs/handoffs/red2-uart-examples-diagnosis.md`; v8 fixes those publication gaps.
+Successful flash programming alone still does not establish correct execution.
 
-To exercise these currently unqualified programs in frontend RTL simulation:
+The typed hardware-source checker runs both full programs through their expected
+output and normal termination:
+
+```sh
+.venv/bin/python scripts/boards/red2_standalone/check_native_program.py \
+  --case uart-alphanumerics --output build/red2-native-alphanumerics
+.venv/bin/python scripts/boards/red2_standalone/check_native_program.py \
+  --case uart-caesar-plus4 --output build/red2-native-caesar
+```
+
+Full frontend RTL tests are also available, using the recommended budgets:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/check.py \
@@ -143,12 +147,14 @@ To exercise these currently unqualified programs in frontend RTL simulation:
   --case uart-caesar-plus4
 ```
 
-These checks require the actual expected output and normal termination; they fail
-on the current reducer. The Caesar test injects real serial bits for `Az09!` and
-ESC, expecting `Ed09!` followed by halt. `--uart-examples` includes both programs
-alongside the existing smoke cases. Ordinary smoke qualification keeps its
-previous cases and adds a two-byte receive/echo check; this must not be
-interpreted as full-program coverage.
+These require complete output and normal termination. The Caesar fixture injects
+real serial bits for `Az09!` and ESC, expecting `Ed09!` followed by halt.
+`--uart-examples` includes both programs alongside the smoke cases. For shorter
+regressions, `--example-prefix 2 --example-quantum 5` checks alphanumerics through
+its first two bytes; Caesar uses `--example-prefix 1 --example-quantum 5`.
+Those prefix checks, including the original failing paths, passed on v8; they are
+recorded separately from full typed-source and physical checks. Ordinary RTL
+qualification runs eleven smoke cases, including a two-byte receive/echo test.
 
 ### Installing hardware
 
@@ -157,12 +163,12 @@ program:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/prepare.py \
-  --seed 2 --output build/red2-basys3-standalone-quantum-v6-seed2
-bash build/red2-basys3-standalone-quantum-v6-seed2/build.sh
+  --seed 2 --output build/red2-basys3-standalone-quantum-v8-seed2
+bash build/red2-basys3-standalone-quantum-v8-seed2/build.sh
 .venv/bin/python scripts/boards/red2_standalone/image.py \
-  --prepared build/red2-basys3-standalone-quantum-v6-seed2 \
+  --prepared build/red2-basys3-standalone-quantum-v8-seed2 \
   --file examples/clock-dots.thor --quantum 5 \
-  --output build/red2-standalone/clock-dots-quantum-v6.bin
+  --output build/red2-standalone/clock-dots-quantum-v8.bin
 ```
 
 Preparation preserves the qualified mapped engine and verifies its packed ABI.
@@ -193,9 +199,9 @@ After a successful build:
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/deploy.py \
-  --prepared build/red2-basys3-standalone-quantum-v6-seed2 \
-  --image build/red2-standalone/clock-dots-quantum-v6.bin \
-  --log build/red2-standalone/quantum-v6-deployment.json \
+  --prepared build/red2-basys3-standalone-quantum-v8-seed2 \
+  --image build/red2-standalone/clock-dots-quantum-v8.bin \
+  --log build/red2-standalone/quantum-v8-deployment.json \
   --expected ".............................." --observe-seconds 900 --persistent
 ```
 
@@ -245,7 +251,7 @@ source, literal IDs, hashes and compiler/core identity.
 
 ```sh
 .venv/bin/python scripts/boards/red2_standalone/check.py \
-  --core build/red2-finite-quantum/core-v6/integrated-stream \
+  --core build/red2-finite-quantum/core-v8/integrated-stream \
   --output build/red2-standalone/check-new
 ```
 

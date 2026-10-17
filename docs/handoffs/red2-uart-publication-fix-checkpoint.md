@@ -1,4 +1,10 @@
-# UART publication fix checkpoint — v8 not deployed
+# UART publication fix checkpoint — before v8 deployment
+
+**Completed:** v8 subsequently passed full physical UART tests and persistent
+clock-dots startup/reset checks. The default build now selects v8. See the
+[qualification record](red2-uart-publication-fix-results.json). The remainder
+preserves the earlier checkpoint and continuation instructions as history.
+
 
 User requested saving and committing while placement was running. The automatic
 physical deployment worker was stopped. Build, RTL and native diagnostic workers

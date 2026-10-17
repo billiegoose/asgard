@@ -1,0 +1,3016 @@
+{
+  "recorded_at_utc": "2026-10-17T03:27:22.874626+00:00",
+  "scope": "Three composite publication gaps fixed; unchanged full UART examples qualified physically with recommended budgets. Dedicated RED2 hardware, no host runtime or new sharing policy.",
+  "source_commit": "418322e3b649a08af57d2f7fad3d8b7e14126918",
+  "source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+  "candidate_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+  "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+  "core_provenance": {
+    "scope": "Complete experimental top, selected RED2 family shared controller and serial state bridge",
+    "original_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+    "candidate_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+    "compiler_manifest": {
+      "base_revision": "2fe880d19852b8df0df1aae00f469c8be6fe8ce1",
+      "patches": [
+        {
+          "file": "pypeline-boolop-instance-names.patch",
+          "sha256": "5dbc9e708d1d3fd73d7e15502d367bd9fbc55f820180c0ff0d96ed11749a381c"
+        },
+        {
+          "file": "pypeline-red2-enhancements.patch",
+          "sha256": "88ea97a8c6662fc60e65c9fe0be014ab493e5782bd4b6becc20ac4813d10034d"
+        },
+        {
+          "file": "pypeline-register-reannotations.patch",
+          "sha256": "b563f502ab12af31eb08b29de137500d29a2ef4660c6b44e309dc4ef4cd39f79"
+        }
+      ],
+      "files": {
+        "src/PY_TO_LOGIC.py": "09ce61a3d5b90c6bb906cc26ef07deeeda0e9d8874ca6b6014d30ff1f3d19a5b",
+        "src/pypeline.py": "27dca6c081793ee22dfe1452381b9b8c5af309f29c404b53b097a5bc8f65ffd3",
+        "src/AUTO.py": "c68e3220034483a67be73fc9a7bcf6686850c8f8b7b346844f809ffc9f1af9d0",
+        "src/AUTO_FSM.py": "6310949669414ea8102e9b77edef6a680c2771c74248ea5df6f42b521380c60f",
+        "src/AUTO_PIPELINE.py": "494b2bbea09b86d03793e1be8cf17a1850fd20bc001aacb3303c4ec1b889fb59",
+        "src/VHDL.py": "c6bf34b1ba96191fae17db0f7144c03be948c654f2b0b4bbfa9d3200bcfed1f8",
+        "src/SYN.py": "4b248d47b13e2df8267936ee34b10745aeee79668b1a07249ac84b76ed6173c6",
+        "src/OPEN_TOOLS.py": "d1476a69f9a1925cc1fbcbd34ca0945fce342a7e6904f0b1351e1dedd6e01a00",
+        "include/pypeline/operators/soft_cmp.py": "e48aca7df8da866540b68fb0483272286ff51debb09341d264b9402491ad060e"
+      }
+    },
+    "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+    "hdl_files_sha256": {
+      "built_in/pipelinec_fifo_fwft.vhd": "2dec640ba6051c83feb062f81ab7479c52cdccb0bc946c1a582b3601ee1edf5f",
+      "built_in/pipelinec_async_fifo_fwft.vhd": "08c7cedc27d1df17a8c77b20794d9578cab842cf94966be96b9f529ae9be5b30",
+      "c_structs_pkg.pkg.vhd": "9b26935249b30d1af64974d4bcefe4697df7c4cdf8348182aab509acedcfd25c",
+      "top/top.vhd": "52eb04c4e4ef210bab479ee9e7de1f77f5cd1362d966b9f76b9394328b362b8e",
+      "SynthesizableRED2Machine/SynthesizableRED2Machine_0CLK_5ca4ac7e.vhd": "d701c88e8b824166fbf4e36fc0ba0c4c0a2877928923ae921f86768d42baf18b",
+      "built_in/BIN_OP_AND_uint1_t_uint1_t/BIN_OP_AND_uint1_t_uint1_t_0CLK_de264c78.vhd": "c4c260e6923220ffe5295c30f17be9cca11385f7e3817c2682fbfee730ece562",
+      "built_in/BIN_OP_AND_uint64_t_uint17_t/BIN_OP_AND_uint64_t_uint17_t_0CLK_de264c78.vhd": "047afecca07065e5c1c6eb4f48b271264ebf78d370ffc04371bd0b43504d6a92",
+      "built_in/BIN_OP_AND_uint64_t_uint27_t/BIN_OP_AND_uint64_t_uint27_t_0CLK_de264c78.vhd": "1e161f67244c59276e432231166e65ce963cd521a184f29096eb5f12723856b0",
+      "built_in/BIN_OP_AND_uint64_t_uint52_t/BIN_OP_AND_uint64_t_uint52_t_0CLK_de264c78.vhd": "056b5cb9f6bfa89fc665e290dcc1d0652751515a930938ac9e5a86fa32bfff7b",
+      "built_in/BIN_OP_AND_uint64_t_uint63_t/BIN_OP_AND_uint64_t_uint63_t_0CLK_de264c78.vhd": "e99e38d0918875d95276dafd0ea7c25270e8cfea916585c562ad50209db3f61c",
+      "built_in/BIN_OP_EQ_uint4_t_uint3_t/BIN_OP_EQ_uint4_t_uint3_t_0CLK_de264c78.vhd": "05f986a799c666b92a7d5e5bc32ee3805e086f5b367f41f4b5485bb5385b8330",
+      "built_in/BIN_OP_EQ_uint4_t_uint1_t/BIN_OP_EQ_uint4_t_uint1_t_0CLK_de264c78.vhd": "ec4e727f987b88ac4b594b3cb2f90f1938dcef8190d6ae3980d6ed4d94471a73",
+      "built_in/BIN_OP_EQ_uint4_t_uint4_t/BIN_OP_EQ_uint4_t_uint4_t_0CLK_de264c78.vhd": "1eec4664cc5b81d5cf9b08ccf56fe8ae85c21bed7130de1ad00c3642ba95da91",
+      "built_in/BIN_OP_EQ_uint8_t_uint6_t/BIN_OP_EQ_uint8_t_uint6_t_0CLK_de264c78.vhd": "c4ac71d1702aaa0788d76383c63c1e081a2ce177bfd6c2fc345801ce33e1ea96",
+      "built_in/BIN_OP_EQ_uint8_t_uint5_t/BIN_OP_EQ_uint8_t_uint5_t_0CLK_de264c78.vhd": "ff36eb46b4b2cb08b814185288d5eeccc425ec565ef2b11457e7616e4c178354",
+      "built_in/BIN_OP_EQ_uint8_t_uint7_t/BIN_OP_EQ_uint8_t_uint7_t_0CLK_de264c78.vhd": "f82568429dcce3081d520636ffcde8df7677b8c24947cf72054aa0a76424494d",
+      "built_in/BIN_OP_EQ_uint8_t_uint8_t/BIN_OP_EQ_uint8_t_uint8_t_0CLK_de264c78.vhd": "ce7f273a6ec620218be0535374a69f94d46f3c898d575c25a222c46f71248be0",
+      "built_in/BIN_OP_EQ_uint8_t_uint4_t/BIN_OP_EQ_uint8_t_uint4_t_0CLK_de264c78.vhd": "1f77480efc033670a1f3693f2c731034cc645880265d8c4336a843c8d821bd9d",
+      "built_in/BIN_OP_EQ_uint8_t_uint3_t/BIN_OP_EQ_uint8_t_uint3_t_0CLK_de264c78.vhd": "aa5e2be4084f69227e244457e9e04a0ec6088b424d9e2fc2e96a195ef0acbfa7",
+      "built_in/BIN_OP_EQ_uint5_t_uint3_t/BIN_OP_EQ_uint5_t_uint3_t_0CLK_de264c78.vhd": "93f2e8b668b07ded78681ff6b7a79e18119f75046f3172ebb0e61bef93051d70",
+      "built_in/BIN_OP_EQ_uint5_t_uint2_t/BIN_OP_EQ_uint5_t_uint2_t_0CLK_de264c78.vhd": "79b1809f95e26fc534fffef19f3c0113aee246d11b7a6d789376049ac0a5d3cd",
+      "built_in/BIN_OP_EQ_uint5_t_uint5_t/BIN_OP_EQ_uint5_t_uint5_t_0CLK_de264c78.vhd": "19677c7c97a5c1b7b155b73e1a6a5cbcfbf8242f717f28669aa6ebf70e282205",
+      "built_in/BIN_OP_EQ_uint8_t_uint1_t/BIN_OP_EQ_uint8_t_uint1_t_0CLK_de264c78.vhd": "0868cd10d1af5581e165be55c0abb6bad57ed3b0f7f9274510f0f1cb10f58f8e",
+      "built_in/BIN_OP_EQ_uint5_t_uint1_t/BIN_OP_EQ_uint5_t_uint1_t_0CLK_de264c78.vhd": "6195a35782984b813645b38f220a0c6a53fe5b81dc0adad1d3d48f21fb80620e",
+      "built_in/BIN_OP_EQ_uint3_t_uint1_t/BIN_OP_EQ_uint3_t_uint1_t_0CLK_de264c78.vhd": "8a58b01a6045addd3239ad6b124900d81dcc3da2622fef7c4989705a7a12f27b",
+      "built_in/BIN_OP_EQ_uint10_t_uint1_t/BIN_OP_EQ_uint10_t_uint1_t_0CLK_de264c78.vhd": "e58c3eb78ff672b16cdaf38353f08298522ca191c0450c47b991b4fb0a1835cf",
+      "built_in/BIN_OP_EQ_uint4_t_uint2_t/BIN_OP_EQ_uint4_t_uint2_t_0CLK_de264c78.vhd": "702a57d4e94684d64dff2080f7e74e2bd4b6ae5696fba1cd8095fea42406f534",
+      "built_in/BIN_OP_EQ_uint6_t_uint1_t/BIN_OP_EQ_uint6_t_uint1_t_0CLK_de264c78.vhd": "3f5aea047ca0f4ff20882757a08f931f4088908ed70c87a76ea994fbb56c8fc6",
+      "built_in/BIN_OP_EQ_uint6_t_uint2_t/BIN_OP_EQ_uint6_t_uint2_t_0CLK_de264c78.vhd": "a12bdb2dae5a40a87c1b35717cd6e6afee3719eb59aa82dc8b6d21898b2dceb4",
+      "built_in/BIN_OP_EQ_uint6_t_uint3_t/BIN_OP_EQ_uint6_t_uint3_t_0CLK_de264c78.vhd": "b3b5b027c4a1b52321a505160761ea56a1a6af43e36a7d36090b9a532678c46d",
+      "built_in/BIN_OP_EQ_uint6_t_uint4_t/BIN_OP_EQ_uint6_t_uint4_t_0CLK_de264c78.vhd": "9c115ce533f487001afe4dc911a89a6af70571f1cc7472d04fac800e29f16cf6",
+      "built_in/BIN_OP_EQ_uint6_t_uint5_t/BIN_OP_EQ_uint6_t_uint5_t_0CLK_de264c78.vhd": "ae1f15f119c81c634c6794425bee3cd5307eb6977b3d2c625b46dc7a3a9dedfd",
+      "built_in/BIN_OP_EQ_uint1_t_uint1_t/BIN_OP_EQ_uint1_t_uint1_t_0CLK_de264c78.vhd": "2dfd2d52c5d7f2a632ba7aebc07658b19f6208507d6fa2350b1b3ee0a5e42100",
+      "built_in/BIN_OP_EQ_uint5_t_uint4_t/BIN_OP_EQ_uint5_t_uint4_t_0CLK_de264c78.vhd": "189de8b6b0b2d4fc542f6fd2a8620bf4d86f65499f3781b0d018e10e3828be2b",
+      "built_in/BIN_OP_EQ_uint2_t_uint1_t/BIN_OP_EQ_uint2_t_uint1_t_0CLK_de264c78.vhd": "f4c2a2d6805fd98238080a910523460e641b023b93ad6663c6ec146454089fca",
+      "built_in/BIN_OP_EQ_uint2_t_uint2_t/BIN_OP_EQ_uint2_t_uint2_t_0CLK_de264c78.vhd": "3d18e5607fe1799ee299546d3bff359c88db4df315b9abad6aace9bd85b8f3bd",
+      "built_in/BIN_OP_EQ_uint16_t_uint1_t/BIN_OP_EQ_uint16_t_uint1_t_0CLK_de264c78.vhd": "c1463d747dfeebc661ffd184b4615ed0748ea2bef270a74249461fdee47af81f",
+      "built_in/BIN_OP_EQ_uint37_t_uint1_t/BIN_OP_EQ_uint37_t_uint1_t_0CLK_de264c78.vhd": "4e32eb80897f3a81e9aa5061999380aec0b07ba7f12a9e1916c4ca54d2bade5d",
+      "built_in/BIN_OP_EQ_uint32_t_uint1_t/BIN_OP_EQ_uint32_t_uint1_t_0CLK_de264c78.vhd": "10f3ced97e21492a7bf81035e190459dd2084932ddccd82c067168b703ba73e5",
+      "built_in/BIN_OP_EQ_uint3_t_uint2_t/BIN_OP_EQ_uint3_t_uint2_t_0CLK_de264c78.vhd": "c183f3a0f93af055e03409ee90c100c713d346d2821e10c14c4796b9ad0b0c5b",
+      "built_in/BIN_OP_EQ_uint3_t_uint3_t/BIN_OP_EQ_uint3_t_uint3_t_0CLK_de264c78.vhd": "08b0e359f9d9c0d095fe6b4323c33ef736a1de4cd5a724b1a127a8911b8e71d1",
+      "built_in/BIN_OP_EQ_uint56_t_uint1_t/BIN_OP_EQ_uint56_t_uint1_t_0CLK_de264c78.vhd": "d13d9a08523354ee4c272dfc9404f3958b926bc69b417137e459d57da35d3533",
+      "built_in/BIN_OP_EQ_uint64_t_uint9_t/BIN_OP_EQ_uint64_t_uint9_t_0CLK_de264c78.vhd": "7257f287a45fb88c55ff279a6c789f15536dd57cd474d4078035eb27291f7484",
+      "built_in/BIN_OP_EQ_uint64_t_uint1_t/BIN_OP_EQ_uint64_t_uint1_t_0CLK_de264c78.vhd": "cf3db98a6644ca2a8c90ac2c8498bb6094f1149b9249fff637d61b85c286e044",
+      "built_in/BIN_OP_EQ_uint16_t_uint16_t/BIN_OP_EQ_uint16_t_uint16_t_0CLK_de264c78.vhd": "6c72c346c4934d76eb172daa2d5e6b41ff760a522e4ba5e492c30c1911e3f62b",
+      "built_in/BIN_OP_EQ_uint9_t_uint1_t/BIN_OP_EQ_uint9_t_uint1_t_0CLK_de264c78.vhd": "08e93d6b03f2a352f69ae24025d87dd77752a49bf4c184d54732c89f20301f6a",
+      "built_in/BIN_OP_EQ_uint17_t_uint9_t/BIN_OP_EQ_uint17_t_uint9_t_0CLK_de264c78.vhd": "bd9c50da33ba47c24e58c829ba1170df225cd1fc11741c6878e44aae51580e7e",
+      "built_in/BIN_OP_EQ_uint17_t_uint17_t/BIN_OP_EQ_uint17_t_uint17_t_0CLK_de264c78.vhd": "366c47761ab314d70b52076fddd39834dc1773606dee024cc0ef84e292234615",
+      "built_in/BIN_OP_EQ_uint9_t_uint2_t/BIN_OP_EQ_uint9_t_uint2_t_0CLK_de264c78.vhd": "18e4cf9ead0db29647fdc3c45ef577fbaa389c7ef3a1cf718a3c987017027436",
+      "built_in/BIN_OP_EQ_uint9_t_uint3_t/BIN_OP_EQ_uint9_t_uint3_t_0CLK_de264c78.vhd": "ba691c2f0e95f7a456d41d4d5e4c91dfb44130c17ece954a0fcc79ef8e2eedf9",
+      "built_in/BIN_OP_EQ_uint9_t_uint4_t/BIN_OP_EQ_uint9_t_uint4_t_0CLK_de264c78.vhd": "88132cdf4fd2cc8f72f606f62887da0a500c8451cb1f27e14337b3ee948a407d",
+      "built_in/BIN_OP_EQ_uint9_t_uint5_t/BIN_OP_EQ_uint9_t_uint5_t_0CLK_de264c78.vhd": "7b3bdab5fabde759135da50e287e424db80e32066129f00a19ed733800e5abde",
+      "built_in/BIN_OP_EQ_uint9_t_uint6_t/BIN_OP_EQ_uint9_t_uint6_t_0CLK_de264c78.vhd": "6b6e61223c2f018895b8cd9cd0f402119ccbca1452d3812cc50ec440f83f4385",
+      "built_in/BIN_OP_EQ_uint9_t_uint7_t/BIN_OP_EQ_uint9_t_uint7_t_0CLK_de264c78.vhd": "d89ce0f68b4650cddb8b019a8edaaa892ef6800526a6bdeb4862a8b30d39c47b",
+      "built_in/BIN_OP_EQ_uint9_t_uint8_t/BIN_OP_EQ_uint9_t_uint8_t_0CLK_de264c78.vhd": "c7ec7e803b00ecdd093a1ad25aa59a7904d63d9db27ab4dfde8c3d58f6609aa3",
+      "built_in/BIN_OP_EQ_uint9_t_uint9_t/BIN_OP_EQ_uint9_t_uint9_t_0CLK_de264c78.vhd": "ec77289f3ee773de46dd94ccb73b09f586b4bce063aed19e91f2d22a6d633e9e",
+      "built_in/BIN_OP_EQ_uint8_t_uint2_t/BIN_OP_EQ_uint8_t_uint2_t_0CLK_de264c78.vhd": "160c97e20b0f9c70c5991e780c2ba8400a1ba64089e286b1dcf66e1971f99899",
+      "built_in/BIN_OP_EQ_uint32_t_uint2_t/BIN_OP_EQ_uint32_t_uint2_t_0CLK_de264c78.vhd": "adefa61d4c69a25a3cfd6b9f0c9f27f1062a39b997c3a1d887076dfb72828d90",
+      "built_in/BIN_OP_EQ_uint55_t_uint1_t/BIN_OP_EQ_uint55_t_uint1_t_0CLK_de264c78.vhd": "8483f358e66eaa4c9d71b6bb8f7c75f26514d327e8c2592e6eb25e6d7f5d11ad",
+      "built_in/BIN_OP_EQ_uint17_t_uint1_t/BIN_OP_EQ_uint17_t_uint1_t_0CLK_de264c78.vhd": "bb6e78ec09602bbecfaebb4a403495f796aef86c0f3cf8971fd86f6efb702562",
+      "built_in/BIN_OP_EQ_uint16_t_uint8_t/BIN_OP_EQ_uint16_t_uint8_t_0CLK_de264c78.vhd": "da904ffb2f14d0858cd46a6d84e4cc19da239437ccca5d30a8ffab0daf015a23",
+      "built_in/BIN_OP_EQ_uint16_t_uint11_t/BIN_OP_EQ_uint16_t_uint11_t_0CLK_de264c78.vhd": "be63f856b932dd14bc97ee6815cce585b6f1bda404d12006c1e92cfa0e754a62",
+      "built_in/BIN_OP_EQ_uint32_t_uint32_t/BIN_OP_EQ_uint32_t_uint32_t_0CLK_de264c78.vhd": "795f8f70dc9b1ae2954bdd4838f945ef37dad7903dc5c06e799547e135dfc7df",
+      "built_in/BIN_OP_EQ_uint64_t_uint64_t/BIN_OP_EQ_uint64_t_uint64_t_0CLK_de264c78.vhd": "3687028034bad0499a1057ccd4a96b849b7c7ae718e24a66fc4dd24833ae2b65",
+      "built_in/BIN_OP_MINUS_uint64_t_uint1_t/BIN_OP_MINUS_uint64_t_uint1_t_0CLK_de264c78.vhd": "57ba7eb2f99c89f815631b49dce6fc3b201535229635913d0dbaf81e4ab1fdda",
+      "built_in/BIN_OP_MINUS_uint17_t_uint17_t/BIN_OP_MINUS_uint17_t_uint17_t_0CLK_de264c78.vhd": "6b4560c1e1374ddba63d5e34990ab943235372e0a1a28d8583c7729b98538563",
+      "built_in/BIN_OP_MINUS_uint64_t_uint64_t/BIN_OP_MINUS_uint64_t_uint64_t_0CLK_de264c78.vhd": "068ac0ad4c15a78bf0df31e7513ff8d4c627755f678cde6179e9ca506e7f54f4",
+      "built_in/BIN_OP_MINUS_uint16_t_uint1_t/BIN_OP_MINUS_uint16_t_uint1_t_0CLK_de264c78.vhd": "f4e72b1cbb11fc9d1feb6a96a578dccf626de17bd9452965c2ac7d4cf257da67",
+      "built_in/BIN_OP_MINUS_uint17_t_uint1_t/BIN_OP_MINUS_uint17_t_uint1_t_0CLK_de264c78.vhd": "8c747450cdac93f1d179d31cadf0d39d5d76e6b9b859d6b880b8ba3acc0e69a5",
+      "built_in/BIN_OP_MINUS_uint32_t_uint1_t/BIN_OP_MINUS_uint32_t_uint1_t_0CLK_de264c78.vhd": "2cd3e121cdc14efaab2c80082c4abec8d52edcf8741a6bfac876654f34363bc3",
+      "built_in/BIN_OP_MINUS_uint16_t_uint17_t/BIN_OP_MINUS_uint16_t_uint17_t_0CLK_de264c78.vhd": "ac956648b9ab38b4c9ff60d14fb720d888a3ae21c4e957aff52d2f5d2c8784cb",
+      "built_in/BIN_OP_MINUS_uint17_t_uint16_t/BIN_OP_MINUS_uint17_t_uint16_t_0CLK_de264c78.vhd": "7be29378f987805f7a5b360df5796182766b9cc2f085703d49c70860308c45fc",
+      "built_in/BIN_OP_MINUS_uint18_t_uint1_t/BIN_OP_MINUS_uint18_t_uint1_t_0CLK_de264c78.vhd": "a4d7eb12f4e780516c081aa3b9e391525553aa6970511b61c401312f655731b0",
+      "built_in/BIN_OP_MINUS_uint16_t_uint2_t/BIN_OP_MINUS_uint16_t_uint2_t_0CLK_de264c78.vhd": "1718ea6e703820f5a10461b089872590ebc64c79bc535ec1c019feb1e1bb26a8",
+      "built_in/BIN_OP_MINUS_uint9_t_uint17_t/BIN_OP_MINUS_uint9_t_uint17_t_0CLK_de264c78.vhd": "e99958e927cacc6a4819efbfae963e2b7b186272533c04773c71891442cc953a",
+      "built_in/BIN_OP_MINUS_uint1_t_uint64_t/BIN_OP_MINUS_uint1_t_uint64_t_0CLK_de264c78.vhd": "a79ec764f39cd0095cbf5980407e0aa6f6f3109296d88e58918649ecae62e53d",
+      "built_in/BIN_OP_NEQ_uint4_t_uint1_t/BIN_OP_NEQ_uint4_t_uint1_t_0CLK_de264c78.vhd": "7967a1b18e525f6ec32fe99e67c4080bd6ed6a2da2d41ce1f5eac1f24a14eb99",
+      "built_in/BIN_OP_NEQ_uint8_t_uint2_t/BIN_OP_NEQ_uint8_t_uint2_t_0CLK_de264c78.vhd": "fa9dd69c13af2329cdd8e06f6e0b24d43f612023ea05af1dd16657d4584a8d60",
+      "built_in/BIN_OP_NEQ_uint32_t_uint1_t/BIN_OP_NEQ_uint32_t_uint1_t_0CLK_de264c78.vhd": "009260d63954bfb9961cebd8124d5e34105fd6840a26123eb66ffbd5a3523a61",
+      "built_in/BIN_OP_NEQ_uint64_t_uint1_t/BIN_OP_NEQ_uint64_t_uint1_t_0CLK_de264c78.vhd": "ffb0577185f30e7bfa4d7de3d415004c9a0d0271b5069662d6c82086aa4f6c24",
+      "built_in/BIN_OP_NEQ_uint3_t_uint1_t/BIN_OP_NEQ_uint3_t_uint1_t_0CLK_de264c78.vhd": "854db051ecf60290f1fdccdb40cedeb1b5ca31d91af52f2e02f66695b7c1f8f1",
+      "built_in/BIN_OP_NEQ_uint17_t_uint1_t/BIN_OP_NEQ_uint17_t_uint1_t_0CLK_de264c78.vhd": "6619d1d15b1ae9f5c2d35007e5a131bc47a86486e383ee747c164c68c0159208",
+      "built_in/BIN_OP_NEQ_uint16_t_uint1_t/BIN_OP_NEQ_uint16_t_uint1_t_0CLK_de264c78.vhd": "7e7f9089460d8dc91a9e62655e01c54545fd0a01d60e29eabe73903f13660a6d",
+      "built_in/BIN_OP_NEQ_uint8_t_uint8_t/BIN_OP_NEQ_uint8_t_uint8_t_0CLK_de264c78.vhd": "a19a57af403d4d21d21274dbf22b78d627a7be3a94482e5c1644bd0439df5a13",
+      "built_in/BIN_OP_NEQ_uint55_t_uint1_t/BIN_OP_NEQ_uint55_t_uint1_t_0CLK_de264c78.vhd": "e932be95756400538de5289a0dd28a1752a02ef1b230e89d6251c830ccf05802",
+      "built_in/BIN_OP_NEQ_uint17_t_uint17_t/BIN_OP_NEQ_uint17_t_uint17_t_0CLK_de264c78.vhd": "07c34d02700df300dc198cb24768167c7567d8059f6c43befb7d2ccdcfa0231a",
+      "built_in/BIN_OP_NEQ_uint58_t_uint1_t/BIN_OP_NEQ_uint58_t_uint1_t_0CLK_de264c78.vhd": "eb8d6dd9c493d197054b09f28849c614bb9d1a8fe22a6f9cd11522e83be03439",
+      "built_in/BIN_OP_NEQ_uint1_t_uint1_t/BIN_OP_NEQ_uint1_t_uint1_t_0CLK_de264c78.vhd": "f186772b51342e1b9502181544363a7b0ce9617682d4cab5910605b60adf07a5",
+      "built_in/BIN_OP_OR_uint1_t_uint1_t/BIN_OP_OR_uint1_t_uint1_t_0CLK_de264c78.vhd": "6b3cf2c33263d1cdba9d97a3289e6154c5c55d9ba871762509cb387fb7218f36",
+      "built_in/BIN_OP_OR_uint64_t_uint21_t/BIN_OP_OR_uint64_t_uint21_t_0CLK_de264c78.vhd": "1bb7a039b5762f2d5261d1febf123ac8063013b1c3d87e43bacfcd739f7b8af1",
+      "built_in/BIN_OP_OR_uint64_t_uint27_t/BIN_OP_OR_uint64_t_uint27_t_0CLK_de264c78.vhd": "23b3a638c6dbdcb407ad3aa7fe9393feea8479a3c99173dc09119cd199503fb8",
+      "built_in/BIN_OP_OR_uint64_t_uint64_t/BIN_OP_OR_uint64_t_uint64_t_0CLK_de264c78.vhd": "7724961e060f9d9970a3e4c6c13390651e80e12a980b275a0bd70e0272317db4",
+      "built_in/BIN_OP_OR_uint4_t_uint4_t/BIN_OP_OR_uint4_t_uint4_t_0CLK_de264c78.vhd": "5572172e3529a86fd399696cbb7a37621df0480f999f89555fe81e7828bb9f29",
+      "built_in/BIN_OP_OR_uint27_t_uint64_t/BIN_OP_OR_uint27_t_uint64_t_0CLK_de264c78.vhd": "488000fb35874e54a04e8b700593f82646b0c6feeb084df121997014fe4c8980",
+      "built_in/BIN_OP_PLUS_uint16_t_uint1_t/BIN_OP_PLUS_uint16_t_uint1_t_0CLK_de264c78.vhd": "0ec78316a457bc1017894bae4f527535d474e4ec5cc4f90ab4924f903cd839f9",
+      "built_in/BIN_OP_PLUS_uint16_t_uint17_t/BIN_OP_PLUS_uint16_t_uint17_t_0CLK_de264c78.vhd": "189ec5a5e3932a573a7cc37f7b1dc340676eff586e40a212b8d65853341d418a",
+      "built_in/BIN_OP_PLUS_uint17_t_uint17_t/BIN_OP_PLUS_uint17_t_uint17_t_0CLK_de264c78.vhd": "e80887d18bacc9c8ed613f75d2813c1f136d433cb330458a3c88de6eacbc31e2",
+      "built_in/BIN_OP_PLUS_uint32_t_uint1_t/BIN_OP_PLUS_uint32_t_uint1_t_0CLK_de264c78.vhd": "7346b5e3e47af02e7bb05ac069bf8a8b54d2d3f3f469b419fc95c2e5c6bd6677",
+      "built_in/BIN_OP_PLUS_uint17_t_uint1_t/BIN_OP_PLUS_uint17_t_uint1_t_0CLK_de264c78.vhd": "9ab14d24184b3d5fbedbd0ccceff959bd8157df94744b20cb3bc8b4db4ede225",
+      "built_in/BIN_OP_PLUS_uint17_t_uint2_t/BIN_OP_PLUS_uint17_t_uint2_t_0CLK_de264c78.vhd": "5a6d79f40197eaaa748ea6eec9d062ef984bb683048ad4e0da2920243cdba9c3",
+      "built_in/BIN_OP_PLUS_uint17_t_uint3_t/BIN_OP_PLUS_uint17_t_uint3_t_0CLK_de264c78.vhd": "a1cbf0beb31615a590e7c0daf29667dd9f886816112f84da398628f9a0940824",
+      "built_in/BIN_OP_PLUS_uint64_t_uint64_t/BIN_OP_PLUS_uint64_t_uint64_t_0CLK_de264c78.vhd": "1e46ec57b866c9fbb6d4648e69ebb2d630dcf82105efba4173da2b60a6136097",
+      "built_in/BIN_OP_PLUS_uint8_t_uint1_t/BIN_OP_PLUS_uint8_t_uint1_t_0CLK_de264c78.vhd": "d15064197bc8b31ce9a2142cbba2333b801032d032e1b0d2120349d39675e0dc",
+      "built_in/BIN_OP_PLUS_uint12_t_uint1_t/BIN_OP_PLUS_uint12_t_uint1_t_0CLK_de264c78.vhd": "d34e0103011c296f2923013379a90855043225893bc1a1d1d675e19a4c5a4b7d",
+      "built_in/MUX_uint1_t/MUX_uint1_t_0CLK_de264c78.vhd": "85ca5675c1b94c9ad548e93b1956d96db81677a4f99b8e3a11f012b29f2104af",
+      "built_in/MUX_red2_command_t_from_machine_op_uint4_t_address_uint16_t_value_uint32_t_aux_uint64_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_control_red2_control_t_lo_uint64_t_hi_hb59b10f07d47_h251e9f4f3e93/MUX_red2_command_t_from_machine_op_uint4_t_address_uint16_t_value_uint32_t_aux_uint64_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_control_red2_control_t_lo_uint64_t_hi_hb59b10f07d47_h251e9f4f3e93_0CLK_de264c78.vhd": "ef352465d88fd0c821fe3de17400be4321ec2b870d153f69f9025c52a9b16b7c",
+      "built_in/MUX_red2_control_t_from_machine_lo_uint64_t_hi_uint64_t_tag_hi_uint4_t/MUX_red2_control_t_from_machine_lo_uint64_t_hi_uint64_t_tag_hi_uint4_t_0CLK_de264c78.vhd": "5632add90ec429664b1dfee78ab1a1d311607cb5b7225ba22a42f8ba8ccdb968",
+      "built_in/MUX_red2_promote_forward_t_from_machine_state_uint2_t_target_uint17_t_generation_uint32_t/MUX_red2_promote_forward_t_from_machine_state_uint2_t_target_uint17_t_generation_uint32_t_0CLK_de264c78.vhd": "b973ef4fd0bdeefd084229df76ca77d03092ac0df934a8a9e2d246c65eced16a",
+      "built_in/MUX_red2_promote_mat_t_from_machine_valid_uint1_t_word_red2_word_t_lo_uint64_t_hi_uint64_t/MUX_red2_promote_mat_t_from_machine_valid_uint1_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_0CLK_de264c78.vhd": "c58aad9af557b253ed92a1a05da680dbc61e4f1403d5e38cdb4b9305807f44aa",
+      "built_in/MUX_red2_pub_mat_t_from_machine_generation_uint32_t_word_red2_word_t_lo_uint64_t_hi_uint64_t/MUX_red2_pub_mat_t_from_machine_generation_uint32_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_0CLK_de264c78.vhd": "19a8837f1148ba34d2a303516ed77c977520c32e2ab5adab316888f7cf606954",
+      "built_in/MUX_red2_pub_patch_t_from_machine_generation_uint32_t_word_red2_word_t_lo_uint64_t_hi_uint64_t/MUX_red2_pub_patch_t_from_machine_generation_uint32_t_word_red2_word_t_lo_uint64_t_hi_uint64_t_0CLK_de264c78.vhd": "71045b562ee484958b4d26e84e63dfc5910a16402b67399156ff6d98ffa67190",
+      "built_in/MUX_red2_pub_root_t_from_machine_generation_uint32_t_state_uint2_t_result_uint17_t_aux_uint17_t/MUX_red2_pub_root_t_from_machine_generation_uint32_t_state_uint2_t_result_uint17_t_aux_uint17_t_0CLK_de264c78.vhd": "741599fc7f4af24882cfc52ed9476e52a6a36a5c93d99e170436ac5321a8600b",
+      "built_in/MUX_red2_pub_task_t_from_machine_kind_uint6_t_a_uint17_t_b_uint17_t_c_uint17_t_d_uint17_t_e_uint17_t_f_uint17_t_flags_uint8_t/MUX_red2_pub_task_t_from_machine_kind_uint6_t_a_uint17_t_b_uint17_t_c_uint17_t_d_uint17_t_e_uint17_t_f_uint17_t_flags_uint8_t_0CLK_de264c78.vhd": "2f8cfb09137ff8ce7cdeb2aa4eb1d8ddbe0f9bfd81b0bd52a05b7be4ea43da94",
+      "built_in/MUX_red2_word_t_from_machine_lo_uint64_t_hi_uint64_t/MUX_red2_word_t_from_machine_lo_uint64_t_hi_uint64_t_0CLK_de264c78.vhd": "dad594b47278cac073eed601ef95eb455d0b8faa604da56c4f944823683b9e61",
+      "built_in/MUX_uint10_t/MUX_uint10_t_0CLK_de264c78.vhd": "5624ff8ba21df88b411c271097a721e9f1d01b09a834fc234d827874e37ba0d0",
+      "built_in/MUX_uint11_t/MUX_uint11_t_0CLK_de264c78.vhd": "b9623f7eec624693e0cdd2ad37a17c7603156d43bed4f2d9f3838f592b5fd401",
+      "built_in/MUX_uint12_t/MUX_uint12_t_0CLK_de264c78.vhd": "14c42f1da8aaaf62323cb30d59d2e290aa83b640dd41d7d00edb037c24b78527",
+      "built_in/MUX_uint16_t/MUX_uint16_t_0CLK_de264c78.vhd": "a49efb2bb1f79d30456b687480d0704573b559c0d4ed78994c97a5dec136b41a",
+      "built_in/MUX_uint17_t/MUX_uint17_t_0CLK_de264c78.vhd": "7ee755270fd1162a9ea7cc91a5da06df96f057546e43272644515346dfe55f0b",
+      "built_in/MUX_uint2_t/MUX_uint2_t_0CLK_de264c78.vhd": "e9208a48302dcb31ba443cba46d02a7bdf4086924bccadcdbef59121e3fa56a5",
+      "built_in/MUX_uint32_t/MUX_uint32_t_0CLK_de264c78.vhd": "3927f9faa0445f374f93e8ff0d6fc0d939e0365e530d89d25e5f35e10a20aaea",
+      "built_in/MUX_uint3_t/MUX_uint3_t_0CLK_de264c78.vhd": "6d1f22f94f4a41b262dc7857bf05afcb43c0d5a8662c0f55d3e4dc74c8409c50",
+      "built_in/MUX_uint4_t/MUX_uint4_t_0CLK_de264c78.vhd": "cf0e28ba1da9b3bb850a299b4e822bf7ea82ee3786d7c1a1d9ebf3f703896ee6",
+      "built_in/MUX_uint53_t/MUX_uint53_t_0CLK_de264c78.vhd": "905fb3d48bfa856f04d0f5f1cf1e7ad16fdf2e4e27a5cfcdf91a3b7f73e2edb5",
+      "built_in/MUX_uint54_t/MUX_uint54_t_0CLK_de264c78.vhd": "52d1ba1285998defa7edb9e7f057d8f1024e5f15af589bb5dd42ee0223d1fe2f",
+      "built_in/MUX_uint5_t/MUX_uint5_t_0CLK_de264c78.vhd": "6f2f21e894fc122985779b08bcf87c5f4aa596bb24df3cf003b30b75dce0d557",
+      "built_in/MUX_uint64_t/MUX_uint64_t_0CLK_de264c78.vhd": "2dc1545a4f8ed1b31342721a773607fc463458b3acc8b5a6261818b8705e0876",
+      "built_in/MUX_uint6_t/MUX_uint6_t_0CLK_de264c78.vhd": "b86c591b5f0cc8524610a97c30f17a4276a00982b1a37b1dbed1bbc14aaa1f6c",
+      "built_in/MUX_uint8_t/MUX_uint8_t_0CLK_de264c78.vhd": "58d77cf12fe24b8944a08acad12c29c123cd2fe974f151a4c5074379fbd4c7e5",
+      "built_in/MUX_uint9_t/MUX_uint9_t_0CLK_de264c78.vhd": "6d650caf7613c2d253ad2f0f65b5beb51ce8e494d125074f9a83ff6f8cd74b24",
+      "built_in/UNARY_OP_NOT_uint1_t/UNARY_OP_NOT_uint1_t_0CLK_de264c78.vhd": "95addf11d2b437b49fdd2dcf31d29b36efd94c2446c0509abc7e56b0e1bd4623",
+      "ram_from_ram_size_256_ports_r_read_latency_1_in_regs_0_out_regs_0_init_he6989f969ef7_byte_write_enables_False_elem_t_uint24_t_p0_ram_r_in_t_addr_uint8_t_valid_uint1_t_return_ram_h99e32d0ea10a/ram_from_ram_size_256_ports_r_read_latency_1_in_regs_0_out_regs_0_init_he6989f969ef7_byte_write_enables_False_elem_t_uint24_t_p0_ram_r_in_t_addr_uint8_t_valid_uint1_t_return_ram_h99e32d0ea10a_1CLK_de264c78.vhd": "78d9f02285ab551f46a11806bec8a0892f6a7bcca78c5eb6b81735349e961605",
+      "ram_from_ram_size_4096_ports_r_read_latency_1_in_regs_0_out_regs_0_init_hcaff8303d9d3_byte_write_enables_False_elem_t_uint10_t_p0_ram_r_in_t_addr_uint12_t_valid_uint1_t_return_h3b33b14b06ca/ram_from_ram_size_4096_ports_r_read_latency_1_in_regs_0_out_regs_0_init_hcaff8303d9d3_byte_write_enables_False_elem_t_uint10_t_p0_ram_r_in_t_addr_uint12_t_valid_uint1_t_return_h3b33b14b06ca_1CLK_de264c78.vhd": "a925ef84f2ab197117e88f22905c899ba48d124d167a94b67bb37cd713b9301e",
+      "cfg_red2_app_lambda_cfg/cfg_red2_app_lambda_cfg_0CLK_51e65d15.vhd": "3e3265c80a59e0501fd7157bc04fff0b47dec34d65e2380ffbc87036b1d39dd7",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_control_t_lo_uint64_t_hi_hb59b10f07d47_p0_ram_rw_in_t_addr_uint8_h96974de86e5a/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_control_t_lo_uint64_t_hi_hb59b10f07d47_p0_ram_rw_in_t_addr_uint8_h96974de86e5a_1CLK_de264c78.vhd": "c17e0084349188b73a5e7551b746a1896986bfa8b7dadcb24327dfc4f6a9e96c",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_word_t_lo_uint64_t_hi_uint64_t_p0_ram_rw_in_t_addr_uint8_t_wr_en_h6a6a6cb222b5/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_word_t_lo_uint64_t_hi_uint64_t_p0_ram_rw_in_t_addr_uint8_t_wr_en_h6a6a6cb222b5_1CLK_de264c78.vhd": "d5ba4eec8d0cffaafecf4d5de35c842572c37aba25a12c5fedcba0ebfd85cfd4",
+      "ram_from_ram_size_64_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_literal_meta_t_literal_id_hbf54859ee9fc_p0_ram_rw_in_t_addr_uint6_h90a059a2c50c/ram_from_ram_size_64_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_literal_meta_t_literal_id_hbf54859ee9fc_p0_ram_rw_in_t_addr_uint6_h90a059a2c50c_1CLK_de264c78.vhd": "4885456975a1ad0b43f589d953c30d9e876cfe982a57092776e6582c64391483",
+      "ram_from_ram_size_256_ports_rw_read_latency_0_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_promote_forward_t_state_uint2_h010ef8eb7c0b_p0_ram_rw_in_t_addr_hcb5a3a3e0d32/ram_from_ram_size_256_ports_rw_read_latency_0_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_promote_forward_t_state_uint2_h010ef8eb7c0b_p0_ram_rw_in_t_addr_hcb5a3a3e0d32_0CLK_de264c78.vhd": "3fd10f17ce5ca51e71817253b1404bf739d187da6af0186697b9843a9dbb06f2",
+      "ram_from_ram_size_256_ports_r_w_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_promote_mat_t_valid_uint1_t_h1f0a75ae469d_p0_ram_r_in_t_addr_he6a2441a9499/ram_from_ram_size_256_ports_r_w_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_promote_mat_t_valid_uint1_t_h1f0a75ae469d_p0_ram_r_in_t_addr_he6a2441a9499_1CLK_de264c78.vhd": "6443d8f465eea64fd95b793c593f588ee25b3436009ead199e430354ce6b91d9",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_mat_t_generation_uint32_t_hc17e6a510210_p0_ram_rw_in_t_addr_hd7413fbdb0fb/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_mat_t_generation_uint32_t_hc17e6a510210_p0_ram_rw_in_t_addr_hd7413fbdb0fb_1CLK_de264c78.vhd": "512994ffdfd93e550e50cc84c15947e10362bcd72713bdb363a34bea3099dff8",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_uint17_t_p0_ram_rw_in_t_addr_uint8_t_wr_data_hd3d68d363c32_return_ram_hc0f8d137548d/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_uint17_t_p0_ram_rw_in_t_addr_uint8_t_wr_data_hd3d68d363c32_return_ram_hc0f8d137548d_1CLK_de264c78.vhd": "9b61bf3ae812ae9395f5cea4ec45a57053b640826b5f39e2a9280ed2460f422e",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_patch_t_generation_uint32_h8b5a153d4e5d_p0_ram_rw_in_t_addr_hb027cf3a0d34/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_patch_t_generation_uint32_h8b5a153d4e5d_p0_ram_rw_in_t_addr_hb027cf3a0d34_1CLK_de264c78.vhd": "61df9f8b31b9be1fba72c43a00b1d9d89bd1220a9061154c02c4b14aef6a2983",
+      "ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_root_t_generation_uint32_h133cabb1c45e_p0_ram_rw_in_t_addr_ha1e7afeaca46/ram_from_ram_size_256_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_root_t_generation_uint32_h133cabb1c45e_p0_ram_rw_in_t_addr_ha1e7afeaca46_1CLK_de264c78.vhd": "bb2c01b26a07a1c98703cd625d9f2f119ff4145432737f4998da1edea7d1bf24",
+      "ram_from_ram_size_1024_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_task_t_kind_uint6_t_a_h3ae27c54e6d7_p0_ram_rw_in_t_addr_ha9f093b1fc13/ram_from_ram_size_1024_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_None_byte_write_enables_False_elem_t_red2_pub_task_t_kind_uint6_t_a_h3ae27c54e6d7_p0_ram_rw_in_t_addr_ha9f093b1fc13_1CLK_de264c78.vhd": "f0296cf6e935942c6305be51f4693ff953f0fd9a2fc951faa6870adecc4ddf28",
+      "red2_float64_compare/red2_float64_compare_0CLK_65e6eb76.vhd": "79fefd94f4f89cb6092c795ad4abcfb9feb0576fc75d60df6f37dd8933d1788c",
+      "red2_float64_from_bits/red2_float64_from_bits_0CLK_3cc92f42.vhd": "7b63583c30ed97487e3faaa63489d50f4d6cda70a4578f9836f6db3561873ece",
+      "red2_float64_supported/red2_float64_supported_0CLK_652cb486.vhd": "d6cbf038977c93ee0c4cd36d524fdf0385eba2703106d188386f4a6ffb047df0",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_17_strict_True_common_t_uint17_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_17_level_0/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_17_strict_True_common_t_uint17_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_17_level_0_0CLK_93b1b75f.vhd": "ac0b75a04fa90a7962a468d149ed0749823b0a3d6fc7d3f6cd3e5375e979bf9a",
+      "built_in/BIN_OP_AND_uint64_t_uint64_t/BIN_OP_AND_uint64_t_uint64_t_0CLK_de264c78.vhd": "cdf4b66beae86ae5c1cdf992fdbaf9d35dea7ed4f16bbf92a94fb1464dc73b43",
+      "built_in/BIN_OP_EQ_uint58_t_uint1_t/BIN_OP_EQ_uint58_t_uint1_t_0CLK_de264c78.vhd": "7f66e8a43453573a9202cd591a3534798b8189fed7f7f85a5b3482408b14530b",
+      "built_in/BIN_OP_EQ_uint10_t_uint2_t/BIN_OP_EQ_uint10_t_uint2_t_0CLK_de264c78.vhd": "fd3ae2f00410efd627657ddfb57407432f20b01a0bf87cbfb4feb476f41da624",
+      "built_in/BIN_OP_EQ_uint10_t_uint3_t/BIN_OP_EQ_uint10_t_uint3_t_0CLK_de264c78.vhd": "f3b7dfe92888155d4a15251554598b1f3462748c877f36c811ef318020f413dd",
+      "built_in/BIN_OP_EQ_uint10_t_uint4_t/BIN_OP_EQ_uint10_t_uint4_t_0CLK_de264c78.vhd": "a40306a51bc986602ba9f3e12f3d44a57556f36b3ad0455f30809ad39f266c7b",
+      "built_in/BIN_OP_EQ_uint10_t_uint5_t/BIN_OP_EQ_uint10_t_uint5_t_0CLK_de264c78.vhd": "83a1252ce07a1e124d67a53778782c1866f754e067e3fd956cbffae9d523c264",
+      "built_in/BIN_OP_EQ_uint10_t_uint6_t/BIN_OP_EQ_uint10_t_uint6_t_0CLK_de264c78.vhd": "5eda4ba86fc78232b925cd4a585ce3a1600aaa68d2a90951d75b3265b9ce135f",
+      "built_in/BIN_OP_EQ_uint7_t_uint1_t/BIN_OP_EQ_uint7_t_uint1_t_0CLK_de264c78.vhd": "b65e5bd024d3f24cb556c7362f57db6a2097e94c08f2c23b27d0146b11c7fd35",
+      "built_in/BIN_OP_EQ_uint7_t_uint2_t/BIN_OP_EQ_uint7_t_uint2_t_0CLK_de264c78.vhd": "e321f688f5b79854687345c179f1dd0477e0d39734b17c432e3b875c769ff950",
+      "built_in/BIN_OP_EQ_uint7_t_uint3_t/BIN_OP_EQ_uint7_t_uint3_t_0CLK_de264c78.vhd": "0f1c866209df2303a2fc50cbc9ab0584bcd2ed033800fe2f4f266fc9a835bf7a",
+      "built_in/BIN_OP_EQ_uint7_t_uint4_t/BIN_OP_EQ_uint7_t_uint4_t_0CLK_de264c78.vhd": "5e04a7577a99b03affec17b78ef935c3d48ef5f9481588d81768c311dcb37e16",
+      "built_in/BIN_OP_EQ_uint7_t_uint5_t/BIN_OP_EQ_uint7_t_uint5_t_0CLK_de264c78.vhd": "326334a2c4295ed6e1ea7f5461010666032137e2e6ba7e7ea1f6d60a240e78c6",
+      "built_in/BIN_OP_EQ_uint7_t_uint6_t/BIN_OP_EQ_uint7_t_uint6_t_0CLK_de264c78.vhd": "3d3816412e66f4f763e02f0d0762ecec27583054619e57e9a2b468464f2fed03",
+      "built_in/BIN_OP_INFERRED_MULT_uint64_t_uint64_t/BIN_OP_INFERRED_MULT_uint64_t_uint64_t_0CLK_de264c78.vhd": "9287171c4a61539e06ddaab9ab835fb8c90ed240d3d94206d2a7fee258ebebf0",
+      "built_in/BIN_OP_MINUS_uint14_t_uint1_t/BIN_OP_MINUS_uint14_t_uint1_t_0CLK_de264c78.vhd": "151367b6ac56509172284155a4d8e600b148a5f18c14f9990eace999c22b3150",
+      "built_in/BIN_OP_NEQ_uint64_t_uint64_t/BIN_OP_NEQ_uint64_t_uint64_t_0CLK_de264c78.vhd": "c09b7303933acf402bb4aebc21c369e767f99e734f1aebf4f99d1491120243a3",
+      "built_in/BIN_OP_OR_uint65_t_uint65_t/BIN_OP_OR_uint65_t_uint65_t_0CLK_de264c78.vhd": "3e8b2a5dceae038575699631e95a0be567f3ca032ebfe25de8e11f6ba6ba3665",
+      "built_in/BIN_OP_PLUS_uint14_t_uint1_t/BIN_OP_PLUS_uint14_t_uint1_t_0CLK_de264c78.vhd": "42947250c852b364d2d052919daed8db08d6141bae4b50c5f49c7cc2d35bebe5",
+      "built_in/BIN_OP_PLUS_uint65_t_uint65_t/BIN_OP_PLUS_uint65_t_uint65_t_0CLK_de264c78.vhd": "d3fb4fb4de3c6d5fb957a359422e293d681151bd6d7e29bf539fd545275eed31",
+      "built_in/BIN_OP_PLUS_uint66_t_uint1_t/BIN_OP_PLUS_uint66_t_uint1_t_0CLK_de264c78.vhd": "e78a0ae25789ec1e4f9a603536595ccf496a2f92776cf6d75f21826f07fad63b",
+      "built_in/MUX_cfg_control_t_from_machine_op_uint5_t_a_uint10_t_b_uint10_t_d_uint10_t_width_uint7_t_yes_uint14_t_no_uint14_t/MUX_cfg_control_t_from_machine_op_uint5_t_a_uint10_t_b_uint10_t_d_uint10_t_width_uint7_t_yes_uint14_t_no_uint14_t_0CLK_de264c78.vhd": "86219e814d2e656f46687171e46c4fb4e899b9cf906493c6d9b6589ae1ad61ad",
+      "built_in/MUX_cfg_request_t_from_machine_graph_addr_uint8_t_graph_lo_uint64_t_graph_hi_uint64_t_graph_write_uint1_t_control_addr_uint8_t_control_lo_uint64_t_control_hi_uint64_t_control_tag_he834e6782c3e/MUX_cfg_request_t_from_machine_graph_addr_uint8_t_graph_lo_uint64_t_graph_hi_uint64_t_graph_write_uint1_t_control_addr_uint8_t_control_lo_uint64_t_control_hi_uint64_t_control_tag_he834e6782c3e_0CLK_de264c78.vhd": "d47930779b06e6a3ba4aa94dd16a5d62d1275b17d8a94b8b568735cce3cf1239",
+      "built_in/MUX_uint14_t/MUX_uint14_t_0CLK_de264c78.vhd": "c44ff29350b5c4b09f3bb7b094a04b4ff4894809f10eecfa58fbe3bdae939d60",
+      "built_in/MUX_uint65_t/MUX_uint65_t_0CLK_de264c78.vhd": "2ab20bee8fb56682585b1d6921221f64ee7f2a18a541c59896abdc4fbde243dd",
+      "built_in/MUX_uint7_t/MUX_uint7_t_0CLK_de264c78.vhd": "0961695fba1b3b313b04340bf26e1761f5a0e0c15e63d0b225850c9f7e7d305c",
+      "built_in/UNARY_OP_NOT_uint64_t/UNARY_OP_NOT_uint64_t_0CLK_de264c78.vhd": "e1ab473e6687e9a10d43c9246f44bdd9422b7600558fc5d3a5dcb95356627b93",
+      "ram_from_ram_size_16384_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h86b8a44c60f5_byte_write_enables_False_elem_t_uint13_t_p0_ram_r_in_t_addr_uint14_t_valid_uint1_t_return_hb77970bf1e2c/ram_from_ram_size_16384_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h86b8a44c60f5_byte_write_enables_False_elem_t_uint13_t_p0_ram_r_in_t_addr_uint14_t_valid_uint1_t_return_hb77970bf1e2c_1CLK_de264c78.vhd": "76e35ec5293375003b94e8a9dfa793bde08a834477e12eaa0ddc6b747d5ddbb7",
+      "ram_from_ram_size_8192_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h84d5cb738eb0_byte_write_enables_False_elem_t_uint40_t_p0_ram_r_in_t_addr_uint13_t_valid_uint1_t_return_hb8c8bbe561d9/ram_from_ram_size_8192_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h84d5cb738eb0_byte_write_enables_False_elem_t_uint40_t_p0_ram_r_in_t_addr_uint13_t_valid_uint1_t_return_hb8c8bbe561d9_1CLK_de264c78.vhd": "35afaccbe15aba562a8a5afd960a04bbbdd1501119923d9edccb9a4b2a139eca",
+      "ram_from_ram_size_256_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h6cce08a40bdb_byte_write_enables_False_elem_t_uint14_t_p0_ram_r_in_t_addr_uint8_t_valid_uint1_t_return_ram_h1b12e32819e6/ram_from_ram_size_256_ports_r_read_latency_1_in_regs_0_out_regs_0_init_h6cce08a40bdb_byte_write_enables_False_elem_t_uint14_t_p0_ram_r_in_t_addr_uint8_t_valid_uint1_t_return_ram_h1b12e32819e6_1CLK_de264c78.vhd": "ec33e7fec18843af087c320806b289f1c0de99515336ae0fc96617ddf5645239",
+      "ram_from_ram_size_1024_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_h1896e96a46e3_byte_write_enables_False_elem_t_uint65_t_p0_ram_rw_in_t_addr_uint10_t_wr_data_h81b98ac649ac_h3e6609bad554/ram_from_ram_size_1024_ports_rw_read_latency_1_in_regs_0_out_regs_0_init_h1896e96a46e3_byte_write_enables_False_elem_t_uint65_t_p0_ram_rw_in_t_addr_uint10_t_wr_data_h81b98ac649ac_h3e6609bad554_1CLK_de264c78.vhd": "0a41de6068e15291ad1b7969d33670ba862aae5c611cef396124f99b7dd5e8ed",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_10_strict_True_common_t_uint10_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_10_level_0/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_10_strict_True_common_t_uint10_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_10_level_0_0CLK_a3edeea4.vhd": "3b8e0990cf1a5bcef78f95c388eb2f3522e4874de2a1262e0857644b04c01c31",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_5_strict_True_common_t_uint5_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_5_level_0/soft_cmp_prefix_from_operators_soft_cmp_factory_greater_False_is_signed_False_n_bits_5_strict_True_common_t_uint5_t_u2_t_uint2_t_tree_soft_cmp_prefix_n_leaves_5_level_0_0CLK_05fffd92.vhd": "1c2e382e9d92db3ea29c3752640a69abc8650d8fbef8cf1cddfba65d7e157bc7",
+      "include/pypeline/operators/soft_shift.py/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_False_value_t_uint64_t/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_False_value_t_uint64_t_0CLK_84a8f09b.vhd": "d15aaac9526a2ec51b08625e0575366ffbcc552ffaaf5118ac9652048c6ff376",
+      "include/pypeline/operators/soft_shift.py/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_True_value_t_uint64_t/soft_shift_barrel_from_operators_soft_shift_make_barrel_left_True_value_t_uint64_t_0CLK_a2c5092c.vhd": "0a9e9810e8a8b2162579e4c9aeb6e9c897db45a82942ed7e6704974b829dec5b",
+      "red2_float64_to_bits/red2_float64_to_bits_0CLK_8b04ab02.vhd": "9ccda132e779e8d9edbcc3fbc8b14a9b10e83868035f1cb84028206e26d002c5",
+      "red2_float64_zero/red2_float64_zero_0CLK_b603b2ca.vhd": "4623ddd23fb11659df7efdf8898906a856f9f7b23136509b61880e5dad21a3d9",
+      "red2_u64_ge/red2_u64_ge_0CLK_0558bd9a.vhd": "83393354d844111068eea63f8e97bb88906771ec7815261b97289b09ce6357b1",
+      "built_in/BIN_OP_EQ_uint11_t_uint11_t/BIN_OP_EQ_uint11_t_uint11_t_0CLK_de264c78.vhd": "8e32b9b86200ff92ea8885691dc87f61d38d1b7faad032f86ae2ee8cadfd3eb1",
+      "built_in/BIN_OP_EQ_uint11_t_uint1_t/BIN_OP_EQ_uint11_t_uint1_t_0CLK_de264c78.vhd": "2919455b45862f8efb59734dda2ec959dbc65dd6a14e77bf57ca12b350f82fb6",
+      "built_in/BIN_OP_NEQ_uint52_t_uint1_t/BIN_OP_NEQ_uint52_t_uint1_t_0CLK_de264c78.vhd": "360da6d3db935dfbf5ea7599ae4605fdff788913412576c2c67a77bdaa51ea81",
+      "built_in/BIN_OP_XOR_uint1_t_uint1_t/BIN_OP_XOR_uint1_t_uint1_t_0CLK_de264c78.vhd": "93d3d1183787c561bfc5ed1b0768950a2fc3a1e34ea01aeeca4895613cd14e11",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_17_level_0/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_17_level_0_0CLK_ca0c378d.vhd": "4ea3dd00b56f879dcf869eaee3a712014d0cbf5db3c9f0cb69113da1818bdf07",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_10_level_0/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_10_level_0_0CLK_e24d099a.vhd": "b6c3e02ebb0f9762663ad7bd085da9e05d4cfb70848147afe6cdf5e4ce96105c",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_0/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_0_0CLK_a5925516.vhd": "52bee086a8da6b60faf44ef9b639a91b6db695e11b55c8660002593ccd51e34c",
+      "built_in/CONST_SR_1_uint64_t/CONST_SR_1_uint64_t_0CLK_de264c78.vhd": "33a066073675a321ff1edde2ed2010b1d50ddd1dda63b1fc3d88507a5ed75668",
+      "built_in/CONST_SR_2_uint64_t/CONST_SR_2_uint64_t_0CLK_de264c78.vhd": "b8fa458a1b42a9b96e8eafefda3671bb16436f1b7a03c9d50907f14c45a4041f",
+      "built_in/CONST_SR_4_uint64_t/CONST_SR_4_uint64_t_0CLK_de264c78.vhd": "5d5462782f454e03bfe3ec83c54f6776928d1e2266afaf29da6214ceec1ab021",
+      "built_in/CONST_SR_8_uint64_t/CONST_SR_8_uint64_t_0CLK_de264c78.vhd": "8aef01475eb2dc7e7931199139af65b8648d2130dfe51166109ec9ca9e5910e6",
+      "built_in/CONST_SR_16_uint64_t/CONST_SR_16_uint64_t_0CLK_de264c78.vhd": "de9e556e773c73cd169058b915a939ea805316f21231ae3eb8584929b5a2a06b",
+      "built_in/CONST_SR_32_uint64_t/CONST_SR_32_uint64_t_0CLK_de264c78.vhd": "a5803e6d2a60136ea8d1f9e9e40a8825be91f17486f67d85397237f6b116b18d",
+      "built_in/CONST_SL_1_uint64_t/CONST_SL_1_uint64_t_0CLK_de264c78.vhd": "d6055d3eb843b2eb8b2e9e2059ed312d99b371d962ff46b15b99a7246984fa77",
+      "built_in/CONST_SL_2_uint64_t/CONST_SL_2_uint64_t_0CLK_de264c78.vhd": "5c6c32aa591e5ebc857ee317fa4a73860e539b694af5577eecb41e2dddabfb72",
+      "built_in/CONST_SL_4_uint64_t/CONST_SL_4_uint64_t_0CLK_de264c78.vhd": "f681ad5ad8d68c673474b8f0b26175fcdb797722f5f2eea5dcb61b4b5d7668e7",
+      "built_in/CONST_SL_8_uint64_t/CONST_SL_8_uint64_t_0CLK_de264c78.vhd": "4ccf27b1ac9dbb622b55a4d98ff9c3aba83cbcfb9552b8e1df339eefed9f0402",
+      "built_in/CONST_SL_16_uint64_t/CONST_SL_16_uint64_t_0CLK_de264c78.vhd": "6f2f29fcf19f0eee8d6d8f122ac22526a4dda99e49677930339c9049bfd6a023",
+      "built_in/CONST_SL_32_uint64_t/CONST_SL_32_uint64_t_0CLK_de264c78.vhd": "f44591566d540a4b6a4becef96ee7e69189adc7b5fd082bef47023f4a3b7c6c1",
+      "built_in/BIN_OP_EQ_uint52_t_uint1_t/BIN_OP_EQ_uint52_t_uint1_t_0CLK_de264c78.vhd": "950522c001ba11a7f8d83681e4c2b0466fe68b25f96689883642adad174c4889",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_9_level_1/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_9_level_1_0CLK_fb24a69e.vhd": "eec5d6ed4f6a16b7ee19ec5abeeb3ecaefc0b3caca607bf116839e50b7ec4982",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_1/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_1_0CLK_8aeffa2f.vhd": "54e0ac2b48e9b84dc54b06a9cfe3fb5051f53e3419ae28a75b439b1bfdf1f7fc",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_1/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_1_0CLK_6ec35e58.vhd": "5b73be4d8b9c80c50a79ad9ce3a38ddee110bbd612a608587a3c38c27ea47d32",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_2/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_5_level_2_0CLK_fba01e15.vhd": "9dc98bfd8cff02351d6fc3f26fa6f97f9cedb98efb5b612c018c8a789b394309",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_2/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_2_0CLK_e6fd6453.vhd": "af2a7959b5a60a7c565bd036ca7bfa65ea18e04436ba53e8a3447f033f8f8fa2",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_2/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_2_0CLK_72e5b608.vhd": "ef5ccf6d11842290f6664026bf2a05de0d69eabc9c40492e320fd8d47a771d4a",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_3/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_3_level_3_0CLK_5207e316.vhd": "bbf70e5b004f48f810b24d1df3ce1fce9a933dce85c34e7f410d5f48d80485f0",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_3/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_3_0CLK_72e5b608.vhd": "f6a98e2f051016e4310a0a72c00d445b9e233e0b57ccde2f01d34e9ed8bbfff9",
+      "include/pypeline/operators/soft_cmp.py/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_4/soft_cmp_prefix_from_operators_soft_cmp_make_prefix_tree_n_leaves_2_level_4_0CLK_72e5b608.vhd": "df39dd30856c1de383a836126273b541d0bab3051a26ac4913e584b96d89b9c8"
+    },
+    "mapping_scripts_sha256": {
+      "frontend.ys": "5f00036a443e67ecc380db0f4119b7c2359d021e2d427e2bb288bc1f7584d8f9",
+      "area.abc": "935c283235f83d83e2eeb44e04c187fc20e2e7fdc0b60a438e3ec9ca2e270737",
+      "baseline-area.ys": "ed06ae522806f47f07668606298ca34c221c8a4162e4f593f90d21d4d7f507aa",
+      "run.sh": "524343623b2b34d0f1a1b26f3db69a340d8eeb5fe99465b58f24bffbde01612a"
+    },
+    "include_lookup": true,
+    "include_graph": true,
+    "extra_states": [
+      "MICRO_STRUCT_SELECTOR_ROOT_READ",
+      "MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ",
+      "MICRO_STRUCT_SELECTOR_COPY_SCAN",
+      "MICRO_STRUCT_SELECTOR_COPY_READ",
+      "MICRO_STRUCT_SELECTOR_COPY_WRITE",
+      "MICRO_STRUCT_SELECTOR_PROMOTE_SCAN",
+      "MICRO_STRUCT_SELECTOR_PROMOTE_READ",
+      "MICRO_STRUCT_RESULT_READ",
+      "MICRO_STRUCT_RECON_SAVED_Q",
+      "MICRO_STRUCT_REVERSE_CONTROL_READ",
+      "MICRO_STRUCT_REVERSE_POP",
+      "MICRO_JOIN_PARENT_READ",
+      "MICRO_JOIN_EP_TARGET_READ",
+      "MICRO_JOIN_FRAME_READ",
+      "MICRO_JOIN_RBLOCK_PHI_SCAN",
+      "MICRO_JOIN_STRUCT_PREFLIGHT_SCAN",
+      "MICRO_JOIN_STRUCT_PREFLIGHT_TARGET",
+      "MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE",
+      "MICRO_JOIN_STRUCT_REWRITE_SCAN",
+      "MICRO_JOIN_STRUCT_REWRITE_TARGET",
+      "MICRO_JOIN_STRUCT_REWRITE_EP_CHASE",
+      "MICRO_JOIN_STRUCT_REWRITE_WRITE",
+      "MICRO_JOIN_SPECIAL_META_DONE",
+      "MICRO_JOIN_CONTROL_CLEAR",
+      "MICRO_JOIN_IO_CONT_READ",
+      "MICRO_JOIN_IO_PATH_READ",
+      "MICRO_JOIN_IO_COMMIT",
+      "MICRO_JOIN_IF_FALSE_READ",
+      "MICRO_JOIN_IF_TRUE_READ",
+      "MICRO_JOIN_IF_TRUE_PATH_READ",
+      "MICRO_JOIN_IF_FALSE_PATH_READ",
+      "MICRO_JOIN_IF_PATH_CLEAR",
+      "MICRO_JOIN_IF_SELECT",
+      "MICRO_JOIN_EP_CACHE",
+      "MICRO_JOIN_CLOSURE_CODE_READ",
+      "MICRO_JOIN_CLOSURE_LAMBDA_SCAN",
+      "MICRO_JOIN_CLOSURE_BODY_READ",
+      "MICRO_JOIN_CLOSURE_ENV_READ",
+      "MICRO_JOIN_CLOSURE_PREFLIGHT",
+      "MICRO_JOIN_CLOSURE_WRITE_LAMBDA",
+      "MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT",
+      "MICRO_JOIN_CLOSURE_WRITE_BODY",
+      "MICRO_JOIN_APP_REWRITE_READ",
+      "MICRO_JOIN_APP_REWRITE_WRITE",
+      "MICRO_JOIN_MULTI_TARGET_CHASE",
+      "MICRO_JOIN_MULTI_TARGET_ADVANCE",
+      "MICRO_JOIN_MULTI_TARGET_WRITE_FIRST",
+      "MICRO_JOIN_MULTI_TARGET_WRITE_SECOND",
+      "MICRO_JOIN_RECP_RBLOCK_SCAN",
+      "MICRO_JOIN_RECP_RBLOCK_BINDING_READ",
+      "MICRO_JOIN_RECP_RBLOCK_BODY_READ",
+      "MICRO_JOIN_FLAT_SCAN",
+      "MICRO_U64_DIV",
+      "MICRO_JOIN_IF_INLINE_WRITE",
+      "MICRO_U64_DIV_FINISH",
+      "MICRO_JOIN_SCALAR_INT_POW",
+      "MICRO_JOIN_IF_RECON_FALSE",
+      "MICRO_JOIN_IF_RECON_TRUE",
+      "MICRO_JOIN_GENERIC_LAUNCH"
+    ],
+    "entry_opcodes": [
+      "MOP_APP",
+      "MOP_LAMBDA",
+      "MOP_EP",
+      "MOP_CLOSURE",
+      "MOP_RUP",
+      "MOP_RECP",
+      "MOP_VAR",
+      "MOP_APP_VAR"
+    ],
+    "publication_reads": {
+      "banks": [
+        [
+          "pub_task",
+          "red2_pub_task_t"
+        ],
+        [
+          "pub_root",
+          "red2_pub_root_t"
+        ],
+        [
+          "pub_patch",
+          "red2_pub_patch_t"
+        ],
+        [
+          "pub_patch_addr",
+          "uint17_t"
+        ],
+        [
+          "pub_mat",
+          "red2_pub_mat_t"
+        ],
+        [
+          "literal_meta",
+          "red2_literal_meta_t"
+        ]
+      ],
+      "requests": [
+        {
+          "name": "pub_task_addr",
+          "key": "pub_task_req.addr",
+          "type": "uint10_t",
+          "width": 10,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_kind",
+          "key": "pub_task_req.wr_data.kind",
+          "type": "uint6_t",
+          "width": 6,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_a",
+          "key": "pub_task_req.wr_data.a",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_b",
+          "key": "pub_task_req.wr_data.b",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_c",
+          "key": "pub_task_req.wr_data.c",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_d",
+          "key": "pub_task_req.wr_data.d",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_e",
+          "key": "pub_task_req.wr_data.e",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_f",
+          "key": "pub_task_req.wr_data.f",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_flags",
+          "key": "pub_task_req.wr_data.flags",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_task_write_enable",
+          "key": "pub_task_req.wr_en",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "pub_task"
+        },
+        {
+          "name": "pub_root_addr",
+          "key": "pub_root_req.addr",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_root_write_generation",
+          "key": "pub_root_req.wr_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_root_write_state",
+          "key": "pub_root_req.wr_data.state",
+          "type": "uint2_t",
+          "width": 2,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_root_write_result",
+          "key": "pub_root_req.wr_data.result",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_root_write_aux",
+          "key": "pub_root_req.wr_data.aux",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_root_write_enable",
+          "key": "pub_root_req.wr_en",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "pub_root"
+        },
+        {
+          "name": "pub_patch_addr",
+          "key": "pub_patch_req.addr",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_patch"
+        },
+        {
+          "name": "pub_patch_write_generation",
+          "key": "pub_patch_req.wr_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_patch"
+        },
+        {
+          "name": "pub_patch_write_word_lo",
+          "key": "pub_patch_req.wr_data.word.lo",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_patch"
+        },
+        {
+          "name": "pub_patch_write_word_hi",
+          "key": "pub_patch_req.wr_data.word.hi",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_patch"
+        },
+        {
+          "name": "pub_patch_write_enable",
+          "key": "pub_patch_req.wr_en",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "pub_patch"
+        },
+        {
+          "name": "pub_patch_addr_addr",
+          "key": "pub_patch_addr_req.addr",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_patch_addr"
+        },
+        {
+          "name": "pub_patch_addr_write",
+          "key": "pub_patch_addr_req.wr_data",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_patch_addr"
+        },
+        {
+          "name": "pub_patch_addr_write_enable",
+          "key": "pub_patch_addr_req.wr_en",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "pub_patch_addr"
+        },
+        {
+          "name": "pub_mat_addr",
+          "key": "pub_mat_req.addr",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_mat"
+        },
+        {
+          "name": "pub_mat_write_word_lo",
+          "key": "pub_mat_req.wr_data.word.lo",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_mat"
+        },
+        {
+          "name": "pub_mat_write_word_hi",
+          "key": "pub_mat_req.wr_data.word.hi",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_mat"
+        },
+        {
+          "name": "pub_mat_write_generation",
+          "key": "pub_mat_req.wr_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_mat"
+        },
+        {
+          "name": "pub_mat_write_enable",
+          "key": "pub_mat_req.wr_en",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "pub_mat"
+        },
+        {
+          "name": "literal_meta_addr",
+          "key": "literal_meta_req.addr",
+          "type": "uint6_t",
+          "width": 6,
+          "bank": "literal_meta"
+        }
+      ],
+      "responses": [
+        {
+          "name": "pub_task_read_kind",
+          "key": "pub_task_out.p0.rd_data.kind",
+          "type": "uint6_t",
+          "width": 6,
+          "bank": "pub_task",
+          "suffix": ".kind"
+        },
+        {
+          "name": "pub_task_read_a",
+          "key": "pub_task_out.p0.rd_data.a",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".a"
+        },
+        {
+          "name": "pub_task_read_b",
+          "key": "pub_task_out.p0.rd_data.b",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".b"
+        },
+        {
+          "name": "pub_task_read_c",
+          "key": "pub_task_out.p0.rd_data.c",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".c"
+        },
+        {
+          "name": "pub_task_read_d",
+          "key": "pub_task_out.p0.rd_data.d",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".d"
+        },
+        {
+          "name": "pub_task_read_e",
+          "key": "pub_task_out.p0.rd_data.e",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".e"
+        },
+        {
+          "name": "pub_task_read_f",
+          "key": "pub_task_out.p0.rd_data.f",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_task",
+          "suffix": ".f"
+        },
+        {
+          "name": "pub_task_read_flags",
+          "key": "pub_task_out.p0.rd_data.flags",
+          "type": "uint8_t",
+          "width": 8,
+          "bank": "pub_task",
+          "suffix": ".flags"
+        },
+        {
+          "name": "pub_root_read_generation",
+          "key": "pub_root_out.p0.rd_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_root",
+          "suffix": ".generation"
+        },
+        {
+          "name": "pub_root_read_state",
+          "key": "pub_root_out.p0.rd_data.state",
+          "type": "uint2_t",
+          "width": 2,
+          "bank": "pub_root",
+          "suffix": ".state"
+        },
+        {
+          "name": "pub_root_read_result",
+          "key": "pub_root_out.p0.rd_data.result",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_root",
+          "suffix": ".result"
+        },
+        {
+          "name": "pub_root_read_aux",
+          "key": "pub_root_out.p0.rd_data.aux",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_root",
+          "suffix": ".aux"
+        },
+        {
+          "name": "pub_patch_read_generation",
+          "key": "pub_patch_out.p0.rd_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_patch",
+          "suffix": ".generation"
+        },
+        {
+          "name": "pub_patch_read_word_lo",
+          "key": "pub_patch_out.p0.rd_data.word.lo",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_patch",
+          "suffix": ".word.lo"
+        },
+        {
+          "name": "pub_patch_read_word_hi",
+          "key": "pub_patch_out.p0.rd_data.word.hi",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_patch",
+          "suffix": ".word.hi"
+        },
+        {
+          "name": "pub_patch_addr_read",
+          "key": "pub_patch_addr_out.p0.rd_data",
+          "type": "uint17_t",
+          "width": 17,
+          "bank": "pub_patch_addr",
+          "suffix": ""
+        },
+        {
+          "name": "pub_mat_read_word_lo",
+          "key": "pub_mat_out.p0.rd_data.word.lo",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_mat",
+          "suffix": ".word.lo"
+        },
+        {
+          "name": "pub_mat_read_word_hi",
+          "key": "pub_mat_out.p0.rd_data.word.hi",
+          "type": "uint64_t",
+          "width": 64,
+          "bank": "pub_mat",
+          "suffix": ".word.hi"
+        },
+        {
+          "name": "pub_mat_read_generation",
+          "key": "pub_mat_out.p0.rd_data.generation",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "pub_mat",
+          "suffix": ".generation"
+        },
+        {
+          "name": "literal_meta_read_literal_id",
+          "key": "literal_meta_out.p0.rd_data.literal_id",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "literal_meta",
+          "suffix": ".literal_id"
+        },
+        {
+          "name": "literal_meta_read_scalar_op",
+          "key": "literal_meta_out.p0.rd_data.scalar_op",
+          "type": "uint5_t",
+          "width": 5,
+          "bank": "literal_meta",
+          "suffix": ".scalar_op"
+        },
+        {
+          "name": "literal_meta_read_prim0_role",
+          "key": "literal_meta_out.p0.rd_data.prim0_role",
+          "type": "uint3_t",
+          "width": 3,
+          "bank": "literal_meta",
+          "suffix": ".prim0_role"
+        },
+        {
+          "name": "literal_meta_read_host_op",
+          "key": "literal_meta_out.p0.rd_data.host_op",
+          "type": "uint3_t",
+          "width": 3,
+          "bank": "literal_meta",
+          "suffix": ".host_op"
+        },
+        {
+          "name": "literal_meta_read_special_flags",
+          "key": "literal_meta_out.p0.rd_data.special_flags",
+          "type": "uint16_t",
+          "width": 16,
+          "bank": "literal_meta",
+          "suffix": ".special_flags"
+        },
+        {
+          "name": "literal_meta_read_struct_role",
+          "key": "literal_meta_out.p0.rd_data.struct_role",
+          "type": "uint2_t",
+          "width": 2,
+          "bank": "literal_meta",
+          "suffix": ".struct_role"
+        },
+        {
+          "name": "literal_meta_read_struct_tag_id",
+          "key": "literal_meta_out.p0.rd_data.struct_tag_id",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "literal_meta",
+          "suffix": ".struct_tag_id"
+        },
+        {
+          "name": "literal_meta_read_struct_offset",
+          "key": "literal_meta_out.p0.rd_data.struct_offset",
+          "type": "uint32_t",
+          "width": 32,
+          "bank": "literal_meta",
+          "suffix": ".struct_offset"
+        },
+        {
+          "name": "literal_meta_read_valid",
+          "key": "literal_meta_out.p0.rd_data.valid",
+          "type": "uint1_t",
+          "width": 1,
+          "bank": "literal_meta",
+          "suffix": ".valid"
+        }
+      ],
+      "read_only": false,
+      "read_only_banks": [
+        "literal_meta"
+      ]
+    }
+  },
+  "board_build": "build/red2-basys3-standalone-quantum-v8-seed2",
+  "board_resources": {
+    "top": "red2_basys3",
+    "lut": 18269,
+    "lut_memory": 394,
+    "lut_total": 18663,
+    "unknown_memory_primitives": [],
+    "unaccounted_primitives": [],
+    "flipflops": 9567,
+    "bram18": 23,
+    "bram36": 28,
+    "bram36_equivalent": 39.5,
+    "dsp48": 12,
+    "carry4": 647,
+    "muxf7": 0,
+    "muxf8": 0,
+    "startup": 1,
+    "primitives": {
+      "BUFG": 2,
+      "BUFGCE": 1,
+      "CARRY4": 647,
+      "DSP48E1": 12,
+      "FDCE": 2,
+      "FDRE": 9510,
+      "FDSE": 55,
+      "IBUF": 3,
+      "INV": 750,
+      "LUT2": 3175,
+      "LUT3": 2853,
+      "LUT4": 2453,
+      "LUT5": 3494,
+      "LUT6": 6294,
+      "MMCME2_ADV": 1,
+      "OBUF": 13,
+      "RAM256X1S": 50,
+      "RAM32M": 2,
+      "RAM64M": 15,
+      "RAM64X1S": 126,
+      "RAMB18E1": 23,
+      "RAMB36E1": 28,
+      "STARTUPE2": 1
+    },
+    "basys3_over_budget": {},
+    "within_basys3_resource_limits": true
+  },
+  "physical_lut_sites": {
+    "placed_netlist_sha256": "ce36016496fa856fd68ea1e0a15c5883d8c12884bfe55ba90e0c02ee575b3197",
+    "routed_netlist_sha256": "50fe1bb1d809cd7a5911fe4f497d090a0c2ab94084f15ed7bfd25da1ee9e2d9f",
+    "tilegrid_sha256": "84d4da13bc1bbe8da3f18ef4f514473de576c46e2d7e49ca89a58e9cab3cca3e",
+    "preserved_cell_placements": 33926,
+    "lut_half_cells": 23449,
+    "unique_physical_lut_sites": 18510,
+    "basys3_lut_limit": 20800,
+    "within_basys3_physical_lut_limit": true,
+    "normalization": "physical site/BEL names; merge A5LUT/A6LUT only in identical site"
+  },
+  "timing": {
+    "core_clock": {
+      "achieved_mhz": 14.42,
+      "status": "PASS",
+      "required_mhz": 10.0
+    },
+    "clock": {
+      "achieved_mhz": 13.56,
+      "status": "PASS",
+      "required_mhz": 10.0
+    }
+  },
+  "native_full_programs": {
+    "alphanumerics": {
+      "case": "uart-alphanumerics",
+      "quantum": 20,
+      "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+      "program_sha256": "25621920d84a604fc871ebe4b06f90965f1d7b1d800006651b95b7555a96f81d",
+      "working_arena_words": 225,
+      "clocks": 120214,
+      "restarts": 31,
+      "peak_residual_words": 41,
+      "input_count": 0,
+      "output_hex": "303132333435363738394142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a0a",
+      "passed": true
+    },
+    "caesar": {
+      "case": "uart-caesar-plus4",
+      "quantum": 5,
+      "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+      "program_sha256": "a167758deb893515bcfa7893fe6fbcd43729f6f07c72b4807d576fd02232217b",
+      "working_arena_words": 120,
+      "clocks": 51271,
+      "restarts": 24,
+      "peak_residual_words": 49,
+      "input_count": 6,
+      "output_hex": "4564303921",
+      "passed": true
+    }
+  },
+  "native_architectural_parity_markers": [
+    "EP_SELECTOR_DISPATCH_PRIORITY_PARITY_PASS",
+    "GENERIC_EP_AND_EXHAUSTED_JOIN_PUBLICATION_PARITY_PASS",
+    "GENERIC_CLOSURE_MATERIALIZATION_PARITY_PASS",
+    "SELECTOR_SHARED_APP_PROMOTION_PARITY_PASS"
+  ],
+  "frontend_rtl_smoke": [
+    {
+      "name": "budget20",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 20,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (CLOCK) (LAMBDA (x) (UART-TX 65)))",
+        "quantum": 20,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "UART-TX": 8,
+          "CLOCK": 9,
+          "1-": 10,
+          "1+": 11,
+          "MINUS": 12,
+          "ABS": 13,
+          "FLOOR": 14,
+          "CEILING": 15,
+          "EVEN?": 16,
+          "NULL?": 17,
+          "NOT": 18,
+          "INTEGER?": 19,
+          "FLOAT?": 20,
+          "CHAR?": 21,
+          "SYMBOL?": 22,
+          "+": 23,
+          "-": 24,
+          "*": 25,
+          "/": 26,
+          "<": 27,
+          ">": 28,
+          "<=": 29,
+          ">=": 30,
+          "=": 31,
+          "EXPT": 32,
+          "MAX": 33,
+          "MIN": 34,
+          "MOD": 35,
+          "IF": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "5cb8d0d12cf941bc6837b59db6d5270569154e42cc7a65bd025dfd9825e0275f"
+      }
+    },
+    {
+      "name": "inline-io-then",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 3,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=280610 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-THEN NIL (UART-TX 65))",
+        "quantum": 3,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-THEN": 6,
+          "UART-TX": 7,
+          "NIL": 8,
+          "1-": 9,
+          "1+": 10,
+          "MINUS": 11,
+          "ABS": 12,
+          "FLOOR": 13,
+          "CEILING": 14,
+          "EVEN?": 15,
+          "NULL?": 16,
+          "NOT": 17,
+          "INTEGER?": 18,
+          "FLOAT?": 19,
+          "CHAR?": 20,
+          "SYMBOL?": 21,
+          "+": 22,
+          "-": 23,
+          "*": 24,
+          "/": 25,
+          "<": 26,
+          ">": 27,
+          "<=": 28,
+          ">=": 29,
+          "=": 30,
+          "EXPT": 31,
+          "MAX": 32,
+          "MIN": 33,
+          "MOD": 34,
+          "IF": 35,
+          "AND": 36,
+          "OR": 37,
+          "Y": 38,
+          "IO-BIND": 39,
+          "IO-RETURN": 40,
+          "CLOCK": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "EQUAL?": 46,
+          "__EQUAL_STAR__": 47,
+          "__EQUAL_IF__": 48,
+          "__EQUALITY_CONTINUE__": 49,
+          "__EQUAL_STUCK__": 50,
+          "__IF_RECONSTRUCT__": 51,
+          "CONS": 52,
+          "__STRUCT_SELECTOR_RESULT__": 53
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "4ac97619995b3718265302a43e311fd7bd1358a72ec921c33882f64778c2fa7d",
+        "fixture": "IO-THEN with an inline first value and no child JOIN frame"
+      }
+    },
+    {
+      "name": "inline-io-bind",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 3,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=299908\nPASS HALTED UART=A cycles=300761 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND 65 (LAMBDA (x) (UART-TX x)))",
+        "quantum": 3,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "UART-TX": 8,
+          "1-": 9,
+          "1+": 10,
+          "MINUS": 11,
+          "ABS": 12,
+          "FLOOR": 13,
+          "CEILING": 14,
+          "EVEN?": 15,
+          "NULL?": 16,
+          "NOT": 17,
+          "INTEGER?": 18,
+          "FLOAT?": 19,
+          "CHAR?": 20,
+          "SYMBOL?": 21,
+          "+": 22,
+          "-": 23,
+          "*": 24,
+          "/": 25,
+          "<": 26,
+          ">": 27,
+          "<=": 28,
+          ">=": 29,
+          "=": 30,
+          "EXPT": 31,
+          "MAX": 32,
+          "MIN": 33,
+          "MOD": 34,
+          "IF": 35,
+          "AND": 36,
+          "OR": 37,
+          "Y": 38,
+          "IO-THEN": 39,
+          "IO-RETURN": 40,
+          "CLOCK": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "fa359f04c0b5eb2dcfb02e3dbeeb74b1872a0bfcae58f45b838cfccca9bb9ff0",
+        "fixture": "IO-BIND with an inline first value and no child JOIN frame"
+      }
+    },
+    {
+      "name": "uart-tx",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 1,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=148492\nPASS HALTED UART=A cycles=149345 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(UART-TX 65)",
+        "quantum": 1,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "UART-TX": 6,
+          "1-": 7,
+          "1+": 8,
+          "MINUS": 9,
+          "ABS": 10,
+          "FLOOR": 11,
+          "CEILING": 12,
+          "EVEN?": 13,
+          "NULL?": 14,
+          "NOT": 15,
+          "INTEGER?": 16,
+          "FLOAT?": 17,
+          "CHAR?": 18,
+          "SYMBOL?": 19,
+          "+": 20,
+          "-": 21,
+          "*": 22,
+          "/": 23,
+          "<": 24,
+          ">": 25,
+          "<=": 26,
+          ">=": 27,
+          "=": 28,
+          "EXPT": 29,
+          "MAX": 30,
+          "MIN": 31,
+          "MOD": 32,
+          "IF": 33,
+          "AND": 34,
+          "OR": 35,
+          "Y": 36,
+          "IO-BIND": 37,
+          "IO-THEN": 38,
+          "IO-RETURN": 39,
+          "CLOCK": 40,
+          "UART-RX": 41,
+          "UART-TX-BYTES": 42,
+          "TRUE": 43,
+          "FALSE": 44,
+          "NIL": 45,
+          "EQUAL?": 46,
+          "__EQUAL_STAR__": 47,
+          "__EQUAL_IF__": 48,
+          "__EQUALITY_CONTINUE__": 49,
+          "__EQUAL_STUCK__": 50,
+          "__IF_RECONSTRUCT__": 51,
+          "CONS": 52,
+          "__STRUCT_SELECTOR_RESULT__": 53
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "f87e1dff5dfd9d29de5d51f605d9ae8c4f148cfe650dd3959fde88e1d460cd45"
+      }
+    },
+    {
+      "name": "clock-payload",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 5,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (CLOCK) (LAMBDA (t) (UART-TX 65)))",
+        "quantum": 5,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "t": 7,
+          "UART-TX": 8,
+          "CLOCK": 9,
+          "1-": 10,
+          "1+": 11,
+          "MINUS": 12,
+          "ABS": 13,
+          "FLOOR": 14,
+          "CEILING": 15,
+          "EVEN?": 16,
+          "NULL?": 17,
+          "NOT": 18,
+          "INTEGER?": 19,
+          "FLOAT?": 20,
+          "CHAR?": 21,
+          "SYMBOL?": 22,
+          "+": 23,
+          "-": 24,
+          "*": 25,
+          "/": 26,
+          "<": 27,
+          ">": 28,
+          "<=": 29,
+          ">=": 30,
+          "=": 31,
+          "EXPT": 32,
+          "MAX": 33,
+          "MIN": 34,
+          "MOD": 35,
+          "IF": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "bdd131162db4ae45e7cf5afc1eec57493263c1c926ecea91d0a3e845de8801dc"
+      }
+    },
+    {
+      "name": "uart-rx",
+      "mode": "rx",
+      "expected_hex": "5a",
+      "quantum": 5,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=409437 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))",
+        "quantum": 5,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "UART-TX": 8,
+          "UART-RX": 9,
+          "1-": 10,
+          "1+": 11,
+          "MINUS": 12,
+          "ABS": 13,
+          "FLOOR": 14,
+          "CEILING": 15,
+          "EVEN?": 16,
+          "NULL?": 17,
+          "NOT": 18,
+          "INTEGER?": 19,
+          "FLOAT?": 20,
+          "CHAR?": 21,
+          "SYMBOL?": 22,
+          "+": 23,
+          "-": 24,
+          "*": 25,
+          "/": 26,
+          "<": 27,
+          ">": 28,
+          "<=": 29,
+          ">=": 30,
+          "=": 31,
+          "EXPT": 32,
+          "MAX": 33,
+          "MIN": 34,
+          "MOD": 35,
+          "IF": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "CLOCK": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "77e2a0c8785c62af0d618dfc3559dad360b5d73ce32881089a7d824ef88f3d59"
+      }
+    },
+    {
+      "name": "uart-rx-pair",
+      "mode": "rx-halt",
+      "expected_hex": "4142",
+      "quantum": 20,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=985094 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (UART-RX) (LAMBDA (x) (IO-BIND (UART-RX) (LAMBDA (y) (IO-THEN (UART-TX x) (UART-TX y))))))",
+        "quantum": 20,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "y": 8,
+          "IO-THEN": 9,
+          "UART-TX": 10,
+          "UART-RX": 11,
+          "1-": 12,
+          "1+": 13,
+          "MINUS": 14,
+          "ABS": 15,
+          "FLOOR": 16,
+          "CEILING": 17,
+          "EVEN?": 18,
+          "NULL?": 19,
+          "NOT": 20,
+          "INTEGER?": 21,
+          "FLOAT?": 22,
+          "CHAR?": 23,
+          "SYMBOL?": 24,
+          "+": 25,
+          "-": 26,
+          "*": 27,
+          "/": 28,
+          "<": 29,
+          ">": 30,
+          "<=": 31,
+          ">=": 32,
+          "=": 33,
+          "EXPT": 34,
+          "MAX": 35,
+          "MIN": 36,
+          "MOD": 37,
+          "IF": 38,
+          "AND": 39,
+          "OR": 40,
+          "Y": 41,
+          "IO-RETURN": 42,
+          "CLOCK": 43,
+          "UART-TX-BYTES": 44,
+          "TRUE": 45,
+          "FALSE": 46,
+          "NIL": 47,
+          "EQUAL?": 48,
+          "__EQUAL_STAR__": 49,
+          "__EQUAL_IF__": 50,
+          "__EQUALITY_CONTINUE__": 51,
+          "__EQUAL_STUCK__": 52,
+          "__IF_RECONSTRUCT__": 53,
+          "CONS": 54,
+          "__STRUCT_SELECTOR_RESULT__": 55
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "388adbf176d1acb6f72b39fac7dd48c49f5ba8e006b43faf98ab8a143c9cc7f0"
+      }
+    },
+    {
+      "name": "uart-list",
+      "mode": "halt",
+      "expected_hex": "4142",
+      "quantum": 5,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=917737 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))",
+        "quantum": 5,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "UART-TX-BYTES": 6,
+          "CONS": 7,
+          "NIL": 8,
+          "1-": 9,
+          "1+": 10,
+          "MINUS": 11,
+          "ABS": 12,
+          "FLOOR": 13,
+          "CEILING": 14,
+          "EVEN?": 15,
+          "NULL?": 16,
+          "NOT": 17,
+          "INTEGER?": 18,
+          "FLOAT?": 19,
+          "CHAR?": 20,
+          "SYMBOL?": 21,
+          "+": 22,
+          "-": 23,
+          "*": 24,
+          "/": 25,
+          "<": 26,
+          ">": 27,
+          "<=": 28,
+          ">=": 29,
+          "=": 30,
+          "EXPT": 31,
+          "MAX": 32,
+          "MIN": 33,
+          "MOD": 34,
+          "IF": 35,
+          "AND": 36,
+          "OR": 37,
+          "Y": 38,
+          "IO-BIND": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "CLOCK": 42,
+          "UART-RX": 43,
+          "UART-TX": 44,
+          "TRUE": 45,
+          "FALSE": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "__STRUCT_SELECTOR_RESULT__": 53
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "9b80c9ec51240dcfd165cdda18d2edc1d81c1d171b3f578bd6b514b2c9f994a4"
+      }
+    },
+    {
+      "name": "if-capture",
+      "mode": "halt",
+      "expected_hex": "41",
+      "quantum": 2,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579499\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1151127\nrestart=3 residual=1 cycle=1512300\nPASS HALTED UART=A cycles=1513153 CLOCK calls=1\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (= x x) (UART-TX 65) (UART-TX 66))))",
+        "quantum": 2,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "IF": 8,
+          "UART-TX": 9,
+          "=": 10,
+          "CLOCK": 11,
+          "1-": 12,
+          "1+": 13,
+          "MINUS": 14,
+          "ABS": 15,
+          "FLOOR": 16,
+          "CEILING": 17,
+          "EVEN?": 18,
+          "NULL?": 19,
+          "NOT": 20,
+          "INTEGER?": 21,
+          "FLOAT?": 22,
+          "CHAR?": 23,
+          "SYMBOL?": 24,
+          "+": 25,
+          "-": 26,
+          "*": 27,
+          "/": 28,
+          "<": 29,
+          ">": 30,
+          "<=": 31,
+          ">=": 32,
+          "EXPT": 33,
+          "MAX": 34,
+          "MIN": 35,
+          "MOD": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "8f5abae7d497682e6244855ecbf8af70724408bc948179de95b5db6201a52b7f"
+      }
+    },
+    {
+      "name": "if-capture-false",
+      "mode": "halt",
+      "expected_hex": "42",
+      "quantum": 2,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579499\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1141991\nrestart=3 residual=1 cycle=1503092\nPASS HALTED UART=B cycles=1503945 CLOCK calls=1\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (< x x) (UART-TX 65) (UART-TX 66))))",
+        "quantum": 2,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "IF": 8,
+          "UART-TX": 9,
+          "<": 10,
+          "CLOCK": 11,
+          "1-": 12,
+          "1+": 13,
+          "MINUS": 14,
+          "ABS": 15,
+          "FLOOR": 16,
+          "CEILING": 17,
+          "EVEN?": 18,
+          "NULL?": 19,
+          "NOT": 20,
+          "INTEGER?": 21,
+          "FLOAT?": 22,
+          "CHAR?": 23,
+          "SYMBOL?": 24,
+          "+": 25,
+          "-": 26,
+          "*": 27,
+          "/": 28,
+          ">": 29,
+          "<=": 30,
+          ">=": 31,
+          "=": 32,
+          "EXPT": 33,
+          "MAX": 34,
+          "MIN": 35,
+          "MOD": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "UART-RX": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "b9b23e28b450f43b0a9a7daa16de83a21fb2bd673beb204452d024c60d7dda9d"
+      }
+    },
+    {
+      "name": "clock-dots",
+      "mode": "stream",
+      "expected_hex": "2e2e",
+      "quantum": 5,
+      "max_cycles": 300000000,
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=23 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=10 status=0 pc=33 micro=127 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=10 status=0 pc=17 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=236 micro=60 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=10 status=0 pc=75 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=10 status=0 pc=59 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=99695 UART=\nrestart=1 residual=60 cycle=10618289\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=13 micro=60 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=33 micro=60 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=112 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=96 micro=126 ms=139695 UART=\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=96 micro=127 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=27 status=0 pc=88 micro=126 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=27 status=0 pc=84 micro=127 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=27 status=0 pc=84 micro=126 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=209695 UART=\nprogress cycle=22000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=27 status=0 pc=168 micro=1 ms=229695 UART=\nprogress cycle=24000000 flash=28092 state=27 status=0 pc=139 micro=126 ms=239695 UART=\nprogress cycle=25000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=249695 UART=\nprogress cycle=26000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=259695 UART=\nprogress cycle=27000000 flash=28092 state=27 status=0 pc=127 micro=127 ms=269695 UART=\nprogress cycle=28000000 flash=28092 state=27 status=0 pc=127 micro=126 ms=279695 UART=\nrestart=2 residual=79 cycle=28161590\nprogress cycle=29000000 flash=28092 state=9 status=0 pc=83 micro=60 ms=289695 UART=\nprogress cycle=30000000 flash=28092 state=9 status=0 pc=104 micro=127 ms=299695 UART=\nprogress cycle=31000000 flash=28092 state=9 status=0 pc=98 micro=126 ms=309695 UART=\nprogress cycle=32000000 flash=28092 state=9 status=0 pc=98 micro=127 ms=319695 UART=\nprogress cycle=33000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=329695 UART=\nprogress cycle=34000000 flash=28092 state=9 status=0 pc=90 micro=127 ms=339695 UART=\nprogress cycle=35000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=349695 UART=\nprogress cycle=36000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=359695 UART=\nrestart=3 residual=36 cycle=36071561\nprogress cycle=37000000 flash=28092 state=27 status=0 pc=48 micro=127 ms=369695 UART=.\nprogress cycle=38000000 flash=28092 state=27 status=0 pc=90 micro=1 ms=379695 UART=.\nprogress cycle=39000000 flash=28092 state=27 status=0 pc=95 micro=127 ms=389695 UART=.\nprogress cycle=40000000 flash=28092 state=27 status=0 pc=79 micro=126 ms=399695 UART=.\nprogress cycle=41000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=409695 UART=.\nprogress cycle=42000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=419695 UART=.\nprogress cycle=43000000 flash=28092 state=27 status=0 pc=67 micro=127 ms=429695 UART=.\nprogress cycle=44000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=439695 UART=.\nprogress cycle=45000000 flash=28092 state=27 status=0 pc=58 micro=127 ms=449695 UART=.\nprogress cycle=46000000 flash=28092 state=27 status=0 pc=58 micro=126 ms=459695 UART=.\nprogress cycle=47000000 flash=28092 state=27 status=0 pc=5 micro=60 ms=469695 UART=.\nprogress cycle=48000000 flash=28092 state=27 status=0 pc=23 micro=60 ms=479695 UART=.\nprogress cycle=49000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=489695 UART=.\nprogress cycle=50000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=499695 UART=.\nprogress cycle=51000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=509695 UART=.\nprogress cycle=52000000 flash=28092 state=27 status=0 pc=110 micro=127 ms=519695 UART=.\nprogress cycle=53000000 flash=28092 state=27 status=0 pc=110 micro=126 ms=529695 UART=.\nprogress cycle=54000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=539695 UART=.\nprogress cycle=55000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=549695 UART=.\nprogress cycle=56000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=559695 UART=.\nprogress cycle=57000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=569695 UART=.\nprogress cycle=58000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=579695 UART=.\nrestart=4 residual=84 cycle=58909237\nprogress cycle=59000000 flash=28092 state=10 status=0 pc=86 micro=1 ms=589695 UART=.\nprogress cycle=60000000 flash=28092 state=27 status=0 pc=42 micro=60 ms=599695 UART=.\nprogress cycle=61000000 flash=28092 state=27 status=0 pc=131 micro=22 ms=609695 UART=.\nprogress cycle=62000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=619695 UART=.\nprogress cycle=63000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=629695 UART=.\nprogress cycle=64000000 flash=28092 state=27 status=0 pc=106 micro=127 ms=639695 UART=.\nprogress cycle=65000000 flash=28092 state=27 status=0 pc=102 micro=127 ms=649695 UART=.\nprogress cycle=66000000 flash=28092 state=27 status=0 pc=102 micro=126 ms=659695 UART=.\nprogress cycle=67000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=669695 UART=.\nprogress cycle=68000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=679695 UART=.\nprogress cycle=69000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=689695 UART=.\nprogress cycle=70000000 flash=28092 state=27 status=0 pc=163 micro=127 ms=699695 UART=.\nprogress cycle=71000000 flash=28092 state=27 status=0 pc=173 micro=126 ms=709695 UART=.\nprogress cycle=72000000 flash=28092 state=27 status=0 pc=157 micro=127 ms=719695 UART=.\nprogress cycle=73000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=729695 UART=.\nprogress cycle=74000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=739695 UART=.\nprogress cycle=75000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=749695 UART=.\nprogress cycle=76000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=759695 UART=.\nrestart=5 residual=75 cycle=76215924\nPASS UART=.. cycles=76923537 CLOCK calls=3 ms=768930 pc=80 fsp=81 restarts=5 residual=75 peak_residual=84\n",
+      "stderr": "",
+      "image": {
+        "source": "DOT == 46\nSECOND-MS == 1000\n\nloop ==\n  (Y\n    (LAMBDA (self)\n      (LAMBDA (last)\n        (IO-BIND (CLOCK)\n          (LAMBDA (now)\n            (if (>= (- now last) SECOND-MS)\n                (IO-THEN\n                  (UART-TX DOT)\n                  (self now))\n                (self last)))))))\n\n(IO-BIND (CLOCK)\n  (LAMBDA (start)\n    (loop start)))\n",
+        "quantum": 5,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "start": 7,
+          "loop": 8,
+          "CLOCK": 9,
+          "Y": 10,
+          "self": 11,
+          "last": 12,
+          "now": 13,
+          "IF": 14,
+          "IO-THEN": 15,
+          "UART-TX": 16,
+          "DOT": 17,
+          ">=": 18,
+          "SECOND-MS": 19,
+          "-": 20,
+          "1-": 21,
+          "1+": 22,
+          "MINUS": 23,
+          "ABS": 24,
+          "FLOOR": 25,
+          "CEILING": 26,
+          "EVEN?": 27,
+          "NULL?": 28,
+          "NOT": 29,
+          "INTEGER?": 30,
+          "FLOAT?": 31,
+          "CHAR?": 32,
+          "SYMBOL?": 33,
+          "+": 34,
+          "*": 35,
+          "/": 36,
+          "<": 37,
+          ">": 38,
+          "<=": 39,
+          "=": 40,
+          "EXPT": 41,
+          "MAX": 42,
+          "MIN": 43,
+          "MOD": 44,
+          "AND": 45,
+          "OR": 46,
+          "IO-RETURN": 47,
+          "UART-RX": 48,
+          "UART-TX-BYTES": 49,
+          "TRUE": 50,
+          "FALSE": 51,
+          "NIL": 52,
+          "EQUAL?": 53,
+          "__EQUAL_STAR__": 54,
+          "__EQUAL_IF__": 55,
+          "__EQUALITY_CONTINUE__": 56,
+          "__EQUAL_STUCK__": 57,
+          "__IF_RECONSTRUCT__": 58,
+          "CONS": 59,
+          "__STRUCT_SELECTOR_RESULT__": 60
+        },
+        "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4"
+      }
+    }
+  ],
+  "frontend_rtl_prefix": {
+    "uart-alphanumerics": [
+      {
+        "name": "uart-alphanumerics",
+        "mode": "prefix",
+        "expected_hex": "3031",
+        "quantum": 5,
+        "max_cycles": 300000000,
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=248 micro=4 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=27 status=0 pc=51 micro=126 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=27 status=0 pc=43 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=27 status=0 pc=36 micro=126 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=27 status=0 pc=69 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=27 status=0 pc=31 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=27 status=0 pc=31 micro=127 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=28 status=2 pc=28 micro=0 ms=79695 UART=\nrestart=1 residual=40 cycle=8001481\nprogress cycle=9000000 flash=28092 state=27 status=0 pc=57 micro=127 ms=89695 UART=0\nprogress cycle=10000000 flash=28092 state=27 status=0 pc=64 micro=127 ms=99695 UART=0\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=70 micro=127 ms=109695 UART=0\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=60 micro=127 ms=119695 UART=0\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=81 micro=127 ms=129695 UART=0\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=44 micro=127 ms=139695 UART=0\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=44 micro=126 ms=149695 UART=0\nrestart=2 residual=43 cycle=15790989\nprogress cycle=16000000 flash=28092 state=10 status=0 pc=12 micro=60 ms=159695 UART=0\nprogress cycle=17000000 flash=28092 state=10 status=0 pc=37 micro=1 ms=169695 UART=0\nprogress cycle=18000000 flash=28092 state=10 status=0 pc=68 micro=127 ms=179695 UART=0\nprogress cycle=19000000 flash=28092 state=10 status=0 pc=57 micro=127 ms=189695 UART=0\nprogress cycle=20000000 flash=28092 state=10 status=0 pc=47 micro=126 ms=199695 UART=0\nprogress cycle=21000000 flash=28092 state=10 status=0 pc=47 micro=127 ms=209695 UART=0\nrestart=3 residual=30 cycle=21340971\nPASS UART=01 cycles=21673952 CLOCK calls=0 ms=216434 pc=39 fsp=40 restarts=3 residual=30 peak_residual=43\n",
+        "stderr": "",
+        "image": {
+          "source": "; Print ASCII digits and letters over the simulated UART, then stop.\n;\n; Run with:\n;   uv run thor examples/uart-alphanumerics.thor\n\nemit-range == (lambda (from to next)\n  (if (<= from to)\n      (IO-THEN (UART-TX from)\n               (emit-range (1+ from) to next))\n      next))\n\n(IO-THEN\n  (emit-range 48 57\n    (emit-range 65 90\n      (emit-range 97 122\n        (UART-TX 10))))\n  (IO-RETURN NIL))\n",
+          "quantum": 5,
+          "command_count": 308,
+          "flash_offset": 2228224,
+          "literal_ids": {
+            "CAR": 1,
+            "PAIR": 2,
+            "CDR": 3,
+            "PAIR-CAR": 4,
+            "PAIR-CDR": 5,
+            "IO-THEN": 6,
+            "IO-RETURN": 7,
+            "NIL": 8,
+            "emit-range": 9,
+            "UART-TX": 10,
+            "from": 11,
+            "to": 12,
+            "next": 13,
+            "IF": 14,
+            "1+": 15,
+            "<=": 16,
+            "1-": 17,
+            "MINUS": 18,
+            "ABS": 19,
+            "FLOOR": 20,
+            "CEILING": 21,
+            "EVEN?": 22,
+            "NULL?": 23,
+            "NOT": 24,
+            "INTEGER?": 25,
+            "FLOAT?": 26,
+            "CHAR?": 27,
+            "SYMBOL?": 28,
+            "+": 29,
+            "-": 30,
+            "*": 31,
+            "/": 32,
+            "<": 33,
+            ">": 34,
+            ">=": 35,
+            "=": 36,
+            "EXPT": 37,
+            "MAX": 38,
+            "MIN": 39,
+            "MOD": 40,
+            "AND": 41,
+            "OR": 42,
+            "Y": 43,
+            "IO-BIND": 44,
+            "CLOCK": 45,
+            "UART-RX": 46,
+            "UART-TX-BYTES": 47,
+            "TRUE": 48,
+            "FALSE": 49,
+            "EQUAL?": 50,
+            "__EQUAL_STAR__": 51,
+            "__EQUAL_IF__": 52,
+            "__EQUALITY_CONTINUE__": 53,
+            "__EQUAL_STUCK__": 54,
+            "__IF_RECONSTRUCT__": 55,
+            "CONS": 56,
+            "__STRUCT_SELECTOR_RESULT__": 57
+          },
+          "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+          "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+          "sha256": "6960975dba092c793ad02077fdd46cbe771fb91edfb47e081798bac3fee98151"
+        }
+      }
+    ],
+    "uart-caesar-plus4": [
+      {
+        "name": "uart-caesar-plus4",
+        "mode": "rx-stream",
+        "expected_hex": "45",
+        "quantum": 5,
+        "max_cycles": 300000000,
+        "returncode": 0,
+        "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=9 status=0 pc=31 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=9 status=0 pc=27 micro=126 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=9 status=0 pc=15 micro=126 ms=29695 UART=\nrestart=1 residual=27 cycle=3312492\nprogress cycle=4000000 flash=28092 state=8 status=0 pc=33 micro=61 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=8 status=0 pc=50 micro=127 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=8 status=0 pc=41 micro=126 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=8 status=0 pc=76 micro=127 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=8 status=0 pc=62 micro=127 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=8 status=0 pc=62 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=8 status=0 pc=34 micro=127 ms=99695 UART=\nprogress cycle=11000000 flash=28092 state=8 status=0 pc=34 micro=126 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=139695 UART=\nrestart=2 residual=49 cycle=14274893\nprogress cycle=15000000 flash=28092 state=10 status=0 pc=32 micro=60 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=10 status=0 pc=39 micro=60 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=10 status=0 pc=69 micro=126 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=10 status=0 pc=64 micro=127 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=10 status=0 pc=56 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=10 status=0 pc=56 micro=126 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=10 status=0 pc=53 micro=126 ms=209695 UART=\nrestart=3 residual=33 cycle=21961438\nprogress cycle=22000000 flash=28092 state=9 status=0 pc=2 micro=60 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=9 status=0 pc=40 micro=127 ms=229695 UART=\nrestart=4 residual=13 cycle=23895421\nprogress cycle=24000000 flash=28092 state=10 status=0 pc=5 micro=1 ms=239695 UART=\nPASS UART=E cycles=24326066 CLOCK calls=0 ms=242955 pc=18 fsp=19 restarts=4 residual=13 peak_residual=49\n",
+        "stderr": "",
+        "image": {
+          "source": "; Caesar cipher over the simulated UART. Letters rotate by +4; other bytes pass\n; through unchanged. ESC (byte 27) stops the loop. Ctrl-C stops the host process.\n;\n; Run with:\n;   uv run thor examples/uart-caesar-plus4.thor\n\nrot-upper == (lambda (byte)\n  (+ 65 (MOD (+ (- byte 65) 4) 26)))\n\nrot-lower == (lambda (byte)\n  (+ 97 (MOD (+ (- byte 97) 4) 26)))\n\nrot == (lambda (byte)\n  (if (AND (>= byte 65) (<= byte 90))\n      (rot-upper byte)\n      (if (AND (>= byte 97) (<= byte 122))\n          (rot-lower byte)\n          byte)))\n\nloop == (lambda (ignored)\n  (IO-BIND (UART-RX)\n    (LAMBDA (byte)\n      (if (= byte NIL)\n          (loop NIL)\n          (if (= byte 27)\n              (IO-RETURN NIL)\n              (IO-THEN (UART-TX (rot byte))\n                       (loop NIL)))))))\n\n(loop NIL)\n",
+          "quantum": 5,
+          "command_count": 308,
+          "flash_offset": 2228224,
+          "literal_ids": {
+            "CAR": 1,
+            "PAIR": 2,
+            "CDR": 3,
+            "PAIR-CAR": 4,
+            "PAIR-CDR": 5,
+            "loop": 6,
+            "NIL": 7,
+            "byte": 8,
+            "+": 9,
+            "MOD": 10,
+            "-": 11,
+            "IF": 12,
+            "rot-lower": 13,
+            "FALSE": 14,
+            "TRUE": 15,
+            "<=": 16,
+            ">=": 17,
+            "rot-upper": 18,
+            "ignored": 19,
+            "IO-BIND": 20,
+            "IO-THEN": 21,
+            "UART-TX": 22,
+            "rot": 23,
+            "IO-RETURN": 24,
+            "=": 25,
+            "UART-RX": 26,
+            "1-": 27,
+            "1+": 28,
+            "MINUS": 29,
+            "ABS": 30,
+            "FLOOR": 31,
+            "CEILING": 32,
+            "EVEN?": 33,
+            "NULL?": 34,
+            "NOT": 35,
+            "INTEGER?": 36,
+            "FLOAT?": 37,
+            "CHAR?": 38,
+            "SYMBOL?": 39,
+            "*": 40,
+            "/": 41,
+            "<": 42,
+            ">": 43,
+            "EXPT": 44,
+            "MAX": 45,
+            "MIN": 46,
+            "AND": 47,
+            "OR": 48,
+            "Y": 49,
+            "CLOCK": 50,
+            "UART-TX-BYTES": 51,
+            "EQUAL?": 52,
+            "__EQUAL_STAR__": 53,
+            "__EQUAL_IF__": 54,
+            "__EQUALITY_CONTINUE__": 55,
+            "__EQUAL_STUCK__": 56,
+            "__IF_RECONSTRUCT__": 57,
+            "CONS": 58,
+            "__STRUCT_SELECTOR_RESULT__": 59
+          },
+          "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+          "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+          "sha256": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928"
+        }
+      }
+    ]
+  },
+  "physical_receipt": {
+    "started_at_utc": "2026-10-17T03:21:44.642762+00:00",
+    "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+    "prepared": "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v8-seed2",
+    "passed": true,
+    "stages": [
+      {
+        "stage": "data-uart-alphanumerics",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/tools/fpgatool/fpgatool.py",
+          "program-data",
+          "/Users/billie/code/billiegoose/asgard/build/red2-uart-fix/physical-v8-zedjkwxo/uart-alphanumerics.bin",
+          "--board",
+          "basys3",
+          "--offset",
+          "0x220000"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "sram-uart-alphanumerics",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-sram",
+          "--bitstream",
+          "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v8-seed2/red2_basys3.bit"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "data-uart-caesar-plus4",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/tools/fpgatool/fpgatool.py",
+          "program-data",
+          "/Users/billie/code/billiegoose/asgard/build/red2-uart-fix/physical-v8-zedjkwxo/uart-caesar-plus4.bin",
+          "--board",
+          "basys3",
+          "--offset",
+          "0x220000"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "sram-uart-caesar-plus4",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-sram",
+          "--bitstream",
+          "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v8-seed2/red2_basys3.bit"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "data-clock-dots",
+        "command": [
+          "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+          "/Users/billie/code/billiegoose/asgard/tools/fpgatool/fpgatool.py",
+          "program-data",
+          "/Users/billie/code/billiegoose/asgard/build/red2-uart-fix/physical-v8-zedjkwxo/clock-dots.bin",
+          "--board",
+          "basys3",
+          "--offset",
+          "0x220000"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "sram-clock-dots",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-sram",
+          "--bitstream",
+          "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v8-seed2/red2_basys3.bit"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "persistent-config",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--write-flash",
+          "--verify",
+          "--bitstream",
+          "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v8-seed2/red2_basys3.bit"
+        ],
+        "passed": true
+      },
+      {
+        "stage": "reset-from-flash",
+        "command": [
+          "openFPGALoader",
+          "--board",
+          "basys3",
+          "--ftdi-serial",
+          "210183735787",
+          "--reset"
+        ],
+        "passed": true
+      }
+    ],
+    "observations": {
+      "uart-alphanumerics": {
+        "received_hex": "303132333435363738394142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a0a",
+        "input_hex": "",
+        "samples": [
+          {
+            "seconds": 0.187329,
+            "hex": "30"
+          },
+          {
+            "seconds": 0.283334,
+            "hex": "31"
+          },
+          {
+            "seconds": 1.115268,
+            "hex": "32"
+          },
+          {
+            "seconds": 1.211366,
+            "hex": "33"
+          },
+          {
+            "seconds": 2.02719,
+            "hex": "34"
+          },
+          {
+            "seconds": 2.123212,
+            "hex": "35"
+          },
+          {
+            "seconds": 2.923174,
+            "hex": "36"
+          },
+          {
+            "seconds": 3.019146,
+            "hex": "37"
+          },
+          {
+            "seconds": 3.835106,
+            "hex": "38"
+          },
+          {
+            "seconds": 3.931117,
+            "hex": "39"
+          },
+          {
+            "seconds": 4.811108,
+            "hex": "41"
+          },
+          {
+            "seconds": 4.90707,
+            "hex": "42"
+          },
+          {
+            "seconds": 5.259056,
+            "hex": "43"
+          },
+          {
+            "seconds": 5.355059,
+            "hex": "44"
+          },
+          {
+            "seconds": 5.851106,
+            "hex": "45"
+          },
+          {
+            "seconds": 5.947034,
+            "hex": "46"
+          },
+          {
+            "seconds": 6.683025,
+            "hex": "47"
+          },
+          {
+            "seconds": 6.778955,
+            "hex": "48"
+          },
+          {
+            "seconds": 7.499001,
+            "hex": "49"
+          },
+          {
+            "seconds": 7.610989,
+            "hex": "4a"
+          },
+          {
+            "seconds": 8.330984,
+            "hex": "4b"
+          },
+          {
+            "seconds": 8.426905,
+            "hex": "4c"
+          },
+          {
+            "seconds": 9.162924,
+            "hex": "4d"
+          },
+          {
+            "seconds": 9.258972,
+            "hex": "4e"
+          },
+          {
+            "seconds": 9.994896,
+            "hex": "4f"
+          },
+          {
+            "seconds": 10.090894,
+            "hex": "50"
+          },
+          {
+            "seconds": 10.810821,
+            "hex": "51"
+          },
+          {
+            "seconds": 10.906876,
+            "hex": "52"
+          },
+          {
+            "seconds": 11.642848,
+            "hex": "53"
+          },
+          {
+            "seconds": 11.738834,
+            "hex": "54"
+          },
+          {
+            "seconds": 12.474758,
+            "hex": "55"
+          },
+          {
+            "seconds": 12.570748,
+            "hex": "56"
+          },
+          {
+            "seconds": 13.306723,
+            "hex": "57"
+          },
+          {
+            "seconds": 13.402722,
+            "hex": "58"
+          },
+          {
+            "seconds": 14.122661,
+            "hex": "59"
+          },
+          {
+            "seconds": 14.218809,
+            "hex": "5a"
+          },
+          {
+            "seconds": 15.002731,
+            "hex": "61"
+          },
+          {
+            "seconds": 15.098643,
+            "hex": "62"
+          },
+          {
+            "seconds": 15.386625,
+            "hex": "63"
+          },
+          {
+            "seconds": 15.482654,
+            "hex": "64"
+          },
+          {
+            "seconds": 15.946576,
+            "hex": "65"
+          },
+          {
+            "seconds": 16.042605,
+            "hex": "66"
+          },
+          {
+            "seconds": 16.730627,
+            "hex": "67"
+          },
+          {
+            "seconds": 16.826564,
+            "hex": "68"
+          },
+          {
+            "seconds": 17.514558,
+            "hex": "69"
+          },
+          {
+            "seconds": 17.610583,
+            "hex": "6a"
+          },
+          {
+            "seconds": 18.298545,
+            "hex": "6b"
+          },
+          {
+            "seconds": 18.471481,
+            "hex": "6c"
+          },
+          {
+            "seconds": 19.066507,
+            "hex": "6d"
+          },
+          {
+            "seconds": 19.178477,
+            "hex": "6e"
+          },
+          {
+            "seconds": 19.850482,
+            "hex": "6f"
+          },
+          {
+            "seconds": 19.946436,
+            "hex": "70"
+          },
+          {
+            "seconds": 20.634408,
+            "hex": "71"
+          },
+          {
+            "seconds": 20.730417,
+            "hex": "72"
+          },
+          {
+            "seconds": 21.418425,
+            "hex": "73"
+          },
+          {
+            "seconds": 21.514373,
+            "hex": "74"
+          },
+          {
+            "seconds": 22.202524,
+            "hex": "75"
+          },
+          {
+            "seconds": 22.298378,
+            "hex": "76"
+          },
+          {
+            "seconds": 22.986288,
+            "hex": "77"
+          },
+          {
+            "seconds": 23.082309,
+            "hex": "78"
+          },
+          {
+            "seconds": 23.770287,
+            "hex": "79"
+          },
+          {
+            "seconds": 23.866361,
+            "hex": "7a"
+          },
+          {
+            "seconds": 24.544962,
+            "hex": "0a"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 1,
+          "LD4": 0,
+          "LD5": 1,
+          "LD6": 0,
+          "LD7": 0
+        },
+        "halt_verified": true,
+        "passed": true
+      },
+      "uart-caesar-plus4": {
+        "received_hex": "4564303921",
+        "input_hex": "417a3039211b",
+        "samples": [
+          {
+            "seconds": 8.580662,
+            "hex": "45"
+          },
+          {
+            "seconds": 11.410462,
+            "hex": "64"
+          },
+          {
+            "seconds": 13.362418,
+            "hex": "30"
+          },
+          {
+            "seconds": 15.026189,
+            "hex": "39"
+          },
+          {
+            "seconds": 16.178214,
+            "hex": "21"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 0,
+          "LD5": 1,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "halt_verified": true,
+        "passed": true
+      },
+      "clock-dots-sram": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e",
+        "input_hex": "",
+        "samples": [
+          {
+            "seconds": 3.7429,
+            "hex": "2e"
+          },
+          {
+            "seconds": 7.776444,
+            "hex": "2e"
+          },
+          {
+            "seconds": 10.848291,
+            "hex": "2e"
+          },
+          {
+            "seconds": 14.928119,
+            "hex": "2e"
+          },
+          {
+            "seconds": 19.695958,
+            "hex": "2e"
+          },
+          {
+            "seconds": 23.295829,
+            "hex": "2e"
+          },
+          {
+            "seconds": 27.359643,
+            "hex": "2e"
+          },
+          {
+            "seconds": 30.447548,
+            "hex": "2e"
+          },
+          {
+            "seconds": 34.527357,
+            "hex": "2e"
+          },
+          {
+            "seconds": 39.295191,
+            "hex": "2e"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 1,
+          "LD5": 0,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "halt_verified": false,
+        "passed": true
+      },
+      "clock-dots-flash": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+        "input_hex": "",
+        "samples": [
+          {
+            "seconds": 9.870845,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.934664,
+            "hex": "2e"
+          },
+          {
+            "seconds": 17.022553,
+            "hex": "2e"
+          },
+          {
+            "seconds": 21.086334,
+            "hex": "2e"
+          },
+          {
+            "seconds": 25.855518,
+            "hex": "2e"
+          },
+          {
+            "seconds": 29.47002,
+            "hex": "2e"
+          },
+          {
+            "seconds": 33.53389,
+            "hex": "2e"
+          },
+          {
+            "seconds": 36.605752,
+            "hex": "2e"
+          },
+          {
+            "seconds": 40.685541,
+            "hex": "2e"
+          },
+          {
+            "seconds": 45.453413,
+            "hex": "2e"
+          },
+          {
+            "seconds": 49.053255,
+            "hex": "2e"
+          },
+          {
+            "seconds": 53.117021,
+            "hex": "2e"
+          },
+          {
+            "seconds": 56.204897,
+            "hex": "2e"
+          },
+          {
+            "seconds": 60.268807,
+            "hex": "2e"
+          },
+          {
+            "seconds": 65.052535,
+            "hex": "2e"
+          },
+          {
+            "seconds": 68.652425,
+            "hex": "2e"
+          },
+          {
+            "seconds": 72.716388,
+            "hex": "2e"
+          },
+          {
+            "seconds": 75.78811,
+            "hex": "2e"
+          },
+          {
+            "seconds": 79.868024,
+            "hex": "2e"
+          },
+          {
+            "seconds": 84.63578,
+            "hex": "2e"
+          },
+          {
+            "seconds": 88.235653,
+            "hex": "2e"
+          },
+          {
+            "seconds": 92.37166,
+            "hex": "2e"
+          },
+          {
+            "seconds": 95.387322,
+            "hex": "2e"
+          },
+          {
+            "seconds": 99.467168,
+            "hex": "2e"
+          },
+          {
+            "seconds": 104.234989,
+            "hex": "2e"
+          },
+          {
+            "seconds": 107.834808,
+            "hex": "2e"
+          },
+          {
+            "seconds": 111.898763,
+            "hex": "2e"
+          },
+          {
+            "seconds": 114.970598,
+            "hex": "2e"
+          },
+          {
+            "seconds": 119.126153,
+            "hex": "2e"
+          },
+          {
+            "seconds": 123.818182,
+            "hex": "2e"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 1,
+          "LD4": 1,
+          "LD5": 0,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "halt_verified": false,
+        "passed": true
+      },
+      "clock-dots-reset": {
+        "received_hex": "2e2e2e2e2e2e2e2e2e2e",
+        "input_hex": "",
+        "samples": [
+          {
+            "seconds": 9.872426,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.936281,
+            "hex": "2e"
+          },
+          {
+            "seconds": 17.008143,
+            "hex": "2e"
+          },
+          {
+            "seconds": 21.088041,
+            "hex": "2e"
+          },
+          {
+            "seconds": 25.855799,
+            "hex": "2e"
+          },
+          {
+            "seconds": 29.455679,
+            "hex": "2e"
+          },
+          {
+            "seconds": 33.519528,
+            "hex": "2e"
+          },
+          {
+            "seconds": 36.607387,
+            "hex": "2e"
+          },
+          {
+            "seconds": 40.671249,
+            "hex": "2e"
+          },
+          {
+            "seconds": 45.455059,
+            "hex": "2e"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 1,
+          "LD5": 0,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "halt_verified": false,
+        "passed": true
+      }
+    },
+    "program_quanta": {
+      "uart-alphanumerics": 20,
+      "uart-caesar-plus4": 5,
+      "clock-dots": 5
+    },
+    "finished_at_utc": "2026-10-17T03:27:15.314502+00:00"
+  },
+  "physical_receipt_path": "build/red2-uart-fix/physical-v8-zedjkwxo/receipt.json",
+  "scope_limits": [
+    "The RTL UART example checks are output prefixes at quantum 5; full outputs and halts were checked in the typed hardware source and on the board.",
+    "Alphanumerics uses quantum 20; budget 5 fills the graph with deferred arguments after printing the digits.",
+    "No physical power-removal test was performed by this script; a reset from configuration flash was verified."
+  ],
+  "native_alphanumerics_quantum5_capacity_limit": {
+    "case": "uart-alphanumerics",
+    "quantum": 5,
+    "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+    "program_sha256": "25621920d84a604fc871ebe4b06f90965f1d7b1d800006651b95b7555a96f81d",
+    "working_arena_words": 225,
+    "clocks": 211983,
+    "restarts": 35,
+    "peak_residual_words": 101,
+    "input_count": 0,
+    "output_hex": "30313233343536373839",
+    "passed": false,
+    "red2_fault": 2,
+    "hw_fault": 0,
+    "microstate": 3,
+    "pc": 31,
+    "fsp": 224,
+    "error": "reducer fault: {'case': 'uart-alphanumerics', 'quantum': 5, 'core_source_sha256': 'aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72', 'program_sha256': '25621920d84a604fc871ebe4b06f90965f1d7b1d800006651b95b7555a96f81d', 'working_arena_words': 225, 'clocks': 211983, 'restarts': 35, 'peak_residual_words': 101, 'input_count': 0, 'output_hex': '30313233343536373839', 'passed': False, 'red2_fault': 2, 'hw_fault': 0, 'microstate': 3, 'pc': 31, 'fsp': 224}"
+  },
+  "files_sha256": {
+    "build/red2-uart-fix/native-alphanumerics-q5-v8/result.json": "4a7c657fba8cee1754614cf77e5eba96068c51a4cbace9313935330c555bb607",
+    "src/machines/synthesizable_red2_machine/machine.py": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+    "scripts/check_syn_sim.py": "54d303bed7113b011aaed69de6b559fe3ed5e80201cc081b92c249a23dfe38f3",
+    "scripts/boards/red2_standalone/check_native_program.py": "9d6bd6d801c57ca23509da7a91f9cc7637e5ddc7c5991dc4c5beb31a2715469f",
+    "scripts/boards/red2_standalone/programs.toml": "d15c795a4c04010f2105d2e42646493e4509e2edce74141753db000cdc42deee",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/receipt.json": "1887796ee86abcbb6785f847b82507d08608fc9b350959c69284f67ea4a57467",
+    "build/red2-finite-quantum/core-v8/integrated-stream/provenance.json": "b0bab7f05ea78ba027c369eb70addb26e474ccb344414357545b9e58586e1096",
+    "build/red2-finite-quantum/core-v8/integrated-stream/baseline-area.json": "f6bb8e1dcf8391cb2db67ef6fe305127806c1f9e5f85a758a518f5d894b7ac78",
+    "build/red2-basys3-standalone-quantum-v8-seed2/provenance.json": "695658098d7a710a3e5f40650fc960ada2890b19e9d7981f8d1a939d4f6ca976",
+    "build/red2-basys3-standalone-quantum-v8-seed2/build-result.json": "d271383d7eb75cafaab17f8267e8f033bc16751ca5cb66510c8fbed03f5a8a7b",
+    "build/red2-basys3-standalone-quantum-v8-seed2/board-resources.json": "ac504664cb3c7857d0d06dd8e8cf1c1cfc2278cd944b60c45b8e83a751fc8235",
+    "build/red2-basys3-standalone-quantum-v8-seed2/board-physical-lut-sites.json": "25b57fe3e4e6b997564bc3d71b6a37a4d6bbb2b5c32209a931e75d18d3f1e7ea",
+    "build/red2-basys3-standalone-quantum-v8-seed2/board-timing.json": "fc93e5eba3019fe9780de80efd1318ebdfa869bba692a9c9de5f9ad4b6bf266a",
+    "build/red2-basys3-standalone-quantum-v8-seed2/red2_basys3.bit": "3b385f2fc3b0228ac83c8b07affe0a9c94c0d79ca009739d38019cfe21fcc6b0",
+    "build/red2-uart-fix/native-regressions-v8.log": "c2a4ec875de7fb91d0896b91c6985e053cc418f47919a831563d636e531fc912",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/uart-caesar-plus4.bin": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/uart-alphanumerics.bin": "2a9f67e4b162a16ff459dae1348aef77d72547b882e8380406c3ef101eec0738",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/clock-dots.bin": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/clock-dots.json": "7bb582e4e164bec4795843a80a57417603b723d91b414626ddf73f03be7331f4",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/uart-alphanumerics.json": "42687a3862157cc05cb8c4956b7782d0301981b7fdc5496344172a129693fb58",
+    "build/red2-uart-fix/physical-v8-zedjkwxo/uart-caesar-plus4.json": "36334a0f1c6358a313b31e84d20a2ff37a6ea2b7f82e9d142d16993bceaf1bdf",
+    "build/red2-uart-fix/native-alphanumerics-q20-v8/result.json": "56fe552fbaa6eb379b0cc080d8d9cefdcd975eb121c9cdd2e87d0fdd1a8ab5e1",
+    "build/red2-uart-fix/native-caesar-v8/result.json": "bceddf2f436fdf311b625dd9efdddb7a569748e5cd5e754d89b1581ba6be384b",
+    "build/red2-uart-fix/rtl-smoke-v8/results.json": "1359a889da268f0ac473a8d9029076d164d3a01f73fa18eb556040c0867f4d3a",
+    "build/red2-uart-fix/rtl-prefix-uart-alphanumerics-v8/results.json": "ba689e840e934bc21a5b06a0bb2c037372f05236c0547a4cd168f5964b766264",
+    "build/red2-uart-fix/rtl-prefix-uart-caesar-plus4-v8/results.json": "0314f572ab6364adb30220b58b6acba29552d485e6c681813872ae8a8895c7ae",
+    "build/red2-uart-fix/mise-qualification-v8.json": "6ae40b3eec950c33d79f5a45d9325bb1ce9654968c06f3c87dbe657c09369c79",
+    "build/red2-uart-fix/check-mise-v8.py": "fdf0a78c7e342aa87c7c5e3482536a9650033fc898b8ec9b40553f452b97a4ac",
+    "scripts/boards/red2_standalone/image.py": "d01843797dd00958ba3b53b44722236da7ebd1a9cca5460d2f94afd6ce38a553",
+    "scripts/boards/red2_standalone/check.py": "c414d28efdd08128140fe2358d4c507962bc0c478a42402560ec906908a8bc09",
+    "scripts/boards/red2_standalone/run.py": "3a156d9460b4cfd5e5f78422767ae896cfac90290a36eeaf22a912bb7c224904",
+    "build/red2-standalone/programs/uart-alphanumerics-_y3aj5l4/program.bin": "2a9f67e4b162a16ff459dae1348aef77d72547b882e8380406c3ef101eec0738",
+    "build/red2-standalone/programs/uart-alphanumerics-_y3aj5l4/program.json": "4007c75c1e2884dc6a6a05fd2921a1f12ce8096e4cf296e08820c5e3da099339",
+    "build/red2-standalone/programs/uart-alphanumerics-_y3aj5l4/deployment.json": "19e1a791f0e3c86559093dabc12c63b9bb6c2d85caa9b83c503253eab5342ff0",
+    "build/red2-uart-fix/mise-uart-alphanumerics-v8.log": "b8b2ac00ed750f7f30c27c45cfcd233090bcf4eeed4a0bcccc0cc50869148b89",
+    "build/red2-standalone/programs/uart-caesar-plus4-mtz9n6ge/program.bin": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928",
+    "build/red2-standalone/programs/uart-caesar-plus4-mtz9n6ge/program.json": "eb54e861555d87cf3e06a313f4e0a569b96cb0a3dcbcb6aa2e14977c23f47283",
+    "build/red2-standalone/programs/uart-caesar-plus4-mtz9n6ge/deployment.json": "ac27438fe89ab63d36f5de3ca8eb50cfe6d5a301e7517cd3fc8c692f611708b3",
+    "build/red2-uart-fix/mise-uart-caesar-plus4-v8.log": "d332f2a4c41b5f5471a0a0a26207bd3a9f2cd732ad5e2a6fda28517ccf6cbe21",
+    "build/red2-standalone/programs/clock-dots-zdwpmprd/program.bin": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+    "build/red2-standalone/programs/clock-dots-zdwpmprd/program.json": "5236fbff0cb6d3f415999215abc376ef3eddb9a4f1a5149eae8bde60e9b8e26b",
+    "build/red2-standalone/programs/clock-dots-zdwpmprd/deployment.json": "e925918274ec6a9b463125cb978318c390e74fca2cc02cd0034d335c7452e51f",
+    "build/red2-uart-fix/mise-clock-dots-v8.log": "e10e0d773b85b6fe5328874e961a3d897c9a46423e50b9dff717c8d3b13a18b0"
+  },
+  "exact_mise_commands_physical": {
+    "passed": true,
+    "stages": [
+      {
+        "name": "uart-alphanumerics",
+        "command": [
+          "mise",
+          "run",
+          "fpga",
+          "examples/uart-alphanumerics.thor"
+        ],
+        "quantum": 20,
+        "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/uart-alphanumerics-_y3aj5l4/program.bin",
+        "image_sha256": "2a9f67e4b162a16ff459dae1348aef77d72547b882e8380406c3ef101eec0738",
+        "output_hex": "303132333435363738394142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a0a",
+        "input_hex": "",
+        "halt_verified": true,
+        "samples": [
+          {
+            "seconds": 6.259311,
+            "hex": "30"
+          },
+          {
+            "seconds": 6.331344,
+            "hex": "31"
+          },
+          {
+            "seconds": 7.163216,
+            "hex": "32"
+          },
+          {
+            "seconds": 7.259362,
+            "hex": "33"
+          },
+          {
+            "seconds": 8.075201,
+            "hex": "34"
+          },
+          {
+            "seconds": 8.171199,
+            "hex": "35"
+          },
+          {
+            "seconds": 8.971156,
+            "hex": "36"
+          },
+          {
+            "seconds": 9.083119,
+            "hex": "37"
+          },
+          {
+            "seconds": 9.883055,
+            "hex": "38"
+          },
+          {
+            "seconds": 9.979087,
+            "hex": "39"
+          },
+          {
+            "seconds": 10.859128,
+            "hex": "41"
+          },
+          {
+            "seconds": 10.95508,
+            "hex": "42"
+          },
+          {
+            "seconds": 11.307027,
+            "hex": "43"
+          },
+          {
+            "seconds": 12.380599,
+            "hex": "444546"
+          },
+          {
+            "seconds": 12.731059,
+            "hex": "47"
+          },
+          {
+            "seconds": 12.827101,
+            "hex": "48"
+          },
+          {
+            "seconds": 13.546914,
+            "hex": "49"
+          },
+          {
+            "seconds": 13.658937,
+            "hex": "4a"
+          },
+          {
+            "seconds": 14.378894,
+            "hex": "4b"
+          },
+          {
+            "seconds": 14.474921,
+            "hex": "4c"
+          },
+          {
+            "seconds": 15.210877,
+            "hex": "4d"
+          },
+          {
+            "seconds": 15.307206,
+            "hex": "4e"
+          },
+          {
+            "seconds": 16.042942,
+            "hex": "4f"
+          },
+          {
+            "seconds": 16.138916,
+            "hex": "50"
+          },
+          {
+            "seconds": 16.90862,
+            "hex": "51"
+          },
+          {
+            "seconds": 16.954879,
+            "hex": "52"
+          },
+          {
+            "seconds": 18.555405,
+            "hex": "535455"
+          },
+          {
+            "seconds": 18.61881,
+            "hex": "56"
+          },
+          {
+            "seconds": 19.354726,
+            "hex": "57"
+          },
+          {
+            "seconds": 19.450725,
+            "hex": "58"
+          },
+          {
+            "seconds": 20.17071,
+            "hex": "59"
+          },
+          {
+            "seconds": 20.266718,
+            "hex": "5a"
+          },
+          {
+            "seconds": 21.050705,
+            "hex": "61"
+          },
+          {
+            "seconds": 21.146685,
+            "hex": "62"
+          },
+          {
+            "seconds": 21.43479,
+            "hex": "63"
+          },
+          {
+            "seconds": 21.530642,
+            "hex": "64"
+          },
+          {
+            "seconds": 21.994691,
+            "hex": "65"
+          },
+          {
+            "seconds": 22.090653,
+            "hex": "66"
+          },
+          {
+            "seconds": 22.778603,
+            "hex": "67"
+          },
+          {
+            "seconds": 22.888489,
+            "hex": "68"
+          },
+          {
+            "seconds": 23.562618,
+            "hex": "69"
+          },
+          {
+            "seconds": 24.646651,
+            "hex": "6a6b6c"
+          },
+          {
+            "seconds": 25.114515,
+            "hex": "6d"
+          },
+          {
+            "seconds": 25.226491,
+            "hex": "6e"
+          },
+          {
+            "seconds": 25.898461,
+            "hex": "6f"
+          },
+          {
+            "seconds": 25.99447,
+            "hex": "70"
+          },
+          {
+            "seconds": 26.682465,
+            "hex": "71"
+          },
+          {
+            "seconds": 26.778421,
+            "hex": "72"
+          },
+          {
+            "seconds": 27.466402,
+            "hex": "73"
+          },
+          {
+            "seconds": 27.562395,
+            "hex": "74"
+          },
+          {
+            "seconds": 28.250429,
+            "hex": "75"
+          },
+          {
+            "seconds": 28.346372,
+            "hex": "76"
+          },
+          {
+            "seconds": 29.034325,
+            "hex": "77"
+          },
+          {
+            "seconds": 29.130328,
+            "hex": "78"
+          },
+          {
+            "seconds": 29.818338,
+            "hex": "79"
+          },
+          {
+            "seconds": 30.885748,
+            "hex": "7a0a"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 1,
+          "LD4": 0,
+          "LD5": 1,
+          "LD6": 0,
+          "LD7": 0
+        },
+        "passed": true
+      },
+      {
+        "name": "uart-caesar-plus4",
+        "command": [
+          "mise",
+          "run",
+          "fpga",
+          "examples/uart-caesar-plus4.thor"
+        ],
+        "quantum": 5,
+        "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/uart-caesar-plus4-mtz9n6ge/program.bin",
+        "image_sha256": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928",
+        "output_hex": "4564303921",
+        "input_hex": "417a3039211b",
+        "halt_verified": true,
+        "samples": [
+          {
+            "seconds": 8.617858,
+            "hex": "45"
+          },
+          {
+            "seconds": 12.493382,
+            "hex": "64"
+          },
+          {
+            "seconds": 13.401659,
+            "hex": "30"
+          },
+          {
+            "seconds": 15.065634,
+            "hex": "39"
+          },
+          {
+            "seconds": 16.217678,
+            "hex": "21"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 0,
+          "LD5": 1,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "passed": true
+      },
+      {
+        "name": "clock-dots",
+        "command": [
+          "mise",
+          "run",
+          "fpga",
+          "examples/clock-dots.thor"
+        ],
+        "quantum": 5,
+        "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/clock-dots-zdwpmprd/program.bin",
+        "image_sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+        "output_hex": "2e2e2e",
+        "input_hex": "",
+        "halt_verified": false,
+        "samples": [
+          {
+            "seconds": 9.735751,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.799575,
+            "hex": "2e"
+          },
+          {
+            "seconds": 16.887369,
+            "hex": "2e"
+          }
+        ],
+        "last_leds": {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 1,
+          "LD5": 0,
+          "LD6": 0,
+          "LD7": 1
+        },
+        "passed": true
+      }
+    ],
+    "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+    "profiles_sha256": "d15c795a4c04010f2105d2e42646493e4509e2edce74141753db000cdc42deee"
+  },
+  "validation_notes": [
+    "The exact-command observer drains UART input after blocking JTAG status samples before deciding whether a halt completed the output. An initial observer race was corrected and all three commands passed on rerun.",
+    "29 focused pytest tests passed after switching defaults; changed small Python files pass Ruff and git diff --check passed."
+  ]
+}

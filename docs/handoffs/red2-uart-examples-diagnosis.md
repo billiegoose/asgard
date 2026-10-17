@@ -1,12 +1,12 @@
 # Full UART example failures on standalone RED2
 
-**Source fix in progress:** v8 addresses the three publication gaps below. Full
-UART examples pass typed-source tests at recommended budgets, and original
-failing paths pass lowered RTL. Physical qualification remains pending; v6 is
-still installed. See [the checkpoint](red2-uart-publication-fix-checkpoint.md).
+**Resolved in v8.** This document records the v6 failure diagnosis. The three
+publication cases now use the transactional walker, with selector and IO-return
+priority preserved. Both unchanged UART examples pass full typed-source and
+physical checks using the recommended budgets (alphanumerics 20, Caesar 5).
+See [the qualification record](red2-uart-publication-fix-results.json).
 
-
-The installed, persistent v6 engine runs `clock-dots`, but this does not qualify
+The then-installed, persistent v6 engine runs `clock-dots`, but this does not qualify
 every THOR program. Both full UART examples encounter incomplete publication
 paths in the reducer. The physical fault LED, typed hardware-source simulation,
 and frontend RTL simulation agree. There is no evidence that changing `tio`

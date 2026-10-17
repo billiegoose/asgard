@@ -20,7 +20,7 @@ p.add_argument("--output", type=Path, required=True)
 p.add_argument(
     "--core",
     type=Path,
-    default=ROOT / "build/red2-finite-quantum/core-v6/integrated-stream",
+    default=ROOT / "build/red2-finite-quantum/core-v8/integrated-stream",
 )
 p.add_argument("--reuse-model", type=Path)
 p.add_argument("--case", action="append", help="Run only named cases")

@@ -1,14 +1,14 @@
 {
-  "recorded_at_utc": "2026-10-16T20:26:33.410126+00:00",
-  "scope": "Dedicated finite-quantum RED2 with hardware residual relocation, autonomous QSPI program boot, elapsed CLOCK and physical UART; source, frontend RTL, routed implementation and persistent board execution qualified",
+  "recorded_at_utc": "2026-10-17T02:24:44.784178+00:00",
+  "scope": "Finite-quantum dedicated RED2 with generic composite publication, physically qualified full UART examples and persistent autonomous clock-dots.",
   "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
   "fpgatool_commit": "ad377479db8a70b027fdb096bfb8f0df308524bc",
   "variants": {
     "finite-quantum": {
-      "candidate_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+      "candidate_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
       "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
       "configuration": {
-        "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6",
+        "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v8",
         "RED2_CFG_PILOT_GRAPH": "1",
         "RED2_CFG_PILOT_LOOKUP": "1",
         "RED2_CFG_PILOT_COMPACT": "1",
@@ -37,9 +37,9 @@
       },
       "resources": {
         "top": "top",
-        "lut": 15438,
+        "lut": 15587,
         "lut_memory": 326,
-        "lut_total": 15764,
+        "lut_total": 15913,
         "unknown_memory_primitives": [],
         "unaccounted_primitives": [],
         "flipflops": 6170,
@@ -57,11 +57,11 @@
           "DSP48E1": 10,
           "FDRE": 6170,
           "INV": 649,
-          "LUT2": 2348,
-          "LUT3": 2636,
-          "LUT4": 2221,
-          "LUT5": 3235,
-          "LUT6": 4998,
+          "LUT2": 2507,
+          "LUT3": 2714,
+          "LUT4": 2208,
+          "LUT5": 3103,
+          "LUT6": 5055,
           "RAM256X1S": 50,
           "RAM64X1S": 126,
           "RAMB18E1": 21,
@@ -72,9 +72,9 @@
       },
       "usable_fit_candidate": true,
       "verilator_netlist_provenance": {
-        "coarse_json_sha256": "c973e3511dc7cb1f5f9507679835356b100505863b5a1c6a1a9e71cbccdf7b08",
-        "coarse_verilog_sha256": "400d78e517334448f4c7e543dfc1c0c39097a1f40f3c1ea938642616720e3eb1",
-        "candidate_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+        "coarse_json_sha256": "a4c3aca4e761dde0f62c82206175ac8b181b9738b00714182ce1db1425a227e0",
+        "coarse_verilog_sha256": "473c5f5b49a3dd389f2e2c224f0ab729fe5191b98505afc6a58bc4063742695d",
+        "candidate_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
         "replay_cpp_sha256": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
         "wrapper_sha256": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
         "conversion_passes": "read_json; rename -hide; opt_clean -purge; memory_unpack; write_verilog -noattr",
@@ -83,36 +83,16 @@
         "scope": "Optimized GHDL/Yosys area-map frontend RTL before technology mapping"
       },
       "artifacts": {
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/baseline-area.json": "a6ee4c62141ab0bd546bdb284788ce08650c3ed8240c722a673d195a1b1e74d0",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/coarse.json": "c973e3511dc7cb1f5f9507679835356b100505863b5a1c6a1a9e71cbccdf7b08",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/machine.py": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/provenance.json": "5b0e313a1bc31302292313585df988e947740b6fba6aee006d35f7c0d18e4dac",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/provenance.json": "e381b6bdd8aa8f9ebe27b2fe654025809d5a4a29fcf89cdb998bb206c68bd0ab",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/clean.v": "400d78e517334448f4c7e543dfc1c0c39097a1f40f3c1ea938642616720e3eb1",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/wrapper.v": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/rtl-v6/results.json": "35d6656262daa81c7221b8b59dbb5ee0b22e2897bb2fdb2a4abf4b0a9dfba6ec",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/rtl-v6/model-inputs.json": "9d1aad763b9945adaf742011642ba291cf0778ae9f0f6f5a069c8134aa9e3d08",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-if-v6.log": "9d10ad62c48b311d5b87bab378e4556452e04cfabdbb0d5965dd95fbe747fb25",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-always-due-fixed.log": "17911c104f924c85068512ef83c173a6053457bf143f98a07c8c78c1132cfae8",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-q20-v6.log": "e2293040bad572e91a4b0ec5e59a681885c58a8178d0cb09725f03e6da6b7e4b",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/restart-test.log": "f51439f3d018c67837957ca586d4909799cfb77d08464e9b7729df3efc584ccf",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-v6.log": "aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-regression.log": "7053e1d2921cffaf54eb8e166e940bfb63fe11c2fafe4cc44bf98b1116138008",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-baseline-production.log": "58fd25fc5bab876ace34765028b85b4e4b658604f5957262efc44e6349304eb5",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/configuration-v6.json": "804cb108392b49f060871db3fd4ea6e2d3d95ba2069cebc9dfb4f625b0867b0c",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-preflight-v6.json": "7c8ef5426f91d05d7f41fa8f25b371d47aa90ae20c2a1254b6970f8003163279",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/static-v6.log": "7be35d67b565833db1dd298e8e8000cfe7e358077801f1425cb88f1aa7229378",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-io-shared-final.log": "b91211d373cc99d28d6b3168f9ed7479f463c54a8b238343e7a094699ecef15e",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-polling-fixed.log": "20f3ae58f101cbe7b912d6d34d523c2cd0000699201c0f980ec45fc3bee57282",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/v5-failed-report.json": "fc48b3051a4a510230ffe99921a6bef299418995eb0b07de96e48b03bda52cc1",
-        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/inline-io-old-rtl.log": "a8cb65e360aaa7b8f998ef5916406c32e0959f45d14c7ef11d23941456b8c251",
-        "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_standalone/check_io_quantum.py": "ac107fd08842d342c289e263c29c792e66a437148779c757d5371606f43c9552",
-        "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_standalone/io_fixture.py": "0c6113520d266af84d79f5d521e20cf31578caf10a8a4d266d54c7daeee915ce"
+        "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v8/integrated-stream/baseline-area.json": "f6bb8e1dcf8391cb2db67ef6fe305127806c1f9e5f85a758a518f5d894b7ac78"
       },
       "validation": {
-        "standalone_frontend_rtl": [
+        "finite_frontend_rtl": [
           {
             "name": "budget20",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 20,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
             "stderr": "",
@@ -177,13 +157,17 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "5cb8d0d12cf941bc6837b59db6d5270569154e42cc7a65bd025dfd9825e0275f"
             }
           },
           {
             "name": "inline-io-then",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 3,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=280610 CLOCK calls=0\n",
             "stderr": "",
@@ -247,7 +231,7 @@
                 "CONS": 52,
                 "__STRUCT_SELECTOR_RESULT__": 53
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "4ac97619995b3718265302a43e311fd7bd1358a72ec921c33882f64778c2fa7d",
               "fixture": "IO-THEN with an inline first value and no child JOIN frame"
@@ -255,6 +239,10 @@
           },
           {
             "name": "inline-io-bind",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 3,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=299908\nPASS HALTED UART=A cycles=300761 CLOCK calls=0\n",
             "stderr": "",
@@ -319,7 +307,7 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "fa359f04c0b5eb2dcfb02e3dbeeb74b1872a0bfcae58f45b838cfccca9bb9ff0",
               "fixture": "IO-BIND with an inline first value and no child JOIN frame"
@@ -327,6 +315,10 @@
           },
           {
             "name": "uart-tx",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 1,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=148492\nPASS HALTED UART=A cycles=149345 CLOCK calls=0\n",
             "stderr": "",
@@ -390,13 +382,17 @@
                 "CONS": 52,
                 "__STRUCT_SELECTOR_RESULT__": 53
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "f87e1dff5dfd9d29de5d51f605d9ae8c4f148cfe650dd3959fde88e1d460cd45"
             }
           },
           {
             "name": "clock-payload",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 5,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
             "stderr": "",
@@ -461,13 +457,17 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "bdd131162db4ae45e7cf5afc1eec57493263c1c926ecea91d0a3e845de8801dc"
             }
           },
           {
             "name": "uart-rx",
+            "mode": "rx",
+            "expected_hex": "5a",
+            "quantum": 5,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=409437 CLOCK calls=0\n",
             "stderr": "",
@@ -532,13 +532,93 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "77e2a0c8785c62af0d618dfc3559dad360b5d73ce32881089a7d824ef88f3d59"
             }
           },
           {
+            "name": "uart-rx-pair",
+            "mode": "rx-halt",
+            "expected_hex": "4142",
+            "quantum": 20,
+            "max_cycles": 300000000,
+            "returncode": 0,
+            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=985094 CLOCK calls=0\n",
+            "stderr": "",
+            "image": {
+              "source": "(IO-BIND (UART-RX) (LAMBDA (x) (IO-BIND (UART-RX) (LAMBDA (y) (IO-THEN (UART-TX x) (UART-TX y))))))",
+              "quantum": 20,
+              "command_count": 308,
+              "flash_offset": 2228224,
+              "literal_ids": {
+                "CAR": 1,
+                "PAIR": 2,
+                "CDR": 3,
+                "PAIR-CAR": 4,
+                "PAIR-CDR": 5,
+                "IO-BIND": 6,
+                "x": 7,
+                "y": 8,
+                "IO-THEN": 9,
+                "UART-TX": 10,
+                "UART-RX": 11,
+                "1-": 12,
+                "1+": 13,
+                "MINUS": 14,
+                "ABS": 15,
+                "FLOOR": 16,
+                "CEILING": 17,
+                "EVEN?": 18,
+                "NULL?": 19,
+                "NOT": 20,
+                "INTEGER?": 21,
+                "FLOAT?": 22,
+                "CHAR?": 23,
+                "SYMBOL?": 24,
+                "+": 25,
+                "-": 26,
+                "*": 27,
+                "/": 28,
+                "<": 29,
+                ">": 30,
+                "<=": 31,
+                ">=": 32,
+                "=": 33,
+                "EXPT": 34,
+                "MAX": 35,
+                "MIN": 36,
+                "MOD": 37,
+                "IF": 38,
+                "AND": 39,
+                "OR": 40,
+                "Y": 41,
+                "IO-RETURN": 42,
+                "CLOCK": 43,
+                "UART-TX-BYTES": 44,
+                "TRUE": 45,
+                "FALSE": 46,
+                "NIL": 47,
+                "EQUAL?": 48,
+                "__EQUAL_STAR__": 49,
+                "__EQUAL_IF__": 50,
+                "__EQUALITY_CONTINUE__": 51,
+                "__EQUAL_STUCK__": 52,
+                "__IF_RECONSTRUCT__": 53,
+                "CONS": 54,
+                "__STRUCT_SELECTOR_RESULT__": 55
+              },
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+              "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+              "sha256": "388adbf176d1acb6f72b39fac7dd48c49f5ba8e006b43faf98ab8a143c9cc7f0"
+            }
+          },
+          {
             "name": "uart-list",
+            "mode": "halt",
+            "expected_hex": "4142",
+            "quantum": 5,
+            "max_cycles": 300000000,
             "returncode": 0,
             "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=917737 CLOCK calls=0\n",
             "stderr": "",
@@ -602,15 +682,19 @@
                 "__IF_RECONSTRUCT__": 52,
                 "__STRUCT_SELECTOR_RESULT__": 53
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "9b80c9ec51240dcfd165cdda18d2edc1d81c1d171b3f578bd6b514b2c9f994a4"
             }
           },
           {
             "name": "if-capture",
+            "mode": "halt",
+            "expected_hex": "41",
+            "quantum": 2,
+            "max_cycles": 300000000,
             "returncode": 0,
-            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579427\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1151007\nrestart=3 residual=1 cycle=1512180\nPASS HALTED UART=A cycles=1513033 CLOCK calls=1\n",
+            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579499\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1151127\nrestart=3 residual=1 cycle=1512300\nPASS HALTED UART=A cycles=1513153 CLOCK calls=1\n",
             "stderr": "",
             "image": {
               "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (= x x) (UART-TX 65) (UART-TX 66))))",
@@ -673,15 +757,19 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "8f5abae7d497682e6244855ecbf8af70724408bc948179de95b5db6201a52b7f"
             }
           },
           {
             "name": "if-capture-false",
+            "mode": "halt",
+            "expected_hex": "42",
+            "quantum": 2,
+            "max_cycles": 300000000,
             "returncode": 0,
-            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579427\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1141871\nrestart=3 residual=1 cycle=1502972\nPASS HALTED UART=B cycles=1503825 CLOCK calls=1\n",
+            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579499\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1141991\nrestart=3 residual=1 cycle=1503092\nPASS HALTED UART=B cycles=1503945 CLOCK calls=1\n",
             "stderr": "",
             "image": {
               "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (< x x) (UART-TX 65) (UART-TX 66))))",
@@ -744,15 +832,19 @@
                 "CONS": 53,
                 "__STRUCT_SELECTOR_RESULT__": 54
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "b9b23e28b450f43b0a9a7daa16de83a21fb2bd673beb204452d024c60d7dda9d"
             }
           },
           {
             "name": "clock-dots",
+            "mode": "stream",
+            "expected_hex": "2e2e",
+            "quantum": 5,
+            "max_cycles": 300000000,
             "returncode": 0,
-            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=23 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=10 status=0 pc=33 micro=127 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=10 status=0 pc=17 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=236 micro=60 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=10 status=0 pc=75 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=10 status=0 pc=59 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=99695 UART=\nrestart=1 residual=60 cycle=10617905\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=13 micro=60 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=33 micro=60 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=112 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=96 micro=126 ms=139695 UART=\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=96 micro=127 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=27 status=0 pc=88 micro=127 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=27 status=0 pc=84 micro=127 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=27 status=0 pc=84 micro=126 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=209695 UART=\nprogress cycle=22000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=27 status=0 pc=168 micro=1 ms=229695 UART=\nprogress cycle=24000000 flash=28092 state=27 status=0 pc=139 micro=126 ms=239695 UART=\nprogress cycle=25000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=249695 UART=\nprogress cycle=26000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=259695 UART=\nprogress cycle=27000000 flash=28092 state=27 status=0 pc=127 micro=127 ms=269695 UART=\nprogress cycle=28000000 flash=28092 state=27 status=0 pc=127 micro=126 ms=279695 UART=\nrestart=2 residual=79 cycle=28160678\nprogress cycle=29000000 flash=28092 state=9 status=0 pc=83 micro=60 ms=289695 UART=\nprogress cycle=30000000 flash=28092 state=9 status=0 pc=104 micro=127 ms=299695 UART=\nprogress cycle=31000000 flash=28092 state=9 status=0 pc=98 micro=126 ms=309695 UART=\nprogress cycle=32000000 flash=28092 state=9 status=0 pc=98 micro=127 ms=319695 UART=\nprogress cycle=33000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=329695 UART=\nprogress cycle=34000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=339695 UART=\nprogress cycle=35000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=349695 UART=\nprogress cycle=36000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=359695 UART=\nrestart=3 residual=36 cycle=36070409\nprogress cycle=37000000 flash=28092 state=27 status=0 pc=48 micro=127 ms=369695 UART=.\nprogress cycle=38000000 flash=28092 state=27 status=0 pc=90 micro=1 ms=379695 UART=.\nprogress cycle=39000000 flash=28092 state=27 status=0 pc=95 micro=127 ms=389695 UART=.\nprogress cycle=40000000 flash=28092 state=27 status=0 pc=79 micro=126 ms=399695 UART=.\nprogress cycle=41000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=409695 UART=.\nprogress cycle=42000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=419695 UART=.\nprogress cycle=43000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=429695 UART=.\nprogress cycle=44000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=439695 UART=.\nprogress cycle=45000000 flash=28092 state=27 status=0 pc=58 micro=127 ms=449695 UART=.\nprogress cycle=46000000 flash=28092 state=27 status=0 pc=58 micro=126 ms=459695 UART=.\nprogress cycle=47000000 flash=28092 state=27 status=0 pc=5 micro=60 ms=469695 UART=.\nprogress cycle=48000000 flash=28092 state=27 status=0 pc=23 micro=62 ms=479695 UART=.\nprogress cycle=49000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=489695 UART=.\nprogress cycle=50000000 flash=28092 state=27 status=0 pc=122 micro=126 ms=499695 UART=.\nprogress cycle=51000000 flash=28092 state=27 status=0 pc=114 micro=127 ms=509695 UART=.\nprogress cycle=52000000 flash=28092 state=27 status=0 pc=110 micro=127 ms=519695 UART=.\nprogress cycle=53000000 flash=28092 state=27 status=0 pc=110 micro=126 ms=529695 UART=.\nprogress cycle=54000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=539695 UART=.\nprogress cycle=55000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=549695 UART=.\nprogress cycle=56000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=559695 UART=.\nprogress cycle=57000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=569695 UART=.\nprogress cycle=58000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=579695 UART=.\nrestart=4 residual=84 cycle=58907533\nprogress cycle=59000000 flash=28092 state=10 status=0 pc=86 micro=1 ms=589695 UART=.\nprogress cycle=60000000 flash=28092 state=27 status=0 pc=42 micro=60 ms=599695 UART=.\nprogress cycle=61000000 flash=28092 state=27 status=0 pc=131 micro=24 ms=609695 UART=.\nprogress cycle=62000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=619695 UART=.\nprogress cycle=63000000 flash=28092 state=27 status=0 pc=114 micro=127 ms=629695 UART=.\nprogress cycle=64000000 flash=28092 state=27 status=0 pc=106 micro=126 ms=639695 UART=.\nprogress cycle=65000000 flash=28092 state=27 status=0 pc=102 micro=127 ms=649695 UART=.\nprogress cycle=66000000 flash=28092 state=27 status=0 pc=102 micro=126 ms=659695 UART=.\nprogress cycle=67000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=669695 UART=.\nprogress cycle=68000000 flash=28092 state=27 status=0 pc=93 micro=126 ms=679695 UART=.\nprogress cycle=69000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=689695 UART=.\nprogress cycle=70000000 flash=28092 state=27 status=0 pc=163 micro=127 ms=699695 UART=.\nprogress cycle=71000000 flash=28092 state=27 status=0 pc=173 micro=127 ms=709695 UART=.\nprogress cycle=72000000 flash=28092 state=27 status=0 pc=157 micro=127 ms=719695 UART=.\nprogress cycle=73000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=729695 UART=.\nprogress cycle=74000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=739695 UART=.\nprogress cycle=75000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=749695 UART=.\nprogress cycle=76000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=759695 UART=.\nrestart=5 residual=75 cycle=76213716\nPASS UART=.. cycles=76921329 CLOCK calls=3 ms=768908 pc=80 fsp=81 restarts=5 residual=75 peak_residual=84\n",
+            "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=23 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=10 status=0 pc=33 micro=127 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=10 status=0 pc=17 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=236 micro=60 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=10 status=0 pc=75 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=10 status=0 pc=59 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=99695 UART=\nrestart=1 residual=60 cycle=10618289\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=13 micro=60 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=33 micro=60 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=112 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=96 micro=126 ms=139695 UART=\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=96 micro=127 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=27 status=0 pc=88 micro=126 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=27 status=0 pc=84 micro=127 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=27 status=0 pc=84 micro=126 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=209695 UART=\nprogress cycle=22000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=27 status=0 pc=168 micro=1 ms=229695 UART=\nprogress cycle=24000000 flash=28092 state=27 status=0 pc=139 micro=126 ms=239695 UART=\nprogress cycle=25000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=249695 UART=\nprogress cycle=26000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=259695 UART=\nprogress cycle=27000000 flash=28092 state=27 status=0 pc=127 micro=127 ms=269695 UART=\nprogress cycle=28000000 flash=28092 state=27 status=0 pc=127 micro=126 ms=279695 UART=\nrestart=2 residual=79 cycle=28161590\nprogress cycle=29000000 flash=28092 state=9 status=0 pc=83 micro=60 ms=289695 UART=\nprogress cycle=30000000 flash=28092 state=9 status=0 pc=104 micro=127 ms=299695 UART=\nprogress cycle=31000000 flash=28092 state=9 status=0 pc=98 micro=126 ms=309695 UART=\nprogress cycle=32000000 flash=28092 state=9 status=0 pc=98 micro=127 ms=319695 UART=\nprogress cycle=33000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=329695 UART=\nprogress cycle=34000000 flash=28092 state=9 status=0 pc=90 micro=127 ms=339695 UART=\nprogress cycle=35000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=349695 UART=\nprogress cycle=36000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=359695 UART=\nrestart=3 residual=36 cycle=36071561\nprogress cycle=37000000 flash=28092 state=27 status=0 pc=48 micro=127 ms=369695 UART=.\nprogress cycle=38000000 flash=28092 state=27 status=0 pc=90 micro=1 ms=379695 UART=.\nprogress cycle=39000000 flash=28092 state=27 status=0 pc=95 micro=127 ms=389695 UART=.\nprogress cycle=40000000 flash=28092 state=27 status=0 pc=79 micro=126 ms=399695 UART=.\nprogress cycle=41000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=409695 UART=.\nprogress cycle=42000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=419695 UART=.\nprogress cycle=43000000 flash=28092 state=27 status=0 pc=67 micro=127 ms=429695 UART=.\nprogress cycle=44000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=439695 UART=.\nprogress cycle=45000000 flash=28092 state=27 status=0 pc=58 micro=127 ms=449695 UART=.\nprogress cycle=46000000 flash=28092 state=27 status=0 pc=58 micro=126 ms=459695 UART=.\nprogress cycle=47000000 flash=28092 state=27 status=0 pc=5 micro=60 ms=469695 UART=.\nprogress cycle=48000000 flash=28092 state=27 status=0 pc=23 micro=60 ms=479695 UART=.\nprogress cycle=49000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=489695 UART=.\nprogress cycle=50000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=499695 UART=.\nprogress cycle=51000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=509695 UART=.\nprogress cycle=52000000 flash=28092 state=27 status=0 pc=110 micro=127 ms=519695 UART=.\nprogress cycle=53000000 flash=28092 state=27 status=0 pc=110 micro=126 ms=529695 UART=.\nprogress cycle=54000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=539695 UART=.\nprogress cycle=55000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=549695 UART=.\nprogress cycle=56000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=559695 UART=.\nprogress cycle=57000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=569695 UART=.\nprogress cycle=58000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=579695 UART=.\nrestart=4 residual=84 cycle=58909237\nprogress cycle=59000000 flash=28092 state=10 status=0 pc=86 micro=1 ms=589695 UART=.\nprogress cycle=60000000 flash=28092 state=27 status=0 pc=42 micro=60 ms=599695 UART=.\nprogress cycle=61000000 flash=28092 state=27 status=0 pc=131 micro=22 ms=609695 UART=.\nprogress cycle=62000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=619695 UART=.\nprogress cycle=63000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=629695 UART=.\nprogress cycle=64000000 flash=28092 state=27 status=0 pc=106 micro=127 ms=639695 UART=.\nprogress cycle=65000000 flash=28092 state=27 status=0 pc=102 micro=127 ms=649695 UART=.\nprogress cycle=66000000 flash=28092 state=27 status=0 pc=102 micro=126 ms=659695 UART=.\nprogress cycle=67000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=669695 UART=.\nprogress cycle=68000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=679695 UART=.\nprogress cycle=69000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=689695 UART=.\nprogress cycle=70000000 flash=28092 state=27 status=0 pc=163 micro=127 ms=699695 UART=.\nprogress cycle=71000000 flash=28092 state=27 status=0 pc=173 micro=126 ms=709695 UART=.\nprogress cycle=72000000 flash=28092 state=27 status=0 pc=157 micro=127 ms=719695 UART=.\nprogress cycle=73000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=729695 UART=.\nprogress cycle=74000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=739695 UART=.\nprogress cycle=75000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=749695 UART=.\nprogress cycle=76000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=759695 UART=.\nrestart=5 residual=75 cycle=76215924\nPASS UART=.. cycles=76923537 CLOCK calls=3 ms=768930 pc=80 fsp=81 restarts=5 residual=75 peak_residual=84\n",
             "stderr": "",
             "image": {
               "source": "DOT == 46\nSECOND-MS == 1000\n\nloop ==\n  (Y\n    (LAMBDA (self)\n      (LAMBDA (last)\n        (IO-BIND (CLOCK)\n          (LAMBDA (now)\n            (if (>= (- now last) SECOND-MS)\n                (IO-THEN\n                  (UART-TX DOT)\n                  (self now))\n                (self last)))))))\n\n(IO-BIND (CLOCK)\n  (LAMBDA (start)\n    (loop start)))\n",
@@ -821,606 +913,2048 @@
                 "CONS": 59,
                 "__STRUCT_SELECTOR_RESULT__": 60
               },
-              "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+              "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
               "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
               "sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4"
             }
           }
         ],
-        "typed_if_cases": 12,
-        "typed_dots": {
-          "quantum": 5,
-          "outputs": 10,
-          "clock_calls": 11,
-          "restarts": 26,
-          "peak_residual_words": 86
+        "uart_prefix_rtl": {
+          "uart-alphanumerics": [
+            {
+              "name": "uart-alphanumerics",
+              "mode": "prefix",
+              "expected_hex": "3031",
+              "quantum": 5,
+              "max_cycles": 300000000,
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=248 micro=4 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=27 status=0 pc=51 micro=126 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=27 status=0 pc=43 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=27 status=0 pc=36 micro=126 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=27 status=0 pc=69 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=27 status=0 pc=31 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=27 status=0 pc=31 micro=127 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=28 status=2 pc=28 micro=0 ms=79695 UART=\nrestart=1 residual=40 cycle=8001481\nprogress cycle=9000000 flash=28092 state=27 status=0 pc=57 micro=127 ms=89695 UART=0\nprogress cycle=10000000 flash=28092 state=27 status=0 pc=64 micro=127 ms=99695 UART=0\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=70 micro=127 ms=109695 UART=0\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=60 micro=127 ms=119695 UART=0\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=81 micro=127 ms=129695 UART=0\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=44 micro=127 ms=139695 UART=0\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=44 micro=126 ms=149695 UART=0\nrestart=2 residual=43 cycle=15790989\nprogress cycle=16000000 flash=28092 state=10 status=0 pc=12 micro=60 ms=159695 UART=0\nprogress cycle=17000000 flash=28092 state=10 status=0 pc=37 micro=1 ms=169695 UART=0\nprogress cycle=18000000 flash=28092 state=10 status=0 pc=68 micro=127 ms=179695 UART=0\nprogress cycle=19000000 flash=28092 state=10 status=0 pc=57 micro=127 ms=189695 UART=0\nprogress cycle=20000000 flash=28092 state=10 status=0 pc=47 micro=126 ms=199695 UART=0\nprogress cycle=21000000 flash=28092 state=10 status=0 pc=47 micro=127 ms=209695 UART=0\nrestart=3 residual=30 cycle=21340971\nPASS UART=01 cycles=21673952 CLOCK calls=0 ms=216434 pc=39 fsp=40 restarts=3 residual=30 peak_residual=43\n",
+              "stderr": "",
+              "image": {
+                "source": "; Print ASCII digits and letters over the simulated UART, then stop.\n;\n; Run with:\n;   uv run thor examples/uart-alphanumerics.thor\n\nemit-range == (lambda (from to next)\n  (if (<= from to)\n      (IO-THEN (UART-TX from)\n               (emit-range (1+ from) to next))\n      next))\n\n(IO-THEN\n  (emit-range 48 57\n    (emit-range 65 90\n      (emit-range 97 122\n        (UART-TX 10))))\n  (IO-RETURN NIL))\n",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-THEN": 6,
+                  "IO-RETURN": 7,
+                  "NIL": 8,
+                  "emit-range": 9,
+                  "UART-TX": 10,
+                  "from": 11,
+                  "to": 12,
+                  "next": 13,
+                  "IF": 14,
+                  "1+": 15,
+                  "<=": 16,
+                  "1-": 17,
+                  "MINUS": 18,
+                  "ABS": 19,
+                  "FLOOR": 20,
+                  "CEILING": 21,
+                  "EVEN?": 22,
+                  "NULL?": 23,
+                  "NOT": 24,
+                  "INTEGER?": 25,
+                  "FLOAT?": 26,
+                  "CHAR?": 27,
+                  "SYMBOL?": 28,
+                  "+": 29,
+                  "-": 30,
+                  "*": 31,
+                  "/": 32,
+                  "<": 33,
+                  ">": 34,
+                  ">=": 35,
+                  "=": 36,
+                  "EXPT": 37,
+                  "MAX": 38,
+                  "MIN": 39,
+                  "MOD": 40,
+                  "AND": 41,
+                  "OR": 42,
+                  "Y": 43,
+                  "IO-BIND": 44,
+                  "CLOCK": 45,
+                  "UART-RX": 46,
+                  "UART-TX-BYTES": 47,
+                  "TRUE": 48,
+                  "FALSE": 49,
+                  "EQUAL?": 50,
+                  "__EQUAL_STAR__": 51,
+                  "__EQUAL_IF__": 52,
+                  "__EQUALITY_CONTINUE__": 53,
+                  "__EQUAL_STUCK__": 54,
+                  "__IF_RECONSTRUCT__": 55,
+                  "CONS": 56,
+                  "__STRUCT_SELECTOR_RESULT__": 57
+                },
+                "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "6960975dba092c793ad02077fdd46cbe771fb91edfb47e081798bac3fee98151"
+              }
+            }
+          ],
+          "uart-caesar-plus4": [
+            {
+              "name": "uart-caesar-plus4",
+              "mode": "rx-stream",
+              "expected_hex": "45",
+              "quantum": 5,
+              "max_cycles": 300000000,
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=9 status=0 pc=31 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=9 status=0 pc=27 micro=126 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=9 status=0 pc=15 micro=126 ms=29695 UART=\nrestart=1 residual=27 cycle=3312492\nprogress cycle=4000000 flash=28092 state=8 status=0 pc=33 micro=61 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=8 status=0 pc=50 micro=127 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=8 status=0 pc=41 micro=126 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=8 status=0 pc=76 micro=127 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=8 status=0 pc=62 micro=127 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=8 status=0 pc=62 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=8 status=0 pc=34 micro=127 ms=99695 UART=\nprogress cycle=11000000 flash=28092 state=8 status=0 pc=34 micro=126 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=8 status=0 pc=31 micro=127 ms=139695 UART=\nrestart=2 residual=49 cycle=14274893\nprogress cycle=15000000 flash=28092 state=10 status=0 pc=32 micro=60 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=10 status=0 pc=39 micro=60 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=10 status=0 pc=69 micro=126 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=10 status=0 pc=64 micro=127 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=10 status=0 pc=56 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=10 status=0 pc=56 micro=126 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=10 status=0 pc=53 micro=126 ms=209695 UART=\nrestart=3 residual=33 cycle=21961438\nprogress cycle=22000000 flash=28092 state=9 status=0 pc=2 micro=60 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=9 status=0 pc=40 micro=127 ms=229695 UART=\nrestart=4 residual=13 cycle=23895421\nprogress cycle=24000000 flash=28092 state=10 status=0 pc=5 micro=1 ms=239695 UART=\nPASS UART=E cycles=24326066 CLOCK calls=0 ms=242955 pc=18 fsp=19 restarts=4 residual=13 peak_residual=49\n",
+              "stderr": "",
+              "image": {
+                "source": "; Caesar cipher over the simulated UART. Letters rotate by +4; other bytes pass\n; through unchanged. ESC (byte 27) stops the loop. Ctrl-C stops the host process.\n;\n; Run with:\n;   uv run thor examples/uart-caesar-plus4.thor\n\nrot-upper == (lambda (byte)\n  (+ 65 (MOD (+ (- byte 65) 4) 26)))\n\nrot-lower == (lambda (byte)\n  (+ 97 (MOD (+ (- byte 97) 4) 26)))\n\nrot == (lambda (byte)\n  (if (AND (>= byte 65) (<= byte 90))\n      (rot-upper byte)\n      (if (AND (>= byte 97) (<= byte 122))\n          (rot-lower byte)\n          byte)))\n\nloop == (lambda (ignored)\n  (IO-BIND (UART-RX)\n    (LAMBDA (byte)\n      (if (= byte NIL)\n          (loop NIL)\n          (if (= byte 27)\n              (IO-RETURN NIL)\n              (IO-THEN (UART-TX (rot byte))\n                       (loop NIL)))))))\n\n(loop NIL)\n",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "loop": 6,
+                  "NIL": 7,
+                  "byte": 8,
+                  "+": 9,
+                  "MOD": 10,
+                  "-": 11,
+                  "IF": 12,
+                  "rot-lower": 13,
+                  "FALSE": 14,
+                  "TRUE": 15,
+                  "<=": 16,
+                  ">=": 17,
+                  "rot-upper": 18,
+                  "ignored": 19,
+                  "IO-BIND": 20,
+                  "IO-THEN": 21,
+                  "UART-TX": 22,
+                  "rot": 23,
+                  "IO-RETURN": 24,
+                  "=": 25,
+                  "UART-RX": 26,
+                  "1-": 27,
+                  "1+": 28,
+                  "MINUS": 29,
+                  "ABS": 30,
+                  "FLOOR": 31,
+                  "CEILING": 32,
+                  "EVEN?": 33,
+                  "NULL?": 34,
+                  "NOT": 35,
+                  "INTEGER?": 36,
+                  "FLOAT?": 37,
+                  "CHAR?": 38,
+                  "SYMBOL?": 39,
+                  "*": 40,
+                  "/": 41,
+                  "<": 42,
+                  ">": 43,
+                  "EXPT": 44,
+                  "MAX": 45,
+                  "MIN": 46,
+                  "AND": 47,
+                  "OR": 48,
+                  "Y": 49,
+                  "CLOCK": 50,
+                  "UART-TX-BYTES": 51,
+                  "EQUAL?": 52,
+                  "__EQUAL_STAR__": 53,
+                  "__EQUAL_IF__": 54,
+                  "__EQUALITY_CONTINUE__": 55,
+                  "__EQUAL_STUCK__": 56,
+                  "__IF_RECONSTRUCT__": 57,
+                  "CONS": 58,
+                  "__STRUCT_SELECTOR_RESULT__": 59
+                },
+                "core_source_sha256": "12ca2c80c314a92b03398609c87f365add886e05e4606de6ba55ada003a7ac0a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928"
+              }
+            }
+          ]
         },
-        "inline_io_cases": 4,
-        "typed_polling_dots": {
-          "quantum": 5,
-          "outputs": 10,
-          "clock_calls": 40,
-          "restarts": 84,
-          "peak_residual_words": 86
+        "native_uart_programs": {
+          "alphanumerics": {
+            "case": "uart-alphanumerics",
+            "quantum": 20,
+            "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+            "program_sha256": "25621920d84a604fc871ebe4b06f90965f1d7b1d800006651b95b7555a96f81d",
+            "working_arena_words": 225,
+            "clocks": 120214,
+            "restarts": 31,
+            "peak_residual_words": 41,
+            "input_count": 0,
+            "output_hex": "303132333435363738394142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a0a",
+            "passed": true
+          },
+          "caesar": {
+            "case": "uart-caesar-plus4",
+            "quantum": 5,
+            "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+            "program_sha256": "a167758deb893515bcfa7893fe6fbcd43729f6f07c72b4807d576fd02232217b",
+            "working_arena_words": 120,
+            "clocks": 51271,
+            "restarts": 24,
+            "peak_residual_words": 49,
+            "input_count": 6,
+            "output_hex": "4564303921",
+            "passed": true
+          }
         },
-        "source_fibonacci_result": 8,
-        "static_checks_passed": 11,
-        "clock_dots_q20_limitation": "The current source produces one dot, then raises FAULT_GRAPH_ENV_COLLISION after two restarts at q=20; clock-dots is deployed with q=5",
-        "known_baseline_parity_failure": "check_syn_sim.py --fibonacci-only differs from the newer Concrete sharing policy at commit 212, address 11, on the unchanged production baseline and preceding v5 candidate; the present revision separately verifies the semantic result 8"
+        "generic_publication_and_selector_parity": "PASS",
+        "deployment_qualified": true,
+        "exact_mise_commands_physical": {
+          "passed": true,
+          "stages": [
+            {
+              "name": "uart-alphanumerics",
+              "command": [
+                "mise",
+                "run",
+                "fpga",
+                "examples/uart-alphanumerics.thor"
+              ],
+              "quantum": 20,
+              "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/uart-alphanumerics-_y3aj5l4/program.bin",
+              "image_sha256": "2a9f67e4b162a16ff459dae1348aef77d72547b882e8380406c3ef101eec0738",
+              "output_hex": "303132333435363738394142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a0a",
+              "input_hex": "",
+              "halt_verified": true,
+              "samples": [
+                {
+                  "seconds": 6.259311,
+                  "hex": "30"
+                },
+                {
+                  "seconds": 6.331344,
+                  "hex": "31"
+                },
+                {
+                  "seconds": 7.163216,
+                  "hex": "32"
+                },
+                {
+                  "seconds": 7.259362,
+                  "hex": "33"
+                },
+                {
+                  "seconds": 8.075201,
+                  "hex": "34"
+                },
+                {
+                  "seconds": 8.171199,
+                  "hex": "35"
+                },
+                {
+                  "seconds": 8.971156,
+                  "hex": "36"
+                },
+                {
+                  "seconds": 9.083119,
+                  "hex": "37"
+                },
+                {
+                  "seconds": 9.883055,
+                  "hex": "38"
+                },
+                {
+                  "seconds": 9.979087,
+                  "hex": "39"
+                },
+                {
+                  "seconds": 10.859128,
+                  "hex": "41"
+                },
+                {
+                  "seconds": 10.95508,
+                  "hex": "42"
+                },
+                {
+                  "seconds": 11.307027,
+                  "hex": "43"
+                },
+                {
+                  "seconds": 12.380599,
+                  "hex": "444546"
+                },
+                {
+                  "seconds": 12.731059,
+                  "hex": "47"
+                },
+                {
+                  "seconds": 12.827101,
+                  "hex": "48"
+                },
+                {
+                  "seconds": 13.546914,
+                  "hex": "49"
+                },
+                {
+                  "seconds": 13.658937,
+                  "hex": "4a"
+                },
+                {
+                  "seconds": 14.378894,
+                  "hex": "4b"
+                },
+                {
+                  "seconds": 14.474921,
+                  "hex": "4c"
+                },
+                {
+                  "seconds": 15.210877,
+                  "hex": "4d"
+                },
+                {
+                  "seconds": 15.307206,
+                  "hex": "4e"
+                },
+                {
+                  "seconds": 16.042942,
+                  "hex": "4f"
+                },
+                {
+                  "seconds": 16.138916,
+                  "hex": "50"
+                },
+                {
+                  "seconds": 16.90862,
+                  "hex": "51"
+                },
+                {
+                  "seconds": 16.954879,
+                  "hex": "52"
+                },
+                {
+                  "seconds": 18.555405,
+                  "hex": "535455"
+                },
+                {
+                  "seconds": 18.61881,
+                  "hex": "56"
+                },
+                {
+                  "seconds": 19.354726,
+                  "hex": "57"
+                },
+                {
+                  "seconds": 19.450725,
+                  "hex": "58"
+                },
+                {
+                  "seconds": 20.17071,
+                  "hex": "59"
+                },
+                {
+                  "seconds": 20.266718,
+                  "hex": "5a"
+                },
+                {
+                  "seconds": 21.050705,
+                  "hex": "61"
+                },
+                {
+                  "seconds": 21.146685,
+                  "hex": "62"
+                },
+                {
+                  "seconds": 21.43479,
+                  "hex": "63"
+                },
+                {
+                  "seconds": 21.530642,
+                  "hex": "64"
+                },
+                {
+                  "seconds": 21.994691,
+                  "hex": "65"
+                },
+                {
+                  "seconds": 22.090653,
+                  "hex": "66"
+                },
+                {
+                  "seconds": 22.778603,
+                  "hex": "67"
+                },
+                {
+                  "seconds": 22.888489,
+                  "hex": "68"
+                },
+                {
+                  "seconds": 23.562618,
+                  "hex": "69"
+                },
+                {
+                  "seconds": 24.646651,
+                  "hex": "6a6b6c"
+                },
+                {
+                  "seconds": 25.114515,
+                  "hex": "6d"
+                },
+                {
+                  "seconds": 25.226491,
+                  "hex": "6e"
+                },
+                {
+                  "seconds": 25.898461,
+                  "hex": "6f"
+                },
+                {
+                  "seconds": 25.99447,
+                  "hex": "70"
+                },
+                {
+                  "seconds": 26.682465,
+                  "hex": "71"
+                },
+                {
+                  "seconds": 26.778421,
+                  "hex": "72"
+                },
+                {
+                  "seconds": 27.466402,
+                  "hex": "73"
+                },
+                {
+                  "seconds": 27.562395,
+                  "hex": "74"
+                },
+                {
+                  "seconds": 28.250429,
+                  "hex": "75"
+                },
+                {
+                  "seconds": 28.346372,
+                  "hex": "76"
+                },
+                {
+                  "seconds": 29.034325,
+                  "hex": "77"
+                },
+                {
+                  "seconds": 29.130328,
+                  "hex": "78"
+                },
+                {
+                  "seconds": 29.818338,
+                  "hex": "79"
+                },
+                {
+                  "seconds": 30.885748,
+                  "hex": "7a0a"
+                }
+              ],
+              "last_leds": {
+                "LD0": 0,
+                "LD1": 1,
+                "LD2": 1,
+                "LD3": 1,
+                "LD4": 0,
+                "LD5": 1,
+                "LD6": 0,
+                "LD7": 0
+              },
+              "passed": true
+            },
+            {
+              "name": "uart-caesar-plus4",
+              "command": [
+                "mise",
+                "run",
+                "fpga",
+                "examples/uart-caesar-plus4.thor"
+              ],
+              "quantum": 5,
+              "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/uart-caesar-plus4-mtz9n6ge/program.bin",
+              "image_sha256": "8c1edd1c326b737e03634b6c20c58c37550c00c49dacf732fdfab0de4f4df928",
+              "output_hex": "4564303921",
+              "input_hex": "417a3039211b",
+              "halt_verified": true,
+              "samples": [
+                {
+                  "seconds": 8.617858,
+                  "hex": "45"
+                },
+                {
+                  "seconds": 12.493382,
+                  "hex": "64"
+                },
+                {
+                  "seconds": 13.401659,
+                  "hex": "30"
+                },
+                {
+                  "seconds": 15.065634,
+                  "hex": "39"
+                },
+                {
+                  "seconds": 16.217678,
+                  "hex": "21"
+                }
+              ],
+              "last_leds": {
+                "LD0": 0,
+                "LD1": 1,
+                "LD2": 1,
+                "LD3": 0,
+                "LD4": 0,
+                "LD5": 1,
+                "LD6": 0,
+                "LD7": 1
+              },
+              "passed": true
+            },
+            {
+              "name": "clock-dots",
+              "command": [
+                "mise",
+                "run",
+                "fpga",
+                "examples/clock-dots.thor"
+              ],
+              "quantum": 5,
+              "image": "/Users/billie/code/billiegoose/asgard/build/red2-standalone/programs/clock-dots-zdwpmprd/program.bin",
+              "image_sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+              "output_hex": "2e2e2e",
+              "input_hex": "",
+              "halt_verified": false,
+              "samples": [
+                {
+                  "seconds": 9.735751,
+                  "hex": "2e"
+                },
+                {
+                  "seconds": 13.799575,
+                  "hex": "2e"
+                },
+                {
+                  "seconds": 16.887369,
+                  "hex": "2e"
+                }
+              ],
+              "last_leds": {
+                "LD0": 0,
+                "LD1": 1,
+                "LD2": 1,
+                "LD3": 0,
+                "LD4": 1,
+                "LD5": 0,
+                "LD6": 0,
+                "LD7": 1
+              },
+              "passed": true
+            }
+          ],
+          "core_source_sha256": "aad93dd1b6d249a4510ba496180b35ffc584e9ab4caaa40f0310192f9e77be72",
+          "profiles_sha256": "d15c795a4c04010f2105d2e42646493e4509e2edce74141753db000cdc42deee"
+        }
+      },
+      "physical": {
+        "qualified": true,
+        "prepared": "build/red2-basys3-standalone-quantum-v8-seed2",
+        "bitstream_sha256": "3b385f2fc3b0228ac83c8b07affe0a9c94c0d79ca009739d38019cfe21fcc6b0",
+        "resources": {
+          "top": "red2_basys3",
+          "lut": 18269,
+          "lut_memory": 394,
+          "lut_total": 18663,
+          "unknown_memory_primitives": [],
+          "unaccounted_primitives": [],
+          "flipflops": 9567,
+          "bram18": 23,
+          "bram36": 28,
+          "bram36_equivalent": 39.5,
+          "dsp48": 12,
+          "carry4": 647,
+          "muxf7": 0,
+          "muxf8": 0,
+          "startup": 1,
+          "primitives": {
+            "BUFG": 2,
+            "BUFGCE": 1,
+            "CARRY4": 647,
+            "DSP48E1": 12,
+            "FDCE": 2,
+            "FDRE": 9510,
+            "FDSE": 55,
+            "IBUF": 3,
+            "INV": 750,
+            "LUT2": 3175,
+            "LUT3": 2853,
+            "LUT4": 2453,
+            "LUT5": 3494,
+            "LUT6": 6294,
+            "MMCME2_ADV": 1,
+            "OBUF": 13,
+            "RAM256X1S": 50,
+            "RAM32M": 2,
+            "RAM64M": 15,
+            "RAM64X1S": 126,
+            "RAMB18E1": 23,
+            "RAMB36E1": 28,
+            "STARTUPE2": 1
+          },
+          "basys3_over_budget": {},
+          "within_basys3_resource_limits": true
+        },
+        "unique_physical_lut_sites": 18510,
+        "timing": {
+          "core_clock": {
+            "achieved_mhz": 14.42,
+            "status": "PASS",
+            "required_mhz": 10.0
+          },
+          "clock": {
+            "achieved_mhz": 13.56,
+            "status": "PASS",
+            "required_mhz": 10.0
+          }
+        },
+        "receipt": "build/red2-uart-fix/physical-v8-zedjkwxo/receipt.json",
+        "uart_examples_halted": true,
+        "clock_dots_flash_outputs": 30,
+        "clock_dots_reset_outputs": 10,
+        "current_program": "clock-dots",
+        "serial_port_released": true
       }
     }
   },
-  "previous_physical_attempt": {
-    "qualified": false,
-    "build": "build/red2-basys3-standalone-quantum",
-    "built": true,
-    "physical_lut_sites": 18567,
-    "timing": {
-      "core_clock": {
-        "achieved_mhz": 13.77,
-        "status": "PASS",
-        "required_mhz": 10.0
-      },
-      "clock": {
-        "achieved_mhz": 13.37,
-        "status": "PASS",
-        "required_mhz": 10.0
-      }
-    },
-    "observed_uart_dots": 4,
-    "host_uart_bytes_written": 0,
-    "program_data_flash_verified": true,
-    "configuration_flash_programmed": false,
-    "outcome": "Four dots followed by a fault; JTAG SAMPLE and user observation confirm LD6=1, LD4=0. The source model reproduces the same four-dot stop as CONTROL_UNDERFLOW in inline IO-THEN sequencing. Candidate is not qualified for sustained operation.",
-    "source_regression": "IO-THEN with a reconstructed inline NIL value has no child JOIN frame; the existing JOIN sequencing path incorrectly restores a nonexistent frame.",
-    "artifacts_sha256": {
-      "build/red2-basys3-standalone-quantum/build-result.json": "5b1b41171eee05404115434b70895c268d1a759f897196828f4ffc89a843b3fe",
-      "build/red2-basys3-standalone-quantum/board-timing.json": "3d955fc979334f21e4c227b5fd1e379c92cd6932881289805d17d601b725fa19",
-      "build/red2-basys3-standalone-quantum/board-physical-lut-sites.json": "d70269c9811999750da925f1c81bfcbc65540658fdaeebf50607aa2e0486bfba",
-      "build/red2-standalone/quantum-deployment-stall.json": "a7006129be9fe70ec0019d24188b12dd86b676a83cf5df6a1dec41c5ae91f3b3",
-      "build/red2-finite-quantum/sample-status.json": "73adbc594f03365b5170a2084e8808ade37f6de648066fbd6bb08cf47e167425",
-      "build/red2-finite-quantum/sample-status.log": "a428a0027d15bfaf17fd0e6ada710982924d896b675ad0057ec269d399fae1ee",
-      "build/red2-finite-quantum/native-always-due.log": "83d2824333f336f59fa2c94baa06c50f49df34aa09ea4143f26b9b4bd468c893",
-      "build/red2-finite-quantum/native-stress20.log": "2e9651dbff63e8825f66a811e0f655e7a102996c983b7583ce32424c786c70a7",
-      "build/red2-finite-quantum/direct-io-before.log": "98f8fd25fcee7ee82a9680830c33701dc8a5eff11dae91984e27d67020b32176",
-      "build/red2-finite-quantum/inline-io-old-rtl.log": "a8cb65e360aaa7b8f998ef5916406c32e0959f45d14c7ef11d23941456b8c251"
-    },
-    "focused_old_rtl_failure": "The inline IO-THEN fixture also raises core CONTROL_UNDERFLOW=4 on the old lowered circuit after 193324 board cycles, before UART output."
-  },
-  "supervisor": {
-    "default_quantum": 20,
-    "clock_dots_quantum": 5,
-    "arena_words": 256,
-    "control_words": 256,
-    "literal_entries": 64,
-    "behavior": "Finish q=0 reconstruction, copy reachable residual spines, relocate APP/RBLOCK links, restart the dedicated reducer; CLOCK and UART never refresh the budget"
-  },
-  "physical": {
-    "recorded_at_utc": "2026-10-16T22:57:18.700224+00:00",
-    "state": "qualified-autonomous-finite-quantum-flash-boot",
-    "qualified": true,
-    "build": "build/red2-basys3-standalone-quantum-v6-seed2",
-    "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
-    "program": "examples/clock-dots.thor",
-    "quantum": 5,
-    "resources": {
-      "top": "red2_basys3",
-      "lut": 18108,
-      "lut_memory": 394,
-      "lut_total": 18502,
-      "unknown_memory_primitives": [],
-      "unaccounted_primitives": [],
-      "flipflops": 9567,
-      "bram18": 23,
-      "bram36": 28,
-      "bram36_equivalent": 39.5,
-      "dsp48": 12,
-      "carry4": 647,
-      "muxf7": 0,
-      "muxf8": 0,
-      "startup": 1,
-      "primitives": {
-        "BUFG": 2,
-        "BUFGCE": 1,
-        "CARRY4": 647,
-        "DSP48E1": 12,
-        "FDCE": 2,
-        "FDRE": 9510,
-        "FDSE": 55,
-        "IBUF": 3,
-        "INV": 750,
-        "LUT2": 3016,
-        "LUT3": 2756,
-        "LUT4": 2472,
-        "LUT5": 3640,
-        "LUT6": 6224,
-        "MMCME2_ADV": 1,
-        "OBUF": 13,
-        "RAM256X1S": 50,
-        "RAM32M": 2,
-        "RAM64M": 15,
-        "RAM64X1S": 126,
-        "RAMB18E1": 23,
-        "RAMB36E1": 28,
-        "STARTUPE2": 1
-      },
-      "basys3_over_budget": {},
-      "within_basys3_resource_limits": true
-    },
-    "physical_lut_sites": 18467,
-    "timing": {
-      "core_clock": {
-        "achieved_mhz": 13.1,
-        "status": "PASS",
-        "required_mhz": 10.0
-      },
-      "clock": {
-        "achieved_mhz": 12.53,
-        "status": "PASS",
-        "required_mhz": 10.0
-      }
-    },
-    "observed_dots_per_boot": 30,
-    "deployment": {
-      "started_at_utc": "2026-10-16T22:50:15.895108+00:00",
-      "image_sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
-      "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
-      "persistent_requested": true,
-      "passed": true,
-      "stages": [
-        {
-          "stage": "program-data",
-          "command": [
-            "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
-            "/Users/billie/code/billiegoose/fpgatool/fpgatool.py",
-            "program-data",
-            "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin",
-            "--offset",
-            "0x220000"
-          ],
-          "log": "build/red2-standalone/quantum-v6-deployment-program-data.log",
-          "passed": true
+  "previous_qualified_result": {
+    "recorded_at_utc": "2026-10-16T20:26:33.410126+00:00",
+    "scope": "Dedicated finite-quantum RED2 with hardware residual relocation, autonomous QSPI program boot, elapsed CLOCK and physical UART; source, frontend RTL, routed implementation and persistent board execution qualified",
+    "container_image": "docker.io/nixos/nix@sha256:617d914dba5384bf75adf17081583b69371031ec7defce36c34c5fa14fc819b0",
+    "fpgatool_commit": "ad377479db8a70b027fdb096bfb8f0df308524bc",
+    "variants": {
+      "finite-quantum": {
+        "candidate_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+        "compiler_manifest_sha256": "9834e480170b454874ef9bba3af7471fc6eaeb093b5f88fd7abb97392e2eb555",
+        "configuration": {
+          "RED2_CFG_PILOT_OUT": "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6",
+          "RED2_CFG_PILOT_GRAPH": "1",
+          "RED2_CFG_PILOT_LOOKUP": "1",
+          "RED2_CFG_PILOT_COMPACT": "1",
+          "RED2_CFG_PILOT_OWNED": "1",
+          "RED2_CFG_PILOT_INTEGRATED_NAME": "integrated-stream",
+          "RED2_CFG_PILOT_EXTRA_STATES": "MICRO_STRUCT_SELECTOR_ROOT_READ,MICRO_STRUCT_SELECTOR_DESCRIPTOR_READ,MICRO_STRUCT_SELECTOR_COPY_SCAN,MICRO_STRUCT_SELECTOR_COPY_READ,MICRO_STRUCT_SELECTOR_COPY_WRITE,MICRO_STRUCT_SELECTOR_PROMOTE_SCAN,MICRO_STRUCT_SELECTOR_PROMOTE_READ,MICRO_STRUCT_RESULT_READ,MICRO_STRUCT_RECON_SAVED_Q,MICRO_STRUCT_REVERSE_CONTROL_READ,MICRO_STRUCT_REVERSE_POP,MICRO_JOIN_PARENT_READ,MICRO_JOIN_EP_TARGET_READ,MICRO_JOIN_FRAME_READ,MICRO_JOIN_RBLOCK_PHI_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_SCAN,MICRO_JOIN_STRUCT_PREFLIGHT_TARGET,MICRO_JOIN_STRUCT_PREFLIGHT_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_SCAN,MICRO_JOIN_STRUCT_REWRITE_TARGET,MICRO_JOIN_STRUCT_REWRITE_EP_CHASE,MICRO_JOIN_STRUCT_REWRITE_WRITE,MICRO_JOIN_SPECIAL_META_DONE,MICRO_JOIN_CONTROL_CLEAR,MICRO_JOIN_IO_CONT_READ,MICRO_JOIN_IO_PATH_READ,MICRO_JOIN_IO_COMMIT,MICRO_JOIN_IF_FALSE_READ,MICRO_JOIN_IF_TRUE_READ,MICRO_JOIN_IF_TRUE_PATH_READ,MICRO_JOIN_IF_FALSE_PATH_READ,MICRO_JOIN_IF_PATH_CLEAR,MICRO_JOIN_IF_SELECT,MICRO_JOIN_EP_CACHE,MICRO_JOIN_CLOSURE_CODE_READ,MICRO_JOIN_CLOSURE_LAMBDA_SCAN,MICRO_JOIN_CLOSURE_BODY_READ,MICRO_JOIN_CLOSURE_ENV_READ,MICRO_JOIN_CLOSURE_PREFLIGHT,MICRO_JOIN_CLOSURE_WRITE_LAMBDA,MICRO_JOIN_CLOSURE_WRITE_LAMBDA_COMMIT,MICRO_JOIN_CLOSURE_WRITE_BODY,MICRO_JOIN_APP_REWRITE_READ,MICRO_JOIN_APP_REWRITE_WRITE,MICRO_JOIN_MULTI_TARGET_CHASE,MICRO_JOIN_MULTI_TARGET_ADVANCE,MICRO_JOIN_MULTI_TARGET_WRITE_FIRST,MICRO_JOIN_MULTI_TARGET_WRITE_SECOND,MICRO_JOIN_RECP_RBLOCK_SCAN,MICRO_JOIN_RECP_RBLOCK_BINDING_READ,MICRO_JOIN_RECP_RBLOCK_BODY_READ,MICRO_JOIN_FLAT_SCAN,MICRO_U64_DIV,MICRO_JOIN_IF_INLINE_WRITE,MICRO_U64_DIV_FINISH,MICRO_JOIN_SCALAR_INT_POW,MICRO_JOIN_IF_RECON_FALSE,MICRO_JOIN_IF_RECON_TRUE,MICRO_JOIN_GENERIC_LAUNCH",
+          "RED2_CFG_PILOT_DICTIONARY": "1",
+          "RED2_CFG_PILOT_STREAM_BRIDGE": "1",
+          "RED2_CFG_PILOT_PUBLICATION_TRANSACTIONS": "1",
+          "RED2_CFG_PILOT_PRUNE_ALIASES": "1",
+          "RED2_CFG_PILOT_SPARSE_PUBLICATION": "1",
+          "RED2_CFG_PILOT_DEAD_TEMPS": "1",
+          "RED2_CFG_PILOT_PUBLICATION_LAUNCHES": "1",
+          "RED2_CFG_PILOT_SCALAR_CORE": "1",
+          "RED2_CFG_PILOT_ONEHOT_IMPORT": "1",
+          "RED2_CFG_PILOT_LITERAL_METADATA": "1",
+          "RED2_CFG_PILOT_CONTROL_COMPACT": "1",
+          "RED2_CFG_PILOT_INTEGER_JOINS": "1",
+          "RED2_SYN_FLOAT": "0",
+          "RED2_SYN_GRAPH_WORDS": "256",
+          "RED2_CFG_PILOT_SHARED_RESPONSE": "1",
+          "RED2_CFG_PILOT_COMPACT_PENDING": "1",
+          "RED2_CFG_PILOT_REVERSE_CONTROL": "1",
+          "RED2_CFG_PILOT_DIRTY_WRITEBACK": "1",
+          "RED2_CFG_PILOT_SHARED_MULTIPLY": "1"
         },
-        {
-          "stage": "load-sram",
-          "command": [
-            "openFPGALoader",
-            "--board",
-            "basys3",
-            "--ftdi-serial",
-            "210183735787",
-            "--write-sram",
-            "--bitstream",
-            "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
-          ],
-          "log": "build/red2-standalone/quantum-v6-deployment-load-sram.log",
-          "passed": true
+        "resources": {
+          "top": "top",
+          "lut": 15438,
+          "lut_memory": 326,
+          "lut_total": 15764,
+          "unknown_memory_primitives": [],
+          "unaccounted_primitives": [],
+          "flipflops": 6170,
+          "bram18": 21,
+          "bram36": 24,
+          "bram36_equivalent": 34.5,
+          "dsp48": 10,
+          "carry4": 550,
+          "muxf7": 0,
+          "muxf8": 0,
+          "startup": 0,
+          "primitives": {
+            "BUFG": 1,
+            "CARRY4": 550,
+            "DSP48E1": 10,
+            "FDRE": 6170,
+            "INV": 649,
+            "LUT2": 2348,
+            "LUT3": 2636,
+            "LUT4": 2221,
+            "LUT5": 3235,
+            "LUT6": 4998,
+            "RAM256X1S": 50,
+            "RAM64X1S": 126,
+            "RAMB18E1": 21,
+            "RAMB36E1": 24
+          },
+          "basys3_over_budget": {},
+          "within_basys3_resource_limits": true
         },
-        {
-          "stage": "program-config",
-          "command": [
-            "openFPGALoader",
-            "--board",
-            "basys3",
-            "--ftdi-serial",
-            "210183735787",
-            "--write-flash",
-            "--verify",
-            "--bitstream",
-            "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
-          ],
-          "log": "build/red2-standalone/quantum-v6-deployment-program-config.log",
-          "passed": true
+        "usable_fit_candidate": true,
+        "verilator_netlist_provenance": {
+          "coarse_json_sha256": "c973e3511dc7cb1f5f9507679835356b100505863b5a1c6a1a9e71cbccdf7b08",
+          "coarse_verilog_sha256": "400d78e517334448f4c7e543dfc1c0c39097a1f40f3c1ea938642616720e3eb1",
+          "candidate_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+          "replay_cpp_sha256": "afad96d33d60f99aa29f4368a5645c40a8c635758b4ed6bf3917713b48c7363d",
+          "wrapper_sha256": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+          "conversion_passes": "read_json; rename -hide; opt_clean -purge; memory_unpack; write_verilog -noattr",
+          "input_width": 722,
+          "output_width": 626,
+          "scope": "Optimized GHDL/Yosys area-map frontend RTL before technology mapping"
         },
-        {
-          "stage": "reset-from-flash",
-          "command": [
-            "openFPGALoader",
-            "--board",
-            "basys3",
-            "--ftdi-serial",
-            "210183735787",
-            "--reset"
+        "artifacts": {
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/baseline-area.json": "a6ee4c62141ab0bd546bdb284788ce08650c3ed8240c722a673d195a1b1e74d0",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/coarse.json": "c973e3511dc7cb1f5f9507679835356b100505863b5a1c6a1a9e71cbccdf7b08",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/machine.py": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/provenance.json": "5b0e313a1bc31302292313585df988e947740b6fba6aee006d35f7c0d18e4dac",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/provenance.json": "e381b6bdd8aa8f9ebe27b2fe654025809d5a4a29fcf89cdb998bb206c68bd0ab",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/clean.v": "400d78e517334448f4c7e543dfc1c0c39097a1f40f3c1ea938642616720e3eb1",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-v6/integrated-stream/rtl-netlist/wrapper.v": "1820304c9cd75fade8307001a7e535e0b77c9db077933baadaee01ea7f609430",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/rtl-v6/results.json": "35d6656262daa81c7221b8b59dbb5ee0b22e2897bb2fdb2a4abf4b0a9dfba6ec",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/rtl-v6/model-inputs.json": "9d1aad763b9945adaf742011642ba291cf0778ae9f0f6f5a069c8134aa9e3d08",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-if-v6.log": "9d10ad62c48b311d5b87bab378e4556452e04cfabdbb0d5965dd95fbe747fb25",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-always-due-fixed.log": "17911c104f924c85068512ef83c173a6053457bf143f98a07c8c78c1132cfae8",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-q20-v6.log": "e2293040bad572e91a4b0ec5e59a681885c58a8178d0cb09725f03e6da6b7e4b",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/restart-test.log": "f51439f3d018c67837957ca586d4909799cfb77d08464e9b7729df3efc584ccf",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-v6.log": "aa67a169b0bba217aa0aa88a65346920c84c42447c36ba5f7ea65f422c1fe5d8",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-regression.log": "7053e1d2921cffaf54eb8e166e940bfb63fe11c2fafe4cc44bf98b1116138008",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/fibonacci-baseline-production.log": "58fd25fc5bab876ace34765028b85b4e4b658604f5957262efc44e6349304eb5",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/configuration-v6.json": "804cb108392b49f060871db3fd4ea6e2d3d95ba2069cebc9dfb4f625b0867b0c",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/core-preflight-v6.json": "7c8ef5426f91d05d7f41fa8f25b371d47aa90ae20c2a1254b6970f8003163279",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/static-v6.log": "7be35d67b565833db1dd298e8e8000cfe7e358077801f1425cb88f1aa7229378",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-io-shared-final.log": "b91211d373cc99d28d6b3168f9ed7479f463c54a8b238343e7a094699ecef15e",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/native-polling-fixed.log": "20f3ae58f101cbe7b912d6d34d523c2cd0000699201c0f980ec45fc3bee57282",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/v5-failed-report.json": "fc48b3051a4a510230ffe99921a6bef299418995eb0b07de96e48b03bda52cc1",
+          "/Users/billie/code/billiegoose/asgard/build/red2-finite-quantum/inline-io-old-rtl.log": "a8cb65e360aaa7b8f998ef5916406c32e0959f45d14c7ef11d23941456b8c251",
+          "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_standalone/check_io_quantum.py": "ac107fd08842d342c289e263c29c792e66a437148779c757d5371606f43c9552",
+          "/Users/billie/code/billiegoose/asgard/scripts/boards/red2_standalone/io_fixture.py": "0c6113520d266af84d79f5d521e20cf31578caf10a8a4d266d54c7daeee915ce"
+        },
+        "validation": {
+          "standalone_frontend_rtl": [
+            {
+              "name": "budget20",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND (CLOCK) (LAMBDA (x) (UART-TX 65)))",
+                "quantum": 20,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "x": 7,
+                  "UART-TX": 8,
+                  "CLOCK": 9,
+                  "1-": 10,
+                  "1+": 11,
+                  "MINUS": 12,
+                  "ABS": 13,
+                  "FLOOR": 14,
+                  "CEILING": 15,
+                  "EVEN?": 16,
+                  "NULL?": 17,
+                  "NOT": 18,
+                  "INTEGER?": 19,
+                  "FLOAT?": 20,
+                  "CHAR?": 21,
+                  "SYMBOL?": 22,
+                  "+": 23,
+                  "-": 24,
+                  "*": 25,
+                  "/": 26,
+                  "<": 27,
+                  ">": 28,
+                  "<=": 29,
+                  ">=": 30,
+                  "=": 31,
+                  "EXPT": 32,
+                  "MAX": 33,
+                  "MIN": 34,
+                  "MOD": 35,
+                  "IF": 36,
+                  "AND": 37,
+                  "OR": 38,
+                  "Y": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "5cb8d0d12cf941bc6837b59db6d5270569154e42cc7a65bd025dfd9825e0275f"
+              }
+            },
+            {
+              "name": "inline-io-then",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=280610 CLOCK calls=0\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-THEN NIL (UART-TX 65))",
+                "quantum": 3,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-THEN": 6,
+                  "UART-TX": 7,
+                  "NIL": 8,
+                  "1-": 9,
+                  "1+": 10,
+                  "MINUS": 11,
+                  "ABS": 12,
+                  "FLOOR": 13,
+                  "CEILING": 14,
+                  "EVEN?": 15,
+                  "NULL?": 16,
+                  "NOT": 17,
+                  "INTEGER?": 18,
+                  "FLOAT?": 19,
+                  "CHAR?": 20,
+                  "SYMBOL?": 21,
+                  "+": 22,
+                  "-": 23,
+                  "*": 24,
+                  "/": 25,
+                  "<": 26,
+                  ">": 27,
+                  "<=": 28,
+                  ">=": 29,
+                  "=": 30,
+                  "EXPT": 31,
+                  "MAX": 32,
+                  "MIN": 33,
+                  "MOD": 34,
+                  "IF": 35,
+                  "AND": 36,
+                  "OR": 37,
+                  "Y": 38,
+                  "IO-BIND": 39,
+                  "IO-RETURN": 40,
+                  "CLOCK": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "EQUAL?": 46,
+                  "__EQUAL_STAR__": 47,
+                  "__EQUAL_IF__": 48,
+                  "__EQUALITY_CONTINUE__": 49,
+                  "__EQUAL_STUCK__": 50,
+                  "__IF_RECONSTRUCT__": 51,
+                  "CONS": 52,
+                  "__STRUCT_SELECTOR_RESULT__": 53
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "4ac97619995b3718265302a43e311fd7bd1358a72ec921c33882f64778c2fa7d",
+                "fixture": "IO-THEN with an inline first value and no child JOIN frame"
+              }
+            },
+            {
+              "name": "inline-io-bind",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=299908\nPASS HALTED UART=A cycles=300761 CLOCK calls=0\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND 65 (LAMBDA (x) (UART-TX x)))",
+                "quantum": 3,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "x": 7,
+                  "UART-TX": 8,
+                  "1-": 9,
+                  "1+": 10,
+                  "MINUS": 11,
+                  "ABS": 12,
+                  "FLOOR": 13,
+                  "CEILING": 14,
+                  "EVEN?": 15,
+                  "NULL?": 16,
+                  "NOT": 17,
+                  "INTEGER?": 18,
+                  "FLOAT?": 19,
+                  "CHAR?": 20,
+                  "SYMBOL?": 21,
+                  "+": 22,
+                  "-": 23,
+                  "*": 24,
+                  "/": 25,
+                  "<": 26,
+                  ">": 27,
+                  "<=": 28,
+                  ">=": 29,
+                  "=": 30,
+                  "EXPT": 31,
+                  "MAX": 32,
+                  "MIN": 33,
+                  "MOD": 34,
+                  "IF": 35,
+                  "AND": 36,
+                  "OR": 37,
+                  "Y": 38,
+                  "IO-THEN": 39,
+                  "IO-RETURN": 40,
+                  "CLOCK": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "fa359f04c0b5eb2dcfb02e3dbeeb74b1872a0bfcae58f45b838cfccca9bb9ff0",
+                "fixture": "IO-BIND with an inline first value and no child JOIN frame"
+              }
+            },
+            {
+              "name": "uart-tx",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=1 cycle=148492\nPASS HALTED UART=A cycles=149345 CLOCK calls=0\n",
+              "stderr": "",
+              "image": {
+                "source": "(UART-TX 65)",
+                "quantum": 1,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "UART-TX": 6,
+                  "1-": 7,
+                  "1+": 8,
+                  "MINUS": 9,
+                  "ABS": 10,
+                  "FLOOR": 11,
+                  "CEILING": 12,
+                  "EVEN?": 13,
+                  "NULL?": 14,
+                  "NOT": 15,
+                  "INTEGER?": 16,
+                  "FLOAT?": 17,
+                  "CHAR?": 18,
+                  "SYMBOL?": 19,
+                  "+": 20,
+                  "-": 21,
+                  "*": 22,
+                  "/": 23,
+                  "<": 24,
+                  ">": 25,
+                  "<=": 26,
+                  ">=": 27,
+                  "=": 28,
+                  "EXPT": 29,
+                  "MAX": 30,
+                  "MIN": 31,
+                  "MOD": 32,
+                  "IF": 33,
+                  "AND": 34,
+                  "OR": 35,
+                  "Y": 36,
+                  "IO-BIND": 37,
+                  "IO-THEN": 38,
+                  "IO-RETURN": 39,
+                  "CLOCK": 40,
+                  "UART-RX": 41,
+                  "UART-TX-BYTES": 42,
+                  "TRUE": 43,
+                  "FALSE": 44,
+                  "NIL": 45,
+                  "EQUAL?": 46,
+                  "__EQUAL_STAR__": 47,
+                  "__EQUAL_IF__": 48,
+                  "__EQUALITY_CONTINUE__": 49,
+                  "__EQUAL_STUCK__": 50,
+                  "__IF_RECONSTRUCT__": 51,
+                  "CONS": 52,
+                  "__STRUCT_SELECTOR_RESULT__": 53
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "f87e1dff5dfd9d29de5d51f605d9ae8c4f148cfe650dd3959fde88e1d460cd45"
+              }
+            },
+            {
+              "name": "clock-payload",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=A cycles=426320 CLOCK calls=1\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND (CLOCK) (LAMBDA (t) (UART-TX 65)))",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "t": 7,
+                  "UART-TX": 8,
+                  "CLOCK": 9,
+                  "1-": 10,
+                  "1+": 11,
+                  "MINUS": 12,
+                  "ABS": 13,
+                  "FLOOR": 14,
+                  "CEILING": 15,
+                  "EVEN?": 16,
+                  "NULL?": 17,
+                  "NOT": 18,
+                  "INTEGER?": 19,
+                  "FLOAT?": 20,
+                  "CHAR?": 21,
+                  "SYMBOL?": 22,
+                  "+": 23,
+                  "-": 24,
+                  "*": 25,
+                  "/": 26,
+                  "<": 27,
+                  ">": 28,
+                  "<=": 29,
+                  ">=": 30,
+                  "=": 31,
+                  "EXPT": 32,
+                  "MAX": 33,
+                  "MIN": 34,
+                  "MOD": 35,
+                  "IF": 36,
+                  "AND": 37,
+                  "OR": 38,
+                  "Y": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "bdd131162db4ae45e7cf5afc1eec57493263c1c926ecea91d0a3e845de8801dc"
+              }
+            },
+            {
+              "name": "uart-rx",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=409437 CLOCK calls=0\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "x": 7,
+                  "UART-TX": 8,
+                  "UART-RX": 9,
+                  "1-": 10,
+                  "1+": 11,
+                  "MINUS": 12,
+                  "ABS": 13,
+                  "FLOOR": 14,
+                  "CEILING": 15,
+                  "EVEN?": 16,
+                  "NULL?": 17,
+                  "NOT": 18,
+                  "INTEGER?": 19,
+                  "FLOAT?": 20,
+                  "CHAR?": 21,
+                  "SYMBOL?": 22,
+                  "+": 23,
+                  "-": 24,
+                  "*": 25,
+                  "/": 26,
+                  "<": 27,
+                  ">": 28,
+                  "<=": 29,
+                  ">=": 30,
+                  "=": 31,
+                  "EXPT": 32,
+                  "MAX": 33,
+                  "MIN": 34,
+                  "MOD": 35,
+                  "IF": 36,
+                  "AND": 37,
+                  "OR": 38,
+                  "Y": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "CLOCK": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "77e2a0c8785c62af0d618dfc3559dad360b5d73ce32881089a7d824ef88f3d59"
+              }
+            },
+            {
+              "name": "uart-list",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=917737 CLOCK calls=0\n",
+              "stderr": "",
+              "image": {
+                "source": "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "UART-TX-BYTES": 6,
+                  "CONS": 7,
+                  "NIL": 8,
+                  "1-": 9,
+                  "1+": 10,
+                  "MINUS": 11,
+                  "ABS": 12,
+                  "FLOOR": 13,
+                  "CEILING": 14,
+                  "EVEN?": 15,
+                  "NULL?": 16,
+                  "NOT": 17,
+                  "INTEGER?": 18,
+                  "FLOAT?": 19,
+                  "CHAR?": 20,
+                  "SYMBOL?": 21,
+                  "+": 22,
+                  "-": 23,
+                  "*": 24,
+                  "/": 25,
+                  "<": 26,
+                  ">": 27,
+                  "<=": 28,
+                  ">=": 29,
+                  "=": 30,
+                  "EXPT": 31,
+                  "MAX": 32,
+                  "MIN": 33,
+                  "MOD": 34,
+                  "IF": 35,
+                  "AND": 36,
+                  "OR": 37,
+                  "Y": 38,
+                  "IO-BIND": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "CLOCK": 42,
+                  "UART-RX": 43,
+                  "UART-TX": 44,
+                  "TRUE": 45,
+                  "FALSE": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "__STRUCT_SELECTOR_RESULT__": 53
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "9b80c9ec51240dcfd165cdda18d2edc1d81c1d171b3f578bd6b514b2c9f994a4"
+              }
+            },
+            {
+              "name": "if-capture",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579427\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1151007\nrestart=3 residual=1 cycle=1512180\nPASS HALTED UART=A cycles=1513033 CLOCK calls=1\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (= x x) (UART-TX 65) (UART-TX 66))))",
+                "quantum": 2,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "x": 7,
+                  "IF": 8,
+                  "UART-TX": 9,
+                  "=": 10,
+                  "CLOCK": 11,
+                  "1-": 12,
+                  "1+": 13,
+                  "MINUS": 14,
+                  "ABS": 15,
+                  "FLOOR": 16,
+                  "CEILING": 17,
+                  "EVEN?": 18,
+                  "NULL?": 19,
+                  "NOT": 20,
+                  "INTEGER?": 21,
+                  "FLOAT?": 22,
+                  "CHAR?": 23,
+                  "SYMBOL?": 24,
+                  "+": 25,
+                  "-": 26,
+                  "*": 27,
+                  "/": 28,
+                  "<": 29,
+                  ">": 30,
+                  "<=": 31,
+                  ">=": 32,
+                  "EXPT": 33,
+                  "MAX": 34,
+                  "MIN": 35,
+                  "MOD": 36,
+                  "AND": 37,
+                  "OR": 38,
+                  "Y": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "8f5abae7d497682e6244855ecbf8af70724408bc948179de95b5db6201a52b7f"
+              }
+            },
+            {
+              "name": "if-capture-false",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nrestart=1 residual=13 cycle=579427\nprogress cycle=1000000 flash=28092 state=27 status=0 pc=18 micro=61 ms=9695 UART=\nrestart=2 residual=8 cycle=1141871\nrestart=3 residual=1 cycle=1502972\nPASS HALTED UART=B cycles=1503825 CLOCK calls=1\n",
+              "stderr": "",
+              "image": {
+                "source": "(IO-BIND (CLOCK) (LAMBDA (x) (if (< x x) (UART-TX 65) (UART-TX 66))))",
+                "quantum": 2,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "x": 7,
+                  "IF": 8,
+                  "UART-TX": 9,
+                  "<": 10,
+                  "CLOCK": 11,
+                  "1-": 12,
+                  "1+": 13,
+                  "MINUS": 14,
+                  "ABS": 15,
+                  "FLOOR": 16,
+                  "CEILING": 17,
+                  "EVEN?": 18,
+                  "NULL?": 19,
+                  "NOT": 20,
+                  "INTEGER?": 21,
+                  "FLOAT?": 22,
+                  "CHAR?": 23,
+                  "SYMBOL?": 24,
+                  "+": 25,
+                  "-": 26,
+                  "*": 27,
+                  "/": 28,
+                  ">": 29,
+                  "<=": 30,
+                  ">=": 31,
+                  "=": 32,
+                  "EXPT": 33,
+                  "MAX": 34,
+                  "MIN": 35,
+                  "MOD": 36,
+                  "AND": 37,
+                  "OR": 38,
+                  "Y": 39,
+                  "IO-THEN": 40,
+                  "IO-RETURN": 41,
+                  "UART-RX": 42,
+                  "UART-TX-BYTES": 43,
+                  "TRUE": 44,
+                  "FALSE": 45,
+                  "NIL": 46,
+                  "EQUAL?": 47,
+                  "__EQUAL_STAR__": 48,
+                  "__EQUAL_IF__": 49,
+                  "__EQUALITY_CONTINUE__": 50,
+                  "__EQUAL_STUCK__": 51,
+                  "__IF_RECONSTRUCT__": 52,
+                  "CONS": 53,
+                  "__STRUCT_SELECTOR_RESULT__": 54
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "b9b23e28b450f43b0a9a7daa16de83a21fb2bd673beb204452d024c60d7dda9d"
+              }
+            },
+            {
+              "name": "clock-dots",
+              "returncode": 0,
+              "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nprogress cycle=1000000 flash=28092 state=10 status=0 pc=23 micro=127 ms=9695 UART=\nprogress cycle=2000000 flash=28092 state=10 status=0 pc=33 micro=127 ms=19695 UART=\nprogress cycle=3000000 flash=28092 state=10 status=0 pc=17 micro=127 ms=29695 UART=\nprogress cycle=4000000 flash=28092 state=10 status=0 pc=236 micro=60 ms=39695 UART=\nprogress cycle=5000000 flash=28092 state=10 status=0 pc=75 micro=126 ms=49695 UART=\nprogress cycle=6000000 flash=28092 state=10 status=0 pc=59 micro=127 ms=59695 UART=\nprogress cycle=7000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=69695 UART=\nprogress cycle=8000000 flash=28092 state=10 status=0 pc=51 micro=126 ms=79695 UART=\nprogress cycle=9000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=89695 UART=\nprogress cycle=10000000 flash=28092 state=10 status=0 pc=48 micro=127 ms=99695 UART=\nrestart=1 residual=60 cycle=10617905\nprogress cycle=11000000 flash=28092 state=27 status=0 pc=13 micro=60 ms=109695 UART=\nprogress cycle=12000000 flash=28092 state=27 status=0 pc=33 micro=60 ms=119695 UART=\nprogress cycle=13000000 flash=28092 state=27 status=0 pc=112 micro=127 ms=129695 UART=\nprogress cycle=14000000 flash=28092 state=27 status=0 pc=96 micro=126 ms=139695 UART=\nprogress cycle=15000000 flash=28092 state=27 status=0 pc=96 micro=127 ms=149695 UART=\nprogress cycle=16000000 flash=28092 state=27 status=0 pc=88 micro=127 ms=159695 UART=\nprogress cycle=17000000 flash=28092 state=27 status=0 pc=84 micro=127 ms=169695 UART=\nprogress cycle=18000000 flash=28092 state=27 status=0 pc=84 micro=126 ms=179695 UART=\nprogress cycle=19000000 flash=28092 state=27 status=0 pc=75 micro=127 ms=189695 UART=\nprogress cycle=20000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=199695 UART=\nprogress cycle=21000000 flash=28092 state=27 status=0 pc=75 micro=126 ms=209695 UART=\nprogress cycle=22000000 flash=28092 state=27 status=0 pc=145 micro=127 ms=219695 UART=\nprogress cycle=23000000 flash=28092 state=27 status=0 pc=168 micro=1 ms=229695 UART=\nprogress cycle=24000000 flash=28092 state=27 status=0 pc=139 micro=126 ms=239695 UART=\nprogress cycle=25000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=249695 UART=\nprogress cycle=26000000 flash=28092 state=27 status=0 pc=131 micro=127 ms=259695 UART=\nprogress cycle=27000000 flash=28092 state=27 status=0 pc=127 micro=127 ms=269695 UART=\nprogress cycle=28000000 flash=28092 state=27 status=0 pc=127 micro=126 ms=279695 UART=\nrestart=2 residual=79 cycle=28160678\nprogress cycle=29000000 flash=28092 state=9 status=0 pc=83 micro=60 ms=289695 UART=\nprogress cycle=30000000 flash=28092 state=9 status=0 pc=104 micro=127 ms=299695 UART=\nprogress cycle=31000000 flash=28092 state=9 status=0 pc=98 micro=126 ms=309695 UART=\nprogress cycle=32000000 flash=28092 state=9 status=0 pc=98 micro=127 ms=319695 UART=\nprogress cycle=33000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=329695 UART=\nprogress cycle=34000000 flash=28092 state=9 status=0 pc=90 micro=126 ms=339695 UART=\nprogress cycle=35000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=349695 UART=\nprogress cycle=36000000 flash=28092 state=9 status=0 pc=86 micro=126 ms=359695 UART=\nrestart=3 residual=36 cycle=36070409\nprogress cycle=37000000 flash=28092 state=27 status=0 pc=48 micro=127 ms=369695 UART=.\nprogress cycle=38000000 flash=28092 state=27 status=0 pc=90 micro=1 ms=379695 UART=.\nprogress cycle=39000000 flash=28092 state=27 status=0 pc=95 micro=127 ms=389695 UART=.\nprogress cycle=40000000 flash=28092 state=27 status=0 pc=79 micro=126 ms=399695 UART=.\nprogress cycle=41000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=409695 UART=.\nprogress cycle=42000000 flash=28092 state=27 status=0 pc=71 micro=127 ms=419695 UART=.\nprogress cycle=43000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=429695 UART=.\nprogress cycle=44000000 flash=28092 state=27 status=0 pc=67 micro=126 ms=439695 UART=.\nprogress cycle=45000000 flash=28092 state=27 status=0 pc=58 micro=127 ms=449695 UART=.\nprogress cycle=46000000 flash=28092 state=27 status=0 pc=58 micro=126 ms=459695 UART=.\nprogress cycle=47000000 flash=28092 state=27 status=0 pc=5 micro=60 ms=469695 UART=.\nprogress cycle=48000000 flash=28092 state=27 status=0 pc=23 micro=62 ms=479695 UART=.\nprogress cycle=49000000 flash=28092 state=27 status=0 pc=122 micro=127 ms=489695 UART=.\nprogress cycle=50000000 flash=28092 state=27 status=0 pc=122 micro=126 ms=499695 UART=.\nprogress cycle=51000000 flash=28092 state=27 status=0 pc=114 micro=127 ms=509695 UART=.\nprogress cycle=52000000 flash=28092 state=27 status=0 pc=110 micro=127 ms=519695 UART=.\nprogress cycle=53000000 flash=28092 state=27 status=0 pc=110 micro=126 ms=529695 UART=.\nprogress cycle=54000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=539695 UART=.\nprogress cycle=55000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=549695 UART=.\nprogress cycle=56000000 flash=28092 state=27 status=0 pc=42 micro=127 ms=559695 UART=.\nprogress cycle=57000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=569695 UART=.\nprogress cycle=58000000 flash=28092 state=27 status=0 pc=42 micro=126 ms=579695 UART=.\nrestart=4 residual=84 cycle=58907533\nprogress cycle=59000000 flash=28092 state=10 status=0 pc=86 micro=1 ms=589695 UART=.\nprogress cycle=60000000 flash=28092 state=27 status=0 pc=42 micro=60 ms=599695 UART=.\nprogress cycle=61000000 flash=28092 state=27 status=0 pc=131 micro=24 ms=609695 UART=.\nprogress cycle=62000000 flash=28092 state=27 status=0 pc=114 micro=126 ms=619695 UART=.\nprogress cycle=63000000 flash=28092 state=27 status=0 pc=114 micro=127 ms=629695 UART=.\nprogress cycle=64000000 flash=28092 state=27 status=0 pc=106 micro=126 ms=639695 UART=.\nprogress cycle=65000000 flash=28092 state=27 status=0 pc=102 micro=127 ms=649695 UART=.\nprogress cycle=66000000 flash=28092 state=27 status=0 pc=102 micro=126 ms=659695 UART=.\nprogress cycle=67000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=669695 UART=.\nprogress cycle=68000000 flash=28092 state=27 status=0 pc=93 micro=126 ms=679695 UART=.\nprogress cycle=69000000 flash=28092 state=27 status=0 pc=93 micro=127 ms=689695 UART=.\nprogress cycle=70000000 flash=28092 state=27 status=0 pc=163 micro=127 ms=699695 UART=.\nprogress cycle=71000000 flash=28092 state=27 status=0 pc=173 micro=127 ms=709695 UART=.\nprogress cycle=72000000 flash=28092 state=27 status=0 pc=157 micro=127 ms=719695 UART=.\nprogress cycle=73000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=729695 UART=.\nprogress cycle=74000000 flash=28092 state=27 status=0 pc=149 micro=127 ms=739695 UART=.\nprogress cycle=75000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=749695 UART=.\nprogress cycle=76000000 flash=28092 state=27 status=0 pc=145 micro=126 ms=759695 UART=.\nrestart=5 residual=75 cycle=76213716\nPASS UART=.. cycles=76921329 CLOCK calls=3 ms=768908 pc=80 fsp=81 restarts=5 residual=75 peak_residual=84\n",
+              "stderr": "",
+              "image": {
+                "source": "DOT == 46\nSECOND-MS == 1000\n\nloop ==\n  (Y\n    (LAMBDA (self)\n      (LAMBDA (last)\n        (IO-BIND (CLOCK)\n          (LAMBDA (now)\n            (if (>= (- now last) SECOND-MS)\n                (IO-THEN\n                  (UART-TX DOT)\n                  (self now))\n                (self last)))))))\n\n(IO-BIND (CLOCK)\n  (LAMBDA (start)\n    (loop start)))\n",
+                "quantum": 5,
+                "command_count": 308,
+                "flash_offset": 2228224,
+                "literal_ids": {
+                  "CAR": 1,
+                  "PAIR": 2,
+                  "CDR": 3,
+                  "PAIR-CAR": 4,
+                  "PAIR-CDR": 5,
+                  "IO-BIND": 6,
+                  "start": 7,
+                  "loop": 8,
+                  "CLOCK": 9,
+                  "Y": 10,
+                  "self": 11,
+                  "last": 12,
+                  "now": 13,
+                  "IF": 14,
+                  "IO-THEN": 15,
+                  "UART-TX": 16,
+                  "DOT": 17,
+                  ">=": 18,
+                  "SECOND-MS": 19,
+                  "-": 20,
+                  "1-": 21,
+                  "1+": 22,
+                  "MINUS": 23,
+                  "ABS": 24,
+                  "FLOOR": 25,
+                  "CEILING": 26,
+                  "EVEN?": 27,
+                  "NULL?": 28,
+                  "NOT": 29,
+                  "INTEGER?": 30,
+                  "FLOAT?": 31,
+                  "CHAR?": 32,
+                  "SYMBOL?": 33,
+                  "+": 34,
+                  "*": 35,
+                  "/": 36,
+                  "<": 37,
+                  ">": 38,
+                  "<=": 39,
+                  "=": 40,
+                  "EXPT": 41,
+                  "MAX": 42,
+                  "MIN": 43,
+                  "MOD": 44,
+                  "AND": 45,
+                  "OR": 46,
+                  "IO-RETURN": 47,
+                  "UART-RX": 48,
+                  "UART-TX-BYTES": 49,
+                  "TRUE": 50,
+                  "FALSE": 51,
+                  "NIL": 52,
+                  "EQUAL?": 53,
+                  "__EQUAL_STAR__": 54,
+                  "__EQUAL_IF__": 55,
+                  "__EQUALITY_CONTINUE__": 56,
+                  "__EQUAL_STUCK__": 57,
+                  "__IF_RECONSTRUCT__": 58,
+                  "CONS": 59,
+                  "__STRUCT_SELECTOR_RESULT__": 60
+                },
+                "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+                "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+                "sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4"
+              }
+            }
           ],
-          "log": "build/red2-standalone/quantum-v6-deployment-reset-from-flash.log",
-          "passed": true
+          "typed_if_cases": 12,
+          "typed_dots": {
+            "quantum": 5,
+            "outputs": 10,
+            "clock_calls": 11,
+            "restarts": 26,
+            "peak_residual_words": 86
+          },
+          "inline_io_cases": 4,
+          "typed_polling_dots": {
+            "quantum": 5,
+            "outputs": 10,
+            "clock_calls": 40,
+            "restarts": 84,
+            "peak_residual_words": 86
+          },
+          "source_fibonacci_result": 8,
+          "static_checks_passed": 11,
+          "clock_dots_q20_limitation": "The current source produces one dot, then raises FAULT_GRAPH_ENV_COLLISION after two restarts at q=20; clock-dots is deployed with q=5",
+          "known_baseline_parity_failure": "check_syn_sim.py --fibonacci-only differs from the newer Concrete sharing policy at commit 212, address 11, on the unchanged production baseline and preceding v5 candidate; the present revision separately verifies the semantic result 8"
         }
-      ],
-      "sram_observation": {
-        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
-        "samples": [
-          {
-            "seconds": 3.712657,
-            "hex": "2e"
-          },
-          {
-            "seconds": 7.775533,
-            "hex": "2e"
-          },
-          {
-            "seconds": 10.86332,
-            "hex": "2e"
-          },
-          {
-            "seconds": 14.927176,
-            "hex": "2e"
-          },
-          {
-            "seconds": 19.695027,
-            "hex": "2e"
-          },
-          {
-            "seconds": 23.294828,
-            "hex": "2e"
-          },
-          {
-            "seconds": 27.376001,
-            "hex": "2e"
-          },
-          {
-            "seconds": 30.446553,
-            "hex": "2e"
-          },
-          {
-            "seconds": 34.526428,
-            "hex": "2e"
-          },
-          {
-            "seconds": 39.295484,
-            "hex": "2e"
-          },
-          {
-            "seconds": 42.894054,
-            "hex": "2e"
-          },
-          {
-            "seconds": 46.957873,
-            "hex": "2e"
-          },
-          {
-            "seconds": 50.045778,
-            "hex": "2e"
-          },
-          {
-            "seconds": 54.109605,
-            "hex": "2e"
-          },
-          {
-            "seconds": 58.877391,
-            "hex": "2e"
-          },
-          {
-            "seconds": 62.493314,
-            "hex": "2e"
-          },
-          {
-            "seconds": 66.557116,
-            "hex": "2e"
-          },
-          {
-            "seconds": 69.628991,
-            "hex": "2e"
-          },
-          {
-            "seconds": 73.708835,
-            "hex": "2e"
-          },
-          {
-            "seconds": 78.476624,
-            "hex": "2e"
-          },
-          {
-            "seconds": 82.076534,
-            "hex": "2e"
-          },
-          {
-            "seconds": 86.140516,
-            "hex": "2e"
-          },
-          {
-            "seconds": 89.22822,
-            "hex": "2e"
-          },
-          {
-            "seconds": 93.292037,
-            "hex": "2e"
-          },
-          {
-            "seconds": 98.07587,
-            "hex": "2e"
-          },
-          {
-            "seconds": 101.675678,
-            "hex": "2e"
-          },
-          {
-            "seconds": 105.739532,
-            "hex": "2e"
-          },
-          {
-            "seconds": 108.811514,
-            "hex": "2e"
-          },
-          {
-            "seconds": 112.891292,
-            "hex": "2e"
-          },
-          {
-            "seconds": 117.65904,
-            "hex": "2e"
-          }
-        ],
-        "host_uart_bytes_written": 0,
-        "scope": "raw UART observation; no host clock values or runtime commands"
-      },
-      "flash_observation": {
-        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
-        "samples": [
-          {
-            "seconds": 9.871913,
-            "hex": "2e"
-          },
-          {
-            "seconds": 13.935676,
-            "hex": "2e"
-          },
-          {
-            "seconds": 17.023528,
-            "hex": "2e"
-          },
-          {
-            "seconds": 21.087498,
-            "hex": "2e"
-          },
-          {
-            "seconds": 25.871361,
-            "hex": "2e"
-          },
-          {
-            "seconds": 29.471157,
-            "hex": "2e"
-          },
-          {
-            "seconds": 33.554946,
-            "hex": "2e"
-          },
-          {
-            "seconds": 36.60679,
-            "hex": "2e"
-          },
-          {
-            "seconds": 40.686605,
-            "hex": "2e"
-          },
-          {
-            "seconds": 45.454431,
-            "hex": "2e"
-          },
-          {
-            "seconds": 49.054279,
-            "hex": "2e"
-          },
-          {
-            "seconds": 53.118207,
-            "hex": "2e"
-          },
-          {
-            "seconds": 56.206006,
-            "hex": "2e"
-          },
-          {
-            "seconds": 60.269826,
-            "hex": "2e"
-          },
-          {
-            "seconds": 65.053647,
-            "hex": "2e"
-          },
-          {
-            "seconds": 68.65348,
-            "hex": "2e"
-          },
-          {
-            "seconds": 72.717378,
-            "hex": "2e"
-          },
-          {
-            "seconds": 75.78923,
-            "hex": "2e"
-          },
-          {
-            "seconds": 79.869019,
-            "hex": "2e"
-          },
-          {
-            "seconds": 84.636929,
-            "hex": "2e"
-          },
-          {
-            "seconds": 88.236727,
-            "hex": "2e"
-          },
-          {
-            "seconds": 92.300571,
-            "hex": "2e"
-          },
-          {
-            "seconds": 95.388422,
-            "hex": "2e"
-          },
-          {
-            "seconds": 99.468318,
-            "hex": "2e"
-          },
-          {
-            "seconds": 104.236064,
-            "hex": "2e"
-          },
-          {
-            "seconds": 107.836021,
-            "hex": "2e"
-          },
-          {
-            "seconds": 111.899782,
-            "hex": "2e"
-          },
-          {
-            "seconds": 114.971648,
-            "hex": "2e"
-          },
-          {
-            "seconds": 119.051475,
-            "hex": "2e"
-          },
-          {
-            "seconds": 123.819351,
-            "hex": "2e"
-          }
-        ],
-        "host_uart_bytes_written": 0,
-        "scope": "raw UART observation; no host clock values or runtime commands"
-      },
-      "reset_observation": {
-        "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
-        "samples": [
-          {
-            "seconds": 9.862426,
-            "hex": "2e"
-          },
-          {
-            "seconds": 13.942278,
-            "hex": "2e"
-          },
-          {
-            "seconds": 17.014085,
-            "hex": "2e"
-          },
-          {
-            "seconds": 21.093913,
-            "hex": "2e"
-          },
-          {
-            "seconds": 25.861685,
-            "hex": "2e"
-          },
-          {
-            "seconds": 29.461646,
-            "hex": "2e"
-          },
-          {
-            "seconds": 33.525428,
-            "hex": "2e"
-          },
-          {
-            "seconds": 36.613276,
-            "hex": "2e"
-          },
-          {
-            "seconds": 40.677133,
-            "hex": "2e"
-          },
-          {
-            "seconds": 45.444981,
-            "hex": "2e"
-          },
-          {
-            "seconds": 49.060789,
-            "hex": "2e"
-          },
-          {
-            "seconds": 53.124603,
-            "hex": "2e"
-          },
-          {
-            "seconds": 56.196484,
-            "hex": "2e"
-          },
-          {
-            "seconds": 60.276316,
-            "hex": "2e"
-          },
-          {
-            "seconds": 65.044124,
-            "hex": "2e"
-          },
-          {
-            "seconds": 68.644035,
-            "hex": "2e"
-          },
-          {
-            "seconds": 72.707898,
-            "hex": "2e"
-          },
-          {
-            "seconds": 75.800256,
-            "hex": "2e"
-          },
-          {
-            "seconds": 79.85952,
-            "hex": "2e"
-          },
-          {
-            "seconds": 84.62736,
-            "hex": "2e"
-          },
-          {
-            "seconds": 88.243213,
-            "hex": "2e"
-          },
-          {
-            "seconds": 92.307167,
-            "hex": "2e"
-          },
-          {
-            "seconds": 95.378948,
-            "hex": "2e"
-          },
-          {
-            "seconds": 99.458804,
-            "hex": "2e"
-          },
-          {
-            "seconds": 104.226715,
-            "hex": "2e"
-          },
-          {
-            "seconds": 107.826428,
-            "hex": "2e"
-          },
-          {
-            "seconds": 111.890293,
-            "hex": "2e"
-          },
-          {
-            "seconds": 114.978139,
-            "hex": "2e"
-          },
-          {
-            "seconds": 119.042021,
-            "hex": "2e"
-          },
-          {
-            "seconds": 123.825837,
-            "hex": "2e"
-          }
-        ],
-        "host_uart_bytes_written": 0,
-        "scope": "raw UART observation; no host clock values or runtime commands"
-      },
-      "finished_at_utc": "2026-10-16T22:57:16.351382+00:00"
+      }
     },
-    "scope": "Verified program-data flash, SRAM execution, configuration flash execution, and separate reset from flash with read-only UART observation; physical power removal/reconnection was not tested",
-    "files_sha256": {
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/build-result.json": "ae05fe38480c28d095505c4744040faa9e845e6757a6bc2f39a771fe7d26fb7b",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/provenance.json": "21c7723f34705b2a5c2f30a285ef136f17d7220b6b670f7e27dd5f9df79fb048",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-resources.json": "4750d08848edb0728fbc55c33ffa682ef62a153773abfeb59b4eda37d13da18a",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-timing.json": "961abda81bb5519cd6adb75a7b75429d7eaec1390c18a5dad1e66eb88ff6bc64",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-physical-lut-sites.json": "0dc95cf449a2e0a84759715d746573fadf01bb20ec570632093464f09bf3c254",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-bram-audit.json": "be608e5689fd0723593e8abb4f5653e0232ee85638f8ebf6a1cdc8245edf5169",
-      "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
-      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
-      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.json": "f251097bb3388af0fb942c3f1b384436f5119d73d190ea52a883128ae8944cda",
-      "/Users/billie/code/billiegoose/asgard/build/red2-standalone/quantum-v6-deployment.json": "ac02bacbe07224ee2b181989ba41f6523e48509348ae62c13e577f4e00a34124"
+    "previous_physical_attempt": {
+      "qualified": false,
+      "build": "build/red2-basys3-standalone-quantum",
+      "built": true,
+      "physical_lut_sites": 18567,
+      "timing": {
+        "core_clock": {
+          "achieved_mhz": 13.77,
+          "status": "PASS",
+          "required_mhz": 10.0
+        },
+        "clock": {
+          "achieved_mhz": 13.37,
+          "status": "PASS",
+          "required_mhz": 10.0
+        }
+      },
+      "observed_uart_dots": 4,
+      "host_uart_bytes_written": 0,
+      "program_data_flash_verified": true,
+      "configuration_flash_programmed": false,
+      "outcome": "Four dots followed by a fault; JTAG SAMPLE and user observation confirm LD6=1, LD4=0. The source model reproduces the same four-dot stop as CONTROL_UNDERFLOW in inline IO-THEN sequencing. Candidate is not qualified for sustained operation.",
+      "source_regression": "IO-THEN with a reconstructed inline NIL value has no child JOIN frame; the existing JOIN sequencing path incorrectly restores a nonexistent frame.",
+      "artifacts_sha256": {
+        "build/red2-basys3-standalone-quantum/build-result.json": "5b1b41171eee05404115434b70895c268d1a759f897196828f4ffc89a843b3fe",
+        "build/red2-basys3-standalone-quantum/board-timing.json": "3d955fc979334f21e4c227b5fd1e379c92cd6932881289805d17d601b725fa19",
+        "build/red2-basys3-standalone-quantum/board-physical-lut-sites.json": "d70269c9811999750da925f1c81bfcbc65540658fdaeebf50607aa2e0486bfba",
+        "build/red2-standalone/quantum-deployment-stall.json": "a7006129be9fe70ec0019d24188b12dd86b676a83cf5df6a1dec41c5ae91f3b3",
+        "build/red2-finite-quantum/sample-status.json": "73adbc594f03365b5170a2084e8808ade37f6de648066fbd6bb08cf47e167425",
+        "build/red2-finite-quantum/sample-status.log": "a428a0027d15bfaf17fd0e6ada710982924d896b675ad0057ec269d399fae1ee",
+        "build/red2-finite-quantum/native-always-due.log": "83d2824333f336f59fa2c94baa06c50f49df34aa09ea4143f26b9b4bd468c893",
+        "build/red2-finite-quantum/native-stress20.log": "2e9651dbff63e8825f66a811e0f655e7a102996c983b7583ce32424c786c70a7",
+        "build/red2-finite-quantum/direct-io-before.log": "98f8fd25fcee7ee82a9680830c33701dc8a5eff11dae91984e27d67020b32176",
+        "build/red2-finite-quantum/inline-io-old-rtl.log": "a8cb65e360aaa7b8f998ef5916406c32e0959f45d14c7ef11d23941456b8c251"
+      },
+      "focused_old_rtl_failure": "The inline IO-THEN fixture also raises core CONTROL_UNDERFLOW=4 on the old lowered circuit after 193324 board cycles, before UART output."
+    },
+    "supervisor": {
+      "default_quantum": 20,
+      "clock_dots_quantum": 5,
+      "arena_words": 256,
+      "control_words": 256,
+      "literal_entries": 64,
+      "behavior": "Finish q=0 reconstruction, copy reachable residual spines, relocate APP/RBLOCK links, restart the dedicated reducer; CLOCK and UART never refresh the budget"
+    },
+    "physical": {
+      "recorded_at_utc": "2026-10-16T22:57:18.700224+00:00",
+      "state": "qualified-autonomous-finite-quantum-flash-boot",
+      "qualified": true,
+      "build": "build/red2-basys3-standalone-quantum-v6-seed2",
+      "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+      "program": "examples/clock-dots.thor",
+      "quantum": 5,
+      "resources": {
+        "top": "red2_basys3",
+        "lut": 18108,
+        "lut_memory": 394,
+        "lut_total": 18502,
+        "unknown_memory_primitives": [],
+        "unaccounted_primitives": [],
+        "flipflops": 9567,
+        "bram18": 23,
+        "bram36": 28,
+        "bram36_equivalent": 39.5,
+        "dsp48": 12,
+        "carry4": 647,
+        "muxf7": 0,
+        "muxf8": 0,
+        "startup": 1,
+        "primitives": {
+          "BUFG": 2,
+          "BUFGCE": 1,
+          "CARRY4": 647,
+          "DSP48E1": 12,
+          "FDCE": 2,
+          "FDRE": 9510,
+          "FDSE": 55,
+          "IBUF": 3,
+          "INV": 750,
+          "LUT2": 3016,
+          "LUT3": 2756,
+          "LUT4": 2472,
+          "LUT5": 3640,
+          "LUT6": 6224,
+          "MMCME2_ADV": 1,
+          "OBUF": 13,
+          "RAM256X1S": 50,
+          "RAM32M": 2,
+          "RAM64M": 15,
+          "RAM64X1S": 126,
+          "RAMB18E1": 23,
+          "RAMB36E1": 28,
+          "STARTUPE2": 1
+        },
+        "basys3_over_budget": {},
+        "within_basys3_resource_limits": true
+      },
+      "physical_lut_sites": 18467,
+      "timing": {
+        "core_clock": {
+          "achieved_mhz": 13.1,
+          "status": "PASS",
+          "required_mhz": 10.0
+        },
+        "clock": {
+          "achieved_mhz": 12.53,
+          "status": "PASS",
+          "required_mhz": 10.0
+        }
+      },
+      "observed_dots_per_boot": 30,
+      "deployment": {
+        "started_at_utc": "2026-10-16T22:50:15.895108+00:00",
+        "image_sha256": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+        "bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+        "persistent_requested": true,
+        "passed": true,
+        "stages": [
+          {
+            "stage": "program-data",
+            "command": [
+              "/Users/billie/code/billiegoose/asgard/.venv/bin/python",
+              "/Users/billie/code/billiegoose/fpgatool/fpgatool.py",
+              "program-data",
+              "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin",
+              "--offset",
+              "0x220000"
+            ],
+            "log": "build/red2-standalone/quantum-v6-deployment-program-data.log",
+            "passed": true
+          },
+          {
+            "stage": "load-sram",
+            "command": [
+              "openFPGALoader",
+              "--board",
+              "basys3",
+              "--ftdi-serial",
+              "210183735787",
+              "--write-sram",
+              "--bitstream",
+              "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
+            ],
+            "log": "build/red2-standalone/quantum-v6-deployment-load-sram.log",
+            "passed": true
+          },
+          {
+            "stage": "program-config",
+            "command": [
+              "openFPGALoader",
+              "--board",
+              "basys3",
+              "--ftdi-serial",
+              "210183735787",
+              "--write-flash",
+              "--verify",
+              "--bitstream",
+              "build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit"
+            ],
+            "log": "build/red2-standalone/quantum-v6-deployment-program-config.log",
+            "passed": true
+          },
+          {
+            "stage": "reset-from-flash",
+            "command": [
+              "openFPGALoader",
+              "--board",
+              "basys3",
+              "--ftdi-serial",
+              "210183735787",
+              "--reset"
+            ],
+            "log": "build/red2-standalone/quantum-v6-deployment-reset-from-flash.log",
+            "passed": true
+          }
+        ],
+        "sram_observation": {
+          "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+          "samples": [
+            {
+              "seconds": 3.712657,
+              "hex": "2e"
+            },
+            {
+              "seconds": 7.775533,
+              "hex": "2e"
+            },
+            {
+              "seconds": 10.86332,
+              "hex": "2e"
+            },
+            {
+              "seconds": 14.927176,
+              "hex": "2e"
+            },
+            {
+              "seconds": 19.695027,
+              "hex": "2e"
+            },
+            {
+              "seconds": 23.294828,
+              "hex": "2e"
+            },
+            {
+              "seconds": 27.376001,
+              "hex": "2e"
+            },
+            {
+              "seconds": 30.446553,
+              "hex": "2e"
+            },
+            {
+              "seconds": 34.526428,
+              "hex": "2e"
+            },
+            {
+              "seconds": 39.295484,
+              "hex": "2e"
+            },
+            {
+              "seconds": 42.894054,
+              "hex": "2e"
+            },
+            {
+              "seconds": 46.957873,
+              "hex": "2e"
+            },
+            {
+              "seconds": 50.045778,
+              "hex": "2e"
+            },
+            {
+              "seconds": 54.109605,
+              "hex": "2e"
+            },
+            {
+              "seconds": 58.877391,
+              "hex": "2e"
+            },
+            {
+              "seconds": 62.493314,
+              "hex": "2e"
+            },
+            {
+              "seconds": 66.557116,
+              "hex": "2e"
+            },
+            {
+              "seconds": 69.628991,
+              "hex": "2e"
+            },
+            {
+              "seconds": 73.708835,
+              "hex": "2e"
+            },
+            {
+              "seconds": 78.476624,
+              "hex": "2e"
+            },
+            {
+              "seconds": 82.076534,
+              "hex": "2e"
+            },
+            {
+              "seconds": 86.140516,
+              "hex": "2e"
+            },
+            {
+              "seconds": 89.22822,
+              "hex": "2e"
+            },
+            {
+              "seconds": 93.292037,
+              "hex": "2e"
+            },
+            {
+              "seconds": 98.07587,
+              "hex": "2e"
+            },
+            {
+              "seconds": 101.675678,
+              "hex": "2e"
+            },
+            {
+              "seconds": 105.739532,
+              "hex": "2e"
+            },
+            {
+              "seconds": 108.811514,
+              "hex": "2e"
+            },
+            {
+              "seconds": 112.891292,
+              "hex": "2e"
+            },
+            {
+              "seconds": 117.65904,
+              "hex": "2e"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "flash_observation": {
+          "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+          "samples": [
+            {
+              "seconds": 9.871913,
+              "hex": "2e"
+            },
+            {
+              "seconds": 13.935676,
+              "hex": "2e"
+            },
+            {
+              "seconds": 17.023528,
+              "hex": "2e"
+            },
+            {
+              "seconds": 21.087498,
+              "hex": "2e"
+            },
+            {
+              "seconds": 25.871361,
+              "hex": "2e"
+            },
+            {
+              "seconds": 29.471157,
+              "hex": "2e"
+            },
+            {
+              "seconds": 33.554946,
+              "hex": "2e"
+            },
+            {
+              "seconds": 36.60679,
+              "hex": "2e"
+            },
+            {
+              "seconds": 40.686605,
+              "hex": "2e"
+            },
+            {
+              "seconds": 45.454431,
+              "hex": "2e"
+            },
+            {
+              "seconds": 49.054279,
+              "hex": "2e"
+            },
+            {
+              "seconds": 53.118207,
+              "hex": "2e"
+            },
+            {
+              "seconds": 56.206006,
+              "hex": "2e"
+            },
+            {
+              "seconds": 60.269826,
+              "hex": "2e"
+            },
+            {
+              "seconds": 65.053647,
+              "hex": "2e"
+            },
+            {
+              "seconds": 68.65348,
+              "hex": "2e"
+            },
+            {
+              "seconds": 72.717378,
+              "hex": "2e"
+            },
+            {
+              "seconds": 75.78923,
+              "hex": "2e"
+            },
+            {
+              "seconds": 79.869019,
+              "hex": "2e"
+            },
+            {
+              "seconds": 84.636929,
+              "hex": "2e"
+            },
+            {
+              "seconds": 88.236727,
+              "hex": "2e"
+            },
+            {
+              "seconds": 92.300571,
+              "hex": "2e"
+            },
+            {
+              "seconds": 95.388422,
+              "hex": "2e"
+            },
+            {
+              "seconds": 99.468318,
+              "hex": "2e"
+            },
+            {
+              "seconds": 104.236064,
+              "hex": "2e"
+            },
+            {
+              "seconds": 107.836021,
+              "hex": "2e"
+            },
+            {
+              "seconds": 111.899782,
+              "hex": "2e"
+            },
+            {
+              "seconds": 114.971648,
+              "hex": "2e"
+            },
+            {
+              "seconds": 119.051475,
+              "hex": "2e"
+            },
+            {
+              "seconds": 123.819351,
+              "hex": "2e"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "reset_observation": {
+          "received_hex": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+          "samples": [
+            {
+              "seconds": 9.862426,
+              "hex": "2e"
+            },
+            {
+              "seconds": 13.942278,
+              "hex": "2e"
+            },
+            {
+              "seconds": 17.014085,
+              "hex": "2e"
+            },
+            {
+              "seconds": 21.093913,
+              "hex": "2e"
+            },
+            {
+              "seconds": 25.861685,
+              "hex": "2e"
+            },
+            {
+              "seconds": 29.461646,
+              "hex": "2e"
+            },
+            {
+              "seconds": 33.525428,
+              "hex": "2e"
+            },
+            {
+              "seconds": 36.613276,
+              "hex": "2e"
+            },
+            {
+              "seconds": 40.677133,
+              "hex": "2e"
+            },
+            {
+              "seconds": 45.444981,
+              "hex": "2e"
+            },
+            {
+              "seconds": 49.060789,
+              "hex": "2e"
+            },
+            {
+              "seconds": 53.124603,
+              "hex": "2e"
+            },
+            {
+              "seconds": 56.196484,
+              "hex": "2e"
+            },
+            {
+              "seconds": 60.276316,
+              "hex": "2e"
+            },
+            {
+              "seconds": 65.044124,
+              "hex": "2e"
+            },
+            {
+              "seconds": 68.644035,
+              "hex": "2e"
+            },
+            {
+              "seconds": 72.707898,
+              "hex": "2e"
+            },
+            {
+              "seconds": 75.800256,
+              "hex": "2e"
+            },
+            {
+              "seconds": 79.85952,
+              "hex": "2e"
+            },
+            {
+              "seconds": 84.62736,
+              "hex": "2e"
+            },
+            {
+              "seconds": 88.243213,
+              "hex": "2e"
+            },
+            {
+              "seconds": 92.307167,
+              "hex": "2e"
+            },
+            {
+              "seconds": 95.378948,
+              "hex": "2e"
+            },
+            {
+              "seconds": 99.458804,
+              "hex": "2e"
+            },
+            {
+              "seconds": 104.226715,
+              "hex": "2e"
+            },
+            {
+              "seconds": 107.826428,
+              "hex": "2e"
+            },
+            {
+              "seconds": 111.890293,
+              "hex": "2e"
+            },
+            {
+              "seconds": 114.978139,
+              "hex": "2e"
+            },
+            {
+              "seconds": 119.042021,
+              "hex": "2e"
+            },
+            {
+              "seconds": 123.825837,
+              "hex": "2e"
+            }
+          ],
+          "host_uart_bytes_written": 0,
+          "scope": "raw UART observation; no host clock values or runtime commands"
+        },
+        "finished_at_utc": "2026-10-16T22:57:16.351382+00:00"
+      },
+      "scope": "Verified program-data flash, SRAM execution, configuration flash execution, and separate reset from flash with read-only UART observation; physical power removal/reconnection was not tested",
+      "files_sha256": {
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/build-result.json": "ae05fe38480c28d095505c4744040faa9e845e6757a6bc2f39a771fe7d26fb7b",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/provenance.json": "21c7723f34705b2a5c2f30a285ef136f17d7220b6b670f7e27dd5f9df79fb048",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-resources.json": "4750d08848edb0728fbc55c33ffa682ef62a153773abfeb59b4eda37d13da18a",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-timing.json": "961abda81bb5519cd6adb75a7b75429d7eaec1390c18a5dad1e66eb88ff6bc64",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-physical-lut-sites.json": "0dc95cf449a2e0a84759715d746573fadf01bb20ec570632093464f09bf3c254",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/board-bram-audit.json": "be608e5689fd0723593e8abb4f5653e0232ee85638f8ebf6a1cdc8245edf5169",
+        "/Users/billie/code/billiegoose/asgard/build/red2-basys3-standalone-quantum-v6-seed2/red2_basys3.bit": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+        "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.bin": "5e12d2c4c11aeaea8b97c797c628e61b8b7f716a88e27724ea54237538a653f4",
+        "/Users/billie/code/billiegoose/asgard/build/red2-standalone/clock-dots-quantum-v6.json": "f251097bb3388af0fb942c3f1b384436f5119d73d190ea52a883128ae8944cda",
+        "/Users/billie/code/billiegoose/asgard/build/red2-standalone/quantum-v6-deployment.json": "ac02bacbe07224ee2b181989ba41f6523e48509348ae62c13e577f4e00a34124"
+      }
     }
   }
 }

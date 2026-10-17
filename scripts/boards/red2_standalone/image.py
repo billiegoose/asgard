@@ -20,7 +20,7 @@ MAGIC = b"RED2FLSH"
 HEADER = struct.Struct("<8sIIII16sIII12s")
 COMMAND_BYTES = 91
 FLASH_OFFSET = 0x220000
-DEFAULT_PREPARED = ROOT / "build/red2-basys3-standalone-quantum-v6-seed2"
+DEFAULT_PREPARED = ROOT / "build/red2-basys3-standalone-quantum-v8-seed2"
 
 
 def compile_image(source, prepared, quantum=20):
