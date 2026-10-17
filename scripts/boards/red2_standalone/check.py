@@ -23,6 +23,11 @@ p.add_argument(
 )
 p.add_argument("--reuse-model", type=Path)
 p.add_argument("--case", action="append", help="Run only named cases")
+p.add_argument(
+    "--uart-examples",
+    action="store_true",
+    help="Include full UART examples beyond the qualified smoke-test cases",
+)
 a = p.parse_args()
 out = a.output.resolve()
 out.mkdir(parents=True, exist_ok=False)
@@ -94,6 +99,16 @@ cases = [
         5,
     ),
     ("uart-rx", "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))", "Z", "rx", 5),
+    (
+        "uart-rx-pair",
+        "(IO-BIND (UART-RX) (LAMBDA (x) "
+        "(IO-BIND (UART-RX) (LAMBDA (y) "
+        "(IO-THEN (UART-TX x) (UART-TX y))))))",
+        "AB",
+        "rx-halt",
+        20,
+        "AB",
+    ),
     ("uart-list", "(UART-TX-BYTES (CONS 65 (CONS 66 NIL)))", "AB", "halt", 5),
     (
         "if-capture",
@@ -118,7 +133,29 @@ cases = [
     ),
 ]
 results = []
-for name, source, expected, mode, quantum in cases:
+examples = [
+    (
+        "uart-alphanumerics",
+        (ROOT / "examples/uart-alphanumerics.thor").read_text(),
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n",
+        "halt",
+        5,
+    ),
+    (
+        "uart-caesar-plus4",
+        (ROOT / "examples/uart-caesar-plus4.thor").read_text(),
+        "Ed09!",
+        "rx-halt",
+        5,
+        "Az09!\x1b",
+    ),
+]
+known_cases = {case[0] for case in cases + examples}
+if a.case and set(a.case) - known_cases:
+    p.error(f"unknown cases: {', '.join(sorted(set(a.case) - known_cases))}")
+if a.uart_examples or (a.case and set(a.case) & {case[0] for case in examples}):
+    cases.extend(examples)
+for name, source, expected, mode, quantum, *incoming in cases:
     if a.case and name not in a.case:
         continue
     if name.startswith("inline-io-"):
@@ -131,7 +168,7 @@ for name, source, expected, mode, quantum in cases:
     image.write_bytes(data)
     with (out / (name + ".log")).open("w") as log:
         result = subprocess.run(
-            [str(binary), str(image), expected, mode],
+            [str(binary), str(image), expected, mode, *incoming],
             text=True,
             stdout=log,
             stderr=subprocess.STDOUT,

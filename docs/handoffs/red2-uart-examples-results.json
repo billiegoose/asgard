@@ -1,0 +1,445 @@
+{
+  "recorded_at_utc": "2026-10-17T00:27:12.022208+00:00",
+  "source_commit_before_diagnosis": "64466cd9e344daaf47f5e61bb11b00670e4d4948",
+  "scope": "runtime-failure diagnosis and test expansion; no engine or FPGA configuration change",
+  "core_source_sha256": "5610b87a75d5e606e7028ef42f8076a85964e10c3f69696ebb720ce90f853fd8",
+  "qualified_prepared": "build/red2-basys3-standalone-quantum-v6-seed2",
+  "qualified_bitstream_sha256": "a08b721dc227b7801101fa0747c5798e3445955fad2fe2cd22f54663c75552b0",
+  "default_quantum": 5,
+  "findings": {
+    "uart-alphanumerics": {
+      "working_arena_words": 225,
+      "root_cause": "multiword exhausted-quantum JOIN result returned through an EP parent reaches an explicitly unsupported publication branch",
+      "native_previous_microstate": 36,
+      "frontend_rtl": {
+        "adapter_fault": 136,
+        "red2_fault": 0,
+        "hw_fault": 3,
+        "microstate": 3,
+        "pc": 51,
+        "fsp": 63,
+        "previous_microstate": 36,
+        "uart_before_fault": "",
+        "board_cycles": 1639608
+      },
+      "physical_led_samples": [
+        {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 0,
+          "LD5": 0,
+          "LD6": 1,
+          "LD7": 1
+        },
+        {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 0,
+          "LD4": 0,
+          "LD5": 0,
+          "LD6": 1,
+          "LD7": 1
+        }
+      ],
+      "physical_observation": {
+        "command": [
+          "mise",
+          "run",
+          "fpga",
+          "examples/uart-alphanumerics.thor"
+        ],
+        "received_hex": "2e2e",
+        "samples": [
+          {
+            "seconds": 0.0,
+            "hex": "2e2e"
+          }
+        ]
+      },
+      "physical_uart_note": "the two buffered dots were emitted by the preceding clock-dots program; no alphanumeric output was observed"
+    },
+    "uart-caesar-plus4": {
+      "working_arena_words": 120,
+      "root_cause": "after receiving input, exhausted-quantum JOIN_FLAT_SCAN rejects a non-inline graph term",
+      "native_first_input": 65,
+      "native_input_clock": 187,
+      "native_previous_microstate": 41,
+      "native_fault_clock": 4568,
+      "frontend_rtl": {
+        "adapter_fault": 136,
+        "red2_fault": 0,
+        "hw_fault": 3,
+        "microstate": 3,
+        "pc": 34,
+        "fsp": 87,
+        "previous_microstate": 3,
+        "uart_before_fault": "",
+        "board_cycles": 9192033
+      },
+      "physical_led_samples": [
+        {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 1,
+          "LD4": 0,
+          "LD5": 0,
+          "LD6": 1,
+          "LD7": 1
+        },
+        {
+          "LD0": 0,
+          "LD1": 1,
+          "LD2": 1,
+          "LD3": 1,
+          "LD4": 0,
+          "LD5": 0,
+          "LD6": 1,
+          "LD7": 1
+        }
+      ],
+      "physical_observation": {
+        "command": [
+          "mise",
+          "run",
+          "fpga",
+          "examples/uart-caesar-plus4.thor"
+        ],
+        "received_hex": "",
+        "samples": [],
+        "host_input_hex": "417a21"
+      }
+    }
+  },
+  "alphanumerics_quantum_trials": [
+    {
+      "quantum": 1,
+      "adapter_fault": 136,
+      "red2_fault": 0,
+      "hw_fault": 3,
+      "microstate": 3,
+      "pc": 31,
+      "fsp": 73,
+      "uart_before_fault": "",
+      "board_cycles": 3072672
+    },
+    {
+      "quantum": 2,
+      "adapter_fault": 136,
+      "red2_fault": 0,
+      "hw_fault": 3,
+      "microstate": 3,
+      "pc": 31,
+      "fsp": 71,
+      "uart_before_fault": "",
+      "board_cycles": 3066136
+    },
+    {
+      "quantum": 5,
+      "adapter_fault": 136,
+      "red2_fault": 0,
+      "hw_fault": 3,
+      "microstate": 3,
+      "pc": 51,
+      "fsp": 63,
+      "uart_before_fault": "",
+      "board_cycles": 1639608
+    },
+    {
+      "quantum": 10,
+      "adapter_fault": 136,
+      "red2_fault": 0,
+      "hw_fault": 3,
+      "microstate": 3,
+      "pc": 44,
+      "fsp": 46,
+      "uart_before_fault": "0",
+      "board_cycles": 1351406
+    },
+    {
+      "quantum": 20,
+      "adapter_fault": 136,
+      "red2_fault": 0,
+      "hw_fault": 3,
+      "microstate": 3,
+      "pc": 42,
+      "fsp": 44,
+      "uart_before_fault": "01",
+      "board_cycles": 2306652
+    }
+  ],
+  "experimental_native_only_patch": {
+    "deployed": false,
+    "qualified": false,
+    "changes": [
+      "route multiword EP-parent returns to generic publication",
+      "route non-inline flat-scan terms to generic publication"
+    ],
+    "result": "alphanumerics printed 0, then failed in JOIN_APP_SCAN; not a complete fix"
+  },
+  "positive_controls": {
+    "single_byte_rx": {
+      "name": "uart-rx",
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=Z cycles=409437 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (UART-RX) (LAMBDA (x) (UART-TX x)))",
+        "quantum": 5,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "UART-TX": 8,
+          "UART-RX": 9,
+          "1-": 10,
+          "1+": 11,
+          "MINUS": 12,
+          "ABS": 13,
+          "FLOOR": 14,
+          "CEILING": 15,
+          "EVEN?": 16,
+          "NULL?": 17,
+          "NOT": 18,
+          "INTEGER?": 19,
+          "FLOAT?": 20,
+          "CHAR?": 21,
+          "SYMBOL?": 22,
+          "+": 23,
+          "-": 24,
+          "*": 25,
+          "/": 26,
+          "<": 27,
+          ">": 28,
+          "<=": 29,
+          ">=": 30,
+          "=": 31,
+          "EXPT": 32,
+          "MAX": 33,
+          "MIN": 34,
+          "MOD": 35,
+          "IF": 36,
+          "AND": 37,
+          "OR": 38,
+          "Y": 39,
+          "IO-THEN": 40,
+          "IO-RETURN": 41,
+          "CLOCK": 42,
+          "UART-TX-BYTES": 43,
+          "TRUE": 44,
+          "FALSE": 45,
+          "NIL": 46,
+          "EQUAL?": 47,
+          "__EQUAL_STAR__": 48,
+          "__EQUAL_IF__": 49,
+          "__EQUALITY_CONTINUE__": 50,
+          "__EQUAL_STUCK__": 51,
+          "__IF_RECONSTRUCT__": 52,
+          "CONS": 53,
+          "__STRUCT_SELECTOR_RESULT__": 54
+        },
+        "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "77e2a0c8785c62af0d618dfc3559dad360b5d73ce32881089a7d824ef88f3d59"
+      }
+    },
+    "two_byte_rx": {
+      "name": "uart-rx-pair",
+      "returncode": 0,
+      "stdout": "progress cycle=0 flash=0 state=0 status=0 pc=0 micro=0 ms=0 UART=\nPASS HALTED UART=AB cycles=985094 CLOCK calls=0\n",
+      "stderr": "",
+      "image": {
+        "source": "(IO-BIND (UART-RX) (LAMBDA (x) (IO-BIND (UART-RX) (LAMBDA (y) (IO-THEN (UART-TX x) (UART-TX y))))))",
+        "quantum": 20,
+        "command_count": 308,
+        "flash_offset": 2228224,
+        "literal_ids": {
+          "CAR": 1,
+          "PAIR": 2,
+          "CDR": 3,
+          "PAIR-CAR": 4,
+          "PAIR-CDR": 5,
+          "IO-BIND": 6,
+          "x": 7,
+          "y": 8,
+          "IO-THEN": 9,
+          "UART-TX": 10,
+          "UART-RX": 11,
+          "1-": 12,
+          "1+": 13,
+          "MINUS": 14,
+          "ABS": 15,
+          "FLOOR": 16,
+          "CEILING": 17,
+          "EVEN?": 18,
+          "NULL?": 19,
+          "NOT": 20,
+          "INTEGER?": 21,
+          "FLOAT?": 22,
+          "CHAR?": 23,
+          "SYMBOL?": 24,
+          "+": 25,
+          "-": 26,
+          "*": 27,
+          "/": 28,
+          "<": 29,
+          ">": 30,
+          "<=": 31,
+          ">=": 32,
+          "=": 33,
+          "EXPT": 34,
+          "MAX": 35,
+          "MIN": 36,
+          "MOD": 37,
+          "IF": 38,
+          "AND": 39,
+          "OR": 40,
+          "Y": 41,
+          "IO-RETURN": 42,
+          "CLOCK": 43,
+          "UART-TX-BYTES": 44,
+          "TRUE": 45,
+          "FALSE": 46,
+          "NIL": 47,
+          "EQUAL?": 48,
+          "__EQUAL_STAR__": 49,
+          "__EQUAL_IF__": 50,
+          "__EQUALITY_CONTINUE__": 51,
+          "__EQUAL_STUCK__": 52,
+          "__IF_RECONSTRUCT__": 53,
+          "CONS": 54,
+          "__STRUCT_SELECTOR_RESULT__": 55
+        },
+        "core_source_sha256": "41a6dc2d2d055f75295c4ab22c24bc34abc442639bb55284a46c48d83b8b2a6a",
+        "format": "RED2FLSH v1; 64-byte header, 91-byte little-endian ABI commands",
+        "sha256": "388adbf176d1acb6f72b39fac7dd48c49f5ba8e006b43faf98ab8a143c9cc7f0"
+      }
+    },
+    "clock_dots_restored": {
+      "passed": true,
+      "observation": {
+        "received_hex": "2e2e2e",
+        "samples": [
+          {
+            "seconds": 9.706242,
+            "hex": "2e"
+          },
+          {
+            "seconds": 13.769997,
+            "hex": "2e"
+          },
+          {
+            "seconds": 16.841887,
+            "hex": "2e"
+          }
+        ],
+        "host_uart_bytes_written": 0,
+        "scope": "raw UART observation; no host clock values or runtime commands"
+      }
+    }
+  },
+  "abstract_reference": [
+    {
+      "name": "uart-alphanumerics",
+      "command": [
+        "uv",
+        "run",
+        "abs",
+        "examples/uart-alphanumerics.thor",
+        "--quantum",
+        "5",
+        "--supervise",
+        "--max-quanta",
+        "1000",
+        "--memory-words",
+        "256"
+      ],
+      "returncode": 0,
+      "stdout": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n",
+      "stderr": "",
+      "expected": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n",
+      "passed": true
+    },
+    {
+      "name": "uart-caesar-plus4",
+      "command": [
+        "uv",
+        "run",
+        "abs",
+        "examples/uart-caesar-plus4.thor",
+        "--quantum",
+        "5",
+        "--supervise",
+        "--max-quanta",
+        "1000",
+        "--memory-words",
+        "256"
+      ],
+      "returncode": 0,
+      "stdout": "Ed09!",
+      "stderr": "",
+      "expected": "Ed09!",
+      "passed": true
+    }
+  ],
+  "engine_fix_remaining": true,
+  "files_sha256": {
+    "build/red2-uart-examples/abstract-reference.json": "5c9cb20d7540d74f5d8f2687a5aa47a3abd4e511ac8ea20ac6dc9ebeac8e5ed1",
+    "build/red2-uart-examples/alphanumerics-q1-detail.log": "344b7abc0b6cfc160be8f3298ce26f806be0f4cbea5dffbc5d91e33547743f43",
+    "build/red2-uart-examples/alphanumerics-q10-detail.log": "6accedd2dc9663c6c7e3666ad8baf09b345d58deb8230a8848f0334d62ecab4b",
+    "build/red2-uart-examples/alphanumerics-q2-detail.log": "75d1628259509a729a8e87cdfde530e6aaef3c5c865c17d14a07ee203b25b1d3",
+    "build/red2-uart-examples/alphanumerics-q20-detail.log": "e2def25e464a9c11ac1c34d68a3f6e6e8f8bb1ab5178a868340927e76a108b80",
+    "build/red2-uart-examples/alphanumerics-q5.log": "e4c32c8b22f5f1d80ffbb135a8aebbc552ea40aae9cb342baa9f1ec755b5ee27",
+    "build/red2-uart-examples/caesar-original-q5.log": "ba9e3ddfb985828fc2c724dccc6c4af2da2e8b01412c8ddfc6c03acff95676ea",
+    "build/red2-uart-examples/candidate.py": "1516ab00abbd52fef573c9ea56fb2c62e1488cd5308187ec6f4c36cf6ff4433d",
+    "build/red2-uart-examples/diagnostic.cpp": "0b56c42f52351cb063d698914593bc6866baa37f85350366abc14038004e07fa",
+    "build/red2-uart-examples/native-alphanumerics-candidate.log": "4d791060794b83037b3b9991bb88d8ccb9dec489c0d497dc7d4607650a0d5124",
+    "build/red2-uart-examples/native-alphanumerics-detail.log": "926364c4cb3535e39435d03c2387a4db794d1de8a92f24713a8e8a5e6e8d1eaa",
+    "build/red2-uart-examples/native-alphanumerics-q5.log": "6aa945599c41f24f5e3557af46285d6a08835bc46f0172cb6fd82959e80e68ae",
+    "build/red2-uart-examples/native-caesar-q5.log": "4aef841c1d8c8f2abd3a77749164d0816e39318415f2943fe9968a40c17572a2",
+    "build/red2-uart-examples/native-repro.py": "ff93b988b4db5a8e65aa0e6b09ba75c9bc9f758ecbf0127c2c815a431a4c0b70",
+    "build/red2-uart-examples/physical-alphanumerics-original-q5.json": "1260dc51ab3f3ca0ffdf2216375f7772337b5ce997cd24284463fad215b3dfd6",
+    "build/red2-uart-examples/physical-alphanumerics-status.log": "a428a0027d15bfaf17fd0e6ada710982924d896b675ad0057ec269d399fae1ee",
+    "build/red2-uart-examples/physical-caesar-original-q5.json": "c3b32aef265176f13431561c87c7bd39c39f7ebd955057c05574125a8490559f",
+    "build/red2-uart-examples/physical-caesar-status.log": "9e28f3aeb0a5459a4cd39324f75263f14020b3aa5ec55309828beec4e2537af0",
+    "build/red2-uart-examples/restored-clock-dots.json": "66fa5f05a436bd847b598fad582f90fa55e3671c0b7b583a717ead3d50c8ba80",
+    "build/red2-uart-examples/rtl-alphanumerics/build.log": "446a11917b274a36afb5a16d4e4d7cf529ccc3ef65ce51bc2eca54da753f1415",
+    "build/red2-uart-examples/rtl-alphanumerics/make.log": "82fc4ab76c81de30a1be34edf648d469c2069a9fb8c3d821c7bfee9ac88aaf1f",
+    "build/red2-uart-examples/rtl-alphanumerics/model-inputs.json": "e444558c71ee133a86440a73cd400df8ff78d0cc1d4654cd8ce574c4f4e422b9",
+    "build/red2-uart-examples/rtl-alphanumerics/relink.log": "6dfec923d95b6cff131c9971856376b8132f2f4f444d480532b37b12209d16fe",
+    "build/red2-uart-examples/rtl-alphanumerics/results.json": "9071a979ca627600391d5421ae5731bbc5abe63414e0209875690cba1346ce2a",
+    "build/red2-uart-examples/rtl-alphanumerics/uart-alphanumerics.log": "ae9048a1873c3fe2bb43e60b7298185c1bc33a720c369ee4d38c906c96fed6e1",
+    "build/red2-uart-examples/rtl-alphanumerics-driver.log": "195f60a470fb35fdaa350f6a2f54f0e199760c8156b3eaee4631e05010e775d0",
+    "build/red2-uart-examples/rtl-alphanumerics-final/model-inputs.json": "e444558c71ee133a86440a73cd400df8ff78d0cc1d4654cd8ce574c4f4e422b9",
+    "build/red2-uart-examples/rtl-alphanumerics-final/results.json": "0868a653015d5b5582f497851edc560bb0f38f292b5338780a57d4438682b242",
+    "build/red2-uart-examples/rtl-alphanumerics-final/uart-alphanumerics.log": "e59d879503b1abdd003eb9f1a7f1ab3064d119ec7efd24cc8b90d6332e3eb259",
+    "build/red2-uart-examples/rtl-alphanumerics-final-driver.log": "10b3388411430b4a44a38f0eb9abd8212b0444cf7e130b29b797e3963e7e6abb",
+    "build/red2-uart-examples/rtl-caesar/model-inputs.json": "3c8f9865bc0d6a8925512fc4aa340a5f382222044df13546d205120d99f79bfa",
+    "build/red2-uart-examples/rtl-caesar/results.json": "771a0afc95b2c34f4b560ad40e4684dd1e4a37bada6b43ff3777cbd37ab7f0d6",
+    "build/red2-uart-examples/rtl-caesar/uart-caesar-plus4.log": "6e2dc3f41b2c8cf44f0f66882199365a883314fa94e796be85e226d2e778cd56",
+    "build/red2-uart-examples/rtl-caesar-driver.log": "56a3a02ea3f0dd529d41e752f1a8ec4d5fa9eef4c91bdd7fef26294069b7aa84",
+    "build/red2-uart-examples/rtl-rx-pair/model-inputs.json": "e444558c71ee133a86440a73cd400df8ff78d0cc1d4654cd8ce574c4f4e422b9",
+    "build/red2-uart-examples/rtl-rx-pair/results.json": "f69ed77cae1088674cd68c49c3e4a624b4e2b520a5720dedc2cc7f48a7624b32",
+    "build/red2-uart-examples/rtl-rx-pair/uart-rx-pair.log": "84831ab635d3d1457b901a02599fd1262cb4a832f857a7e66ff047f6cfa13129",
+    "build/red2-uart-examples/rtl-rx-pair-driver.log": "d148f1a72f3f38f91791c51861866240f4c1a08023367146e0886fec25fe9a0c",
+    "build/red2-uart-examples/rtl-rx-smoke/model-inputs.json": "3c8f9865bc0d6a8925512fc4aa340a5f382222044df13546d205120d99f79bfa",
+    "build/red2-uart-examples/rtl-rx-smoke/results.json": "5dcbfa51e87e6fbbbdb539b2fc89506dc7cf99872b54bb8ceb78678f4da63f13",
+    "build/red2-uart-examples/rtl-rx-smoke/uart-rx.log": "5495a4e54e1007e43a405ba7bdcfd3e274f05a9d43408279cba19c02c3f6e292",
+    "build/red2-uart-examples/rtl-rx-smoke-driver.log": "5733b6355c54933f50f67174e77cde47a5fcc2f866e6a9b83acbbbd8645d9bd7",
+    "examples/clock-dots.thor": "8479648d52a6cbdc88bd0e56dade31b1f597db0ff2849aa98a851c6612ec812f",
+    "examples/uart-alphanumerics.thor": "25621920d84a604fc871ebe4b06f90965f1d7b1d800006651b95b7555a96f81d",
+    "examples/uart-caesar-plus4.thor": "a167758deb893515bcfa7893fe6fbcd43729f6f07c72b4807d576fd02232217b",
+    "scripts/boards/red2_standalone/check.py": "2914a80f2dc5ebef1e50fdba7e1b02294baabf7fb222a1c8b2e0a398c41d1d58",
+    "scripts/boards/red2_standalone/run.py": "6c7fe7c4e7a307afc389f8550fd4576ee2522f4c9d88c6d20502dcc17013a14c",
+    "scripts/boards/red2_standalone/sim.cpp": "dfe1518854fd9173123e420754a179effc768e8caffd9c55351d94fc81fe3c21"
+  }
+}

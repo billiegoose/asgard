@@ -8,22 +8,25 @@
 #include <vector>
 
 int main(int argc,char**argv) {
-    if(argc!=4) return 2;
+    if(argc!=4 && argc!=5) return 2;
     std::ifstream input(argv[1],std::ios::binary);
     std::vector<unsigned char> image((std::istreambuf_iterator<char>(input)),{});
     std::string expected=argv[2],mode=argv[3],seen;
+    std::string incoming=argc==5?argv[4]:"Z";
     Vstandalone_sim_top dut;
     size_t cursor=0;bool streaming=false;uint64_t last_clock=0;unsigned clocks=0;
     bool was_running=false;uint64_t run_cycles=0;unsigned pending_host=0;
     unsigned last_restart=0,peak_residual=0;
+    unsigned previous_microstate=0;
     for(uint64_t cycle=0;cycle<300000000;cycle++) {
         dut.clk=0;dut.reset=cycle<8;dut.rx=1;
-        if(mode=="rx" && was_running) {
-            // A real 8N1 Z byte, delayed to allow the program to enter UART-RX.
+        if((mode=="rx" || mode=="rx-halt" || mode=="rx-stream") && was_running) {
+            // Real 8N1 input, buffered while the reducer computes between reads.
             uint64_t t=run_cycles;
-            if(t>=1000 && t<1040) {
-                unsigned bit=(t-1000)/4;
-                dut.rx=bit==0?0:bit==9?1:((90>>(bit-1))&1);
+            if(t>=1000 && (t-1000)/100<incoming.size() && (t-1000)%100<40) {
+                unsigned bit=((t-1000)%100)/4;
+                unsigned byte=static_cast<unsigned char>(incoming[(t-1000)/100]);
+                dut.rx=bit==0?0:bit==9?1:((byte>>(bit-1))&1);
             }
         }
         dut.flash_valid=streaming && cursor<image.size();
@@ -57,8 +60,8 @@ int main(int argc,char**argv) {
         if(dut.observed_valid) {
             seen.push_back(char(dut.observed_data));
             if(seen!=expected.substr(0,seen.size())) {std::cerr<<"UART mismatch\n";return 1;}
-            if(seen==expected && mode=="stream") {
-                if(dut.restarts<2) {std::cerr<<"too few quantum restarts\n";return 1;}
+            if(seen==expected && (mode=="stream" || mode=="rx-stream")) {
+                if(mode=="stream" && dut.restarts<2) {std::cerr<<"too few quantum restarts\n";return 1;}
                 std::cout<<"PASS UART="<<seen<<" cycles="<<cycle<<" CLOCK calls="<<clocks
                          <<" ms="<<dut.milliseconds<<" pc="<<dut.pc<<" fsp="<<dut.fsp
                          <<" restarts="<<dut.restarts<<" residual="<<dut.residual_words
@@ -78,8 +81,10 @@ int main(int argc,char**argv) {
             std::cerr<<"FAULT="<<unsigned(dut.fault)<<" core="<<unsigned(dut.red2_fault)
                      <<" hw="<<unsigned(dut.hw_fault)
                      <<" micro="<<unsigned(dut.microstate)<<" pc="<<dut.pc<<" fsp="<<dut.fsp
+                     <<" previous_micro="<<previous_microstate
                      <<" after UART="<<seen<<" cycle="<<cycle<<"\n";return 1;
         }
+        if(dut.running && dut.microstate!=3) previous_microstate=dut.microstate;
         if(dut.halted && mode!="stream") {
             if(seen!=expected) {std::cerr<<"halted before expected UART\n";return 1;}
             std::cout<<"PASS HALTED UART="<<seen<<" cycles="<<cycle<<" CLOCK calls="<<clocks<<"\n";return 0;

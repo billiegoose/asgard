@@ -64,6 +64,7 @@ def main():
         "prepared": str(prepared),
         "image_sha256": metadata["sha256"],
         "flash_offset": FLASH_OFFSET,
+        "scope": "verified flash write and reset; runtime not observed",
         "passed": False,
         "stages": [],
     }
@@ -94,7 +95,7 @@ def main():
         receipt["finished_at_utc"] = datetime.datetime.now(datetime.UTC).isoformat()
         (output / "deployment.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print("Program stored in flash; FPGA restarted to load it.")
-    print("UART output: 115200 baud, 8N1. The program runs without a host connection.")
+    print("UART: 115200 baud, 8N1. LD4 running; LD5 halted; LD6 runtime fault.")
 
 
 if __name__ == "__main__":

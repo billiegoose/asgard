@@ -104,6 +104,41 @@ By default the task uses `build/red2-basys3-standalone-quantum-v6-seed2`; pass
 artifacts and mapped core must be available locally. The task assumes the matching
 hardware is already installed; use the full deployment below to install hardware.
 
+### Current program compatibility
+
+`clock-dots` has passed sustained physical execution. The simple UART send/receive
+fixtures also pass frontend RTL tests, but the full `uart-alphanumerics.thor` and
+`uart-caesar-plus4.thor` examples currently fault in the installed v6 reducer.
+Successful flash programming does not establish that a program will execute.
+Check LD6 when a program produces no UART output.
+
+Both full examples expose missing graph-publication cases during exhausted-quantum
+reconstruction, reported as `HW_FAULT_EXECUTION_NOT_IMPLEMENTED`. Alphanumerics
+first fails when a multiword result is returned through an EP parent; Caesar first
+fails in `MICRO_JOIN_FLAT_SCAN` after receiving input. These are reducer coverage
+gaps, not serial-terminal settings. Increasing quantum delays the alphanumerics
+failure but does not fix it. The investigation and reproduction commands are in
+`docs/handoffs/red2-uart-examples-diagnosis.md`.
+
+To exercise these currently unqualified programs in frontend RTL simulation:
+
+```sh
+.venv/bin/python scripts/boards/red2_standalone/check.py \
+  --output build/red2-uart-alphanumerics --case uart-alphanumerics
+.venv/bin/python scripts/boards/red2_standalone/check.py \
+  --output build/red2-uart-caesar --reuse-model build/red2-uart-alphanumerics \
+  --case uart-caesar-plus4
+```
+
+These checks require the actual expected output and normal termination; they fail
+on the current reducer. The Caesar test injects real serial bits for `Az09!` and
+ESC, expecting `Ed09!` followed by halt. `--uart-examples` includes both programs
+alongside the existing smoke cases. Ordinary smoke qualification keeps its
+previous cases and adds a two-byte receive/echo check; this must not be
+interpreted as full-program coverage.
+
+### Installing hardware
+
 Prepare and build the board from the recorded, validated core, then compile its
 program:
 
