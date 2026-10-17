@@ -77,6 +77,33 @@ must not leave environment-dependent branches in the residual graph.
 
 ## Build and deploy
 
+Once the standalone hardware is installed, replace just its THOR program with:
+
+```sh
+mise run fpga examples/clock-dots.thor
+mise run fpga examples/clock-dots.thor --quantum 5 --compile-only
+```
+
+The task compiles and checks the image against the qualified board build, uses
+the pinned `tools/fpgatool` submodule's `program-data` command to write and verify
+it at `0x220000`, then resets configuration to load it. Both compilation and image
+checks finish before any flash write. The installed hardware configuration stays
+in flash, and the new program persists across power cycles. No hardware synthesis
+or host runtime is involved. Attach only one Basys 3 when programming.
+
+The task defaults to quantum **5** for the current 256-word graph. Override with
+`--quantum N`; a larger budget can exhaust the graph before reconstruction finishes.
+`--compile-only` saves and validates the image without accessing hardware.
+Images, compiler metadata and programming receipts are kept in unique directories
+under `build/red2-standalone/programs/`. Programming success means the flash was
+verified and configuration reset succeeded; program behavior is checked separately
+by observing its UART or status LEDs.
+
+By default the task uses `build/red2-basys3-standalone-quantum-v6-seed2`; pass
+`--prepared PATH` for another qualified, compatible standalone build. Its build
+artifacts and mapped core must be available locally. The task assumes the matching
+hardware is already installed; use the full deployment below to install hardware.
+
 Prepare and build the board from the recorded, validated core, then compile its
 program:
 

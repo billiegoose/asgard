@@ -148,10 +148,21 @@ uv run thor --expr "(+ 2 3)" --quantum 20
 uv run abs --expr "(+ 2 3)" --quantum 20
 mise run thor examples/hangman.thor --quantum 5000
 mise run abs examples/hangman.thor --quantum 5000
+mise run fpga examples/clock-dots.thor
 mise run parity examples/fibonacci.thor --quantum 75
 mise run hdl examples/hangman.thor
 mise run verify
 ```
+
+`mise run fpga <file>` compiles a program for the installed standalone Basys 3
+machine, programs and verifies its data flash through fpgatool, and restarts the
+FPGA to load it. The program persists across power cycles. This requires the
+standalone hardware to have already been flashed and its qualified build artifacts
+to be available; it does not rebuild hardware. The current graph holds 256 words
+and defaults to quantum 5. Use `--quantum N` to change the budget, or
+`--compile-only` to check a program without touching the board. See the
+[standalone board guide](scripts/boards/red2_standalone/README.md) for setup and
+limits.
 
 Successful executable model tasks write simulated UART/device output to stdout
 and are quiet on stderr by default. Add `--verbose` to `mise run thor`, `abs`, `con`, `syn`
